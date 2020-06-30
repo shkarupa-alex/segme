@@ -19,7 +19,7 @@
 #
 #
 # @keras_parameterized.run_all_keras_modes
-# class TestDeepLabV3Plus(keras_parameterized.TestCase):
+# class TestSigmoidCalibratedFocalCrossEntropy(keras_parameterized.TestCase):
 #     def test_config(self):
 #         bce_obj = SigmoidCalibratedFocalCrossEntropy(
 #             reduction=tf.keras.losses.Reduction.NONE,

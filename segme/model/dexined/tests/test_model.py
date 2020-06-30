@@ -13,7 +13,7 @@ class TestDexiNed(keras_parameterized.TestCase):
         layer_multi_io_test(
             DexiNed,
             kwargs={},
-            input_shapes=[[2, 224, 224, 3]],
+            input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
             expected_output_dtypes=['float32'] * 7
         )

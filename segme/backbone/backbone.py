@@ -148,7 +148,7 @@ class Backbone(layers.Layer):
         # 'nasnetlarge': unable to find right nodes in tree
         # 'nasnetmobile': unable to find right nodes in tree
 
-        # # ResNets
+        # ResNets
         'resnet_50': (core.ResNet50, (
             None, 'conv1_relu', 'conv2_block3_out', 'conv3_block4_out',
             'conv4_block6_out', 'conv5_block3_out'

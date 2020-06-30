@@ -2,6 +2,7 @@ from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .encoder import DeepLabV3PlusEncoder
 from .decoder import DeepLabV3PlusDecoder
+from ...common import ClassificationHead
 
 
 @utils.register_keras_serializable(package='SegMe')
@@ -20,7 +21,6 @@ class DeepLabV3Plus(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
         self.classes = classes
-        self._classes = self.classes if self.classes > 2 else 1
         self.bone_arch = bone_arch
         self.bone_init = bone_init
         self.bone_freeze = bone_freeze
@@ -35,23 +35,20 @@ class DeepLabV3Plus(layers.Layer):
             self.bone_arch, self.bone_init, self.bone_freeze,
             self.aspp_filters, self.aspp_stride)
         self.dec = DeepLabV3PlusDecoder(self.low_filters, self.decoder_filters)
-
-        activation = 'softmax' if self.classes > 2 else 'sigmoid'
-        self.pred = layers.Conv2D(
-            self._classes, 1, padding='same', activation=activation)
+        self.head = ClassificationHead(self.classes)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         low_feats, high_feats = self.enc(inputs)
         outputs = self.dec([inputs, low_feats, high_feats])
-        outputs = self.pred(outputs)
+        outputs = self.head(outputs)
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self._classes,)
+        return self.head.compute_output_shape(input_shape)
 
     def get_config(self):
         config = super().get_config()

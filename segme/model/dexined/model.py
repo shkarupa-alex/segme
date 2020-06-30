@@ -32,29 +32,20 @@ class DexiNed(layers.Layer):
         self.maxpool = layers.MaxPool2D(pool_size=3, strides=2, padding='same')
 
         # first skip connection
-        self.side_1 = DexiNedSingleConvBlock(
-            128, kernel_size=1, stride=2, weight_norm=True)
-        self.side_2 = DexiNedSingleConvBlock(
-            256, kernel_size=1, stride=2, weight_norm=True)
-        self.side_3 = DexiNedSingleConvBlock(
-            512, kernel_size=1, stride=2, weight_norm=True)
-        self.side_4 = DexiNedSingleConvBlock(
-            512, kernel_size=1, stride=1, weight_norm=True)
+        self.side_1 = DexiNedSingleConvBlock(128, stride=2)
+        self.side_2 = DexiNedSingleConvBlock(256, stride=2)
+        self.side_3 = DexiNedSingleConvBlock(512, stride=2)
+        self.side_4 = DexiNedSingleConvBlock(512)
 
         self.pre_dense_2 = DexiNedSingleConvBlock(
-            256, kernel_size=1, stride=2)  # use_bn=True
-        self.pre_dense_3 = DexiNedSingleConvBlock(
-            256, kernel_size=1, stride=1, weight_norm=True)
-        self.pre_dense_4 = DexiNedSingleConvBlock(
-            512, kernel_size=1, stride=1, weight_norm=True)
+            256, stride=2, weight_norm=False)
+        self.pre_dense_3 = DexiNedSingleConvBlock(256)
+        self.pre_dense_4 = DexiNedSingleConvBlock(512)
         self.pre_dense_5_0 = DexiNedSingleConvBlock(
-            512, kernel_size=1, stride=2)  # use_bn=True
-        self.pre_dense_5 = DexiNedSingleConvBlock(
-            512, kernel_size=1, stride=1, weight_norm=True)
-        self.pre_dense_6 = DexiNedSingleConvBlock(
-            256, kernel_size=1, stride=1, weight_norm=True)
+            512, stride=2, weight_norm=False)
+        self.pre_dense_5 = DexiNedSingleConvBlock(512)
+        self.pre_dense_6 = DexiNedSingleConvBlock(256)
 
-        # bias_initializer = tf.constant_initializer(-1.996)
         self.up_block_1 = DexiNedUpConvBlock(1)
         self.up_block_2 = DexiNedUpConvBlock(1)
         self.up_block_3 = DexiNedUpConvBlock(2)
@@ -62,10 +53,9 @@ class DexiNed(layers.Layer):
         self.up_block_5 = DexiNedUpConvBlock(4)
         self.up_block_6 = DexiNedUpConvBlock(4)
 
-        # bias_initializer = tf.constant_initializer(-1.996)
         self.block_cat = DexiNedSingleConvBlock(
-            1, kernel_size=1, stride=1,
-            kernel_initializer=tf.constant_initializer(1 / 5))  # TODO
+            1, weight_norm=False,
+            kernel_initializer=tf.constant_initializer(1 / 5))
 
     def call(self, inputs, **kwargs):
         x = self.prep(inputs)
@@ -121,9 +111,16 @@ class DexiNed(layers.Layer):
         block_cat = layers.concatenate(scales)  # BxHxWX6
         block_cat = self.block_cat(block_cat)  # BxHxWX1
 
-        outputs = [layers.Activation('sigmoid', name='scale{}'.format(i))(out)
-                   for i, out in enumerate(scales)] + \
-                  [layers.Activation('sigmoid', name='fused')(block_cat)]
+        outputs = []
+        for i, out in enumerate(scales):
+            outputs.append(layers.Activation(
+                'sigmoid',
+                dtype='float32',  # fp16
+                name='scale{}'.format(i))(out))
+        outputs.append(layers.Activation(
+            'sigmoid',
+            dtype='float32',  # fp16
+            name='fused')(block_cat))
 
         return outputs
 
