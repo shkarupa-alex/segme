@@ -16,8 +16,7 @@ class UpBySample2D(layers.Layer):
         targets, samples = inputs
 
         size_before = tf.shape(samples)[1:3]
-        upsampled = tf.compat.v1.image.resize(
-            targets, size_before, method='bilinear', align_corners=True)
+        upsampled = tf.compat.v1.image.resize(targets, size_before, method='bilinear', align_corners=True)
 
         return upsampled
 
@@ -26,3 +25,7 @@ class UpBySample2D(layers.Layer):
         targets_shape, samples_shape = input_shape
 
         return samples_shape[:-1] + (targets_shape[-1],)
+
+
+def up_by_sample_2d(inputs, **kwargs):
+    return UpBySample2D(**kwargs)(inputs)
