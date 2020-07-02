@@ -3,8 +3,8 @@ from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe')
-class DexiNedDenseBlock(layers.Layer):
+@utils.register_keras_serializable(package='SegMe>DexiNed')
+class DenseBlock(layers.Layer):
     def __init__(self, num_layers, out_features, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [

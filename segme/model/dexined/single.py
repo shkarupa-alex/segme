@@ -4,8 +4,8 @@ from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe')
-class DexiNedSingleConvBlock(layers.Layer):
+@utils.register_keras_serializable(package='SegMe>DexiNed')
+class SingleConvBlock(layers.Layer):
     def __init__(
             self, out_features, kernel_size=1, stride=1, weight_norm=True,
             kernel_initializer='glorot_uniform', **kwargs):
@@ -44,8 +44,7 @@ class DexiNedSingleConvBlock(layers.Layer):
             'kernel_size': self.kernel_size,
             'stride': self.stride,
             'weight_norm': self.weight_norm,
-            'kernel_initializer': tf.keras.initializers.serialize(
-                self.kernel_initializer),
+            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
         })
 
         return config

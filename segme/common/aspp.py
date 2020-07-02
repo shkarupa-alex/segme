@@ -2,11 +2,11 @@ import tensorflow as tf
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .atsepconv import AtrousSepConv2D
-from .upsample import UpBySample2D
+from .upbysample import up_by_sample_2d
 
 
 @utils.register_keras_serializable(package='SegMe')
-class ASPPPool(layers.Layer):
+class ASPPPool2D(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
@@ -16,19 +16,18 @@ class ASPPPool(layers.Layer):
     def build(self, input_shape):
         self.pool = Sequential([
             layers.GlobalAveragePooling2D(),
-            layers.Lambda(  # (batch, channels) -> (batch, 1, 1, channels)
-                lambda pooled: tf.expand_dims(tf.expand_dims(pooled, 1), 1)),
+            # (batch, channels) -> (batch, 1, 1, channels)
+            layers.Lambda(lambda pooled: tf.expand_dims(tf.expand_dims(pooled, 1), 1)),
             layers.Conv2D(self.filters, 1, padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU()
         ])
-        self.upsamp = UpBySample2D()
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         outputs = self.pool(inputs)
-        outputs = self.upsamp([outputs, inputs])
+        outputs = up_by_sample_2d([outputs, inputs])
 
         return outputs
 
@@ -44,7 +43,7 @@ class ASPPPool(layers.Layer):
 
 
 @utils.register_keras_serializable(package='SegMe')
-class ASPP(layers.Layer):
+class ASPP2D(layers.Layer):
     _stride_rates = {
         8: [12, 24, 36],
         16: [6, 12, 18],
@@ -75,8 +74,7 @@ class ASPP(layers.Layer):
             layers.BatchNormalization(),
             layers.ReLU()
         ], name='aspp0')
-        self.pool = ASPPPool(self.filters, name='aspp4')
-        self.concat = layers.Concatenate()
+        self.pool = ASPPPool2D(self.filters, name='aspp4')
         self.proj = Sequential([
             layers.Conv2D(self.filters, 1, padding='same', use_bias=False),
             layers.BatchNormalization(),
@@ -87,14 +85,13 @@ class ASPP(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs = [
+        outputs = layers.concatenate([
             self.conv1(inputs),
             self.conv3r0(inputs),
             self.conv3r1(inputs),
             self.conv3r2(inputs),
             self.pool(inputs)
-        ]
-        outputs = self.concat(outputs)
+        ])
         outputs = self.proj(outputs)
 
         return outputs

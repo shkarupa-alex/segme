@@ -4,8 +4,8 @@ from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe')
-class DexiNedUpConvBlock(layers.Layer):
+@utils.register_keras_serializable(package='SegMe>DexiNed')
+class UpConvBlock(layers.Layer):
     def __init__(self, up_scale, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)

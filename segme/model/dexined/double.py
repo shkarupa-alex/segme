@@ -3,10 +3,9 @@ from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe')
-class DexiNedDoubleConvBlock(layers.Layer):
-    def __init__(
-            self, mid_features, out_features=None, stride=1, **kwargs):
+@utils.register_keras_serializable(package='SegMe>DexiNed')
+class DoubleConvBlock(layers.Layer):
+    def __init__(self, mid_features, out_features=None, stride=1, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
         self.mid_features = mid_features

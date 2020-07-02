@@ -2,10 +2,10 @@ import tensorflow as tf
 from tensorflow.keras import layers, utils
 from tensorflow.keras.applications.imagenet_utils import preprocess_input
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from .dense import DexiNedDenseBlock
-from .upconv import DexiNedUpConvBlock
-from .single import DexiNedSingleConvBlock
-from .double import DexiNedDoubleConvBlock
+from .dense import DenseBlock
+from .upconv import UpConvBlock
+from .single import SingleConvBlock
+from .double import DoubleConvBlock
 
 
 @utils.register_keras_serializable(package='SegMe')
@@ -19,43 +19,39 @@ class DexiNed(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.prep = layers.Lambda(
-            lambda img: preprocess_input(
-                tf.cast(img, tf.float32), 'channels_last', 'tf'),
-            name='preprocess')
+            lambda img: preprocess_input(tf.cast(img, tf.float32), 'channels_last', 'tf'), name='preprocess')
 
-        self.block_1 = DexiNedDoubleConvBlock(32, 64, stride=2)
-        self.block_2 = DexiNedDoubleConvBlock(128)
-        self.dblock_3 = DexiNedDenseBlock(2, 256)
-        self.dblock_4 = DexiNedDenseBlock(3, 512)
-        self.dblock_5 = DexiNedDenseBlock(3, 512)
-        self.dblock_6 = DexiNedDenseBlock(3, 256)
+        self.block_1 = DoubleConvBlock(32, 64, stride=2)
+        self.block_2 = DoubleConvBlock(128)
+        self.dblock_3 = DenseBlock(2, 256)
+        self.dblock_4 = DenseBlock(3, 512)
+        self.dblock_5 = DenseBlock(3, 512)
+        self.dblock_6 = DenseBlock(3, 256)
         self.maxpool = layers.MaxPool2D(pool_size=3, strides=2, padding='same')
 
         # first skip connection
-        self.side_1 = DexiNedSingleConvBlock(128, stride=2)
-        self.side_2 = DexiNedSingleConvBlock(256, stride=2)
-        self.side_3 = DexiNedSingleConvBlock(512, stride=2)
-        self.side_4 = DexiNedSingleConvBlock(512)
+        self.side_1 = SingleConvBlock(128, stride=2)
+        self.side_2 = SingleConvBlock(256, stride=2)
+        self.side_3 = SingleConvBlock(512, stride=2)
+        self.side_4 = SingleConvBlock(512)
 
-        self.pre_dense_2 = DexiNedSingleConvBlock(
-            256, stride=2, weight_norm=False)
-        self.pre_dense_3 = DexiNedSingleConvBlock(256)
-        self.pre_dense_4 = DexiNedSingleConvBlock(512)
-        self.pre_dense_5_0 = DexiNedSingleConvBlock(
-            512, stride=2, weight_norm=False)
-        self.pre_dense_5 = DexiNedSingleConvBlock(512)
-        self.pre_dense_6 = DexiNedSingleConvBlock(256)
+        self.pre_dense_2 = SingleConvBlock(256, stride=2, weight_norm=False)
+        self.pre_dense_3 = SingleConvBlock(256)
+        self.pre_dense_4 = SingleConvBlock(512)
+        self.pre_dense_5_0 = SingleConvBlock(512, stride=2, weight_norm=False)
+        self.pre_dense_5 = SingleConvBlock(512)
+        self.pre_dense_6 = SingleConvBlock(256)
 
-        self.up_block_1 = DexiNedUpConvBlock(1)
-        self.up_block_2 = DexiNedUpConvBlock(1)
-        self.up_block_3 = DexiNedUpConvBlock(2)
-        self.up_block_4 = DexiNedUpConvBlock(3)
-        self.up_block_5 = DexiNedUpConvBlock(4)
-        self.up_block_6 = DexiNedUpConvBlock(4)
+        self.up_block_1 = UpConvBlock(1)
+        self.up_block_2 = UpConvBlock(1)
+        self.up_block_3 = UpConvBlock(2)
+        self.up_block_4 = UpConvBlock(3)
+        self.up_block_5 = UpConvBlock(4)
+        self.up_block_6 = UpConvBlock(4)
 
-        self.block_cat = DexiNedSingleConvBlock(
-            1, weight_norm=False,
-            kernel_initializer=tf.constant_initializer(1 / 5))
+        self.block_cat = SingleConvBlock(1, weight_norm=False, kernel_initializer=tf.constant_initializer(1 / 5))
+
+        super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         x = self.prep(inputs)
@@ -79,8 +75,7 @@ class DexiNed(layers.Layer):
 
         # Block 4
         block_4_pre_dense_256 = self.pre_dense_2(block_2_down)
-        block_4_pre_dense = self.pre_dense_4(layers.add([
-            block_4_pre_dense_256, block_3_down]))
+        block_4_pre_dense = self.pre_dense_4(layers.add([block_4_pre_dense_256, block_3_down]))
         block_4, _ = self.dblock_4([block_3_add, block_4_pre_dense])
         block_4_down = self.maxpool(block_4)
         block_4_add = block_4_down + block_3_side
@@ -88,8 +83,7 @@ class DexiNed(layers.Layer):
 
         # Block 5
         block_5_pre_dense_512 = self.pre_dense_5_0(block_4_pre_dense_256)
-        block_5_pre_dense = self.pre_dense_5(layers.add([
-            block_5_pre_dense_512, block_4_down]))
+        block_5_pre_dense = self.pre_dense_5(layers.add([block_5_pre_dense_512, block_4_down]))
         block_5, _ = self.dblock_5([block_4_add, block_5_pre_dense])
         block_5_add = layers.add([block_5, block_4_side])
 
@@ -111,16 +105,7 @@ class DexiNed(layers.Layer):
         block_cat = layers.concatenate(scales)  # BxHxWX6
         block_cat = self.block_cat(block_cat)  # BxHxWX1
 
-        outputs = []
-        for i, out in enumerate(scales):
-            outputs.append(layers.Activation(
-                'sigmoid',
-                dtype='float32',  # fp16
-                name='scale{}'.format(i))(out))
-        outputs.append(layers.Activation(
-            'sigmoid',
-            dtype='float32',  # fp16
-            name='fused')(block_cat))
+        outputs = [layers.Activation('sigmoid', dtype='float32')(ot) for ot in scales + [block_cat]]  # fp16
 
         return outputs
 
