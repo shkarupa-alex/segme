@@ -4,7 +4,7 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
 @utils.register_keras_serializable(package='SegMe')
-class UpBySample2D(layers.Layer):
+class UpBySample(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
@@ -27,5 +27,5 @@ class UpBySample2D(layers.Layer):
         return samples_shape[:-1] + (targets_shape[-1],)
 
 
-def up_by_sample_2d(inputs, **kwargs):
-    return UpBySample2D(**kwargs)(inputs)
+def UpBySample_2d(inputs, **kwargs):
+    return UpBySample(**kwargs)(inputs)

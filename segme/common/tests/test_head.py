@@ -1,13 +1,13 @@
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized, testing_utils
-from ..head import ClassificationHead2D, RegressionHead2D
+from ..head import ClassificationHead, RegressionHead
 
 
 @keras_parameterized.run_all_keras_modes
-class TestClassificationHead2D(keras_parameterized.TestCase):
+class TestClassificationHead(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
-            ClassificationHead2D,
+            ClassificationHead,
             kwargs={'classes': 2},
             input_shape=[2, 16, 16, 3],
             input_dtype='float32',
@@ -15,7 +15,7 @@ class TestClassificationHead2D(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
         testing_utils.layer_test(
-            ClassificationHead2D,
+            ClassificationHead,
             kwargs={'classes': 4},
             input_shape=[2, 16, 16, 3],
             input_dtype='float16',
@@ -25,10 +25,10 @@ class TestClassificationHead2D(keras_parameterized.TestCase):
 
 
 @keras_parameterized.run_all_keras_modes
-class TestRegressionHead2D(keras_parameterized.TestCase):
+class TestRegressionHead(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
-            RegressionHead2D,
+            RegressionHead,
             kwargs={},
             input_shape=[2, 16, 16, 3],
             input_dtype='float32',
@@ -36,7 +36,7 @@ class TestRegressionHead2D(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
         testing_utils.layer_test(
-            RegressionHead2D,
+            RegressionHead,
             kwargs={},
             input_shape=[2, 16, 16, 3],
             input_dtype='float16',

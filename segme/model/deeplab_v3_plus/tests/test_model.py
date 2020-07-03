@@ -35,11 +35,11 @@ class TestDeepLabV3Plus(keras_parameterized.TestCase):
         layer_multi_io_test(
             DeepLabV3Plus,
             kwargs={
-                'classes': 1, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
+                'classes': None, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
                 'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 4},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
-            expected_output_shapes=[(None, 224, 224, 1)],
+            expected_output_shapes=[(None, 224, 224, 4)],
             expected_output_dtypes=['float32']
         )
 

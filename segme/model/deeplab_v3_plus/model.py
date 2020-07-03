@@ -2,7 +2,7 @@ from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .encoder import Encoder
 from .decoder import Decoder
-from ...common import ClassificationHead2D
+from ...common import ClassificationHead
 
 
 @utils.register_keras_serializable(package='SegMe')
@@ -28,7 +28,7 @@ class DeepLabV3Plus(layers.Layer):
         self.dec = Decoder(self.low_filters, self.decoder_filters)
 
         if self.classes:
-            self.head = ClassificationHead2D(self.classes)
+            self.head = ClassificationHead(self.classes)
 
         super().build(input_shape)
 

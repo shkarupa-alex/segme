@@ -15,17 +15,6 @@ class TestSingleConvBlock(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
 
-        const_init = tf.keras.initializers.constant(0.1)
-        testing_utils.layer_test(
-            SingleConvBlock,
-            kwargs={'out_features': 5, 'kernel_size': 2, 'stride': 2, 'weight_norm': True,
-                    'kernel_initializer': const_init},
-            input_shape=[2, 16, 16, 3],
-            input_dtype='float32',
-            expected_output_shape=[None, 8, 8, 5],
-            expected_output_dtype='float32'
-        )
-
 
 if __name__ == '__main__':
     tf.test.main()

@@ -6,16 +6,13 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 @utils.register_keras_serializable(package='SegMe>DexiNed')
 class SingleConvBlock(layers.Layer):
-    def __init__(
-            self, out_features, kernel_size=1, stride=1, weight_norm=True,
-            kernel_initializer='glorot_uniform', **kwargs):
+    def __init__(self, out_features, kernel_size=1, stride=1, weight_norm=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
         self.out_features = out_features
         self.kernel_size = kernel_size
         self.stride = stride
         self.weight_norm = weight_norm
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -23,8 +20,7 @@ class SingleConvBlock(layers.Layer):
             filters=self.out_features,
             kernel_size=self.kernel_size,
             strides=self.stride,
-            padding='same',
-            kernel_initializer=self.kernel_initializer)])
+            padding='same')])
         if self.weight_norm:
             self.features.add(layers.BatchNormalization())
 
@@ -43,8 +39,7 @@ class SingleConvBlock(layers.Layer):
             'out_features': self.out_features,
             'kernel_size': self.kernel_size,
             'stride': self.stride,
-            'weight_norm': self.weight_norm,
-            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
+            'weight_norm': self.weight_norm
         })
 
         return config

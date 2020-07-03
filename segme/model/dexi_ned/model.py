@@ -6,15 +6,17 @@ from .dense import DenseBlock
 from .upconv import UpConvBlock
 from .single import SingleConvBlock
 from .double import DoubleConvBlock
+from ...common import ClassificationHead
 
 
 @utils.register_keras_serializable(package='SegMe')
 class DexiNed(layers.Layer):
     """ Reference: https://arxiv.org/pdf/1909.01955.pdf """
 
-    def __init__(self, **kwargs):
+    def __init__(self, classes=2, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
+        self.classes = classes
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -49,7 +51,8 @@ class DexiNed(layers.Layer):
         self.up_block_5 = UpConvBlock(4)
         self.up_block_6 = UpConvBlock(4)
 
-        self.block_cat = SingleConvBlock(1, weight_norm=False, kernel_initializer=tf.constant_initializer(1 / 5))
+        if self.classes:
+            self.head = ClassificationHead(self.classes, kernel_size=3, kernel_initializer=tf.constant_initializer(0.2))
 
         super().build(input_shape)
 
@@ -102,13 +105,23 @@ class DexiNed(layers.Layer):
         ]
 
         # concatenate multiscale outputs
-        block_cat = layers.concatenate(scales)  # BxHxWX6
-        block_cat = self.block_cat(block_cat)  # BxHxWX1
+        outputs = layers.concatenate(scales)  # BxHxWX6
+        if not self.classes:
+            return outputs
 
-        outputs = [layers.Activation('sigmoid', dtype='float32')(ot) for ot in scales + [block_cat]]  # fp16
+        outputs = self.head(outputs)  # BxHxWX1
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return [input_shape[:-1] + (1,) for _ in range(7)]
+        if not self.classes:
+            return input_shape[:-1] + (6,)
+
+        return self.head.compute_output_shape(input_shape)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({'classes': self.classes})
+
+        return config

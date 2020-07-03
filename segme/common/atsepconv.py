@@ -3,7 +3,7 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
 @utils.register_keras_serializable(package='SegMe')
-class AtrousSepConv2D(layers.Layer):
+class AtrousSepConv(layers.Layer):
     def __init__(self, filters, dilation=1, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)

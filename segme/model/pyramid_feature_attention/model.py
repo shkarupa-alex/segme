@@ -3,7 +3,7 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .attention import SpatialAttention, ChannelWiseAttention
 from .cfe import CFE
 from ...backbone import Backbone
-from ...common import ClassificationHead2D, up_by_sample_2d
+from ...common import ClassificationHead, UpBySample_2d
 
 
 @utils.register_keras_serializable(package='SegMe')
@@ -52,7 +52,7 @@ class PyramidFeatureAttention(layers.Layer):
         ])
 
         if self.classes:
-            self.head = ClassificationHead2D(classes=2, kernel_size=3)
+            self.head = ClassificationHead(self.classes, kernel_size=3)
 
         super().build(input_shape)
 
@@ -66,17 +66,17 @@ class PyramidFeatureAttention(layers.Layer):
         c4_cfe = self.cfe1(c4)
         c5_cfe = self.cfe2(c5)
 
-        c5_cfe = up_by_sample_2d([c5_cfe, c3_cfe])
-        c4_cfe = up_by_sample_2d([c4_cfe, c3_cfe])
+        c5_cfe = UpBySample_2d([c5_cfe, c3_cfe])
+        c4_cfe = UpBySample_2d([c4_cfe, c3_cfe])
         c345 = layers.concatenate([c3_cfe, c4_cfe, c5_cfe])
 
         c345 = self.cwatt(c345)
         c345 = self.cbr2(c345)
-        c345 = up_by_sample_2d([c345, inputs])
+        c345 = UpBySample_2d([c345, inputs])
 
         sa = self.spatt(c345)
 
-        c2 = up_by_sample_2d([c2, c1])
+        c2 = UpBySample_2d([c2, c1])
         c12 = layers.concatenate([c1, c2])
         c12 = self.cbr3(c12)
         c12 = layers.multiply([sa, c12])

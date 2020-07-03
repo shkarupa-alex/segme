@@ -12,10 +12,19 @@ class TestDexiNed(keras_parameterized.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             DexiNed,
-            kwargs={},
+            kwargs={'classes': 2},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
-            expected_output_dtypes=['float32'] * 7
+            expected_output_shapes=[(None, 224, 224, 1)],
+            expected_output_dtypes=['float32']
+        )
+        layer_multi_io_test(
+            DexiNed,
+            kwargs={'classes': None},
+            input_shapes=[(2, 224, 224, 3)],
+            input_dtypes=['uint8'],
+            expected_output_shapes=[(None, 224, 224, 6)],
+            expected_output_dtypes=['float32']
         )
 
     def test_model(self):

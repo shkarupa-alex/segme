@@ -1,6 +1,6 @@
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from ...common import AtrousSepConv2D, up_by_sample_2d
+from ...common import AtrousSepConv, UpBySample_2d
 
 
 @utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
@@ -22,19 +22,19 @@ class Decoder(layers.Layer):
             layers.BatchNormalization(),
             layers.ReLU()
         ])
-        self.conv0 = AtrousSepConv2D(self.decoder_filters)
-        self.conv1 = AtrousSepConv2D(self.decoder_filters)
+        self.conv0 = AtrousSepConv(self.decoder_filters)
+        self.conv1 = AtrousSepConv(self.decoder_filters)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         images, low_feats, high_feats = inputs
 
-        outputs = up_by_sample_2d([high_feats, low_feats])
+        outputs = UpBySample_2d([high_feats, low_feats])
         outputs = layers.concatenate([self.proj(low_feats), outputs])
         outputs = self.conv0(outputs)
         outputs = self.conv1(outputs)
-        outputs = up_by_sample_2d([outputs, images])
+        outputs = UpBySample_2d([outputs, images])
 
         return outputs
 

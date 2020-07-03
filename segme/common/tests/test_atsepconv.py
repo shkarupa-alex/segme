@@ -1,13 +1,13 @@
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized, testing_utils
-from ..atsepconv import AtrousSepConv2D
+from ..atsepconv import AtrousSepConv
 
 
 @keras_parameterized.run_all_keras_modes
-class TestAtrousSepConv2D(keras_parameterized.TestCase):
+class TestAtrousSepConv(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
-            AtrousSepConv2D,
+            AtrousSepConv,
             kwargs={'filters': 10},
             input_shape=[2, 16, 16, 3],
             input_dtype='float32',
@@ -15,7 +15,7 @@ class TestAtrousSepConv2D(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
         testing_utils.layer_test(
-            AtrousSepConv2D,
+            AtrousSepConv,
             kwargs={'filters': 10, 'dilation': 4},
             input_shape=[2, 16, 16, 3],
             input_dtype='float32',

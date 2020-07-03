@@ -1,6 +1,6 @@
 from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from ...common import ASPP2D
+from ...common import ASPP
 from ...backbone import Backbone
 
 
@@ -18,7 +18,7 @@ class Encoder(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=[4, self.aspp_stride])
-        self.aspp = ASPP2D(self.aspp_filters, self.aspp_stride)
+        self.aspp = ASPP(self.aspp_filters, self.aspp_stride)
 
         super().build(input_shape)
 
