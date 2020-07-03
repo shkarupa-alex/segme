@@ -1,6 +1,5 @@
-import tensorflow as tf
 from tensorflow.keras import Sequential
-from tensorflow.keras import layers, utils
+from tensorflow.keras import initializers, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
@@ -10,18 +9,21 @@ class UpConvBlock(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
         self.up_scale = up_scale
-        self._constant_features = 16
+        self.output_filters = 16
 
     @shape_type_conversion
     def build(self, input_shape):
         total_up_scale = 2 ** self.up_scale
-        trunc_init = tf.keras.initializers.TruncatedNormal(stddev=0.1)
+        rand_init = initializers.random_normal(stddev=0.01)
+        trunc_init0 = initializers.TruncatedNormal()
+        trunc_init1 = initializers.TruncatedNormal(stddev=0.1)
 
         self.features = Sequential()
         for i in range(self.up_scale):
             is_last = i == self.up_scale - 1
-            out_features = 1 if is_last else self._constant_features
-            kernel_init = trunc_init if is_last else 'glorot_uniform'
+            out_features = 1 if is_last else self.output_filters
+            kernel_init0 = trunc_init0 if is_last else rand_init
+            kernel_init1 = trunc_init1 if is_last else rand_init
 
             self.features.add(layers.Conv2D(
                 filters=out_features,
@@ -29,13 +31,13 @@ class UpConvBlock(layers.Layer):
                 strides=1,
                 padding='same',
                 activation='relu',
-                kernel_initializer=kernel_init))
+                kernel_initializer=kernel_init0))
             self.features.add(layers.Conv2DTranspose(
                 out_features,
                 kernel_size=(total_up_scale, total_up_scale),
                 strides=2,
                 padding='same',
-                kernel_initializer=kernel_init))
+                kernel_initializer=kernel_init1))
 
         super().build(input_shape)
 

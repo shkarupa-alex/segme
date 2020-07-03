@@ -1,2 +1,4 @@
 from .calibrated_focal import SigmoidCalibratedFocalCrossEntropy
 from .calibrated_focal import sigmoid_calibrated_focal_crossentropy
+from .balanced_sigmoid import BalancedSigmoidCrossEntropy
+from .balanced_sigmoid import balanced_sigmoid_cross_entropy

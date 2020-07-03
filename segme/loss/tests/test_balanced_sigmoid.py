@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
-from ..calibrated_focal import SigmoidCalibratedFocalCrossEntropy
-from ..calibrated_focal import sigmoid_calibrated_focal_crossentropy
+from ..balanced_sigmoid import BalancedSigmoidCrossEntropy
+from ..balanced_sigmoid import balanced_sigmoid_cross_entropy
 
 
 def _to_logit(prob):
@@ -19,16 +19,16 @@ def _log10(x):
 
 
 @keras_parameterized.run_all_keras_modes
-class TestSigmoidCalibratedFocalCrossEntropy(keras_parameterized.TestCase):
+class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
     def test_config(self):
-        bce_obj = SigmoidCalibratedFocalCrossEntropy(
+        bce_obj = BalancedSigmoidCrossEntropy(
             reduction=tf.keras.losses.Reduction.NONE,
-            name='sigmoid_calibrated_focal_crossentropy1'
+            name='balanced_sigmoid_cross_entropy1'
         )
-        self.assertEqual(bce_obj.name, 'sigmoid_calibrated_focal_crossentropy1')
+        self.assertEqual(bce_obj.name, 'balanced_sigmoid_cross_entropy1')
         self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
 
-    def test_value_gamma_2(self):
+    def test_logits(self):
         prediction_tensor = tf.constant([
             [_to_logit(0.97)],
             [_to_logit(0.45)],
@@ -36,29 +36,28 @@ class TestSigmoidCalibratedFocalCrossEntropy(keras_parameterized.TestCase):
         ], tf.float32)
         target_tensor = tf.constant([[1], [1], [0]], tf.float32)
 
-        fl = sigmoid_calibrated_focal_crossentropy(
+        fl = balanced_sigmoid_cross_entropy(
             y_true=target_tensor,
             y_pred=prediction_tensor,
-            from_logits=True,
-            gamma0=2.,
-            gamma1=2.
+            from_logits=True
         )
         fl = self.evaluate(fl).tolist()
 
-        self.assertAllClose(fl, [6.8533022e-06, 6.0387149e-02, 2.0559946e-05])
+        self.assertAllClose(fl, [0.01015307, 0.26616925, 0.02030611])
 
     def test_keras_model_compile(self):
         model = tf.keras.models.Sequential([
             tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(5, activation='softmax')]
+            tf.keras.layers.Dense(5, activation='sigmoid')]
         )
-        model.compile(loss='SegMe>sigmoid_calibrated_focal_crossentropy')
+        model.compile(loss='SegMe>balanced_sigmoid_cross_entropy')
 
-    def test_gamma_default(self):
+    def test_sigmoid(self):
         prediction_tensor = tf.constant([[0.97], [0.45], [0.03]], tf.float32)
+        prediction_tensor = tf.nn.sigmoid(prediction_tensor)
         target_tensor = tf.constant([[1], [1], [0]], tf.float32)
 
-        fl = sigmoid_calibrated_focal_crossentropy(y_true=target_tensor, y_pred=prediction_tensor)
+        fl = balanced_sigmoid_cross_entropy(y_true=target_tensor, y_pred=prediction_tensor)
         fl = self.evaluate(fl).tolist()
 
         self.assertAllClose(fl, [2.0559804e-07, 3.3212923e-02, 5.5511362e-10], atol=1e-8)

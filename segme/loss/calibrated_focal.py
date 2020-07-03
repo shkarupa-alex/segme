@@ -8,7 +8,6 @@ class SigmoidCalibratedFocalCrossEntropy(LossFunctionWrapper):
 
     Note: remember to use focal loss trick: initialize last layer's bias with small negative value like -1.996
     """
-
     def __init__(
             self, from_logits=False, prob0=0.2, gamma0=5.0, gamma1=3.0, alpha=0.25,
             reduction=tf.keras.losses.Reduction.AUTO, name='sigmoid_calibrated_focal_crossentropy'):
