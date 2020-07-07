@@ -60,7 +60,7 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
         fl = balanced_sigmoid_cross_entropy(y_true=target_tensor, y_pred=prediction_tensor)
         fl = self.evaluate(fl).tolist()
 
-        self.assertAllClose(fl, [2.0559804e-07, 3.3212923e-02, 5.5511362e-10], atol=1e-8)
+        self.assertAllClose(fl, [0.10713956, 0.16441627, 0.47217298], atol=1e-8)
 
 
 if __name__ == '__main__':

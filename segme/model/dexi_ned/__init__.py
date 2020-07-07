@@ -1,1 +1,1 @@
-from .model import DexiNed
+from .model import build_dexi_ned

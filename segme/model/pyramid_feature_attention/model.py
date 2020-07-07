@@ -1,4 +1,4 @@
-from tensorflow.keras import Sequential, layers, utils
+from tensorflow.keras import Model, Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .attention import SpatialAttention, ChannelWiseAttention
 from .cfe import CFE
@@ -10,10 +10,9 @@ from ...common import ClassificationHead, UpBySample_2d
 class PyramidFeatureAttention(layers.Layer):
     """ Reference: https://arxiv.org/pdf/1903.00179v2.pdf """
 
-    def __init__(self, classes=2, bone_arch='vgg_16', bone_init='imagenet', bone_train=False, **kwargs):
+    def __init__(self, bone_arch, bone_init, bone_train, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
-        self.classes = classes
         self.bone_arch = bone_arch
         self.bone_init = bone_init
         self.bone_train = bone_train
@@ -51,9 +50,6 @@ class PyramidFeatureAttention(layers.Layer):
             layers.ReLU()
         ])
 
-        if self.classes:
-            self.head = ClassificationHead(self.classes, kernel_size=3)
-
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
@@ -83,27 +79,27 @@ class PyramidFeatureAttention(layers.Layer):
 
         fea = layers.concatenate([c12, c345])
 
-        if not self.classes:
-            return fea
-
-        sa = self.head(fea)
-
-        return sa
+        return fea
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        if not self.classes:
-            return input_shape[:-1] + (128,)
-
-        return self.head.compute_output_shape(input_shape)
+        return input_shape[:-1] + (128,)
 
     def get_config(self):
         config = super().get_config()
         config.update({
-            'classes': self.classes,
             'bone_arch': self.bone_arch,
             'bone_init': self.bone_init,
             'bone_train': self.bone_train
         })
 
         return config
+
+
+def build_pyramid_feature_attention(channels, classes, bone_arch='vgg_16', bone_init='imagenet', bone_train=False):
+    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+    outputs = PyramidFeatureAttention(bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train)(inputs)
+    outputs = ClassificationHead(classes, kernel_size=3)(outputs)
+    model = Model(inputs=inputs, outputs=outputs, name='pyramid_feature_attention')
+
+    return model

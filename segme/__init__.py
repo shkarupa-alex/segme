@@ -1,3 +1,3 @@
-from .model import DeepLabV3Plus
-from .model import DexiNed
-from .model import PyramidFeatureAttention
+from .model import build_deeplab_v3_plus
+from .model import build_dexi_ned
+from .model import build_pyramid_feature_attention

@@ -6,17 +6,22 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 @utils.register_keras_serializable(package='SegMe>DexiNed')
 class SingleConvBlock(layers.Layer):
-    def __init__(self, out_features, kernel_size=1, stride=1, weight_norm=True, **kwargs):
+    def __init__(self, out_features, kernel_size=1, stride=1, kernel_const=None, weight_norm=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
         self.out_features = out_features
         self.kernel_size = kernel_size
         self.stride = stride
         self.weight_norm = weight_norm
+        self.kernel_const = kernel_const
 
     @shape_type_conversion
     def build(self, input_shape):
-        kernel_init = initializers.random_normal(stddev=0.01)
+        if self.kernel_const:
+            kernel_init = initializers.constant(self.kernel_const)
+        else:
+            kernel_init = initializers.random_normal(stddev=0.01)
+
         self.features = Sequential([layers.Conv2D(
             filters=self.out_features,
             kernel_size=self.kernel_size,
@@ -41,7 +46,8 @@ class SingleConvBlock(layers.Layer):
             'out_features': self.out_features,
             'kernel_size': self.kernel_size,
             'stride': self.stride,
-            'weight_norm': self.weight_norm
+            'weight_norm': self.weight_norm,
+            'kernel_const': self.kernel_const
         })
 
         return config
