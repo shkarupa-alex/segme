@@ -24,7 +24,7 @@ def balanced_sigmoid_cross_entropy(y_true, y_pred, from_logits=False):
 
     ce = tf.keras.backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
 
-    total = tf.size(y_true, out_type=y_true.dtype)
+    total = tf.cast(tf.size(y_true), dtype=y_pred.dtype)
     negative = total - tf.reduce_sum(y_true)
     beta = negative / total
     beta_factor = y_true * beta + (1 - y_true) * (1. - beta)

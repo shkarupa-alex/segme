@@ -15,8 +15,8 @@ class TestDexiNed(keras_parameterized.TestCase):
             kwargs={},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
-            expected_output_shapes=[(None, 224, 224, 1)] * 7,
-            expected_output_dtypes=['float32'] * 7
+            expected_output_shapes=[(None, 224, 224, 6)],
+            expected_output_dtypes=['float32']
         )
 
     def test_model(self):

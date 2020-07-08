@@ -1,11 +1,12 @@
 import tensorflow as tf
-from tensorflow.keras import Model, layers, utils
+from tensorflow.keras import Model, initializers, layers, utils
 from tensorflow.keras.applications.imagenet_utils import preprocess_input
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .dense import DenseBlock
 from .upconv import UpConvBlock
 from .single import SingleConvBlock
 from .double import DoubleConvBlock
+from ...common import ClassificationHead
 
 
 @utils.register_keras_serializable(package='SegMe')
@@ -49,8 +50,6 @@ class DexiNed(layers.Layer):
         self.up_block_4 = UpConvBlock(3)
         self.up_block_5 = UpConvBlock(4)
         self.up_block_6 = UpConvBlock(4)
-
-        self.block_cat = SingleConvBlock(1, weight_norm=False, kernel_const=1 / 6)
 
         super().build(input_shape)
 
@@ -103,24 +102,19 @@ class DexiNed(layers.Layer):
 
         # concatenate multiscale outputs
         scales = [output1, output2, output3, output4, output5, output6]
-        fuse = self.block_cat(layers.concatenate(scales))
-
-        outputs = scales + [fuse]  # BxHxWX1
+        outputs = layers.concatenate(scales)
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return [input_shape[:-1] + (1,)] * 7
+        return input_shape[:-1] + (6,)
 
 
 def build_dexi_ned(channels):
     inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
     outputs = DexiNed()(inputs)
-    scales, fused = outputs[:-1], outputs[-1]
-    scales = [layers.Activation('sigmoid', dtype='float32', name='scale{}'.format(i))(s) for i, s in enumerate(scales)]
-    fused = layers.Activation('sigmoid', dtype='float32', name='fused')(fused)
-    outputs = scales + [fused]
+    outputs = ClassificationHead(1, kernel_initializer=initializers.constant(1 / 6))(outputs)
     model = Model(inputs=inputs, outputs=outputs, name='dexi_ned')
 
     return model
