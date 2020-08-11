@@ -10,8 +10,8 @@ from ....testing_utils import layer_multi_io_test
 @keras_parameterized.run_all_keras_modes
 class TestDeepLabV3Plus(keras_parameterized.TestCase):
     def test_layer(self):
-        # TODO
-        # wait for issue with Sequential model restoring will be resolved to migrate back on testing_utils.layer_test
+        # TODO: wait for issue with Sequential model restoring
+        #  will be resolved to migrate back on testing_utils.layer_test
         layer_multi_io_test(
             DeepLabV3Plus,
             kwargs={
