@@ -22,15 +22,8 @@ class ApplicationsTest(test.TestCase, parameterized.TestCase):
 
     @parameterized.parameters(*MODEL_LIST)
     def test_application_notop(self, app, last_dim):
-        if 'NASNet' in app.__name__:
-            only_check_last_dim = True
-        else:
-            only_check_last_dim = False
         output_shape = _get_output_shape(lambda: app(weights=None, include_top=False))
-        if only_check_last_dim:
-            self.assertEqual(output_shape[-1], last_dim)
-        else:
-            _assert_shape_equal(output_shape, (None, None, None, last_dim))
+        _assert_shape_equal(output_shape, (None, None, None, last_dim))
         backend.clear_session()
 
     @parameterized.parameters(*MODEL_LIST)
