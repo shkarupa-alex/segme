@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
-from ..upbysample import UpBySample, UpBySample_2d
+from ..upbysample import UpBySample, up_by_sample_2d
 from ...testing_utils import layer_multi_io_test
 
 
@@ -20,7 +20,7 @@ class TestUpBySample(keras_parameterized.TestCase):
     def test_corners(self):
         target = tf.reshape(tf.range(9, dtype=tf.float32), [1, 3, 3, 1])
         sample = tf.zeros([1, 10, 9, 1], dtype=tf.float32)
-        result = UpBySample_2d([target, sample])
+        result = up_by_sample_2d([target, sample])
         result = self.evaluate(result)
 
         # See https://github.com/tensorflow/tensorflow/

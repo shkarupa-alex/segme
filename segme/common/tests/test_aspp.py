@@ -1,13 +1,13 @@
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized, testing_utils
-from ..aspp import ASPPPool2D, ASPP
+from ..aspp import ASPPPool, ASPP
 
 
 @keras_parameterized.run_all_keras_modes
-class TestASPPPool2D(keras_parameterized.TestCase):
+class TestASPPPool(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
-            ASPPPool2D,
+            ASPPPool,
             kwargs={'filters': 10},
             input_shape=[2, 16, 16, 3],
             input_dtype='float32',
