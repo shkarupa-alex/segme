@@ -13,10 +13,10 @@ class AtrousSepConv(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.conv = Sequential([
-            layers.DepthwiseConv2D(3, padding='same', dilation_rate=self.dilation, use_bias=False),
+            layers.DepthwiseConv2D(kernel_size=3, padding='same', dilation_rate=self.dilation, use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU(),
-            layers.Conv2D(self.filters, 1, padding='same', use_bias=False),
+            layers.Conv2D(filters=self.filters, kernel_size=1, padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU()
         ])

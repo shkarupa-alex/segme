@@ -9,12 +9,9 @@ class BalancedSigmoidCrossEntropy(LossFunctionWrapper):
     Implements Equation [2] in https://arxiv.org/pdf/1504.06375.pdf
     Compute edge pixels for each training sample and set as pos_weights to tf.nn.weighted_cross_entropy_with_logits
     """
-
     def __init__(
-            self, from_logits=False, reduction=tf.keras.losses.Reduction.AUTO,
-            name='balanced_sigmoid_cross_entropy'):
-        super().__init__(
-            balanced_sigmoid_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
+            self, from_logits=False, reduction=tf.keras.losses.Reduction.AUTO, name='balanced_sigmoid_cross_entropy'):
+        super().__init__(balanced_sigmoid_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
 
 
 @tf.keras.utils.register_keras_serializable(package='SegMe')

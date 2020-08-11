@@ -27,5 +27,5 @@ class UpBySample(layers.Layer):
         return samples_shape[:-1] + (targets_shape[-1],)
 
 
-def UpBySample_2d(inputs, **kwargs):
+def up_by_sample_2d(inputs, **kwargs):
     return UpBySample(**kwargs)(inputs)

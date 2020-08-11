@@ -19,7 +19,7 @@ class BaseHead(layers.Layer):
             self.kernel_size,
             padding='same',
             kernel_initializer=self.kernel_initializer)
-        self.act = layers.Activation(self.activation, dtype='float32')  # fp16
+        self.act = layers.Activation(self.activation, dtype='float32')  # for mixed_float16
 
         super().build(input_shape)
 
@@ -61,7 +61,7 @@ class ClassificationHead(BaseHead):
 @utils.register_keras_serializable(package='SegMe')
 class RegressionHead(BaseHead):
     def __init__(self, **kwargs):
-        super().__init__(1, 'linear', **kwargs)
+        super().__init__(classes=1, activation='linear', **kwargs)
 
     def get_config(self):
         config = super().get_config()

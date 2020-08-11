@@ -2,11 +2,11 @@ import tensorflow as tf
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .atsepconv import AtrousSepConv
-from .upbysample import UpBySample_2d
+from .upbysample import up_by_sample_2d
 
 
 @utils.register_keras_serializable(package='SegMe')
-class ASPPPool2D(layers.Layer):
+class ASPPPool(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
@@ -18,7 +18,7 @@ class ASPPPool2D(layers.Layer):
             layers.GlobalAveragePooling2D(),
             # (batch, channels) -> (batch, 1, 1, channels)
             layers.Lambda(lambda pooled: tf.expand_dims(tf.expand_dims(pooled, 1), 1)),
-            layers.Conv2D(self.filters, 1, padding='same', use_bias=False),
+            layers.Conv2D(filters=self.filters, kernel_size=1, padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU()
         ])
@@ -27,7 +27,7 @@ class ASPPPool2D(layers.Layer):
 
     def call(self, inputs, **kwargs):
         outputs = self.pool(inputs)
-        outputs = UpBySample_2d([outputs, inputs])
+        outputs = up_by_sample_2d([outputs, inputs])
 
         return outputs
 
@@ -55,24 +55,25 @@ class ASPP(layers.Layer):
         self.input_spec = layers.InputSpec(ndim=4)
         self.filters = filters
         self.stride = stride
+
         if stride not in self._stride_rates:
             raise NotImplementedError('Unsupported output stride')
 
     @shape_type_conversion
     def build(self, input_shape):
         rate0, rate1, rate2 = self._stride_rates[self.stride]
-        self.conv3r0 = AtrousSepConv(self.filters, rate0, name='aspp1')
-        self.conv3r1 = AtrousSepConv(self.filters, rate1, name='aspp2')
-        self.conv3r2 = AtrousSepConv(self.filters, rate2, name='aspp3')
+        self.conv3r0 = AtrousSepConv(filters=self.filters, dilation=rate0, name='aspp1')
+        self.conv3r1 = AtrousSepConv(filters=self.filters, dilation=rate1, name='aspp2')
+        self.conv3r2 = AtrousSepConv(filters=self.filters, dilation=rate2, name='aspp3')
 
         self.conv1 = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same', use_bias=False),
+            layers.Conv2D(filters=self.filters, kernel_size=1, padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU()
         ], name='aspp0')
-        self.pool = ASPPPool2D(self.filters, name='aspp4')
+        self.pool = ASPPPool(filters=self.filters, name='aspp4')
         self.proj = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same', use_bias=False),
+            layers.Conv2D(filters=self.filters, kernel_size=1, padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU(),
             layers.Dropout(0.1)  # 0.5 in some implementations
