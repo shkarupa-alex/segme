@@ -1,5 +1,5 @@
 from tensorflow.keras import Sequential
-from tensorflow.keras import activations, initializers, layers, utils
+from tensorflow.keras import activations, layers, regularizers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
@@ -16,14 +16,13 @@ class DoubleConvBlock(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        kernel_init = initializers.random_normal(stddev=0.01)
         self.features = Sequential([
             layers.Conv2D(
                 filters=self.mid_features,
                 kernel_size=3,
                 strides=self.stride,
                 padding='same',
-                kernel_initializer=kernel_init),
+                kernel_regularizer=regularizers.l2(1e-3)),
             layers.BatchNormalization(),
             layers.ReLU(),
             layers.Conv2D(
@@ -31,7 +30,7 @@ class DoubleConvBlock(layers.Layer):
                 kernel_size=3,
                 padding='same',
                 strides=1,
-                kernel_initializer=kernel_init),
+                kernel_regularizer=regularizers.l2(1e-3)),
             layers.BatchNormalization(),
             layers.Activation(self.activation)
         ])

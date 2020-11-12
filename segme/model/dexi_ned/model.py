@@ -13,16 +13,19 @@ from ...common import ClassificationHead
 class DexiNed(layers.Layer):
     """ Reference: https://arxiv.org/pdf/1909.01955.pdf """
 
-    def __init__(self, **kwargs):
+    def __init__(self, classes, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
+        self.classes = classes
+        self._classes = classes if classes > 2 else 1
+        self._activation = 'softmax' if classes > 2 else 'sigmoid'
 
     @shape_type_conversion
     def build(self, input_shape):
         self.prep = layers.Lambda(
             lambda img: preprocess_input(tf.cast(img, tf.float32), 'channels_last', 'caffe'), name='preprocess')
 
-        self.block_1 = DoubleConvBlock(32, 64, stride=2)
+        self.block_1 = DoubleConvBlock(32, 64, stride=2, activation='linear')
         self.block_2 = DoubleConvBlock(128, activation='linear')
         self.dblock_3 = DenseBlock(2, 256)
         self.dblock_4 = DenseBlock(3, 512)
@@ -44,12 +47,15 @@ class DexiNed(layers.Layer):
         self.pre_dense_6_0 = SingleConvBlock(256)
         self.pre_dense_6 = SingleConvBlock(256)
 
-        self.up_block_1 = UpConvBlock(1)
-        self.up_block_2 = UpConvBlock(1)
-        self.up_block_3 = UpConvBlock(2)
-        self.up_block_4 = UpConvBlock(3)
-        self.up_block_5 = UpConvBlock(4)
-        self.up_block_6 = UpConvBlock(4)
+        self.up_block_1 = UpConvBlock(self._classes, 1)
+        self.up_block_2 = UpConvBlock(self._classes, 1)
+        self.up_block_3 = UpConvBlock(self._classes, 2)
+        self.up_block_4 = UpConvBlock(self._classes, 3)
+        self.up_block_5 = UpConvBlock(self._classes, 4)
+        self.up_block_6 = UpConvBlock(self._classes, 4)
+        self.act = layers.Activation(self._activation, dtype='float32')
+
+        self.head = ClassificationHead(self.classes, kernel_initializer=initializers.constant(1 / 6))
 
         super().build(input_shape)
 
@@ -102,19 +108,25 @@ class DexiNed(layers.Layer):
 
         # concatenate multiscale outputs
         scales = [output1, output2, output3, output4, output5, output6]
-        outputs = layers.concatenate(scales)
+        outputs = [self.head(layers.concatenate(scales))] + [self.act(s) for s in scales]
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (6,)
+        output_shape = input_shape[:-1] + (self._classes,)
+        return (output_shape,) * 7
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({'classes': self.classes})
+
+        return config
 
 
-def build_dexi_ned(channels):
+def build_dexi_ned(channels, classes=2):
     inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
-    outputs = DexiNed()(inputs)
-    outputs = ClassificationHead(1, kernel_initializer=initializers.constant(1 / 6))(outputs)
+    outputs = DexiNed(classes)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='dexi_ned')
 
     return model

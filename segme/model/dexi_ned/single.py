@@ -1,6 +1,5 @@
-import tensorflow as tf
 from tensorflow.keras import Sequential
-from tensorflow.keras import initializers, layers, utils
+from tensorflow.keras import layers, regularizers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
@@ -16,13 +15,12 @@ class SingleConvBlock(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        kernel_init = initializers.random_normal(stddev=0.01)
         self.features = Sequential([layers.Conv2D(
             filters=self.out_features,
             kernel_size=self.kernel_size,
             strides=self.stride,
             padding='same',
-            kernel_initializer=kernel_init)])
+            kernel_regularizer=regularizers.l2(1e-3))])
         if self.weight_norm:
             self.features.add(layers.BatchNormalization())
 

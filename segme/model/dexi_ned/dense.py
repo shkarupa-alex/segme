@@ -1,5 +1,5 @@
 from tensorflow.keras import Sequential
-from tensorflow.keras import initializers, layers, utils
+from tensorflow.keras import layers, utils, regularizers
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
@@ -16,7 +16,6 @@ class DenseBlock(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        kernel_init = initializers.random_normal(stddev=0.01)
         self.layers = []
         for _ in range(self.num_layers):
             self.layers.append(Sequential([
@@ -26,7 +25,7 @@ class DenseBlock(layers.Layer):
                     kernel_size=3,
                     strides=1,
                     padding='same',
-                    kernel_initializer=kernel_init),
+                    kernel_regularizer=regularizers.l2(1e-3)),
                 layers.BatchNormalization(),
                 layers.ReLU(),
                 layers.Conv2D(
@@ -34,7 +33,7 @@ class DenseBlock(layers.Layer):
                     kernel_size=3,
                     strides=1,
                     padding='same',
-                    kernel_initializer=kernel_init),
+                    kernel_regularizer=regularizers.l2(1e-3)),
                 layers.BatchNormalization(),
             ]))
 
