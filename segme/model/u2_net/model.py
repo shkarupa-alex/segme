@@ -24,7 +24,7 @@ class U2Net(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.prep = layers.Lambda(
-            lambda img: preprocess_input(tf.cast(img, tf.float32), 'channels_last', 'caffe'), name='preprocess')
+            lambda img: preprocess_input(tf.cast(img, tf.float32), 'channels_last', 'tf'), name='preprocess')
 
         self.stage1 = RSU7(32, 64)
         self.pool12 = layers.MaxPool2D(2, padding='same')

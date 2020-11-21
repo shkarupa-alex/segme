@@ -19,7 +19,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'tensorflow>=2.2.0',
+        'tensorflow>=2.3.0',
     ],
     python_requires='>=3.6.0',
     setup_requires=['pytest-runner'],
