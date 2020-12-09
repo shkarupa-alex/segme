@@ -8,19 +8,38 @@ from ..model import build_pyramid_feature_attention, PyramidFeatureAttention
 
 @keras_parameterized.run_all_keras_modes
 class TestPyramidFeatureAttention(keras_parameterized.TestCase):
+    def setUp(self):
+        super(TestPyramidFeatureAttention, self).setUp()
+        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+
+    def tearDown(self):
+        super(TestPyramidFeatureAttention, self).tearDown()
+        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+
     def test_layer(self):
         testing_utils.layer_test(
             PyramidFeatureAttention,
-            kwargs={'bone_arch': 'vgg_16', 'bone_init': 'imagenet', 'bone_train': False},
+            kwargs={'classes': 3, 'bone_arch': 'vgg_16', 'bone_init': 'imagenet', 'bone_train': False},
             input_shape=[2, 64, 64, 3],
             input_dtype='uint8',
-            expected_output_shape=[None, 64, 64, 128],
+            expected_output_shape=[None, 64, 64, 3],
             expected_output_dtype='float32'
         )
 
-    def test_model(self):
-        num_classes = 2
+        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
+        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        testing_utils.layer_test(
+            PyramidFeatureAttention,
+            kwargs={'classes': 3, 'bone_arch': 'vgg_16', 'bone_init': 'imagenet', 'bone_train': False},
+            input_shape=[2, 64, 64, 3],
+            input_dtype='uint8',
+            expected_output_shape=[None, 64, 64, 3],
+            expected_output_dtype='float32'
+        )
+        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
+    def test_model(self):
+        num_classes = 1
         model = build_pyramid_feature_attention(
             channels=3,
             classes=num_classes,

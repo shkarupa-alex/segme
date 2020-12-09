@@ -22,6 +22,8 @@ class RSU4F(layers.Layer):
         self.cbr2d = ConvBnRelu(self.mid_features, dilation_rate=2)
         self.cbr1d = ConvBnRelu(self.out_features)
 
+        super().build(input_shape)
+
     def call(self, inputs, **kwargs):
         outputs = inputs
         outputs0 = self.cbr0(outputs)

@@ -1,7 +1,7 @@
 from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .convbnrelu import ConvBnRelu
-from ...common import up_by_sample_2d
+from ...common import resize_by_sample
 
 
 @utils.register_keras_serializable(package='SegMe>U2Net')
@@ -33,6 +33,8 @@ class RSU5(layers.Layer):
         self.cbr2d = ConvBnRelu(self.mid_features)
         self.cbr1d = ConvBnRelu(self.out_features)
 
+        super().build(input_shape)
+
     def call(self, inputs, **kwargs):
         outputs = inputs
         outputs0 = self.cbr0(outputs)
@@ -51,13 +53,13 @@ class RSU5(layers.Layer):
         outputs5 = self.cbr5(outputs4)
 
         outputs4d = self.cbr4d(layers.concatenate([outputs5, outputs4]))
-        outputs4dup = up_by_sample_2d([outputs4d, outputs3])
+        outputs4dup = resize_by_sample([outputs4d, outputs3])
 
         outputs3d = self.cbr3d(layers.concatenate([outputs4dup, outputs3]))
-        outputs3dup = up_by_sample_2d([outputs3d, outputs2])
+        outputs3dup = resize_by_sample([outputs3d, outputs2])
 
         outputs2d = self.cbr2d(layers.concatenate([outputs3dup, outputs2]))
-        outputs2dup = up_by_sample_2d([outputs2d, outputs1])
+        outputs2dup = resize_by_sample([outputs2d, outputs1])
 
         outputs1d = self.cbr1d(layers.concatenate([outputs2dup, outputs1]))
 

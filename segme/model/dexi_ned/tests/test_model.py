@@ -9,10 +9,18 @@ from ....testing_utils import layer_multi_io_test
 
 @keras_parameterized.run_all_keras_modes
 class TestDexiNed(keras_parameterized.TestCase):
+    def setUp(self):
+        super(TestDexiNed, self).setUp()
+        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+
+    def tearDown(self):
+        super(TestDexiNed, self).tearDown()
+        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+
     def test_layer(self):
         layer_multi_io_test(
             DexiNed,
-            kwargs={'classes': 2},
+            kwargs={'classes': 1},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
             expected_output_shapes=[(None, 224, 224, 1)] * 7,
@@ -27,9 +35,20 @@ class TestDexiNed(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 7
         )
 
-    def test_model(self):
-        num_classes = 2
+        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
+        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        layer_multi_io_test(
+            DexiNed,
+            kwargs={'classes': 3},
+            input_shapes=[(2, 224, 224, 3)],
+            input_dtypes=['uint8'],
+            expected_output_shapes=[(None, 224, 224, 3)] * 7,
+            expected_output_dtypes=['float32'] * 7
+        )
+        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
+    def test_model(self):
+        num_classes = 1
         model = build_dexi_ned(3, num_classes)
         model.compile(
             optimizer='sgd', loss='binary_crossentropy',

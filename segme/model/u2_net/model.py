@@ -7,7 +7,7 @@ from .rsu6 import RSU6
 from .rsu5 import RSU5
 from .rsu4 import RSU4
 from .rsu4f import RSU4F
-from ...common import ClassificationHead, up_by_sample_2d
+from ...common import HeadProjection, HeadActivation, ClassificationHead, resize_by_sample
 
 
 @utils.register_keras_serializable(package='SegMe>U2Net')
@@ -50,14 +50,16 @@ class U2Net(layers.Layer):
         self.stage2d = RSU6(32, 64)
         self.stage1d = RSU7(16, 64)
 
-        self.neck1 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck2 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck3 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck4 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck5 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck6 = layers.Conv2D(self._classes, 3, padding='same')
-        self.act = layers.Activation(self._activation, dtype='float32')
+        self.proj1 = HeadProjection(self.classes, kernel_size=3)
+        self.proj2 = HeadProjection(self.classes, kernel_size=3)
+        self.proj3 = HeadProjection(self.classes, kernel_size=3)
+        self.proj4 = HeadProjection(self.classes, kernel_size=3)
+        self.proj5 = HeadProjection(self.classes, kernel_size=3)
+        self.proj6 = HeadProjection(self.classes, kernel_size=3)
+        self.act = HeadActivation(self.classes)
         self.head = ClassificationHead(self.classes)
+
+        super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         outputs = self.prep(inputs)
@@ -84,40 +86,40 @@ class U2Net(layers.Layer):
 
         # stage 6
         outputs6 = self.stage6(outputs)
-        hx6up = up_by_sample_2d([outputs6, outputs5])
+        hx6up = resize_by_sample([outputs6, outputs5])
 
         # -------------------- decoder --------------------
         outputs5d = self.stage5d(layers.concatenate([hx6up, outputs5]))
-        outputs5dup = up_by_sample_2d([outputs5d, outputs4])
+        outputs5dup = resize_by_sample([outputs5d, outputs4])
 
         outputs4d = self.stage4d(layers.concatenate([outputs5dup, outputs4]))
-        outputs4dup = up_by_sample_2d([outputs4d, outputs3])
+        outputs4dup = resize_by_sample([outputs4d, outputs3])
 
         outputs3d = self.stage3d(layers.concatenate([outputs4dup, outputs3]))
-        outputs3dup = up_by_sample_2d([outputs3d, outputs2])
+        outputs3dup = resize_by_sample([outputs3d, outputs2])
 
         outputs2d = self.stage2d(layers.concatenate([outputs3dup, outputs2]))
-        outputs2dup = up_by_sample_2d([outputs2d, outputs1])
+        outputs2dup = resize_by_sample([outputs2d, outputs1])
 
         outputs1d = self.stage1d(layers.concatenate([outputs2dup, outputs1]))
 
         # side output
-        n1 = self.neck1(outputs1d)
+        n1 = self.proj1(outputs1d)
 
-        n2 = self.neck2(outputs2d)
-        n2 = up_by_sample_2d([n2, n1])
+        n2 = self.proj2(outputs2d)
+        n2 = resize_by_sample([n2, n1])
 
-        n3 = self.neck3(outputs3d)
-        n3 = up_by_sample_2d([n3, n1])
+        n3 = self.proj3(outputs3d)
+        n3 = resize_by_sample([n3, n1])
 
-        n4 = self.neck4(outputs4d)
-        n4 = up_by_sample_2d([n4, n1])
+        n4 = self.proj4(outputs4d)
+        n4 = resize_by_sample([n4, n1])
 
-        n5 = self.neck5(outputs5d)
-        n5 = up_by_sample_2d([n5, n1])
+        n5 = self.proj5(outputs5d)
+        n5 = resize_by_sample([n5, n1])
 
-        n6 = self.neck6(outputs6)
-        n6 = up_by_sample_2d([n6, n1])
+        n6 = self.proj6(outputs6)
+        n6 = resize_by_sample([n6, n1])
 
         h = self.head(layers.concatenate([n1, n2, n3, n4, n5, n6]))
         h1 = self.act(n1)
@@ -131,8 +133,10 @@ class U2Net(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        output_shape = input_shape[:-1] + (self._classes,)
-        return (output_shape,) * 7
+        return (self.head.compute_output_shape(input_shape),) * 7
+
+    def compute_output_signature(self, input_signature):
+        return (self.head.compute_output_signature(input_signature),) * 7
 
     def get_config(self):
         config = super().get_config()
@@ -149,8 +153,6 @@ class U2NetP(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
         self.classes = classes
-        self._classes = classes if classes > 2 else 1
-        self._activation = 'softmax' if classes > 2 else 'sigmoid'
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -181,15 +183,16 @@ class U2NetP(layers.Layer):
         self.stage2d = RSU6(16, 64)
         self.stage1d = RSU7(16, 64)
 
-        self.neck1 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck2 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck3 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck4 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck5 = layers.Conv2D(self._classes, 3, padding='same')
-        self.neck6 = layers.Conv2D(self._classes, 3, padding='same')
-        self.act = layers.Activation(self._activation, dtype='float32')
-
+        self.proj1 = HeadProjection(self.classes, kernel_size=3)
+        self.proj2 = HeadProjection(self.classes, kernel_size=3)
+        self.proj3 = HeadProjection(self.classes, kernel_size=3)
+        self.proj4 = HeadProjection(self.classes, kernel_size=3)
+        self.proj5 = HeadProjection(self.classes, kernel_size=3)
+        self.proj6 = HeadProjection(self.classes, kernel_size=3)
+        self.act = HeadActivation(self.classes)
         self.head = ClassificationHead(self.classes)
+
+        super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         outputs = self.prep(inputs)
@@ -216,40 +219,40 @@ class U2NetP(layers.Layer):
 
         # stage 6
         outputs6 = self.stage6(outputs)
-        hx6up = up_by_sample_2d([outputs6, outputs5])
+        hx6up = resize_by_sample([outputs6, outputs5])
 
         # decoder
         outputs5d = self.stage5d(layers.concatenate([hx6up, outputs5]))
-        outputs5dup = up_by_sample_2d([outputs5d, outputs4])
+        outputs5dup = resize_by_sample([outputs5d, outputs4])
 
         outputs4d = self.stage4d(layers.concatenate([outputs5dup, outputs4]))
-        outputs4dup = up_by_sample_2d([outputs4d, outputs3])
+        outputs4dup = resize_by_sample([outputs4d, outputs3])
 
         outputs3d = self.stage3d(layers.concatenate([outputs4dup, outputs3]))
-        outputs3dup = up_by_sample_2d([outputs3d, outputs2])
+        outputs3dup = resize_by_sample([outputs3d, outputs2])
 
         outputs2d = self.stage2d(layers.concatenate([outputs3dup, outputs2]))
-        outputs2dup = up_by_sample_2d([outputs2d, outputs1])
+        outputs2dup = resize_by_sample([outputs2d, outputs1])
 
         outputs1d = self.stage1d(layers.concatenate([outputs2dup, outputs1]))
 
         # side output
-        n1 = self.neck1(outputs1d)
+        n1 = self.proj1(outputs1d)
 
-        n2 = self.neck2(outputs2d)
-        n2 = up_by_sample_2d([n2, n1])
+        n2 = self.proj2(outputs2d)
+        n2 = resize_by_sample([n2, n1])
 
-        n3 = self.neck3(outputs3d)
-        n3 = up_by_sample_2d([n3, n1])
+        n3 = self.proj3(outputs3d)
+        n3 = resize_by_sample([n3, n1])
 
-        n4 = self.neck4(outputs4d)
-        n4 = up_by_sample_2d([n4, n1])
+        n4 = self.proj4(outputs4d)
+        n4 = resize_by_sample([n4, n1])
 
-        n5 = self.neck5(outputs5d)
-        n5 = up_by_sample_2d([n5, n1])
+        n5 = self.proj5(outputs5d)
+        n5 = resize_by_sample([n5, n1])
 
-        n6 = self.neck6(outputs6)
-        n6 = up_by_sample_2d([n6, n1])
+        n6 = self.proj6(outputs6)
+        n6 = resize_by_sample([n6, n1])
 
         h = self.head(layers.concatenate([n1, n2, n3, n4, n5, n6]))
         h1 = self.act(n1)
@@ -263,8 +266,10 @@ class U2NetP(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        output_shape = input_shape[:-1] + (self._classes,)
-        return (output_shape,) * 7
+        return (self.head.compute_output_shape(input_shape),) * 7
+
+    def compute_output_signature(self, input_signature):
+        return (self.head.compute_output_signature(input_signature),) * 7
 
     def get_config(self):
         config = super().get_config()
@@ -273,14 +278,15 @@ class U2NetP(layers.Layer):
         return config
 
 
-def build_u2_net(channels, classes=2):
+def build_u2_net(channels, classes):
     inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
     outputs = U2Net(classes)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='u2_net')
 
     return model
 
-def build_u2_netp(channels, classes=2):
+
+def build_u2_netp(channels, classes):
     inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
     outputs = U2NetP(classes)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='u2_netp')

@@ -6,10 +6,10 @@ from .dense import DenseBlock
 from .upconv import UpConvBlock
 from .single import SingleConvBlock
 from .double import DoubleConvBlock
-from ...common import ClassificationHead
+from ...common import HeadActivation, ClassificationHead
 
 
-@utils.register_keras_serializable(package='SegMe')
+@utils.register_keras_serializable(package='SegMe>DexiNed')
 class DexiNed(layers.Layer):
     """ Reference: https://arxiv.org/pdf/1909.01955.pdf """
 
@@ -17,8 +17,6 @@ class DexiNed(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
         self.classes = classes
-        self._classes = classes if classes > 2 else 1
-        self._activation = 'softmax' if classes > 2 else 'sigmoid'
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -47,13 +45,14 @@ class DexiNed(layers.Layer):
         self.pre_dense_6_0 = SingleConvBlock(256)
         self.pre_dense_6 = SingleConvBlock(256)
 
-        self.up_block_1 = UpConvBlock(self._classes, 1)
-        self.up_block_2 = UpConvBlock(self._classes, 1)
-        self.up_block_3 = UpConvBlock(self._classes, 2)
-        self.up_block_4 = UpConvBlock(self._classes, 3)
-        self.up_block_5 = UpConvBlock(self._classes, 4)
-        self.up_block_6 = UpConvBlock(self._classes, 4)
-        self.act = layers.Activation(self._activation, dtype='float32')
+        classes = self.classes if self.classes > 2 else 1
+        self.up_block_1 = UpConvBlock(classes, 1)
+        self.up_block_2 = UpConvBlock(classes, 1)
+        self.up_block_3 = UpConvBlock(classes, 2)
+        self.up_block_4 = UpConvBlock(classes, 3)
+        self.up_block_5 = UpConvBlock(classes, 4)
+        self.up_block_6 = UpConvBlock(classes, 4)
+        self.act = HeadActivation(self.classes)
 
         self.head = ClassificationHead(self.classes, kernel_initializer=initializers.constant(1 / 6))
 
@@ -114,8 +113,10 @@ class DexiNed(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        output_shape = input_shape[:-1] + (self._classes,)
-        return (output_shape,) * 7
+        return (self.head.compute_output_shape(input_shape),) * 7
+
+    def compute_output_signature(self, input_signature):
+        return (self.head.compute_output_signature(input_signature),) * 7
 
     def get_config(self):
         config = super().get_config()
@@ -124,7 +125,7 @@ class DexiNed(layers.Layer):
         return config
 
 
-def build_dexi_ned(channels, classes=2):
+def build_dexi_ned(channels, classes):
     inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
     outputs = DexiNed(classes)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='dexi_ned')
