@@ -1,15 +1,23 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
-from ..upbysample import UpBySample, up_by_sample_2d
+from ..resizebysample import ResizeBySample, resize_by_sample
 from ...testing_utils import layer_multi_io_test
 
 
 @keras_parameterized.run_all_keras_modes
-class TestUpBySample(keras_parameterized.TestCase):
+class TestResizeBySample(keras_parameterized.TestCase):
+    def setUp(self):
+        super(TestResizeBySample, self).setUp()
+        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+
+    def tearDown(self):
+        super(TestResizeBySample, self).tearDown()
+        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+
     def test_layer(self):
         layer_multi_io_test(
-            UpBySample,
+            ResizeBySample,
             kwargs={},
             input_shapes=[(2, 16, 16, 10), (2, 24, 32, 3)],
             input_dtypes=['float32', 'float32'],
@@ -17,10 +25,22 @@ class TestUpBySample(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
+        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
+        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        layer_multi_io_test(
+            ResizeBySample,
+            kwargs={},
+            input_shapes=[(2, 16, 16, 10), (2, 24, 32, 3)],
+            input_dtypes=['float16', 'float16'],
+            expected_output_shapes=[(None, 24, 32, 10)],
+            expected_output_dtypes=['float32']
+        )
+        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
+
     def test_corners(self):
         target = tf.reshape(tf.range(9, dtype=tf.float32), [1, 3, 3, 1])
         sample = tf.zeros([1, 10, 9, 1], dtype=tf.float32)
-        result = up_by_sample_2d([target, sample])
+        result = resize_by_sample([target, sample])
         result = self.evaluate(result)
 
         # See https://github.com/tensorflow/tensorflow/
