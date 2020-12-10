@@ -10,9 +10,9 @@ class TestDecoder(keras_parameterized.TestCase):
         layer_multi_io_test(
             Decoder,
             kwargs={'low_filters': 8, 'decoder_filters': 4},
-            input_shapes=[(2, 64, 64, 10), (2, 16, 16, 3), (2, 4, 4, 3)],
-            input_dtypes=['uint8', 'float32', 'float32'],
-            expected_output_shapes=[(None, 64, 64, 4)],
+            input_shapes=[(2, 16, 16, 3), (2, 4, 4, 3)],
+            input_dtypes=['float32', 'float32'],
+            expected_output_shapes=[(None, 16, 16, 4)],
             expected_output_dtypes=['float32']
 
         )

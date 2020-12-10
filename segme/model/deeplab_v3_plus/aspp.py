@@ -2,10 +2,10 @@ import tensorflow as tf
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .atsepconv import AtrousSepConv
-from .upbysample import up_by_sample_2d
+from ...common import resize_by_sample
 
 
-@utils.register_keras_serializable(package='SegMe')
+@utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
 class ASPPPool(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
@@ -27,7 +27,7 @@ class ASPPPool(layers.Layer):
 
     def call(self, inputs, **kwargs):
         outputs = self.pool(inputs)
-        outputs = up_by_sample_2d([outputs, inputs])
+        outputs = resize_by_sample([outputs, inputs])
 
         return outputs
 
@@ -42,7 +42,7 @@ class ASPPPool(layers.Layer):
         return config
 
 
-@utils.register_keras_serializable(package='SegMe')
+@utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
 class ASPP(layers.Layer):
     _stride_rates = {
         8: [12, 24, 36],
