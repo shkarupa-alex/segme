@@ -62,9 +62,9 @@ class HeadActivation(layers.Layer):
         return input_shape
 
     def compute_output_signature(self, input_signature):
-        default_signature = super().compute_output_signature(input_signature)
+        output_signature = super().compute_output_signature(input_signature)
 
-        return tf.TensorSpec(dtype='float32', shape=default_signature.shape)
+        return tf.TensorSpec(dtype='float32', shape=output_signature.shape)
 
     def get_config(self):
         config = super().get_config()
@@ -103,9 +103,9 @@ class ClassificationHead(layers.Layer):
         return input_shape[:-1] + (self.classes,)
 
     def compute_output_signature(self, input_signature):
-        default_signature = super().compute_output_signature(input_signature)
+        output_signature = super().compute_output_signature(input_signature)
 
-        return tf.TensorSpec(dtype='float32', shape=default_signature.shape)
+        return tf.TensorSpec(dtype='float32', shape=output_signature.shape)
 
     def get_config(self):
         config = super().get_config()

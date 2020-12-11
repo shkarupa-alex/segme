@@ -29,9 +29,9 @@ class ResizeByScale(layers.Layer):
         return input_shape[0], self._scale(input_shape[1]), self._scale(input_shape[2]), input_shape[3]
 
     def compute_output_signature(self, input_signature):
-        default_signature = super().compute_output_signature(input_signature)
+        output_signature = super().compute_output_signature(input_signature)
 
-        return tf.TensorSpec(dtype='float32', shape=default_signature.shape)
+        return tf.TensorSpec(dtype='float32', shape=output_signature.shape)
 
     def get_config(self):
         config = super().get_config()

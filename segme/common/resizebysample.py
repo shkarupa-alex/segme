@@ -33,8 +33,8 @@ class ResizeBySample(layers.Layer):
         return (targets_shape[-0],) + samples_shape[1:3] + (targets_shape[3],)
 
     def compute_output_signature(self, input_signature):
-        default_signature = super().compute_output_signature(input_signature)
-        return tf.TensorSpec(dtype='float32', shape=default_signature.shape)
+        output_signature = super().compute_output_signature(input_signature)
+        return tf.TensorSpec(dtype='float32', shape=output_signature.shape)
 
     def get_config(self):
         config = super().get_config()
