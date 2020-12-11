@@ -1,5 +1,4 @@
-import tensorflow as tf
-from tensorflow.keras import layers, utils
+from tensorflow.keras import backend as K, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from . import core
 from . import port
@@ -148,7 +147,7 @@ class Backbone(layers.Layer):
         # 'nasnetlarge': unable to find right nodes in tree
         # 'nasnetmobile': unable to find right nodes in tree
 
-        # # ResNets
+        # ResNets
         'resnet_50': (core.ResNet50, (
             None, 'conv1_relu', 'conv2_block3_out', 'conv3_block4_out',
             'conv4_block6_out', 'conv5_block3_out'
@@ -203,7 +202,21 @@ class Backbone(layers.Layer):
         # ======================================================================
         #                   port
         # ======================================================================
-        # 'alignedxception': TODO
+        'aligned_xception_41': (port.AlignedXception41, (
+            None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block2/unit1/sepconv2_pointwise_bn',
+            'entry_flow/block3/unit1/sepconv2_pointwise_bn', 'exit_flow/block1/unit1/sepconv2_pointwise_bn',
+            'exit_flow/block2/unit1/sepconv3_pointwise_bn'
+        )),
+        'aligned_xception_65': (port.AlignedXception65, (
+            None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block2/unit1/sepconv2_pointwise_bn',
+            'entry_flow/block3/unit1/sepconv2_pointwise_bn', 'exit_flow/block1/unit1/sepconv2_pointwise_bn',
+            'exit_flow/block2/unit1/sepconv3_pointwise_bn'
+        )),
+        'aligned_xception_71': (port.AlignedXception71, (
+            None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block3/unit1/sepconv2_pointwise_bn',
+            'entry_flow/block5/unit1/sepconv2_pointwise_bn', 'exit_flow/block1/unit1/sepconv2_pointwise_bn',
+            'exit_flow/block2/unit1/sepconv3_pointwise_bn'
+        )),
 
         'mobilenet_v3_small': (port.MobileNetV3Small, (
             # None, 'activation', 'activation_2', 'activation_6',
@@ -244,8 +257,7 @@ class Backbone(layers.Layer):
             raise ValueError('Unsupported backbone')
 
         if init is None and not trainable:
-            raise ValueError('Backbone should be trainable if '
-                             'initial weights not provided')
+            raise ValueError('Backbone should be trainable if initial weights not provided')
 
         bad_scales = set(scales or []).difference(self._scales)
         if bad_scales:
@@ -257,13 +269,14 @@ class Backbone(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        channels = input_shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should '
-                             'be defined. Found `None`.')
+        if 'channels_last' != K.image_data_format():
+            raise ValueError('Only NHWC mode (channels last) supported')
 
-        self.input_spec = layers.InputSpec(
-            ndim=4, axes={-1: channels}, dtype='uint8')
+        channel_size = input_shape[-1]
+        if channel_size is None:
+            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+
+        self.input_spec = layers.InputSpec(ndim=4, axes={-1: channel_size}, dtype='uint8')
 
         bone_model, default_feats = self._config[self.arch]
 
@@ -275,10 +288,9 @@ class Backbone(layers.Layer):
             if None in use_feats:
                 bad_idx = [fi for fi, uf in enumerate(use_feats) if uf is None]
                 bad_scales = [self.scales[sc] for sc in bad_idx]
-                raise ValueError(
-                    'Some scales are unavailable: {}'.format(bad_scales))
+                raise ValueError('Some scales are unavailable: {}'.format(bad_scales))
 
-        self.bone = bone_model(channels, use_feats, self.init)
+        self.bone = bone_model(channel_size, use_feats, self.init)
         self.bone.trainable = self.trainable
 
         super().build(input_shape)
