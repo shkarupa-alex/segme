@@ -158,12 +158,14 @@ class TestPointSample(keras_parameterized.TestCase):
         [[0.4946522116661072, 0.4969025254249573], [0.5992345809936523, 0.38736796379089355],
          [0.02763419784605503, 0.3467414975166321]],
         [[0.6845056414604187, 0.12966862320899963], [0.5646132230758667, 0.40902620553970337],
-         [0.1310044378042221, 0.3320242762565613]]]
+         [0.1310044378042221, 0.3320242762565613]]
+    ]
     bilinear_corner = [
         [[0.1450890153646469, 0.24396833777427673], [0.24609315395355225, 0.2453467845916748],
          [0.026439279317855835, 0.24564866721630096]],
         [[0.01776115782558918, 0.056393008679151535], [0.13448593020439148, 0.015676435083150864],
-         [0.16188979148864746, 0.12015028297901154]]]
+         [0.16188979148864746, 0.12015028297901154]]
+    ]
     nearest_random = [
         [[0.82572340965271, 0.5206645727157593], [0.43934887647628784, 0.4548532962799072],
          [0.05154120549559593, 0.5912343263626099]],
@@ -173,6 +175,31 @@ class TestPointSample(keras_parameterized.TestCase):
     nearest_corner = [
         [[0.5803560614585876, 0.9758733510971069], [0.984372615814209, 0.9813871383666992], [0.0, 0.0]],
         [[0.0, 0.0], [0.0, 0.0], [0.6475591659545898, 0.48060113191604614]]
+    ]
+
+    bilinear_random_align = [
+        [[0.7267985939979553, 0.6062460541725159], [0.6733735203742981, 0.36486396193504333],
+         [0.07661650329828262, 0.5985114574432373]],
+        [[0.6085014343261719, 0.29785940051078796], [0.6163655519485474, 0.3217147886753082],
+         [0.2241607904434204, 0.37310990691185]]
+    ]
+    bilinear_corner_align = [
+        [[0.5803560614585876, 0.9758733510971069], [0.984372615814209, 0.9813871383666992],
+         [0.10575711727142334, 0.9825946688652039]],
+        [[0.07104463130235672, 0.22557203471660614], [0.5379437208175659, 0.06270574033260345],
+         [0.6475591659545898, 0.48060113191604614]]
+    ]
+    nearest_random_align = [
+        [[0.82572340965271, 0.5206645727157593], [0.823407769203186, 0.3505931794643402],
+         [0.05154120549559593, 0.5912343263626099]],
+        [[0.7110949158668518, 0.13519690930843353], [0.8022331595420837, 0.4018300771713257],
+         [0.09822063893079758, 0.4689144492149353]]
+    ]
+    nearest_corner_align = [
+        [[0.5803560614585876, 0.9758733510971069], [0.984372615814209, 0.9813871383666992],
+         [0.10575711727142334, 0.9825946688652039]],
+        [[0.07104463130235672, 0.22557203471660614], [0.5379437208175659, 0.06270574033260345],
+         [0.6475591659545898, 0.48060113191604614]]
     ]
 
     def setUp(self):
@@ -186,7 +213,7 @@ class TestPointSample(keras_parameterized.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             PointSample,
-            kwargs={'mode': 'bilinear'},
+            kwargs={'align_corners': False, 'mode': 'bilinear'},
             input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 20, 2)],
             input_dtypes=['float32', 'float32'],
             expected_output_shapes=[(None, 20, 10)],
@@ -194,7 +221,7 @@ class TestPointSample(keras_parameterized.TestCase):
         )
         layer_multi_io_test(
             PointSample,
-            kwargs={'mode': 'nearest'},
+            kwargs={'align_corners': True, 'mode': 'nearest'},
             input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 20, 2)],
             input_dtypes=['float32', 'float32'],
             expected_output_shapes=[(None, 20, 10)],
@@ -202,7 +229,7 @@ class TestPointSample(keras_parameterized.TestCase):
         )
         layer_multi_io_test(
             PointSample,
-            kwargs={'mode': 'bilinear'},
+            kwargs={'align_corners': False, 'mode': 'bilinear'},
             input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 20, 2)],
             input_dtypes=['int32', 'float32'],
             expected_output_shapes=[(None, 20, 10)],
@@ -210,7 +237,7 @@ class TestPointSample(keras_parameterized.TestCase):
         )
         layer_multi_io_test(
             PointSample,
-            kwargs={'mode': 'nearest'},
+            kwargs={'align_corners': True, 'mode': 'nearest'},
             input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 20, 2)],
             input_dtypes=['int32', 'float32'],
             expected_output_shapes=[(None, 20, 10)],
@@ -221,7 +248,7 @@ class TestPointSample(keras_parameterized.TestCase):
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         layer_multi_io_test(
             PointSample,
-            kwargs={'mode': 'bilinear'},
+            kwargs={'align_corners': False, 'mode': 'bilinear'},
             input_datas=[
                 np.random.rand(2, 16, 16, 10).astype(np.float16),
                 np.random.rand(2, 20, 2).astype(np.float16)],
@@ -231,7 +258,7 @@ class TestPointSample(keras_parameterized.TestCase):
         )
         layer_multi_io_test(
             PointSample,
-            kwargs={'mode': 'bilinear'},
+            kwargs={'align_corners': True, 'mode': 'bilinear'},
             input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 20, 2)],
             input_dtypes=['float32', 'float16'],
             expected_output_shapes=[(None, 20, 10)],
@@ -239,7 +266,7 @@ class TestPointSample(keras_parameterized.TestCase):
         )
         layer_multi_io_test(
             PointSample,
-            kwargs={'mode': 'bilinear'},
+            kwargs={'align_corners': False, 'mode': 'bilinear'},
             input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 20, 2)],
             input_dtypes=['int32', 'float16'],
             expected_output_shapes=[(None, 20, 10)],
@@ -247,7 +274,7 @@ class TestPointSample(keras_parameterized.TestCase):
         )
         layer_multi_io_test(
             PointSample,
-            kwargs={'mode': 'bilinear'},
+            kwargs={'align_corners': True, 'mode': 'bilinear'},
             input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 20, 2)],
             input_dtypes=['int32', 'float32'],
             expected_output_shapes=[(None, 20, 10)],
@@ -258,26 +285,50 @@ class TestPointSample(keras_parameterized.TestCase):
     def test_values_bilinear_random(self):
         result = point_sample([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_random, 'float32')])
+            tf.convert_to_tensor(self.grid_random, 'float32')], align_corners=False)
         self.assertAllClose(self.bilinear_random, result)
 
     def test_values_bilinear_corner(self):
         result = point_sample([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_corner, 'float32')])
+            tf.convert_to_tensor(self.grid_corner, 'float32')], align_corners=False)
         self.assertAllClose(self.bilinear_corner, result)
 
     def test_values_nearest_random(self):
         result = point_sample([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_random, 'float32')], mode='nearest')
+            tf.convert_to_tensor(self.grid_random, 'float32')], align_corners=False, mode='nearest')
         self.assertAllClose(self.nearest_random, result)
 
     def test_values_nearest_corner(self):
         result = point_sample([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_corner, 'float32')], mode='nearest')
+            tf.convert_to_tensor(self.grid_corner, 'float32')], align_corners=False, mode='nearest')
         self.assertAllClose(self.nearest_corner, result)
+
+    def test_values_bilinear_random_align(self):
+        result = point_sample([
+            tf.convert_to_tensor(self.features, 'float32'),
+            tf.convert_to_tensor(self.grid_random, 'float32')], align_corners=True)
+        self.assertAllClose(self.bilinear_random_align, result)
+
+    def test_values_bilinear_corner_align(self):
+        result = point_sample([
+            tf.convert_to_tensor(self.features, 'float32'),
+            tf.convert_to_tensor(self.grid_corner, 'float32')], align_corners=True)
+        self.assertAllClose(self.bilinear_corner_align, result)
+
+    def test_values_nearest_random_align(self):
+        result = point_sample([
+            tf.convert_to_tensor(self.features, 'float32'),
+            tf.convert_to_tensor(self.grid_random, 'float32')], align_corners=True, mode='nearest')
+        self.assertAllClose(self.nearest_random_align, result)
+
+    def test_values_nearest_corner_align(self):
+        result = point_sample([
+            tf.convert_to_tensor(self.features, 'float32'),
+            tf.convert_to_tensor(self.grid_corner, 'float32')], align_corners=True, mode='nearest')
+        self.assertAllClose(self.nearest_corner_align, result)
 
 
 @keras_parameterized.run_all_keras_modes
@@ -293,7 +344,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
-            kwargs={'points': 5},
+            kwargs={'points': 5, 'align_corners': False},
             input_shape=[2, 16, 16, 10],
             input_dtype='float32',
             expected_output_shape=[None, 5, 2],
@@ -301,7 +352,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
         )
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
-            kwargs={'points': 256},
+            kwargs={'points': 256, 'align_corners': True},
             input_shape=[2, 16, 16, 10],
             input_dtype='float32',
             expected_output_shape=[None, 256, 2],
@@ -312,7 +363,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
-            kwargs={'points': 5},
+            kwargs={'points': 5, 'align_corners': False},
             input_shape=[2, 16, 16, 10],
             input_dtype='float16',
             expected_output_shape=[None, 5, 2],
@@ -320,7 +371,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
         )
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
-            kwargs={'points': 5},
+            kwargs={'points': 5, 'align_corners': True},
             input_shape=[2, 16, 16, 10],
             input_dtype='float32',
             expected_output_shape=[None, 5, 2],
@@ -331,8 +382,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
     def test_shorthand(self):
         uncertain_points_with_randomness(
             tf.convert_to_tensor(np.random.rand(2, 16, 16, 10).astype(np.float32)),
-            points=3
-        )
+            points=3, align_corners=False)
 
 
 @keras_parameterized.run_all_keras_modes

@@ -56,7 +56,7 @@ def classification_uncertainty(inputs, **kwargs):
 
 @utils.register_keras_serializable(package='SegMe>PointRend')
 class PointSample(layers.Layer):
-    def __init__(self, mode='bilinear', **kwargs):
+    def __init__(self, align_corners, mode='bilinear', **kwargs):
         kwargs['autocast'] = False
         super().__init__(**kwargs)
         self.input_spec = [
@@ -66,6 +66,7 @@ class PointSample(layers.Layer):
 
         if mode not in {'bilinear', 'nearest'}:
             raise ValueError('Wrong interpolation mode. Only "bilinear" and "nearest" supported')
+        self.align_corners = align_corners
         self.mode = mode
 
     def call(self, inputs, **kwargs):
@@ -82,7 +83,12 @@ class PointSample(layers.Layer):
             safe_features = tf.pad(features, [[0, 0], [1, 1], [1, 1], [0, 0]])
             safe_features = tf.cast(safe_features, grid.dtype)
             grid = tf.reverse(grid, axis=[-1])
-            grid = (2.0 * grid * tf.cast(features_shape[1:3], grid.dtype) - 1) / 2
+            size = tf.cast(features_shape[1:3], grid.dtype)
+
+            if self.align_corners:
+                grid = grid * (size - 1)
+            else:
+                grid = (2.0 * grid * size - 1) / 2
 
             batch_size, point_size = grid_shape[0], grid_shape[1]
             batch_idx = tf.reshape(tf.range(0, batch_size), (batch_size, 1, 1))
@@ -132,7 +138,10 @@ class PointSample(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({'mode': self.mode})
+        config.update({
+            'align_corners': self.align_corners,
+            'mode': self.mode
+        })
 
         return config
 
@@ -143,7 +152,7 @@ def point_sample(inputs, **kwargs):
 
 @utils.register_keras_serializable(package='SegMe>PointRend')
 class UncertainPointsWithRandomness(layers.Layer):
-    def __init__(self, points, oversample=3, importance=0.75, **kwargs):
+    def __init__(self, points, align_corners, oversample=3, importance=0.75, **kwargs):
         kwargs['autocast'] = False
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
@@ -154,6 +163,7 @@ class UncertainPointsWithRandomness(layers.Layer):
             raise ValueError('Parameter "importance" should be in range [0; 1]')
 
         self.points = points
+        self.align_corners = align_corners
         self.oversample = oversample
         self.importance = importance
 
@@ -162,7 +172,7 @@ class UncertainPointsWithRandomness(layers.Layer):
         sampled_size = int(self.points * self.oversample)
 
         point_coords = tf.random.uniform((batch_size, sampled_size, 2), dtype=inputs.dtype)
-        point_logits = point_sample([inputs, point_coords])
+        point_logits = point_sample([inputs, point_coords], align_corners=self.align_corners)
 
         # It is crucial to calculate uncertainty based on the sampled prediction value for the points.
         # Calculating uncertainties of the coarse predictions first and sampling them for points leads
@@ -200,6 +210,7 @@ class UncertainPointsWithRandomness(layers.Layer):
         config = super().get_config()
         config.update({
             'points': self.points,
+            'align_corners': self.align_corners,
             'oversample': self.oversample,
             'importance': self.importance
         })

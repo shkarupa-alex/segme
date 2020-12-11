@@ -3,7 +3,7 @@ from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.conv_utils import normalize_tuple
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion, smart_cond
 from .head import PointHead
-from .sample import classification_uncertainty, uncertain_points_with_randomness
+from .sample import uncertain_points_with_randomness
 from .sample import point_sample, uncertain_points_coords_on_grid
 from ..head import HeadActivation
 from ..resizebysample import resize_by_sample
@@ -66,11 +66,12 @@ class PointRend(layers.Layer):
         coarse_features = tf.cast(coarse_features, 'float32')
 
         point_coords = uncertain_points_with_randomness(
-            coarse_features, points=self.points[0], oversample=self.oversample, importance=self.importance)
+            coarse_features, points=self.points[0], align_corners=self.align_corners, oversample=self.oversample,
+            importance=self.importance)
         point_coords = tf.stop_gradient(point_coords)
 
-        coarse_points = point_sample([coarse_features, point_coords])
-        fine_points = [point_sample([ff, point_coords]) for ff in fine_features]
+        coarse_points = point_sample([coarse_features, point_coords], align_corners=self.align_corners)
+        fine_points = [point_sample([ff, point_coords], align_corners=self.align_corners) for ff in fine_features]
         point_logits = self.point_head([coarse_points, *fine_points])
 
         return coarse_features, point_logits, point_coords
@@ -105,8 +106,8 @@ class PointRend(layers.Layer):
 
         point_indices, point_coords = uncertain_points_coords_on_grid(coarse_features, points=self.points[1])
 
-        coarse_points = point_sample([coarse_features, point_coords])
-        fine_points = [point_sample([ff, point_coords]) for ff in fine_features]
+        coarse_points = point_sample([coarse_features, point_coords], align_corners=self.align_corners)
+        fine_points = [point_sample([ff, point_coords], align_corners=self.align_corners) for ff in fine_features]
         point_logits = self.point_head([coarse_points, *fine_points])
 
         logits_shape = tf.shape(coarse_features)

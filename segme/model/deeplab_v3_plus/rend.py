@@ -92,8 +92,9 @@ def build_deeplab_v3_plus_with_point_rend(
         rend_importance=rend_importance)(norm_inputs)
     model = Model(inputs=[norm_inputs] + rend_inputs, outputs=outputs, name='deeplab_v3_plus_with_point_rend')
 
-    point_labels = point_sample([rend_inputs[0], point_coords])
-    point_weights = None if not rend_weights else point_sample([rend_inputs[1], point_coords])
+    point_labels = point_sample([rend_inputs[0], point_coords], align_corners=True, mode='nearest')
+    point_weights = None if not rend_weights else point_sample(
+        [rend_inputs[1], point_coords], align_corners=True, mode='nearest')
 
     loss_class = losses.BinaryCrossentropy if 1 == classes else losses.SparseCategoricalCrossentropy
     point_loss = loss_class(reduction=rend_reduction, from_logits=True)

@@ -49,45 +49,45 @@ class TestDeepLabV3PlusWithPointRend(keras_parameterized.TestCase):
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
-    # def test_model(self):
-    #     num_classes = 5
-    #     model = build_deeplab_v3_plus_with_point_rend(
-    #         channels=3,
-    #         classes=num_classes,
-    #         bone_arch='resnet_50',
-    #         bone_init='imagenet',
-    #         bone_train=False,
-    #         aspp_filters=8,
-    #         aspp_stride=16,
-    #         low_filters=16,
-    #         decoder_filters=4,
-    #         rend_strides=(2, 4),
-    #         rend_units=(256,),
-    #         rend_points=(1024, 8192),
-    #         rend_oversample=3,
-    #         rend_importance=0.75,
-    #         rend_weights=True
-    #     )
-    #     model.compile(
-    #         optimizer='sgd', loss='sparse_categorical_crossentropy',
-    #         run_eagerly=testing_utils.should_run_eagerly())
-    #     model.fit(
-    #         {
-    #             'image': np.random.random((2, 224, 224, 3)).astype(np.uint8),
-    #             'label': np.random.randint(0, num_classes, (2, 224, 224)),
-    #             'weight': np.random.rand(2, 224, 224),
-    #         },
-    #         np.random.randint(0, num_classes, (2, 224, 224)),
-    #         epochs=1, batch_size=10)
-    #
-    #     # test config
-    #     model.get_config()
-    #
-    #     # check whether the model variables are present
-    #     # in the trackable list of objects
-    #     checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
-    #     for v in model.variables:
-    #         self.assertIn(v, checkpointed_objects)
+    def test_model(self):
+        num_classes = 5
+        model = build_deeplab_v3_plus_with_point_rend(
+            channels=3,
+            classes=num_classes,
+            bone_arch='resnet_50',
+            bone_init='imagenet',
+            bone_train=False,
+            aspp_filters=8,
+            aspp_stride=16,
+            low_filters=16,
+            decoder_filters=4,
+            rend_strides=(2, 4),
+            rend_units=(256,),
+            rend_points=(1024, 8192),
+            rend_oversample=3,
+            rend_importance=0.75,
+            rend_weights=True
+        )
+        model.compile(
+            optimizer='sgd', loss='sparse_categorical_crossentropy',
+            run_eagerly=testing_utils.should_run_eagerly())
+        model.fit(
+            {
+                'image': np.random.random((2, 224, 224, 3)).astype(np.uint8),
+                'label': np.random.randint(0, num_classes, (2, 224, 224)),
+                'weight': np.random.rand(2, 224, 224),
+            },
+            np.random.randint(0, num_classes, (2, 224, 224)),
+            epochs=1, batch_size=10)
+
+        # test config
+        model.get_config()
+
+        # check whether the model variables are present
+        # in the trackable list of objects
+        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
+        for v in model.variables:
+            self.assertIn(v, checkpointed_objects)
 
 
 if __name__ == '__main__':
