@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from tensorflow.python.keras.utils.tf_utils import shape_type_conversion, smart_cond
 
 
 @utils.register_keras_serializable(package='SegMe')
@@ -17,12 +17,15 @@ class ResizeBySample(layers.Layer):
 
     def call(self, inputs, **kwargs):
         targets, samples = inputs
+        cur_size, new_size = tf.shape(targets)[1:3], tf.shape(samples)[1:3]
 
-        new_size = tf.shape(samples)[1:3]
-        resized = tf.compat.v1.image.resize(targets, new_size, method=self.method, align_corners=self.align_corners)
+        resized = smart_cond(
+            tf.reduce_all(cur_size == new_size),
+            lambda: tf.cast(targets, 'float32'),
+            lambda: tf.compat.v1.image.resize(targets, new_size, method=self.method, align_corners=self.align_corners))
 
-        resized_shape = targets.shape[0], samples.shape[1], samples.shape[2], targets.shape[3]
-        resized.set_shape(resized_shape)
+        new_shape = targets.shape[0], samples.shape[1], samples.shape[2], targets.shape[3]
+        resized.set_shape(new_shape)
 
         return resized
 
