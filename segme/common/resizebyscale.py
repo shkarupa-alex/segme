@@ -16,6 +16,9 @@ class ResizeByScale(layers.Layer):
         return None if value is None else int(round(value * self.scale))
 
     def call(self, inputs, **kwargs):
+        if 1 == self.scale:
+            return tf.cast(inputs, 'float32')
+
         new_size = tf.cast(tf.round(tf.shape(inputs)[1:3] * self.scale), 'int32')
         resized = tf.compat.v1.image.resize(inputs, new_size, method=self.method, align_corners=self.align_corners)
 
@@ -26,6 +29,9 @@ class ResizeByScale(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
+        if 1 == self.scale:
+            return input_shape
+        
         return input_shape[0], self._scale(input_shape[1]), self._scale(input_shape[2]), input_shape[3]
 
     def compute_output_signature(self, input_signature):

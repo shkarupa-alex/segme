@@ -18,8 +18,6 @@ class U2Net(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
         self.classes = classes
-        self._classes = classes if classes > 2 else 1
-        self._activation = 'softmax' if classes > 2 else 'sigmoid'
 
     @shape_type_conversion
     def build(self, input_shape):
