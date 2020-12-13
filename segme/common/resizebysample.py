@@ -17,12 +17,9 @@ class ResizeBySample(layers.Layer):
 
     def call(self, inputs, **kwargs):
         targets, samples = inputs
-        cur_size, new_size = tf.shape(targets)[1:3], tf.shape(samples)[1:3]
 
-        resized = smart_cond(
-            tf.reduce_all(cur_size == new_size),
-            lambda: tf.cast(targets, 'float32'),
-            lambda: tf.compat.v1.image.resize(targets, new_size, method=self.method, align_corners=self.align_corners))
+        new_size = tf.shape(samples)[1:3]
+        resized = tf.compat.v1.image.resize(targets, new_size, method=self.method, align_corners=self.align_corners)
 
         new_shape = targets.shape[0], samples.shape[1], samples.shape[2], targets.shape[3]
         resized.set_shape(new_shape)
@@ -36,8 +33,12 @@ class ResizeBySample(layers.Layer):
         return (targets_shape[-0],) + samples_shape[1:3] + (targets_shape[3],)
 
     def compute_output_signature(self, input_signature):
+        # TODO: It will also have the same type as `targets` if the size of `images` can be statically determined
+        #  to be the same as `samples`
         output_signature = super().compute_output_signature(input_signature)
-        return tf.TensorSpec(dtype='float32', shape=output_signature.shape)
+        output_dtype = input_signature[0].dtype if 'nearest' == self.method else 'float32'
+        
+        return tf.TensorSpec(dtype=output_dtype, shape=output_signature.shape)
 
     def get_config(self):
         config = super().get_config()

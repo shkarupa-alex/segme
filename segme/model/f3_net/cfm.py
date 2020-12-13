@@ -13,37 +13,37 @@ class CFM(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.cbr1h = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same'),
+            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()
         ])
         self.cbr2h = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same'),
+            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
         self.cbr3h = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same'),
+            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
         self.cbr4h = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same'),
+            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
 
         self.cbr1v = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same'),
+            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
         self.cbr2v = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same'),
+            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
         self.cbr3v = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same'),
+            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
         self.cbr4v = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same'),
+            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
 

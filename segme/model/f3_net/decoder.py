@@ -43,6 +43,7 @@ class Decoder(layers.Layer):
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
         out2h_shape, out3h_shape, out4h_shape, out5v_shape = input_shape[:4]
+
         return [out2h_shape[:-1] + (self.filters,), out3h_shape[:-1] + (self.filters,),
                 out4h_shape[:-1] + (self.filters,), out5v_shape, out2h_shape[:-1] + (self.filters,)]
 

@@ -22,31 +22,31 @@ class F3Net(layers.Layer):
         self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=[4, 8, 16, 32])
 
         self.squeeze2 = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same'),
+            layers.Conv2D(self.filters, 1, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
         self.squeeze3 = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same'),
+            layers.Conv2D(self.filters, 1, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
         self.squeeze4 = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same'),
+            layers.Conv2D(self.filters, 1, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
         self.squeeze5 = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same'),
+            layers.Conv2D(self.filters, 1, padding='same', kernel_initializer='he_normal'),
             layers.BatchNormalization(),
             layers.ReLU()])
 
         self.decoder1 = Decoder(False, self.filters)
         self.decoder2 = Decoder(True, self.filters)
 
-        self.proj_p1 = HeadProjection(self.classes, kernel_size=3)
-        self.proj_p2 = HeadProjection(self.classes, kernel_size=3)
-        self.proj_o2 = HeadProjection(self.classes, kernel_size=3)
-        self.proj_o3 = HeadProjection(self.classes, kernel_size=3)
-        self.proj_o4 = HeadProjection(self.classes, kernel_size=3)
-        self.proj_o5 = HeadProjection(self.classes, kernel_size=3)
+        self.proj_p1 = HeadProjection(self.classes, kernel_size=3, kernel_initializer='he_normal')
+        self.proj_p2 = HeadProjection(self.classes, kernel_size=3, kernel_initializer='he_normal')
+        self.proj_o2 = HeadProjection(self.classes, kernel_size=3, kernel_initializer='he_normal')
+        self.proj_o3 = HeadProjection(self.classes, kernel_size=3, kernel_initializer='he_normal')
+        self.proj_o4 = HeadProjection(self.classes, kernel_size=3, kernel_initializer='he_normal')
+        self.proj_o5 = HeadProjection(self.classes, kernel_size=3, kernel_initializer='he_normal')
 
         self.act = HeadActivation(self.classes)
 

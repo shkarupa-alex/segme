@@ -8,6 +8,7 @@ from ...common import resize_by_sample
 class RSU4(layers.Layer):
     def __init__(self, mid_features, out_features, **kwargs):
         super().__init__(**kwargs)
+        # TODO: input spec
         self.mid_features = mid_features
         self.out_features = out_features
 
