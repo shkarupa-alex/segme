@@ -33,6 +33,4 @@ def pixel_position_aware_binary_loss(y_true, y_pred, from_logits=False, gamma=5,
     union = tf.reduce_sum((_y_pred + y_true) * weight, axis=[1, 2])
     wiou = 1. - (intersection + 1.) / (union - intersection + 1.)
 
-    print(wbce, wiou)
-
     return tf.reduce_mean(tf.concat([wbce, wiou], axis=-1), axis=-1)
