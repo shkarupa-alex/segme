@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion, smart_cond
+from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 
 @utils.register_keras_serializable(package='SegMe')
