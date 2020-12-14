@@ -4,3 +4,5 @@ from .calibrated_focal import SigmoidCalibratedFocalCrossEntropy
 from .calibrated_focal import sigmoid_calibrated_focal_crossentropy
 from .laplace_edge import LaplaceSigmoidEdgeHold
 from .laplace_edge import laplace_sigmoid_edge_hold
+from .ppa_binary import PixelPositionAwareBinaryLoss
+from .ppa_binary import pixel_position_aware_binary_loss
