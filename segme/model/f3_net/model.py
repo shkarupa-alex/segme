@@ -70,7 +70,7 @@ class F3Net(layers.Layer):
         out4h = self.proj_o4(out4h)
         out5v = self.proj_o5(out5v)
 
-        outputs = [pred1, pred2, out2h, out3h, out4h, out5v]
+        outputs = [pred2, pred1, out2h, out3h, out4h, out5v]
         outputs = [resize_by_sample([out, inputs]) for out in outputs]
         outputs = [self.act(out) for out in outputs]
 
