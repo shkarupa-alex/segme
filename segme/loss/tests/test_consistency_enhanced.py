@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
-from ..balanced_sigmoid import BalancedSigmoidCrossEntropy
-from ..balanced_sigmoid import balanced_sigmoid_cross_entropy
+from ..consistency_enhanced import ConsistencyEnhancedSigmoidLoss
+from ..consistency_enhanced import consistency_enhanced_sigmoid_loss
 
 
 def _to_logit(prob):
@@ -12,14 +12,14 @@ def _to_logit(prob):
 
 
 @keras_parameterized.run_all_keras_modes
-class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
+class TestConsistencyEnhancedSigmoidLoss(keras_parameterized.TestCase):
     def test_config(self):
-        bce_obj = BalancedSigmoidCrossEntropy(
+        loss = ConsistencyEnhancedSigmoidLoss(
             reduction=tf.keras.losses.Reduction.NONE,
             name='loss1'
         )
-        self.assertEqual(bce_obj.name, 'loss1')
-        self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(loss.name, 'loss1')
+        self.assertEqual(loss.reduction, tf.keras.losses.Reduction.NONE)
 
     def test_value_4d(self):
         logits = tf.constant([
@@ -35,16 +35,16 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
-        loss = BalancedSigmoidCrossEntropy(from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
+        loss = ConsistencyEnhancedSigmoidLoss(from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
         result = self.evaluate(loss(targets, logits)).item()
 
-        self.assertAlmostEqual(result, 30.057157516479492, places=7)
+        self.assertAlmostEqual(result, 0.2696363031864166, places=7)
 
     def test_zeros(self):
         probs = tf.constant([[0.0], [0.0], [0.0]], 'float32')
         targets = tf.constant([[0], [0], [0]], 'int32')
 
-        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
+        result = consistency_enhanced_sigmoid_loss(y_true=targets, y_pred=probs)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [0.0, 0.0, 0.0])
@@ -53,26 +53,26 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
         logits = tf.constant([[_to_logit(0.97)], [_to_logit(0.45)], [_to_logit(0.03)]], 'float32')
         targets = tf.constant([[1], [1], [0]], 'int32')
 
-        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
+        result = consistency_enhanced_sigmoid_loss(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result).tolist()
 
-        self.assertAllClose(result, [0.01015307, 0.26616925, 0.02030611])
+        self.assertAllClose(result, [0.00869564, 0.1594203, 0.00869564])
 
     def test_probs(self):
         probs = tf.constant([[0.97], [0.45], [0.03]], 'float32')
         targets = tf.constant([[1], [1], [0]], 'int32')
 
-        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
+        result = consistency_enhanced_sigmoid_loss(y_true=targets, y_pred=probs)
         result = self.evaluate(result).tolist()
 
-        self.assertAllClose(result, [0.01015307, 0.26616925, 0.02030611])
+        self.assertAllClose(result, [0.00869564, 0.1594203, 0.00869564])
 
     def test_keras_model_compile(self):
         model = tf.keras.models.Sequential([
             tf.keras.layers.Input(shape=(100,)),
             tf.keras.layers.Dense(5, activation='sigmoid')]
         )
-        model.compile(loss='SegMe>balanced_sigmoid_cross_entropy')
+        model.compile(loss='SegMe>consistency_enhanced_sigmoid_loss')
 
 
 if __name__ == '__main__':
