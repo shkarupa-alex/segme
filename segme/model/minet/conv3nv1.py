@@ -92,14 +92,17 @@ class Conv3nV1(layers.Layer):
         l2l = self.conv_ll1(l)
 
         h = self.relu(self.bn_h1(layers.add([h2h, m2h])))
-        m = self.relu(self.bn_m1(layers.add([h2m, m2m, l2m])))
-        l = self.relu(self.bn_l1(layers.add([m2l, l2l])))
+        m = self.relu(self.bn_m1(layers.add([
+            resize_by_sample([h2m, m2m], method='nearest', align_corners=False), m2m, l2m])))
+        l = self.relu(self.bn_l1(layers.add([
+            resize_by_sample([m2l, l2l], method='nearest', align_corners=False), l2l])))
 
         # stage 2
         h2m = self.conv_hm2(self.pool(h))
         m2m = self.conv_mm2(m)
         l2m = self.conv_lm2(resize_by_sample([l, m2m], method='nearest', align_corners=False))
-        m = self.relu(self.bn_m2(layers.add([h2m, m2m, l2m])))
+        m = self.relu(self.bn_m2(layers.add([
+            resize_by_sample([h2m, m2m], method='nearest', align_corners=False), m2m, l2m])))
 
         # stage 3
         out = layers.add([self.bn_m3(self.conv_mm3(m)), self.identity(inputs_m)])

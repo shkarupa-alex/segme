@@ -90,7 +90,7 @@ class Conv2nV1(layers.Layer):
         l2l = self.conv_ll1(l)
         l2h = self.conv_lh1(resize_by_sample([l, h2h], method='nearest', align_corners=False))
         h = self.relu(self.bn_h1(layers.add([h2h, l2h])))
-        l = self.relu(self.bn_l1(layers.add([l2l, h2l])))
+        l = self.relu(self.bn_l1(layers.add([l2l, resize_by_sample([h2l, l2l], align_corners=False)])))
 
         if self.main == 0:
             # stage 2
@@ -104,7 +104,8 @@ class Conv2nV1(layers.Layer):
             # stage 2
             h2l = self.conv_hl2(self.pool(h))
             l2l = self.conv_ll2(l)
-            l_fuse = self.relu(self.bn_l2(layers.add([h2l, l2l])))
+            l_fuse = self.relu(self.bn_l2(layers.add([
+                resize_by_sample([h2l, l2l], method='nearest', align_corners=False), l2l])))
 
             # stage 3
             out = layers.add([self.bn_l3(self.conv_ll3(l_fuse)), self.identity(inputs_l)])
