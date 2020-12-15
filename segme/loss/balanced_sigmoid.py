@@ -4,7 +4,7 @@ from tensorflow.python.keras.losses import LossFunctionWrapper
 
 @tf.keras.utils.register_keras_serializable(package='SegMe')
 class BalancedSigmoidCrossEntropy(LossFunctionWrapper):
-    """ Initially proposed in: 'Holistically-Nested Edge Detection (CVPR 15)'
+    """ Proposed in: 'Holistically-Nested Edge Detection (CVPR 15)'
 
     Implements Equation [2] in https://arxiv.org/pdf/1504.06375.pdf
     Compute edge pixels for each training sample and set as pos_weights to tf.nn.weighted_cross_entropy_with_logits

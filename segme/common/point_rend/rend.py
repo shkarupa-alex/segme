@@ -1,7 +1,8 @@
 import tensorflow as tf
 from tensorflow.keras import layers, utils
+from tensorflow.python.keras.utils.control_flow_util import smart_cond
 from tensorflow.python.keras.utils.conv_utils import normalize_tuple
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion, smart_cond
+from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .head import PointHead
 from .sample import uncertain_points_with_randomness
 from .sample import point_sample, uncertain_points_coords_on_grid
