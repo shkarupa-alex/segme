@@ -7,13 +7,13 @@ from ..model import build_minet, MINet
 
 
 @keras_parameterized.run_all_keras_modes
-class TestPyramidFeatureAttention(keras_parameterized.TestCase):
+class TestMINet(keras_parameterized.TestCase):
     def setUp(self):
-        super(TestPyramidFeatureAttention, self).setUp()
+        super(TestMINet, self).setUp()
         self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
 
     def tearDown(self):
-        super(TestPyramidFeatureAttention, self).tearDown()
+        super(TestMINet, self).tearDown()
         tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
 
     def test_layer(self):
