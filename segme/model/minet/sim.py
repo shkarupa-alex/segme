@@ -57,7 +57,7 @@ class SIM(layers.Layer):
         l2l = self.conv_ll1(l)
         l2h = self.conv_lh1(resize_by_sample([l, inputs], align_corners=False))
         h = self.relu(self.bn_h1(layers.add([h2h, l2h])))
-        l = self.relu(self.bn_l1(l2l + h2l))
+        l = self.relu(self.bn_l1(layers.add([l2l, h2l])))
 
         # last conv
         h2h = self.conv_hh2(h)
