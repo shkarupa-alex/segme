@@ -6,7 +6,7 @@ from ...backbone import Backbone
 
 @utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
 class Encoder(layers.Layer):
-    def __init__(self, bone_arch, bone_init, bone_train, aspp_filters, aspp_stride, ret_strides=None, **kwargs):
+    def __init__(self, bone_arch, bone_init, bone_train, aspp_filters, aspp_stride, add_strides=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
         self.bone_arch = bone_arch
@@ -15,13 +15,13 @@ class Encoder(layers.Layer):
         self.aspp_filters = aspp_filters
         self.aspp_stride = aspp_stride
         self.low_stride = 4
-        self.ret_strides = ret_strides
+        self.add_strides = add_strides
 
     @shape_type_conversion
     def build(self, input_shape):
         self.scales = [self.low_stride, self.aspp_stride]
-        if self.ret_strides is not None:
-            self.scales.extend(self.ret_strides)
+        if self.add_strides is not None:
+            self.scales.extend(self.add_strides)
             self.scales = sorted(set(self.scales))
 
         self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=self.scales)
@@ -35,12 +35,12 @@ class Encoder(layers.Layer):
         high_feats = all_feats[self.scales.index(self.aspp_stride)]
         aspp_feats = self.aspp(high_feats)
 
-        if self.ret_strides is None:
+        if self.add_strides is None:
             return low_feats, aspp_feats
 
-        ret_feats = [all_feats[self.scales.index(stride)] for stride in self.ret_strides]
+        add_feats = [all_feats[self.scales.index(stride)] for stride in self.add_strides]
 
-        return (low_feats, aspp_feats, *ret_feats)
+        return (low_feats, aspp_feats, *add_feats)
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -49,10 +49,10 @@ class Encoder(layers.Layer):
         high_feats_shape = all_feats_shape[self.scales.index(self.aspp_stride)]
         aspp_feats_shape = high_feats_shape[:-1] + (self.aspp_filters,)
 
-        if self.ret_strides is None:
+        if self.add_strides is None:
             return low_feats_shape, aspp_feats_shape
 
-        ret_feats_shape = [all_feats_shape[self.scales.index(stride)] for stride in self.ret_strides]
+        ret_feats_shape = [all_feats_shape[self.scales.index(stride)] for stride in self.add_strides]
 
         return (low_feats_shape, aspp_feats_shape, *ret_feats_shape)
 
@@ -64,7 +64,7 @@ class Encoder(layers.Layer):
             'bone_train': self.bone_train,
             'aspp_filters': self.aspp_filters,
             'aspp_stride': self.aspp_stride,
-            'ret_strides': self.ret_strides
+            'add_strides': self.add_strides
         })
 
         return config

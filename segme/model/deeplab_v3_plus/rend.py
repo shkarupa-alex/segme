@@ -1,3 +1,4 @@
+import tensorflow as tf
 from tensorflow.keras import Model, layers, losses, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .encoder import Encoder
@@ -31,7 +32,7 @@ class DeepLabV3PlusWithPointRend(layers.Layer):
     def build(self, input_shape):
         self.enc = Encoder(
             self.bone_arch, self.bone_init, self.bone_train, self.aspp_filters, self.aspp_stride,
-            ret_strides=self.rend_strides)
+            add_strides=self.rend_strides)
         self.dec = Decoder(self.low_filters, self.decoder_filters)
         self.proj = HeadProjection(self.classes)
 
@@ -44,9 +45,11 @@ class DeepLabV3PlusWithPointRend(layers.Layer):
     def call(self, inputs, **kwargs):
         low_feats, high_feats, *rend_feats = self.enc(inputs)
         dec_feats = self.dec([low_feats, high_feats])
-        coarse_feats = self.proj(dec_feats)
 
-        return self.rend([inputs, coarse_feats, *rend_feats])
+        coarse_feats = self.proj(dec_feats)
+        outputs = self.rend([inputs, coarse_feats, *rend_feats])
+
+        return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -77,23 +80,27 @@ class DeepLabV3PlusWithPointRend(layers.Layer):
 
 
 def build_deeplab_v3_plus_with_point_rend(
-        channels, classes, bone_arch, bone_init, bone_train, aspp_filters=256, aspp_stride=16, low_filters=48,
-        decoder_filters=256, rend_strides=(2, 4), rend_units=(256, 256, 256), rend_points=(1024, 8192),
-        rend_oversample=3, rend_importance=0.75, rend_weights=False, rend_reduction=losses.Reduction.AUTO):
-    norm_inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+        channels, classes, bone_arch, bone_init, bone_train, rend_weights, aspp_filters=256, aspp_stride=16,
+        low_filters=48, decoder_filters=256, rend_strides=(2, 4), rend_units=(256, 256, 256), rend_points=(1024, 8192),
+        rend_oversample=3, rend_importance=0.75, rend_reduction=losses.Reduction.AUTO):
+    model_inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+
     rend_inputs = [layers.Input(name='label', shape=[None, None, 1], dtype='int32')]
+    tf.get_logger().warning('Don\'t forget to pass "label" input into features')
+
     if rend_weights:
         rend_inputs.append(layers.Input(name='weight', shape=[None, None, 1], dtype='float32'))
+        tf.get_logger().warning('Don\'t forget to pass "label" input into features')
 
     outputs, point_logits, point_coords = DeepLabV3PlusWithPointRend(
         classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,
         aspp_stride=aspp_stride, low_filters=low_filters, decoder_filters=decoder_filters, rend_strides=rend_strides,
         rend_units=rend_units, rend_points=rend_points, rend_oversample=rend_oversample,
-        rend_importance=rend_importance)(norm_inputs)
-    model = Model(inputs=[norm_inputs] + rend_inputs, outputs=outputs, name='deeplab_v3_plus_with_point_rend')
+        rend_importance=rend_importance)(model_inputs)
+    model = Model(inputs=[model_inputs, *rend_inputs], outputs=outputs, name='deeplab_v3_plus_with_point_rend')
 
     point_loss = PointLoss(classes, weighted=rend_weights, reduction=rend_reduction)(
-        [point_logits, point_coords] + rend_inputs)
+        [point_logits, point_coords, *rend_inputs])
     model.add_loss(point_loss)
 
     return model
