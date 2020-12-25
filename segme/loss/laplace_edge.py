@@ -4,7 +4,7 @@ from tensorflow.python.keras.losses import LossFunctionWrapper
 
 
 @tf.keras.utils.register_keras_serializable(package='SegMe')
-class LaplaceEdgeHoldSigmoidCrossEntropy(LossFunctionWrapper):
+class LaplaceEdgeSigmoidCrossEntropy(LossFunctionWrapper):
     """ Proposed in: 'Pyramid Feature Attention Network for Saliency detection (2019)'
 
     Implements Equation [10] in https://arxiv.org/pdf/1903.00179.pdf
@@ -13,9 +13,9 @@ class LaplaceEdgeHoldSigmoidCrossEntropy(LossFunctionWrapper):
 
     def __init__(
             self, from_logits=False, reduction=tf.keras.losses.Reduction.AUTO,
-            name='laplace_edge_hold_sigmoid_cross_entropy'):
+            name='laplace_edge_sigmoid_cross_entropy'):
         super().__init__(
-            laplace_edge_hold_sigmoid_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
+            laplace_edge_sigmoid_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
 
 
 def laplace(probs):
@@ -28,7 +28,7 @@ def laplace(probs):
 
 
 @tf.keras.utils.register_keras_serializable(package='SegMe')
-def laplace_edge_hold_sigmoid_cross_entropy(y_true, y_pred, from_logits=False):
+def laplace_edge_sigmoid_cross_entropy(y_true, y_pred, from_logits=False):
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
@@ -40,6 +40,7 @@ def laplace_edge_hold_sigmoid_cross_entropy(y_true, y_pred, from_logits=False):
             y_pred = tf.sigmoid(y_pred)
 
         epsilon = tf.convert_to_tensor(tf.keras.backend.epsilon(), dtype=y_pred.dtype)
+
         y_true_edge = laplace(y_true)
         y_pred_edge = laplace(y_pred)
         y_pred_edge = tf.clip_by_value(y_pred_edge, epsilon, 1. - epsilon)

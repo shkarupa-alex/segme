@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
-from ..laplace_edge import LaplaceEdgeSigmoidCrossEntropy
-from ..laplace_edge import laplace_edge_sigmoid_cross_entropy
+from ..sobel_edge import SobelEdgeSigmoidCrossEntropy
+from ..sobel_edge import sobel_edge_sigmoid_cross_entropy
 
 
 def _to_logit(prob):
@@ -12,9 +12,9 @@ def _to_logit(prob):
 
 
 @keras_parameterized.run_all_keras_modes
-class TestLaplaceEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
+class TestSobelEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
     def test_config(self):
-        bce_obj = LaplaceEdgeSigmoidCrossEntropy(
+        bce_obj = SobelEdgeSigmoidCrossEntropy(
             reduction=tf.keras.losses.Reduction.NONE,
             name='loss1'
         )
@@ -33,7 +33,7 @@ class TestLaplaceEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[0], [0], [0]],
         ]], 'int32')
 
-        result = laplace_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
+        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [[
@@ -54,13 +54,14 @@ class TestLaplaceEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[1], [1], [1]],
         ]], 'int32')
 
-        result = laplace_edge_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
+        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result).tolist()
+        print(result)
 
         self.assertAllClose(result, [[
-            [1.00000015e-07, 2.37450123e+00, 2.74553284e-04],
-            [1.66611075e+00, 1.61571205e+00, 6.03108387e-03],
-            [3.18900421e-02, 1.56161431e-02, 9.63867409e-04]
+            [0.008250176906585693, 0.0730133056640625, 0.012630999088287354],
+            [0.101939857006073, 0.1887747347354889, 0.061267077922821045],
+            [0.06962978839874268, 0.03966039419174194, 0.0780753493309021]
         ]])
 
     def test_probs(self):
@@ -75,13 +76,13 @@ class TestLaplaceEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[1], [1], [1]],
         ]], 'int32')
 
-        result = laplace_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
+        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [[
-            [1.00000015e-07, 2.37450123e+00, 2.74553284e-04],
-            [1.66611075e+00, 1.61571205e+00, 6.03108387e-03],
-            [3.18900421e-02, 1.56161431e-02, 9.63867409e-04]
+            [0.008250176906585693, 0.0730133056640625, 0.012630999088287354],
+            [0.101939857006073, 0.1887747347354889, 0.061267077922821045],
+            [0.06962978839874268, 0.03966039419174194, 0.0780753493309021]
         ]])
 
     def test_keras_model_compile(self):
@@ -89,7 +90,7 @@ class TestLaplaceEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             tf.keras.layers.Input(shape=(100,)),
             tf.keras.layers.Dense(5, activation='sigmoid')]
         )
-        model.compile(loss='SegMe>laplace_edge_sigmoid_cross_entropy')
+        model.compile(loss='SegMe>sobel_edge_sigmoid_cross_entropy')
 
 
 if __name__ == '__main__':
