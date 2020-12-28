@@ -45,7 +45,7 @@ class TestDeepLabV3PlusWithPointRend(keras_parameterized.TestCase):
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
             expected_output_shapes=[(None, 224, 224, 1), (None, None, 1), (None, None, 2)],
-            expected_output_dtypes=['float32', 'float32', 'float32']
+            expected_output_dtypes=['float32', 'float16', 'float16']
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
