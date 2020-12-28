@@ -29,7 +29,6 @@ class PointHead(layers.Layer):
 
         proj_init = initializers.random_normal(stddev=0.001)
         self.proj = layers.Conv1D(self.classes, 1, padding='same', kernel_initializer=proj_init)
-        self.act = layers.Activation('linear', dtype='float32')  # for mixed_float16
 
         super().build(input_shape)
 
@@ -42,18 +41,12 @@ class PointHead(layers.Layer):
                 outputs = layers.concatenate([inputs[0], outputs])  # coarse + intermediate
 
         outputs = self.proj(outputs)
-        outputs = self.act(outputs)
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[0][:-1] + (self.classes,)
-
-    def compute_output_signature(self, input_signature):
-        output_signature = super().compute_output_signature(input_signature)
-
-        return tf.TensorSpec(dtype='float32', shape=output_signature.shape)
 
     def get_config(self):
         config = super().get_config()

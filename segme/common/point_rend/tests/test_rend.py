@@ -36,7 +36,7 @@ class TestPointRend(keras_parameterized.TestCase):
             input_shapes=[(4, 64, 64, 3), (4, 16, 16, 5), (4, 48, 48, 6), (4, 32, 32, 7)],
             input_dtypes=['uint8', 'float16', 'float16', 'float16'],
             expected_output_shapes=[(None, 64, 64, 5), (None, None, 5), (None, None, 2)],
-            expected_output_dtypes=['float32', 'float32', 'float32']
+            expected_output_dtypes=['float32', 'float16', 'float16']
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
