@@ -33,7 +33,7 @@ class TestSobelEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[0], [0], [0]],
         ]], 'int32')
 
-        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
+        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs, classes=1)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [[
@@ -54,9 +54,8 @@ class TestSobelEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[1], [1], [1]],
         ]], 'int32')
 
-        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
+        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=logits, classes=1, from_logits=True)
         result = self.evaluate(result).tolist()
-        print(result)
 
         self.assertAllClose(result, [[
             [0.008250176906585693, 0.0730133056640625, 0.012630999088287354],
@@ -76,7 +75,7 @@ class TestSobelEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[1], [1], [1]],
         ]], 'int32')
 
-        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
+        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs, classes=1)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [[

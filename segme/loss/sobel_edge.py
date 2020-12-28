@@ -13,24 +13,26 @@ class SobelEdgeSigmoidCrossEntropy(LossFunctionWrapper):
     """
 
     def __init__(
-            self, from_logits=False, reduction=tf.keras.losses.Reduction.AUTO,
+            self, classes=1, from_logits=False, reduction=tf.keras.losses.Reduction.AUTO,
             name='sobel_edge_sigmoid_cross_entropy'):
         super().__init__(
-            sobel_edge_sigmoid_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
+            sobel_edge_sigmoid_cross_entropy, classes=classes, reduction=reduction, name=name, from_logits=from_logits)
 
 
-def sobel(probs):
+def sobel(probs, classes):
     sobel_x = np.reshape([[1, 0, -1], [2, 0, -2], [1, 0, -1]], [3, 3, 1, 1]) / 4
+    sobel_x = np.tile(sobel_x, [1, 1, classes, 1])
     sobel_x = tf.constant(sobel_x, probs.dtype)
 
     sobel_y = np.reshape([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], [3, 3, 1, 1]) / 4
+    sobel_y = np.tile(sobel_y, [1, 1, classes, 1])
     sobel_y = tf.constant(sobel_y, probs.dtype)
 
     epsilon = tf.convert_to_tensor(tf.keras.backend.epsilon(), dtype=probs.dtype)
 
     pooled = tf.nn.avg_pool2d(probs, 3, strides=1, padding='SAME')
-    grad_x = tf.nn.conv2d(pooled, sobel_x, strides=[1] * 4, padding='SAME')
-    grad_y = tf.nn.conv2d(pooled, sobel_y, strides=[1] * 4, padding='SAME')
+    grad_x = tf.nn.depthwise_conv2d(pooled, sobel_x, strides=[1] * 4, padding='SAME')
+    grad_y = tf.nn.depthwise_conv2d(pooled, sobel_y, strides=[1] * 4, padding='SAME')
 
     edge = tf.sqrt(grad_x ** 2 + grad_y ** 2 + epsilon)
 
@@ -38,7 +40,7 @@ def sobel(probs):
 
 
 @tf.keras.utils.register_keras_serializable(package='SegMe')
-def sobel_edge_sigmoid_cross_entropy(y_true, y_pred, from_logits=False):
+def sobel_edge_sigmoid_cross_entropy(y_true, y_pred, classes, from_logits=False):
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
@@ -49,8 +51,8 @@ def sobel_edge_sigmoid_cross_entropy(y_true, y_pred, from_logits=False):
         if from_logits:
             y_pred = tf.sigmoid(y_pred)
 
-        y_true_edge = sobel(y_true)
-        y_pred_edge = sobel(y_pred)
+        y_true_edge = sobel(y_true, classes)
+        y_pred_edge = sobel(y_pred, classes)
 
         loss = tf.keras.losses.mean_absolute_error(y_true=y_true_edge, y_pred=y_pred_edge)
 
