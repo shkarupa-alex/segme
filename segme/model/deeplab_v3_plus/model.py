@@ -67,9 +67,9 @@ class DeepLabV3Plus(layers.Layer):
 
 
 def build_deeplab_v3_plus(
-        channels, classes, bone_arch, bone_init, bone_train, aspp_filters=256, aspp_stride=16, low_filters=48,
+        classes, bone_arch, bone_init, bone_train, aspp_filters=256, aspp_stride=16, low_filters=48,
         decoder_filters=256):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = DeepLabV3Plus(
         classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,
         aspp_stride=aspp_stride, low_filters=low_filters, decoder_filters=decoder_filters)(inputs)

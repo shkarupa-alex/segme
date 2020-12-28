@@ -46,7 +46,6 @@ class TestF3Net(keras_parameterized.TestCase):
     def test_model(self):
         num_classes = 5
         model = build_f3_net(
-            channels=3,
             classes=num_classes,
             bone_arch='resnet_50',
             bone_init='imagenet',

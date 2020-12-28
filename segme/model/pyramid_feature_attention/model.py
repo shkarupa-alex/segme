@@ -104,8 +104,8 @@ class PyramidFeatureAttention(layers.Layer):
         return config
 
 
-def build_pyramid_feature_attention(channels, classes, bone_arch='vgg_16', bone_init='imagenet', bone_train=False):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+def build_pyramid_feature_attention(classes, bone_arch='vgg_16', bone_init='imagenet', bone_train=False):
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = PyramidFeatureAttention(classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='pyramid_feature_attention')
 

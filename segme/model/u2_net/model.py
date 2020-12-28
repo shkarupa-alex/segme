@@ -276,16 +276,16 @@ class U2NetP(layers.Layer):
         return config
 
 
-def build_u2_net(channels, classes):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+def build_u2_net(classes):
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = U2Net(classes)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='u2_net')
 
     return model
 
 
-def build_u2_netp(channels, classes):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+def build_u2_netp(classes):
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = U2NetP(classes)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='u2_netp')
 

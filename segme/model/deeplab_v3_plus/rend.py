@@ -80,10 +80,10 @@ class DeepLabV3PlusWithPointRend(layers.Layer):
 
 
 def build_deeplab_v3_plus_with_point_rend(
-        channels, classes, bone_arch, bone_init, bone_train, rend_weights, aspp_filters=256, aspp_stride=16,
+        classes, bone_arch, bone_init, bone_train, rend_weights, aspp_filters=256, aspp_stride=16,
         low_filters=48, decoder_filters=256, rend_strides=(2, 4), rend_units=(256, 256, 256), rend_points=(1024, 8192),
         rend_oversample=3, rend_importance=0.75, rend_reduction=losses.Reduction.AUTO):
-    model_inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+    model_inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
 
     rend_inputs = [layers.Input(name='label', shape=[None, None, 1], dtype='int32')]
     tf.get_logger().warning('Don\'t forget to pass "label" input into features')

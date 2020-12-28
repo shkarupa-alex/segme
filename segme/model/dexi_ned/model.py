@@ -125,8 +125,8 @@ class DexiNed(layers.Layer):
         return config
 
 
-def build_dexi_ned(channels, classes):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+def build_dexi_ned(classes):
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = DexiNed(classes)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='dexi_ned')
 

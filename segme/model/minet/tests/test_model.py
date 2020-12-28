@@ -20,9 +20,9 @@ class TestMINet(keras_parameterized.TestCase):
         testing_utils.layer_test(
             MINet,
             kwargs={'classes': 3, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False},
-            input_shape=[2, 64, 64, 3],
+            input_shape=[2, 62, 62, 3],
             input_dtype='uint8',
-            expected_output_shape=[None, 64, 64, 3],
+            expected_output_shape=[None, 62, 62, 3],
             expected_output_dtype='float32'
         )
 
@@ -41,7 +41,6 @@ class TestMINet(keras_parameterized.TestCase):
     def test_model(self):
         num_classes = 1
         model = build_minet(
-            channels=3,
             classes=num_classes,
             bone_arch='resnet_50',
             bone_init='imagenet',

@@ -100,8 +100,8 @@ class F3Net(layers.Layer):
         return config
 
 
-def build_f3_net(channels, classes, bone_arch='resnet_50', bone_init='imagenet', bone_train=False, filters=64):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+def build_f3_net(classes, bone_arch='resnet_50', bone_init='imagenet', bone_train=False, filters=64):
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = F3Net(
         classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, filters=filters)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='f3_net')

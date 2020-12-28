@@ -41,7 +41,6 @@ class TestPyramidFeatureAttention(keras_parameterized.TestCase):
     def test_model(self):
         num_classes = 1
         model = build_pyramid_feature_attention(
-            channels=3,
             classes=num_classes,
             bone_arch='vgg_16',
             bone_init='imagenet',
