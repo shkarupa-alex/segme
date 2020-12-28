@@ -21,6 +21,7 @@ class ResizeByScale(layers.Layer):
 
         new_size = tf.cast(tf.round(tf.shape(inputs)[1:3] * self.scale), 'int32')
         resized = tf.compat.v1.image.resize(inputs, new_size, method=self.method, align_corners=self.align_corners)
+        resized = tf.cast(resized, inputs.dtype)
 
         new_shape = inputs.shape[0], self._scale(inputs.shape[1]), self._scale(inputs.shape[2]), inputs.shape[3]
         resized.set_shape(new_shape)
@@ -33,11 +34,6 @@ class ResizeByScale(layers.Layer):
             return input_shape
         
         return input_shape[0], self._scale(input_shape[1]), self._scale(input_shape[2]), input_shape[3]
-
-    def compute_output_signature(self, input_signature):
-        output_signature = super().compute_output_signature(input_signature)
-
-        return tf.TensorSpec(dtype='float32', shape=output_signature.shape)
 
     def get_config(self):
         config = super().get_config()
