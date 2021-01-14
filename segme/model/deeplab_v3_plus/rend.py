@@ -81,7 +81,7 @@ class DeepLabV3PlusWithPointRend(layers.Layer):
 
 def build_deeplab_v3_plus_with_point_rend(
         classes, bone_arch, bone_init, bone_train, rend_weights, aspp_filters=256, aspp_stride=16,
-        low_filters=48, decoder_filters=256, rend_strides=(2, 4), rend_units=(256, 256, 256), rend_points=(1024, 8192),
+        low_filters=48, decoder_filters=256, rend_strides=(2, 4), rend_units=(256, 256, 256), rend_points=(0.008, 0.06),
         rend_oversample=3, rend_importance=0.75, rend_reduction=losses.Reduction.AUTO):
     model_inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
 

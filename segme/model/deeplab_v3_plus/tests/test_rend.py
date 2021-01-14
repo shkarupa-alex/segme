@@ -25,7 +25,7 @@ class TestDeepLabV3PlusWithPointRend(keras_parameterized.TestCase):
             kwargs={
                 'classes': 4, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
                 'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 4,
-                'rend_strides': [2], 'rend_units': [4], 'rend_points': [40, 10], 'rend_oversample': 3,
+                'rend_strides': [2], 'rend_units': [4], 'rend_points': [0.1697, 0.0005], 'rend_oversample': 3,
                 'rend_importance': 0.75},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
@@ -40,7 +40,7 @@ class TestDeepLabV3PlusWithPointRend(keras_parameterized.TestCase):
             kwargs={
                 'classes': 1, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
                 'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 4,
-                'rend_strides': [2, 4], 'rend_units': [2, 2], 'rend_points': [40, 10], 'rend_oversample': 3,
+                'rend_strides': [2, 4], 'rend_units': [2, 2], 'rend_points': [0.1697, 0.0005], 'rend_oversample': 3,
                 'rend_importance': 0.75},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
@@ -62,7 +62,7 @@ class TestDeepLabV3PlusWithPointRend(keras_parameterized.TestCase):
             decoder_filters=4,
             rend_strides=(2, 4),
             rend_units=(256,),
-            rend_points=(1024, 8192),
+            rend_points=(0.1697, 0.0005),
             rend_oversample=3,
             rend_importance=0.75,
             rend_weights=True

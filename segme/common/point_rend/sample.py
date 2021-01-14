@@ -23,8 +23,8 @@ class ClassificationUncertainty(layers.Layer):
 
     def call(self, inputs, **kwargs):
         if self.from_logits:
-            activation = 'softmax' if self.channels > 1 else 'sigmoid'
-            inputs = layers.Activation(activation, dtype=inputs.dtype)(inputs)
+            activation = tf.nn.softmax if self.channels > 1 else tf.nn.sigmoid
+            inputs = activation(inputs)
 
         if 1 == self.channels:
             inputs = layers.concatenate([1. - inputs, inputs])
@@ -152,26 +152,30 @@ def point_sample(inputs, **kwargs):
 
 @utils.register_keras_serializable(package='SegMe>PointRend')
 class UncertainPointsWithRandomness(layers.Layer):
-    def __init__(self, points, align_corners, oversample=3, importance=0.75, **kwargs):
+    def __init__(self, points, align_corners, oversample, importance, **kwargs):
         kwargs['autocast'] = False
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
-        if oversample < 1:
+        if not 0. <= points <= 1.:
+            raise ValueError('Parameter "points" should be in range [0; 1]')
+        if oversample < 1.:
             raise ValueError('Parameter "oversample" should be greater or equal 1')
-        if importance < 0 or importance > 1:
+        if not 0. <= importance <= 1.:
             raise ValueError('Parameter "importance" should be in range [0; 1]')
 
-        self.points = points
+        self.points = float(points)
         self.align_corners = align_corners
-        self.oversample = oversample
-        self.importance = importance
+        self.oversample = float(oversample)
+        self.importance = float(importance)
 
     def call(self, inputs, **kwargs):
-        batch_size = tf.shape(inputs)[0]
-        sampled_size = int(self.points * self.oversample)
+        input_shape = tf.shape(inputs)
+        batch_size = input_shape[0]
+        total_points = tf.cast(input_shape[1] * input_shape[2], self.compute_dtype) * self.points
 
-        point_coords = tf.random.uniform((batch_size, sampled_size, 2), dtype=inputs.dtype)
+        sampled_size = tf.cast(total_points * self.oversample, 'int32')
+        point_coords = tf.random.uniform((batch_size, sampled_size, 2), dtype=self.compute_dtype)
         point_logits = point_sample([inputs, point_coords], align_corners=self.align_corners)
 
         # It is crucial to calculate uncertainty based on the sampled prediction value for the points.
@@ -183,28 +187,26 @@ class UncertainPointsWithRandomness(layers.Layer):
         # both will have -1 uncertainty, and the sampled point will get -1 uncertainty.
 
         point_uncerts = classification_uncertainty(point_logits)
-        uncertain_size = int(self.importance * self.points)
-        random_size = self.points - uncertain_size
+        uncertain_size = tf.cast(total_points * self.importance, 'int32')
+        random_size = tf.maximum(0, tf.cast(total_points, 'int32') - uncertain_size)
 
         _, top_indices = tf.math.top_k(point_uncerts, k=uncertain_size)
         top_points = tf.gather(point_coords, top_indices, batch_dims=1)
 
-        if random_size > 0:
-            point_coords = layers.concatenate([
-                top_points,
-                tf.random.uniform((batch_size, random_size, 2), dtype=inputs.dtype)
-            ], axis=1, dtype=inputs.dtype)
+        point_coords = layers.concatenate([
+            top_points,
+            tf.random.uniform((batch_size, random_size, 2), dtype=self.compute_dtype)
+        ], axis=1, dtype=self.compute_dtype)
 
         return point_coords
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[:1] + (self.points, 2)
+        total_points = None
+        if input_shape[1] is not None and input_shape[2] is not None:
+            total_points = int(input_shape[1] * input_shape[2] * self.points)
 
-    def compute_output_signature(self, input_signature):
-        output_signature = super().compute_output_signature(input_signature)
-
-        return tf.TensorSpec(dtype=input_signature.dtype, shape=output_signature.shape)
+        return input_shape[:1] + (total_points, 2)
 
     def get_config(self):
         config = super().get_config()
@@ -228,36 +230,38 @@ class UncertainPointsCoordsOnGrid(layers.Layer):
         kwargs['autocast'] = False
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
-        self.points = points
+
+        if not 0. <= points <= 1.:
+            raise ValueError('Parameter "points" should be in range [0; 1]')
+
+        self.points = float(points)
 
     def call(self, inputs, **kwargs):
-        uncertainty = classification_uncertainty(inputs)
+        input_shape = tf.shape(inputs)
+        batch_size = input_shape[0]
+        input_height = tf.cast(input_shape[1], self.compute_dtype)
+        input_width = tf.cast(input_shape[2], self.compute_dtype)
 
-        shape = tf.shape(uncertainty)
-        batch, height, width = shape[0], shape[1], shape[2]
+        total_points = tf.cast(input_height * input_width * self.points, 'int32')
+        uncert_map = classification_uncertainty(inputs)
+        flat_inputs = tf.reshape(uncert_map, [batch_size, -1])
+        _, top_indices = tf.math.top_k(flat_inputs, k=total_points)
 
-        points_size = tf.math.minimum(height * width, self.points)
-        flat_inputs = tf.reshape(uncertainty, [batch, height * width])
-        _, top_indices = tf.math.top_k(flat_inputs, k=points_size)
-
-        float_width = tf.cast(width, inputs.dtype)
-        float_height = tf.cast(height, inputs.dtype)
-
-        exp_indices = tf.expand_dims(tf.cast(top_indices, inputs.dtype), axis=-1)
+        exp_indices = tf.expand_dims(tf.cast(top_indices, self.compute_dtype), axis=-1)
         point_coords = tf.concat([
-            0.5 / float_width + (exp_indices % float_width) / float_width,
-            0.5 / float_height + (exp_indices // float_width) / float_height
+            0.5 / input_width + (exp_indices % input_width) / input_width,
+            0.5 / input_height + (exp_indices // input_width) / input_height
         ], axis=-1)
 
         return top_indices, point_coords
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        points_size = None
+        total_points = None
         if input_shape[1] is not None and input_shape[2] is not None:
-            points_size = min(input_shape[1] * input_shape[2], self.points)
+            total_points = int(input_shape[1] * input_shape[2] * self.points)
 
-        return input_shape[:1] + (points_size,), input_shape[:1] + (points_size, 2)
+        return input_shape[:1] + (total_points,), input_shape[:1] + (total_points, 2)
 
     def compute_output_signature(self, input_signature):
         expected_dtypes = ['int32', input_signature.dtype]
