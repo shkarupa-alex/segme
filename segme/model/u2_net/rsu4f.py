@@ -1,6 +1,6 @@
 from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from .convbnrelu import ConvBnRelu
+from ...common.convbnrelu import ConvBnRelu
 
 
 @utils.register_keras_serializable(package='SegMe>U2Net')
