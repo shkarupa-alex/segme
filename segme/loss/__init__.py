@@ -8,3 +8,5 @@ from .laplace_edge import LaplaceEdgeSigmoidCrossEntropy
 from .laplace_edge import laplace_edge_sigmoid_cross_entropy
 from .position_aware import PixelPositionAwareSigmoidCrossEntropy
 from .position_aware import pixel_position_aware_sigmoid_cross_entropy
+from .sobel_edge import SobelEdgeSigmoidCrossEntropy
+from .sobel_edge import sobel_edge_sigmoid_cross_entropy
