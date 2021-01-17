@@ -72,6 +72,7 @@ class ASPP(layers.Layer):
             layers.ReLU()
         ], name='aspp0')
         self.pool = ASPPPool(filters=self.filters, name='aspp4')
+
         self.proj = Sequential([
             layers.Conv2D(filters=self.filters, kernel_size=1, padding='same', use_bias=False),
             layers.BatchNormalization(),

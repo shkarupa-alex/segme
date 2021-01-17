@@ -33,11 +33,26 @@ class DeepLabV3Plus(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        low_feats, high_feats = self.enc(inputs)
-        outputs = self.dec([low_feats, high_feats])
-        outputs = self.proj(outputs)
-        outputs = resize_by_sample([outputs, inputs])
+        outputs, _ = self._call(inputs)
         outputs = self.act(outputs)
+
+        return outputs
+
+    def _call(self, inputs):
+        features = self._body(inputs)
+        outputs = self._head(inputs, features)
+
+        return outputs, features
+
+    def _body(self, inputs):
+        low_feats, high_feats = self.enc(inputs)
+        features = self.dec([low_feats, high_feats])
+
+        return features
+
+    def _head(self, inputs, features):
+        outputs = self.proj(features)
+        outputs = resize_by_sample([outputs, inputs])
 
         return outputs
 
