@@ -51,14 +51,15 @@ class DeepLabV3PlusWithHierarchicalAttention(DeepLabV3Plus):
 
         # Predict 1x scale
         predictions, features = {}, {}
-        predictions[1.0], features[1.0] = self._call(inputs)
+        predictions[1.0], features[1.0], *_ = self._call(inputs)
+        predictions[1.0] = resize_by_sample([predictions[1.0], inputs])
 
         # Run all other scales
         for scale in scales:
             if scale == 1.0:
                 continue
             resized = resize_by_scale(inputs, scale=scale)
-            preds, feats = self._call(resized)
+            preds, feats, *_ = self._call(resized)
             predictions[scale] = resize_by_sample([preds, inputs])
             features[scale] = resize_by_sample([feats, features[1.0]])
 
@@ -89,15 +90,15 @@ class DeepLabV3PlusWithHierarchicalAttention(DeepLabV3Plus):
             last_attn = attn_hi
 
         # Apply attentions
-        output = None
+        outputs = None
         for idx, scale in enumerate(scales):
             attention = norm_attn[scale]
-            if output is None:
-                output = predictions[scale] * attention
+            if outputs is None:
+                outputs = predictions[scale] * attention
             else:
-                output += predictions[scale] * attention
+                outputs += predictions[scale] * attention
 
-        return output
+        return outputs
 
     def get_config(self):
         config = super().get_config()

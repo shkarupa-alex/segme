@@ -23,9 +23,13 @@ class DeepLabV3Plus(layers.Layer):
         self.low_filters = low_filters
         self.decoder_filters = decoder_filters
 
+        self.add_strides = None
+
     @shape_type_conversion
     def build(self, input_shape):
-        self.enc = Encoder(self.bone_arch, self.bone_init, self.bone_train, self.aspp_filters, self.aspp_stride)
+        self.enc = Encoder(
+            self.bone_arch, self.bone_init, self.bone_train, self.aspp_filters, self.aspp_stride,
+            add_strides=self.add_strides)
         self.dec = Decoder(self.low_filters, self.decoder_filters)
         self.proj = HeadProjection(self.classes)
         self.act = HeadActivation(self.classes)
@@ -33,28 +37,19 @@ class DeepLabV3Plus(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs, _ = self._call(inputs)
+        outputs, *_ = self._call(inputs)
+        outputs = resize_by_sample([outputs, inputs])
         outputs = self.act(outputs)
 
         return outputs
 
     def _call(self, inputs):
-        features = self._body(inputs)
-        outputs = self._head(inputs, features)
+        low_feats, high_feats, *add_feats = self.enc(inputs)
+        dec_feats = self.dec([low_feats, high_feats])
 
-        return outputs, features
+        outputs = self.proj(dec_feats)
 
-    def _body(self, inputs):
-        low_feats, high_feats = self.enc(inputs)
-        features = self.dec([low_feats, high_feats])
-
-        return features
-
-    def _head(self, inputs, features):
-        outputs = self.proj(features)
-        outputs = resize_by_sample([outputs, inputs])
-
-        return outputs
+        return (outputs, dec_feats, *add_feats)
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
