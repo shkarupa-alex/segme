@@ -4,7 +4,7 @@ from ..psp import PSP
 
 
 @keras_parameterized.run_all_keras_modes
-class TestAdaptiveAveragePooling(keras_parameterized.TestCase):
+class TestPSP(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
             PSP,
