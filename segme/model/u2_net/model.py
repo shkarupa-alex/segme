@@ -17,6 +17,7 @@ class U2Net(layers.Layer):
     def __init__(self, classes, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
+
         self.classes = classes
 
     @shape_type_conversion

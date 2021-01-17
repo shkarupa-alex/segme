@@ -1,6 +1,6 @@
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from ...common import ResizeBySample
+from ...common import ConvBnRelu, ResizeBySample
 
 
 @utils.register_keras_serializable(package='SegMe>MINet')
@@ -33,16 +33,8 @@ class Conv2nV1(layers.Layer):
         self.resize = ResizeBySample(method='nearest', align_corners=False)
 
         # stage 0
-        self.cbr_hh0 = Sequential([
-            layers.Conv2D(min_channels, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.cbr_ll0 = Sequential([
-            layers.Conv2D(min_channels, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
+        self.cbr_hh0 = ConvBnRelu(min_channels, 3)
+        self.cbr_ll0 = ConvBnRelu(min_channels, 3)
 
         # stage 1
         self.conv_hh1 = layers.Conv2D(min_channels, 3, padding='same')

@@ -7,27 +7,28 @@ from ...common import ConvBnRelu, resize_by_sample
 class RSU4(layers.Layer):
     def __init__(self, mid_features, out_features, **kwargs):
         super().__init__(**kwargs)
-        # TODO: input spec
+        self.input_spec = layers.InputSpec(ndim=4)
+
         self.mid_features = mid_features
         self.out_features = out_features
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.cbr0 = ConvBnRelu(self.out_features)
+        self.cbr0 = ConvBnRelu(self.out_features, 3)
 
-        self.cbr1 = ConvBnRelu(self.mid_features)
+        self.cbr1 = ConvBnRelu(self.mid_features, 3)
         self.pool1 = layers.MaxPool2D(2, padding='same')
 
-        self.cbr2 = ConvBnRelu(self.mid_features)
+        self.cbr2 = ConvBnRelu(self.mid_features, 3)
         self.pool2 = layers.MaxPool2D(2, padding='same')
 
-        self.cbr3 = ConvBnRelu(self.mid_features)
+        self.cbr3 = ConvBnRelu(self.mid_features, 3)
 
-        self.cbr4 = ConvBnRelu(self.mid_features, dilation_rate=2)
+        self.cbr4 = ConvBnRelu(self.mid_features, 3, dilation_rate=2)
 
-        self.cbr3d = ConvBnRelu(self.mid_features)
-        self.cbr2d = ConvBnRelu(self.mid_features)
-        self.cbr1d = ConvBnRelu(self.out_features)
+        self.cbr3d = ConvBnRelu(self.mid_features, 3)
+        self.cbr2d = ConvBnRelu(self.mid_features, 3)
+        self.cbr1d = ConvBnRelu(self.out_features, 3)
 
         super().build(input_shape)
 

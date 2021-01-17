@@ -3,7 +3,7 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .aim import AIM
 from .sim import SIM
 from ...backbone import Backbone
-from ...common import ClassificationHead, ResizeBySample
+from ...common import ConvBnRelu, ClassificationHead, ResizeBySample
 
 
 @utils.register_keras_serializable(package='SegMe>MINet')
@@ -29,36 +29,12 @@ class MINet(layers.Layer):
         self.sim4 = SIM(32)
         self.sim2 = SIM(32)
 
-        self.upconv32 = Sequential([
-            layers.Conv2D(64, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv16 = Sequential([
-            layers.Conv2D(64, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv8 = Sequential([
-            layers.Conv2D(64, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv4 = Sequential([
-            layers.Conv2D(64, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv2 = Sequential([
-            layers.Conv2D(32, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv1 = Sequential([
-            layers.Conv2D(32, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
+        self.upconv32 = ConvBnRelu(64, 3)
+        self.upconv16 = ConvBnRelu(64, 3)
+        self.upconv8 = ConvBnRelu(64, 3)
+        self.upconv4 = ConvBnRelu(64, 3)
+        self.upconv2 = ConvBnRelu(32, 3)
+        self.upconv1 = ConvBnRelu(32, 3)
 
         self.head = ClassificationHead(self.classes)
 

@@ -3,7 +3,7 @@ from tensorflow.keras import Model, Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .decoder import Decoder
 from ...backbone import Backbone
-from ...common import HeadActivation, HeadProjection, resize_by_sample
+from ...common import ConvBnRelu, HeadActivation, HeadProjection, resize_by_sample
 
 
 @utils.register_keras_serializable(package='SegMe>F3Net')
@@ -21,22 +21,10 @@ class F3Net(layers.Layer):
     def build(self, input_shape):
         self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=[4, 8, 16, 32])
 
-        self.squeeze2 = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
-        self.squeeze3 = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
-        self.squeeze4 = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
-        self.squeeze5 = Sequential([
-            layers.Conv2D(self.filters, 1, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
+        self.squeeze2 = ConvBnRelu(self.filters, 1, kernel_initializer='he_normal')
+        self.squeeze3 = ConvBnRelu(self.filters, 1, kernel_initializer='he_normal')
+        self.squeeze4 = ConvBnRelu(self.filters, 1, kernel_initializer='he_normal')
+        self.squeeze5 = ConvBnRelu(self.filters, 1, kernel_initializer='he_normal')
 
         self.decoder1 = Decoder(False, self.filters)
         self.decoder2 = Decoder(True, self.filters)

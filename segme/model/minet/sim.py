@@ -1,6 +1,6 @@
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from ...common import ResizeBySample
+from ...common import ConvBnRelu, ResizeBySample
 
 
 @utils.register_keras_serializable(package='SegMe>MINet')
@@ -22,16 +22,8 @@ class SIM(layers.Layer):
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
         self.resize = ResizeBySample(align_corners=False)
 
-        self.cbr_hh0 = Sequential([
-            layers.Conv2D(self.channels, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.cbr_hl0 = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
+        self.cbr_hh0 = ConvBnRelu(self.channels, 3)
+        self.cbr_hl0 = ConvBnRelu(self.filters, 3)
 
         self.conv_hh1 = layers.Conv2D(self.channels, 3, padding='same')
         self.conv_hl1 = layers.Conv2D(self.filters, 3, padding='same')

@@ -1,5 +1,6 @@
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from ...common import ConvBnRelu
 
 
 @utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
@@ -16,9 +17,7 @@ class AtrousSepConv(layers.Layer):
             layers.DepthwiseConv2D(kernel_size=3, padding='same', dilation_rate=self.dilation, use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU(),
-            layers.Conv2D(filters=self.filters, kernel_size=1, padding='same', use_bias=False),
-            layers.BatchNormalization(),
-            layers.ReLU()
+            ConvBnRelu(self.filters, 1, use_bias=False)
         ])
 
         super().build(input_shape)
