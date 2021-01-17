@@ -121,7 +121,7 @@ class PointSample(layers.Layer):
                 result = _lookup(tf.math.round(grid))
 
             features_dtype = tf.dtypes.as_dtype(features.dtype)
-            if not (features_dtype.is_floating or features_dtype.is_complex):
+            if features_dtype.is_integer:
                 result = tf.round(result)
 
             return tf.cast(result, features.dtype)
