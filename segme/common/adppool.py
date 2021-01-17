@@ -80,11 +80,11 @@ class AdaptivePooling(layers.Layer):
 
 @utils.register_keras_serializable(package='SegMe')
 class AdaptiveAveragePooling(AdaptivePooling):
-    def __init__(self, *args, **kwargs):
-        super().__init__(reduce_function=tf.reduce_mean, *args, **kwargs)
+    def __init__(self, output_size, **kwargs):
+        super().__init__(reduce_function=tf.reduce_mean, output_size=output_size, **kwargs)
 
 
 @utils.register_keras_serializable(package='SegMe')
 class AdaptiveMaxPooling(AdaptivePooling):
-    def __init__(self, *args, **kwargs):
-        super().__init__(reduce_function=tf.reduce_max, *args, **kwargs)
+    def __init__(self, output_size, **kwargs):
+        super().__init__(reduce_function=tf.reduce_max, output_size=output_size, **kwargs)

@@ -20,7 +20,7 @@ class ResizeBySample(layers.Layer):
 
         new_size = tf.shape(samples)[1:3]
         resized = tf.compat.v1.image.resize(targets, new_size, method=self.method, align_corners=self.align_corners)
-        resized = tf.cast(resized, targets.dtype)
+        resized = tf.cast(resized, self.compute_dtype)
 
         new_shape = targets.shape[0], samples.shape[1], samples.shape[2], targets.shape[3]
         resized.set_shape(new_shape)

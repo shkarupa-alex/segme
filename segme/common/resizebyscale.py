@@ -8,7 +8,7 @@ class ResizeByScale(layers.Layer):
     def __init__(self, scale, method='bilinear', align_corners=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
-        self.scale = scale
+        self.scale = float(scale)
         self.method = method
         self.align_corners = align_corners
 
@@ -17,11 +17,11 @@ class ResizeByScale(layers.Layer):
 
     def call(self, inputs, **kwargs):
         if 1 == self.scale:
-            return tf.cast(inputs, 'float32')
+            return tf.cast(inputs, self.compute_dtype)
 
-        new_size = tf.cast(tf.round(tf.shape(inputs)[1:3] * self.scale), 'int32')
+        new_size = tf.cast(tf.round(tf.cast(tf.shape(inputs)[1:3], self.compute_dtype) * self.scale), 'int32')
         resized = tf.compat.v1.image.resize(inputs, new_size, method=self.method, align_corners=self.align_corners)
-        resized = tf.cast(resized, inputs.dtype)
+        resized = tf.cast(resized, self.compute_dtype)
 
         new_shape = inputs.shape[0], self._scale(inputs.shape[1]), self._scale(inputs.shape[2]), inputs.shape[3]
         resized.set_shape(new_shape)
@@ -32,7 +32,7 @@ class ResizeByScale(layers.Layer):
     def compute_output_shape(self, input_shape):
         if 1 == self.scale:
             return input_shape
-        
+
         return input_shape[0], self._scale(input_shape[1]), self._scale(input_shape[2]), input_shape[3]
 
     def get_config(self):
