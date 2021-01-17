@@ -24,7 +24,7 @@ class ResizeBySample(layers.Layer):
 
         targets_dtype = tf.dtypes.as_dtype(targets.dtype)
         if targets_dtype.is_integer:
-            result = tf.round(result)
+            resized = tf.round(resized)
         resized = tf.cast(resized, targets.dtype)
 
         new_shape = targets.shape[0], samples.shape[1], samples.shape[2], targets.shape[3]

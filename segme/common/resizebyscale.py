@@ -25,7 +25,7 @@ class ResizeByScale(layers.Layer):
 
         inputs_dtype = tf.dtypes.as_dtype(inputs.dtype)
         if inputs_dtype.is_integer:
-            result = tf.round(result)
+            resized = tf.round(resized)
         resized = tf.cast(resized, inputs.dtype)
 
         new_shape = inputs.shape[0], self._scale(inputs.shape[1]), self._scale(inputs.shape[2]), inputs.shape[3]
