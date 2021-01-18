@@ -10,3 +10,5 @@ from .position_aware import PixelPositionAwareSigmoidCrossEntropy
 from .position_aware import pixel_position_aware_sigmoid_cross_entropy
 from .sobel_edge import SobelEdgeSigmoidCrossEntropy
 from .sobel_edge import sobel_edge_sigmoid_cross_entropy
+from .region_mutual import RegionMutualInformationLoss
+from .region_mutual import region_mutual_information_loss
