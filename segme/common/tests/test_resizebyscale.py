@@ -32,7 +32,7 @@ class TestResizeByScale(keras_parameterized.TestCase):
             input_shape=(2, 16, 16, 10),
             input_dtype='float16',
             expected_output_shape=(None, 32, 32, 10),
-            expected_output_dtype='float32'
+            expected_output_dtype='float16'
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 

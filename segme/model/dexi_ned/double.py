@@ -1,6 +1,7 @@
 from tensorflow.keras import Sequential
 from tensorflow.keras import activations, layers, regularizers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from ...common import ConvBnRelu
 
 
 @utils.register_keras_serializable(package='SegMe>DexiNed')
@@ -17,22 +18,8 @@ class DoubleConvBlock(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.features = Sequential([
-            layers.Conv2D(
-                filters=self.mid_features,
-                kernel_size=3,
-                strides=self.stride,
-                padding='same',
-                kernel_regularizer=regularizers.l2(1e-3)),
-            layers.BatchNormalization(),
-            layers.ReLU(),
-            layers.Conv2D(
-                filters=self._out_features,
-                kernel_size=3,
-                padding='same',
-                strides=1,
-                kernel_regularizer=regularizers.l2(1e-3)),
-            layers.BatchNormalization(),
-            layers.Activation(self.activation)
+            ConvBnRelu(self.mid_features, 3, strides=self.stride, kernel_regularizer=regularizers.l2(1e-3)),
+            ConvBnRelu(self._out_features, 3, activation=self.activation, kernel_regularizer=regularizers.l2(1e-3)),
         ])
 
         super().build(input_shape)

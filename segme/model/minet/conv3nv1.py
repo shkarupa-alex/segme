@@ -1,6 +1,6 @@
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from ...common import resize_by_sample
+from ...common import ConvBnRelu, ResizeBySample
 
 
 @utils.register_keras_serializable(package='SegMe>MINet')
@@ -27,24 +27,13 @@ class Conv3nV1(layers.Layer):
         min_channels = min(self.channels_h, self.channels_m, self.channels_l)
 
         self.relu = layers.ReLU()
-        self.pool = layers.AveragePooling2D(2, strides=2)
+        self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
+        self.resize = ResizeBySample(method='nearest', align_corners=False)
 
         # stage 0
-        self.cbr_hh0 = Sequential([
-            layers.Conv2D(min_channels, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.cbr_mm0 = Sequential([
-            layers.Conv2D(min_channels, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.cbr_ll0 = Sequential([
-            layers.Conv2D(min_channels, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
+        self.cbr_hh0 = ConvBnRelu(min_channels, 3)
+        self.cbr_mm0 = ConvBnRelu(min_channels, 3)
+        self.cbr_ll0 = ConvBnRelu(min_channels, 3)
 
         # stage 1
         self.conv_hh1 = layers.Conv2D(min_channels, 3, padding='same')
@@ -82,27 +71,24 @@ class Conv3nV1(layers.Layer):
 
         # stage 1
         h2h = self.conv_hh1(h)
-        m2h = self.conv_mh1(resize_by_sample([m, h2h], method='nearest', align_corners=False))
+        m2h = self.conv_mh1(self.resize([m, h2h]))
 
         h2m = self.conv_hm1(self.pool(h))
         m2m = self.conv_mm1(m)
-        l2m = self.conv_lm1(resize_by_sample([l, m2m], method='nearest', align_corners=False))
+        l2m = self.conv_lm1(self.resize([l, m2m]))
 
         m2l = self.conv_ml1(self.pool(m))
         l2l = self.conv_ll1(l)
 
         h = self.relu(self.bn_h1(layers.add([h2h, m2h])))
-        m = self.relu(self.bn_m1(layers.add([
-            resize_by_sample([h2m, m2m], method='nearest', align_corners=False), m2m, l2m])))
-        l = self.relu(self.bn_l1(layers.add([
-            resize_by_sample([m2l, l2l], method='nearest', align_corners=False), l2l])))
+        m = self.relu(self.bn_m1(layers.add([h2m, m2m, l2m])))
+        l = self.relu(self.bn_l1(layers.add([m2l, l2l])))
 
         # stage 2
         h2m = self.conv_hm2(self.pool(h))
         m2m = self.conv_mm2(m)
-        l2m = self.conv_lm2(resize_by_sample([l, m2m], method='nearest', align_corners=False))
-        m = self.relu(self.bn_m2(layers.add([
-            resize_by_sample([h2m, m2m], method='nearest', align_corners=False), m2m, l2m])))
+        l2m = self.conv_lm2(self.resize([l, m2m]))
+        m = self.relu(self.bn_m2(layers.add([h2m, m2m, l2m])))
 
         # stage 3
         out = layers.add([self.bn_m3(self.conv_mm3(m)), self.identity(inputs_m)])

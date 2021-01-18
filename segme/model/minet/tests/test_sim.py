@@ -4,7 +4,7 @@ from ..sim import SIM
 
 
 @keras_parameterized.run_all_keras_modes
-class TestConvBnRelu(keras_parameterized.TestCase):
+class TestSim(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
             SIM,

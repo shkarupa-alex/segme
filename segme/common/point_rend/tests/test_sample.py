@@ -344,18 +344,18 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
-            kwargs={'points': 5, 'align_corners': False},
+            kwargs={'points': 0.05, 'align_corners': False, 'oversample': 3, 'importance': 0.75},
             input_shape=[2, 16, 16, 10],
             input_dtype='float32',
-            expected_output_shape=[None, 5, 2],
+            expected_output_shape=[None, None, 2],
             expected_output_dtype='float32'
         )
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
-            kwargs={'points': 256, 'align_corners': True},
+            kwargs={'points': 1.0, 'align_corners': True, 'oversample': 3, 'importance': 0.75},
             input_shape=[2, 16, 16, 10],
             input_dtype='float32',
-            expected_output_shape=[None, 256, 2],
+            expected_output_shape=[None, None, 2],
             expected_output_dtype='float32'
         )
 
@@ -363,26 +363,26 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
-            kwargs={'points': 5, 'align_corners': False},
+            kwargs={'points': 0.05, 'align_corners': False, 'oversample': 3, 'importance': 0.75},
             input_shape=[2, 16, 16, 10],
             input_dtype='float16',
-            expected_output_shape=[None, 5, 2],
+            expected_output_shape=[None, None, 2],
             expected_output_dtype='float16'
         )
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
-            kwargs={'points': 5, 'align_corners': True},
+            kwargs={'points': 0.05, 'align_corners': True, 'oversample': 3, 'importance': 0.75},
             input_shape=[2, 16, 16, 10],
             input_dtype='float32',
-            expected_output_shape=[None, 5, 2],
-            expected_output_dtype='float32'
+            expected_output_shape=[None, None, 2],
+            expected_output_dtype='float16'
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
     def test_shorthand(self):
         uncertain_points_with_randomness(
             tf.convert_to_tensor(np.random.rand(2, 16, 16, 10).astype(np.float32)),
-            points=3, align_corners=False)
+            points=0.03, align_corners=False, oversample=3, importance=0.75)
 
 
 @keras_parameterized.run_all_keras_modes
@@ -398,7 +398,7 @@ class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             UncertainPointsCoordsOnGrid,
-            kwargs={'points': 4},
+            kwargs={'points': 0.04},
             input_shapes=[(2, 16, 16, 2)],
             input_dtypes=['float32'],
             expected_output_shapes=[(None, None), (None, None, 2)],
@@ -406,7 +406,7 @@ class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
         )
         layer_multi_io_test(
             UncertainPointsCoordsOnGrid,
-            kwargs={'points': 128},
+            kwargs={'points': 1.0},
             input_shapes=[(2, 4, 4, 3)],
             input_dtypes=['float32'],
             expected_output_shapes=[(None, None), (None, None, 2)],
@@ -417,7 +417,7 @@ class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         layer_multi_io_test(
             UncertainPointsCoordsOnGrid,
-            kwargs={'points': 4},
+            kwargs={'points': 0.04},
             input_shapes=[(2, 16, 16, 4)],
             input_dtypes=['float16'],
             expected_output_shapes=[(None, None), (None, None, 2)],
@@ -425,7 +425,7 @@ class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
         )
         layer_multi_io_test(
             UncertainPointsCoordsOnGrid,
-            kwargs={'points': 4},
+            kwargs={'points': 0.04},
             input_shapes=[(2, 16, 16, 4)],
             input_dtypes=['float32'],
             expected_output_shapes=[(None, None), (None, None, 2)],
@@ -434,22 +434,11 @@ class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
     def test_shapes_normal(self):
-        layer = UncertainPointsCoordsOnGrid(points=3)
+        layer = UncertainPointsCoordsOnGrid(points=0.03)
 
         shape0, shape1 = layer.compute_output_shape(tf.TensorShape((2, 16, 16, 2)))
-        self.assertListEqual([2, 3], shape0.as_list())
-        self.assertListEqual([2, 3, 2], shape1.as_list())
-
-        shape0, shape1 = layer.compute_output_shape(tf.TensorShape((2, None, None)))
-        self.assertListEqual([2, None], shape0.as_list())
-        self.assertListEqual([2, None, 2], shape1.as_list())
-
-    def test_shapes_overflow(self):
-        layer = UncertainPointsCoordsOnGrid(points=128)
-
-        shape0, shape1 = layer.compute_output_shape(tf.TensorShape((2, 4, 4, 3)))
-        self.assertListEqual([2, 16], shape0.as_list())
-        self.assertListEqual([2, 16, 2], shape1.as_list())
+        self.assertListEqual([2, 7], shape0.as_list())
+        self.assertListEqual([2, 7, 2], shape1.as_list())
 
         shape0, shape1 = layer.compute_output_shape(tf.TensorShape((2, None, None)))
         self.assertListEqual([2, None], shape0.as_list())
@@ -487,7 +476,7 @@ class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
             [[0.5625, 0.1666666716337204], [0.9375, 0.5], [0.3125, 0.1666666716337204]],
             [[0.5625, 0.8333333730697632], [0.4375, 0.1666666716337204], [0.4375, 0.8333333730697632]]
         ]
-        result0, result1 = uncertain_points_coords_on_grid(tf.convert_to_tensor(features), points=3)
+        result0, result1 = uncertain_points_coords_on_grid(tf.convert_to_tensor(features), points=0.125)
         self.assertAllClose(indices, result0)
         self.assertAllClose(coords, result1)
 

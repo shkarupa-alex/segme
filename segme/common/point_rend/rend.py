@@ -89,9 +89,9 @@ class PointRend(layers.Layer):
             lambda it, cf, pl, pc: self._subdiv(it, cf, fine_features, pl, pc),
             [
                 0,  # subdivision counter
-                tf.cast(coarse_features, 'float32'),  # coarse features
-                tf.zeros((coarse_shape[0], 0, self.classes), 'float32'),  # point logits
-                tf.zeros((coarse_shape[0], 0, 2), 'float32')  # point coords
+                coarse_features,  # coarse features
+                tf.zeros((coarse_shape[0], 0, self.classes), self.compute_dtype),  # point logits
+                tf.zeros((coarse_shape[0], 0, 2), self.compute_dtype)  # point coords
             ],
             shape_invariants=[
                 tf.TensorShape([]),

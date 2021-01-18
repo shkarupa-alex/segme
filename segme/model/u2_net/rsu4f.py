@@ -1,26 +1,28 @@
 from tensorflow.keras import layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from .convbnrelu import ConvBnRelu
+from ...common.convbnrelu import ConvBnRelu
 
 
 @utils.register_keras_serializable(package='SegMe>U2Net')
 class RSU4F(layers.Layer):
     def __init__(self, mid_features=12, out_features=3, **kwargs):
         super().__init__(**kwargs)
+        self.input_spec = layers.InputSpec(ndim=4)
+
         self.mid_features = mid_features
         self.out_features = out_features
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.cbr0 = ConvBnRelu(self.out_features)
-        self.cbr1 = ConvBnRelu(self.mid_features)
-        self.cbr2 = ConvBnRelu(self.mid_features, dilation_rate=2)
-        self.cbr3 = ConvBnRelu(self.mid_features, dilation_rate=4)
-        self.cbr4 = ConvBnRelu(self.mid_features, dilation_rate=8)
+        self.cbr0 = ConvBnRelu(self.out_features, 3)
+        self.cbr1 = ConvBnRelu(self.mid_features, 3)
+        self.cbr2 = ConvBnRelu(self.mid_features, 3, dilation_rate=2)
+        self.cbr3 = ConvBnRelu(self.mid_features, 3, dilation_rate=4)
+        self.cbr4 = ConvBnRelu(self.mid_features, 3, dilation_rate=8)
 
-        self.cbr3d = ConvBnRelu(self.mid_features, dilation_rate=4)
-        self.cbr2d = ConvBnRelu(self.mid_features, dilation_rate=2)
-        self.cbr1d = ConvBnRelu(self.out_features)
+        self.cbr3d = ConvBnRelu(self.mid_features, 3, dilation_rate=4)
+        self.cbr2d = ConvBnRelu(self.mid_features, 3, dilation_rate=2)
+        self.cbr1d = ConvBnRelu(self.out_features, 3)
 
         super().build(input_shape)
 

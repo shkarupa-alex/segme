@@ -1,6 +1,7 @@
 from tensorflow.keras import Sequential
 from tensorflow.keras import layers, utils, regularizers
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from ...common import ConvBnRelu
 
 
 @utils.register_keras_serializable(package='SegMe>DexiNed')
@@ -20,21 +21,8 @@ class DenseBlock(layers.Layer):
         for _ in range(self.num_layers):
             self.layers.append(Sequential([
                 layers.ReLU(),
-                layers.Conv2D(
-                    filters=self.out_features,
-                    kernel_size=3,
-                    strides=1,
-                    padding='same',
-                    kernel_regularizer=regularizers.l2(1e-3)),
-                layers.BatchNormalization(),
-                layers.ReLU(),
-                layers.Conv2D(
-                    filters=self.out_features,
-                    kernel_size=3,
-                    strides=1,
-                    padding='same',
-                    kernel_regularizer=regularizers.l2(1e-3)),
-                layers.BatchNormalization(),
+                ConvBnRelu(self.out_features, 3, kernel_regularizer=regularizers.l2(1e-3)),
+                ConvBnRelu(self.out_features, 3, activation='linear', kernel_regularizer=regularizers.l2(1e-3)),
             ]))
 
         super().build(input_shape)

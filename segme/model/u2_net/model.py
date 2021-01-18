@@ -17,6 +17,7 @@ class U2Net(layers.Layer):
     def __init__(self, classes, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
+
         self.classes = classes
 
     @shape_type_conversion
@@ -276,16 +277,16 @@ class U2NetP(layers.Layer):
         return config
 
 
-def build_u2_net(channels, classes):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+def build_u2_net(classes):
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = U2Net(classes)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='u2_net')
 
     return model
 
 
-def build_u2_netp(channels, classes):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+def build_u2_netp(classes):
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = U2NetP(classes)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='u2_netp')
 

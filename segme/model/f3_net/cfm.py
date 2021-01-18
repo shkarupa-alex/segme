@@ -1,6 +1,6 @@
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from ...common import resize_by_sample
+from ...common import resize_by_sample, ConvBnRelu
 
 
 @utils.register_keras_serializable(package='SegMe>F3Net')
@@ -12,40 +12,15 @@ class CFM(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.cbr1h = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.cbr2h = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
-        self.cbr3h = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
-        self.cbr4h = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
+        self.cbr1h = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr2h = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr3h = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr4h = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
 
-        self.cbr1v = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
-        self.cbr2v = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
-        self.cbr3v = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
-        self.cbr4v = Sequential([
-            layers.Conv2D(self.filters, 3, padding='same', kernel_initializer='he_normal'),
-            layers.BatchNormalization(),
-            layers.ReLU()])
+        self.cbr1v = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr2v = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr3v = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr4v = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
 
         super().build(input_shape)
 

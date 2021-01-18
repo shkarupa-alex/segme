@@ -40,7 +40,7 @@ class TestPointHead(keras_parameterized.TestCase):
             input_shapes=[(2, 16, 3), (2, 16, 10)],
             input_dtypes=['float16', 'float16'],
             expected_output_shapes=[(None, 16, 3)],
-            expected_output_dtypes=['float32']
+            expected_output_dtypes=['float16']
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 

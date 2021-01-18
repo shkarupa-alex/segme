@@ -1,7 +1,7 @@
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .atsepconv import AtrousSepConv
-from ...common import resize_by_sample
+from ...common import resize_by_sample, ConvBnRelu
 
 
 @utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
@@ -17,11 +17,7 @@ class Decoder(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.proj = Sequential([
-            layers.Conv2D(self.low_filters, 1, padding='same', use_bias=False),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
+        self.proj = ConvBnRelu(self.low_filters, 1, use_bias=False)
         self.conv0 = AtrousSepConv(self.decoder_filters)
         self.conv1 = AtrousSepConv(self.decoder_filters)
 

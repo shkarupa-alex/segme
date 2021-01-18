@@ -6,6 +6,7 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 @utils.register_keras_serializable(package='SegMe')
 class ResizeBySample(layers.Layer):
     def __init__(self, method='bilinear', align_corners=True, **kwargs):
+        kwargs['autocast'] = False
         super().__init__(**kwargs)
         self.input_spec = [
             layers.InputSpec(ndim=4),  # targets
@@ -21,6 +22,11 @@ class ResizeBySample(layers.Layer):
         new_size = tf.shape(samples)[1:3]
         resized = tf.compat.v1.image.resize(targets, new_size, method=self.method, align_corners=self.align_corners)
 
+        targets_dtype = tf.dtypes.as_dtype(targets.dtype)
+        if targets_dtype.is_integer:
+            resized = tf.round(resized)
+        resized = tf.cast(resized, targets.dtype)
+
         new_shape = targets.shape[0], samples.shape[1], samples.shape[2], targets.shape[3]
         resized.set_shape(new_shape)
 
@@ -33,12 +39,9 @@ class ResizeBySample(layers.Layer):
         return (targets_shape[-0],) + samples_shape[1:3] + (targets_shape[3],)
 
     def compute_output_signature(self, input_signature):
-        # TODO: It will also have the same type as `targets` if the size of `images` can be statically determined
-        #  to be the same as `samples`
         output_signature = super().compute_output_signature(input_signature)
-        output_dtype = input_signature[0].dtype if 'nearest' == self.method else 'float32'
-        
-        return tf.TensorSpec(dtype=output_dtype, shape=output_signature.shape)
+
+        return tf.TensorSpec(dtype=input_signature[0].dtype, shape=output_signature.shape)
 
     def get_config(self):
         config = super().get_config()

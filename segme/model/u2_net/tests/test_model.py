@@ -63,7 +63,7 @@ class TestU2Net(keras_parameterized.TestCase):
 
     def test_model(self):
         num_classes = 2
-        model = build_u2_net(channels=3, classes=num_classes)
+        model = build_u2_net(classes=num_classes)
         model.compile(
             optimizer='sgd', loss='sparse_categorical_crossentropy',
             run_eagerly=testing_utils.should_run_eagerly())
@@ -83,7 +83,7 @@ class TestU2Net(keras_parameterized.TestCase):
 
     def test_model_p(self):
         num_classes = 1
-        model = build_u2_netp(channels=3, classes=num_classes)
+        model = build_u2_netp(classes=num_classes)
         model.compile(
             optimizer='sgd', loss='binary_crossentropy',
             run_eagerly=testing_utils.should_run_eagerly())

@@ -1,2 +1,3 @@
 from .model import build_deeplab_v3_plus
+from .hattn import build_deeplab_v3_plus_with_hierarchical_attention
 from .rend import build_deeplab_v3_plus_with_point_rend

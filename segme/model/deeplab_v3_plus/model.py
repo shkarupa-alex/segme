@@ -23,9 +23,13 @@ class DeepLabV3Plus(layers.Layer):
         self.low_filters = low_filters
         self.decoder_filters = decoder_filters
 
+        self.add_strides = None
+
     @shape_type_conversion
     def build(self, input_shape):
-        self.enc = Encoder(self.bone_arch, self.bone_init, self.bone_train, self.aspp_filters, self.aspp_stride)
+        self.enc = Encoder(
+            self.bone_arch, self.bone_init, self.bone_train, self.aspp_filters, self.aspp_stride,
+            add_strides=self.add_strides)
         self.dec = Decoder(self.low_filters, self.decoder_filters)
         self.proj = HeadProjection(self.classes)
         self.act = HeadActivation(self.classes)
@@ -33,13 +37,19 @@ class DeepLabV3Plus(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        low_feats, high_feats = self.enc(inputs)
-        outputs = self.dec([low_feats, high_feats])
-        outputs = self.proj(outputs)
+        outputs, *_ = self._call(inputs)
         outputs = resize_by_sample([outputs, inputs])
         outputs = self.act(outputs)
 
         return outputs
+
+    def _call(self, inputs):
+        low_feats, high_feats, *add_feats = self.enc(inputs)
+        dec_feats = self.dec([low_feats, high_feats])
+
+        outputs = self.proj(dec_feats)
+
+        return (outputs, dec_feats, *add_feats)
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -67,9 +77,9 @@ class DeepLabV3Plus(layers.Layer):
 
 
 def build_deeplab_v3_plus(
-        channels, classes, bone_arch, bone_init, bone_train, aspp_filters=256, aspp_stride=16, low_filters=48,
+        classes, bone_arch, bone_init, bone_train, aspp_filters=256, aspp_stride=16, low_filters=48,
         decoder_filters=256):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = DeepLabV3Plus(
         classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,
         aspp_stride=aspp_stride, low_filters=low_filters, decoder_filters=decoder_filters)(inputs)

@@ -49,7 +49,7 @@ class TestDexiNed(keras_parameterized.TestCase):
 
     def test_model(self):
         num_classes = 1
-        model = build_dexi_ned(3, num_classes)
+        model = build_dexi_ned(num_classes)
         model.compile(
             optimizer='sgd', loss='binary_crossentropy',
             run_eagerly=testing_utils.should_run_eagerly())

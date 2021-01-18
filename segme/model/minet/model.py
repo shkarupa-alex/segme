@@ -3,7 +3,7 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .aim import AIM
 from .sim import SIM
 from ...backbone import Backbone
-from ...common import ClassificationHead, resize_by_sample
+from ...common import ConvBnRelu, ClassificationHead, ResizeBySample
 
 
 @utils.register_keras_serializable(package='SegMe>MINet')
@@ -18,6 +18,7 @@ class MINet(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
+        self.resize = ResizeBySample(align_corners=False)
         self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=[2, 4, 8, 16, 32])
 
         self.trans = AIM(filters=(64, 64, 64, 64, 64))
@@ -28,36 +29,12 @@ class MINet(layers.Layer):
         self.sim4 = SIM(32)
         self.sim2 = SIM(32)
 
-        self.upconv32 = Sequential([
-            layers.Conv2D(64, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv16 = Sequential([
-            layers.Conv2D(64, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv8 = Sequential([
-            layers.Conv2D(64, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv4 = Sequential([
-            layers.Conv2D(64, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv2 = Sequential([
-            layers.Conv2D(32, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
-        self.upconv1 = Sequential([
-            layers.Conv2D(32, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU()
-        ])
+        self.upconv32 = ConvBnRelu(64, 3)
+        self.upconv16 = ConvBnRelu(64, 3)
+        self.upconv8 = ConvBnRelu(64, 3)
+        self.upconv4 = ConvBnRelu(64, 3)
+        self.upconv2 = ConvBnRelu(32, 3)
+        self.upconv1 = ConvBnRelu(32, 3)
 
         self.head = ClassificationHead(self.classes)
 
@@ -68,21 +45,21 @@ class MINet(layers.Layer):
 
         out1, out2, out3, out4, out5 = self.trans([c1, c2, c3, c4, c5])
 
-        out5 = self.upconv32(layers.add([self.sim32(out5), out5]))  # 1024
+        out5 = self.upconv32(layers.add([self.sim32(out5), out5]))
 
-        out4 = layers.add([resize_by_sample([out5, out4], align_corners=False), out4])  # 1024
+        out4 = layers.add([self.resize([out5, out4]), out4])
         out4 = self.upconv16(layers.add([self.sim16(out4), out4]))
 
-        out3 = layers.add([resize_by_sample([out4, out3], align_corners=False), out3])
-        out3 = self.upconv8(layers.add([self.sim8(out3), out3]))  # 512
+        out3 = layers.add([self.resize([out4, out3]), out3])
+        out3 = self.upconv8(layers.add([self.sim8(out3), out3]))
 
-        out2 = layers.add([resize_by_sample([out3, out2], align_corners=False), out2])
-        out2 = self.upconv4(layers.add([self.sim4(out2), out2]))  # 256
+        out2 = layers.add([self.resize([out3, out2]), out2])
+        out2 = self.upconv4(layers.add([self.sim4(out2), out2]))
 
-        out1 = layers.add([resize_by_sample([out2, out1], align_corners=False), out1])
-        out1 = self.upconv2(layers.add([self.sim2(out1), out1]))  # 64
+        out1 = layers.add([self.resize([out2, out1]), out1])
+        out1 = self.upconv2(layers.add([self.sim2(out1), out1]))
 
-        outputs = self.upconv1(resize_by_sample([out1, inputs], align_corners=False))  # 32
+        outputs = self.upconv1(self.resize([out1, inputs]))
 
         return self.head(outputs)
 
@@ -105,8 +82,8 @@ class MINet(layers.Layer):
         return config
 
 
-def build_minet(channels, classes, bone_arch='resnet_50', bone_init='imagenet', bone_train=False):
-    inputs = layers.Input(name='image', shape=[None, None, channels], dtype='uint8')
+def build_minet(classes, bone_arch='resnet_50', bone_init='imagenet', bone_train=False):
+    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = MINet(classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train)(inputs)
     model = Model(inputs=inputs, outputs=outputs, name='minet')
 

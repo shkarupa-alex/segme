@@ -218,6 +218,47 @@ class Backbone(layers.Layer):
             'exit_flow/block2/unit1/sepconv3_pointwise_bn'
         )),
 
+        'bit_s_r50x1': (port.BiT_S_R50x1, (
+            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+            'resnet.block3', 'resnet.block4'
+        )),
+        # 'bit_s_r50x3': (port.BiT_S_R50x1, (
+        #     None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+        #     'resnet.block3', 'resnet.block4'
+        # )),
+        # 'bit_s_r101x1': (port.BiT_S_R50x1, (
+        #     None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+        #     'resnet.block3', 'resnet.block4'
+        # )),
+        'bit_s_r101x3': (port.BiT_S_R50x1, (
+            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+            'resnet.block3', 'resnet.block4'
+        )),
+        'bit_s_r152x4': (port.BiT_S_R50x1, (
+            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+            'resnet.block3', 'resnet.block4'
+        )),
+        'bit_m_r50x1': (port.BiT_S_R50x1, (
+            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+            'resnet.block3', 'resnet.block4'
+        )),
+        'bit_m_r50x3': (port.BiT_S_R50x1, (
+            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+            'resnet.block3', 'resnet.block4'
+        )),
+        'bit_m_r101x1': (port.BiT_S_R50x1, (
+            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+            'resnet.block3', 'resnet.block4'
+        )),
+        'bit_m_r101x3': (port.BiT_S_R50x1, (
+            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+            'resnet.block3', 'resnet.block4'
+        )),
+        'bit_m_r152x4': (port.BiT_S_R50x1, (
+            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
+            'resnet.block3', 'resnet.block4'
+        )),
+
         'mobilenet_v3_small': (port.MobileNetV3Small, (
             # None, 'activation', 'activation_2', 'activation_6',
             # 'activation_16', 'activation_22'
@@ -246,7 +287,6 @@ class Backbone(layers.Layer):
         # 'nas_hnasnet': deeplab/core/nas_network.py,
 
         # Wide ResNet, Xception, ResNeXt
-
     }
 
     def __init__(self, arch, init, trainable, scales=None, **kwargs):
