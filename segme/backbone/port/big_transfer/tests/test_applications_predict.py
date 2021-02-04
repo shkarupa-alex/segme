@@ -4,9 +4,18 @@ from tensorflow.keras.applications.imagenet_utils import decode_predictions
 from tensorflow.python.keras.preprocessing import image
 from tensorflow.python.keras.utils import data_utils
 from tensorflow.python.platform import test
-from ..xception import Xception41, Xception65, Xception71, preprocess_input, decode_predictions
+from ..bit import BiT_S_R50x1, BiT_S_R50x3, BiT_S_R101x1, BiT_S_R101x3, BiT_S_R152x4
+from ..bit import BiT_M_R50x1, BiT_M_R50x3, BiT_M_R101x1, BiT_M_R101x3, BiT_M_R152x4
+from ..bit import preprocess_input
 
-MODEL_LIST = [Xception41, Xception65, Xception71]
+MODEL_LIST = [
+    BiT_S_R50x1,
+    # Bad weights
+    # BiT_S_R50x3, BiT_S_R101x1,
+    BiT_S_R101x3, BiT_S_R152x4,
+    # 21k classes
+    # BiT_M_R50x1, BiT_M_R50x3, BiT_M_R101x1, BiT_M_R101x3, BiT_M_R152x4
+]
 
 TEST_IMAGE_PATH = ('https://storage.googleapis.com/tensorflow/'
                    'keras-applications/tests/elephant.jpg')

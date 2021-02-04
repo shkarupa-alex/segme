@@ -24,6 +24,7 @@ WEIGHTS_HASHES = {
 
 
 def BiT(model_name,
+        include_top=True,
         weights='imagenet',
         input_tensor=None,
         input_shape=None,
@@ -65,7 +66,6 @@ def BiT(model_name,
         layers = kwargs.pop('layers')
     else:
         layers = VersionAwareLayers()
-    kwargs.pop('include_top')
     if kwargs:
         raise ValueError('Unknown argument(s): %s' % (kwargs,))
     if not (weights in {'imagenet', None} or file_io.file_exists_v2(weights)):
@@ -92,15 +92,13 @@ def BiT(model_name,
             img_input = input_tensor
 
     # Create base model.
-    resnet = ResnetV2(
-        num_units=NUM_UNITS[model_name],
-        num_outputs=21843 if '-M-' in model_name else 1000,
-        filters_factor=int(model_name[-1]) * 4,
-        name='resnet')
-    x = resnet(img_input)
+    full_model = ResnetV2(num_units=NUM_UNITS[model_name],
+                          num_outputs=21843 if '-M-' in model_name else 1000,
+                          filters_factor=int(model_name[-1]) * 4)
 
     # Load weights.
-    if model_name in WEIGHTS_HASHES:
+    _ = full_model(img_input)
+    if 'imagenet' == weights and model_name in WEIGHTS_HASHES:
         file_name = model_name + '.h5'
         file_hash = WEIGHTS_HASHES[model_name]
         weights_path = data_utils.get_file(
@@ -108,9 +106,9 @@ def BiT(model_name,
             BASE_WEIGHTS_PATH + file_name,
             cache_subdir='models',
             file_hash=file_hash)
-        resnet.load_weights(weights_path)
+        full_model.load_weights(weights_path)
     elif weights is not None:
-        resnet.load_weights(weights)
+        full_model.load_weights(weights)
 
     # Ensure that the model takes into account
     # any potential predecessors of `input_tensor`.
@@ -120,49 +118,51 @@ def BiT(model_name,
         inputs = img_input
 
     # Create model.
-    model = training.Model(inputs, x, name=model_name)
+    out_layer = 'head/dense' if include_top else 'pre_head_relu'
+    outputs = full_model.get_layer(name=out_layer).output
+    model = training.Model(inputs=full_model.inputs, outputs=outputs, name=model_name)
 
     return model
 
 
-def BiT_S_R50x1(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-S-R50x1', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_S_R50x1(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-S-R50x1', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
-def BiT_S_R50x3(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-S-R50x3', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_S_R50x3(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-S-R50x3', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
-def BiT_S_R101x1(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-S-R101x1', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_S_R101x1(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-S-R101x1', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
-def BiT_S_R101x3(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-S-R101x3', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_S_R101x3(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-S-R101x3', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
-def BiT_S_R152x4(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-S-R152x4', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_S_R152x4(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-S-R152x4', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
-def BiT_M_R50x1(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-M-R50x1', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_M_R50x1(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-M-R50x1', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
-def BiT_M_R50x3(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-M-R50x3', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_M_R50x3(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-M-R50x3', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
-def BiT_M_R101x1(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-M-R101x1', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_M_R101x1(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-M-R101x1', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
-def BiT_M_R101x3(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-M-R101x3', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_M_R101x3(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-M-R101x3', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
-def BiT_M_R152x4(weights='imagenet', input_tensor=None, input_shape=None, **kwargs):
-    return BiT('BiT-M-R152x4', weights=weights, input_tensor=input_tensor, input_shape=input_shape, **kwargs)
+def BiT_M_R152x4(weights='imagenet', input_tensor=None, **kwargs):
+    return BiT('BiT-M-R152x4', weights=weights, input_tensor=input_tensor, **kwargs)
 
 
 def preprocess_input(x, data_format=None):

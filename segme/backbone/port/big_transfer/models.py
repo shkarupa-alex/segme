@@ -24,17 +24,14 @@ def add_name_prefix(name, prefix=None):
     return prefix + "/" + name if prefix else name
 
 
-class ReLU(tf.keras.layers.ReLU):
-
-    def compute_output_shape(self, input_shape):
-        return tf.TensorShape(input_shape)
-
-
+@tf.keras.utils.register_keras_serializable(package='SegMe>Backbone>BigTransfer')
 class PaddingFromKernelSize(tf.keras.layers.Layer):
     """Layer that adds padding to an image taking into a given kernel size."""
 
     def __init__(self, kernel_size, **kwargs):
         super(PaddingFromKernelSize, self).__init__(**kwargs)
+        self.kernel_size = kernel_size
+
         pad_total = kernel_size - 1
         self._pad_beg = pad_total // 2
         self._pad_end = pad_total - self._pad_beg
@@ -55,7 +52,14 @@ class PaddingFromKernelSize(tf.keras.layers.Layer):
             [0, 0]]
         return tf.pad(x, padding)
 
+    def get_config(self):
+        config = super().get_config()
+        config.update({'kernel_size': self.kernel_size})
 
+        return config
+
+
+@tf.keras.utils.register_keras_serializable(package='SegMe>Backbone>BigTransfer')
 class StandardizedConv2D(tf.keras.layers.Conv2D):
     """Implements the abs/1903.10520 technique (see go/dune-gn).
 
@@ -85,6 +89,7 @@ class StandardizedConv2D(tf.keras.layers.Conv2D):
         self.built = True
 
 
+@tf.keras.utils.register_keras_serializable(package='SegMe>Backbone>BigTransfer')
 class BottleneckV2Unit(tf.keras.layers.Layer):
     """Implements a standard ResNet's unit (version 2).
     """
@@ -104,7 +109,7 @@ class BottleneckV2Unit(tf.keras.layers.Layer):
         self._proj = None
         self._unit_a = tf.keras.Sequential([
             normalization.GroupNormalization(name="group_norm"),
-            ReLU(),
+            tf.keras.layers.ReLU(),
         ], name="a")
         self._unit_a_conv = StandardizedConv2D(
             filters=num_filters,
@@ -116,7 +121,7 @@ class BottleneckV2Unit(tf.keras.layers.Layer):
 
         self._unit_b = tf.keras.Sequential([
             normalization.GroupNormalization(name="group_norm"),
-            ReLU(),
+            tf.keras.layers.ReLU(),
             PaddingFromKernelSize(kernel_size=3),
             StandardizedConv2D(
                 filters=num_filters,
@@ -130,7 +135,7 @@ class BottleneckV2Unit(tf.keras.layers.Layer):
 
         self._unit_c = tf.keras.Sequential([
             normalization.GroupNormalization(name="group_norm"),
-            ReLU(),
+            tf.keras.layers.ReLU(),
             StandardizedConv2D(
                 filters=4 * num_filters,
                 kernel_size=1,
@@ -176,8 +181,18 @@ class BottleneckV2Unit(tf.keras.layers.Layer):
 
         return x + x_shortcut
 
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'num_filters': self._num_filters,
+            'stride': self._stride
+        })
 
-class ResnetV2(tf.keras.Model):
+        return config
+
+
+@tf.keras.utils.register_keras_serializable(package='SegMe>Backbone>BigTransfer')
+class ResnetV2(tf.keras.Sequential):
     """Generic ResnetV2 architecture, as used in the BiT paper."""
 
     def __init__(self,
@@ -187,29 +202,34 @@ class ResnetV2(tf.keras.Model):
                  strides=(1, 2, 2, 2),
                  **kwargs):
         super(ResnetV2, self).__init__(**kwargs)
+        self.num_units = num_units
+        self.num_outputs = num_outputs
+        self.filters_factor = filters_factor
+        self.strides = strides
 
-        num_blocks = len(num_units)
-        num_filters = tuple(16 * filters_factor * 2 ** b for b in range(num_blocks))
+    def build(self, input_shape=None):
+        num_blocks = len(self.num_units)
+        num_filters = tuple(16 * self.filters_factor * 2 ** b for b in range(num_blocks))
 
-        self._root = self._create_root_block(num_filters=num_filters[0])
-        self._blocks = []
-        for b, (f, u, s) in enumerate(zip(num_filters, num_units, strides), 1):
+        self.add(self._create_root_block(num_filters=num_filters[0]))
+
+        for b, (f, u, s) in enumerate(zip(num_filters, self.num_units, self.strides), 1):
             n = "block{}".format(b)
-            self._blocks.append(
-                self._create_block(num_units=u, num_filters=f, stride=s, name=n))
-        self._pre_head = [
-            normalization.GroupNormalization(name="group_norm"),
-            ReLU(),
-            tf.keras.layers.GlobalAveragePooling2D()
-        ]
-        self._head = None
-        if num_outputs:
-            self._head = tf.keras.layers.Dense(
-                units=num_outputs,
+            self.add(self._create_block(num_units=u, num_filters=f, stride=s, name=n))
+
+        self.add(normalization.GroupNormalization(name="group_norm"))
+        self.add(tf.keras.layers.ReLU(name='pre_head_relu'))
+        self.add(tf.keras.layers.GlobalAveragePooling2D())
+
+        if self.num_outputs:
+            self.add(tf.keras.layers.Dense(
+                units=self.num_outputs,
                 use_bias=True,
                 kernel_initializer="zeros",
                 trainable=self.trainable,
-                name="head/dense")
+                name="head/dense"))
+
+        super().build(input_shape)
 
     def _create_root_block(self,
                            num_filters,
@@ -255,15 +275,16 @@ class ResnetV2(tf.keras.Model):
             current_shape = (current_shape[0], current_shape[3])
         return tf.TensorShape(current_shape)
 
-    def call(self, x):
-        x = self._root(x)
-        for block in self._blocks:
-            x = block(x)
-        for layer in self._pre_head:
-            x = layer(x)
-        if self._head is not None:
-            x = self._head(x)
-        return x
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'num_units': self.num_units,
+            'num_outputs': self.num_outputs,
+            'filters_factor': self.filters_factor,
+            'strides': self.strides
+        })
+
+        return config
 
 
 KNOWN_MODELS = {

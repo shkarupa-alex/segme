@@ -83,6 +83,7 @@ def group_normalize(x, gamma, beta, num_groups=None, group_size=None, eps=1e-5):
     return tf.reshape(x, orig_shape)
 
 
+@tf.keras.utils.register_keras_serializable(package='SegMe>Backbone>BigTransfer')
 class GroupNormalization(tf.keras.layers.Layer):
     """A group-norm "layer" (see abs/1803.08494 go/dune-gn).
 
@@ -102,8 +103,8 @@ class GroupNormalization(tf.keras.layers.Layer):
                  num_groups=None,
                  group_size=None,
                  eps=1e-5,
-                 beta_init=tf.zeros_initializer(),
-                 gamma_init=tf.ones_initializer(),
+                 beta_init='zeros',
+                 gamma_init='ones',
                  **kwargs):
         """Initializer.
 
@@ -122,8 +123,8 @@ class GroupNormalization(tf.keras.layers.Layer):
         self._num_groups = num_groups
         self._group_size = group_size
         self._eps = eps
-        self._beta_init = beta_init
-        self._gamma_init = gamma_init
+        self._beta_init = tf.keras.initializers.get(beta_init)
+        self._gamma_init = tf.keras.initializers.get(gamma_init)
 
     def build(self, input_size):
         channels = input_size[-1]
@@ -142,3 +143,15 @@ class GroupNormalization(tf.keras.layers.Layer):
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'num_groups': self._num_groups,
+            'group_size': self._group_size,
+            'eps': self._eps,
+            'beta_init': tf.keras.initializers.serialize(self._beta_init),
+            'gamma_init': tf.keras.initializers.serialize(self._gamma_init)
+        })
+
+        return config
