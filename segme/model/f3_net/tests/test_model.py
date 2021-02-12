@@ -30,7 +30,6 @@ class TestF3Net(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 6
         )
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         layer_multi_io_test(
             F3Net,
@@ -41,7 +40,7 @@ class TestF3Net(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 224, 224, 1)] * 6,
             expected_output_dtypes=['float32'] * 6
         )
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
+        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
 
     def test_model(self):
         num_classes = 5
