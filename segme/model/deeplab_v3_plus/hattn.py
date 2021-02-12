@@ -27,8 +27,7 @@ class DeepLabV3PlusWithHierarchicalAttention(DeepLabV3Plus):
         self.attn = Sequential([
             ConvBnRelu(256, 3, use_bias=False),
             ConvBnRelu(256, 3, use_bias=False),
-            layers.Conv2D(2, kernel_size=1, padding='same', use_bias=False),
-            layers.Activation('sigmoid')
+            layers.Conv2D(2, kernel_size=1, padding='same', use_bias=False, activation='sigmoid')
         ])
 
         super().build(input_shape)
@@ -112,7 +111,7 @@ class DeepLabV3PlusWithHierarchicalAttention(DeepLabV3Plus):
 
 def build_deeplab_v3_plus_with_hierarchical_attention(
         classes, bone_arch, bone_init, bone_train, aspp_filters=256, aspp_stride=16, low_filters=48,
-        decoder_filters=256, train_scales=(0.5, 2.0), eval_scales=(0.25, 0.5, 2.0)):
+        decoder_filters=256, train_scales=(0.5,), eval_scales=(0.25, 0.5, 2.0)):
     inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = DeepLabV3PlusWithHierarchicalAttention(
         classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,

@@ -1,4 +1,4 @@
-from .cascade_psp import build_cascade_psp
+from .cascade_psp import build_cascade_psp, CascadePspRefiner
 from .deeplab_v3_plus import build_deeplab_v3_plus, build_deeplab_v3_plus_with_hierarchical_attention
 from .deeplab_v3_plus import build_deeplab_v3_plus_with_point_rend
 from .dexi_ned import build_dexi_ned
