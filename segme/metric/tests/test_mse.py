@@ -38,6 +38,28 @@ class TestMSE(keras_parameterized.TestCase):
 
         self.assertAlmostEqual(result, 0.020358324, places=7)
 
+    def test_batch(self):
+        trim0 = np.where(cv2.dilate(self.SNAKE, np.ones((2, 2), 'float32')) > 0, 1., 0.)
+        pred0 = np.round((self.SNAKE / 128.) ** 2 * 255. / 3.97)
+
+        targ1 = np.pad(self.SNAKE[3:, 3:], [[0, 3], [0, 3]])
+        trim1 = np.pad(trim0[3:, 3:], [[0, 3], [0, 3]])
+        pred1 = np.pad(pred0[3:, 3:], [[0, 3], [0, 3]])
+
+        metric = MSE()
+        metric.update_state(self.SNAKE[None, ..., None], pred0[None, ..., None], trim0[None, ..., None])
+        metric.update_state(targ1[None, ..., None], pred1[None, ..., None], trim1[None, ..., None])
+        res0 = self.evaluate(metric.result())
+
+        metric.reset_states()
+        metric.update_state(
+            np.array([self.SNAKE[..., None], targ1[..., None]]),
+            np.array([pred0[..., None], pred1[..., None]]),
+            np.array([trim0[..., None], trim1[..., None]]))
+        res1 = self.evaluate(metric.result())
+
+        self.assertEqual(res0, res1)
+
 
 if __name__ == '__main__':
     tf.test.main()
