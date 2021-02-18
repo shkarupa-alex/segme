@@ -1,6 +1,5 @@
 import numpy as np
 from absl.testing import parameterized
-from tensorflow.keras.applications.imagenet_utils import decode_predictions
 from tensorflow.python.keras.preprocessing import image
 from tensorflow.python.keras.utils import data_utils
 from tensorflow.python.platform import test
@@ -8,14 +7,14 @@ from ..bit import BiT_S_R50x1, BiT_S_R50x3, BiT_S_R101x1, BiT_S_R101x3, BiT_S_R1
 from ..bit import BiT_M_R50x1, BiT_M_R50x3, BiT_M_R101x1, BiT_M_R101x3, BiT_M_R152x4
 from ..bit import preprocess_input
 
-MODEL_LIST = [
+MODEL_LIST_S = [
     BiT_S_R50x1,
     # Bad weights
     # BiT_S_R50x3, BiT_S_R101x1,
-    BiT_S_R101x3, BiT_S_R152x4,
-    # 21k classes
-    # BiT_M_R50x1, BiT_M_R50x3, BiT_M_R101x1, BiT_M_R101x3, BiT_M_R152x4
+    BiT_S_R101x3, BiT_S_R152x4
 ]
+
+MODEL_LIST_M = [BiT_M_R50x1, BiT_M_R50x3, BiT_M_R101x1, BiT_M_R101x3, BiT_M_R152x4]
 
 TEST_IMAGE_PATH = ('https://storage.googleapis.com/tensorflow/'
                    'keras-applications/tests/elephant.jpg')
@@ -23,23 +22,46 @@ _IMAGENET_CLASSES = 1000
 
 
 class ApplicationsLoadWeightTest(test.TestCase, parameterized.TestCase):
-    @parameterized.parameters(*MODEL_LIST)
-    def test_application_predict_odd(self, app):
+    @parameterized.parameters(*MODEL_LIST_S)
+    def test_application_predict_odd_s(self, app):
         model = app()
         _assert_shape_equal(model.output_shape, (None, _IMAGENET_CLASSES))
         x = _get_elephant((224, 224))
         x = preprocess_input(x)
         preds = model.predict(x)
-        decode_predictions(preds)
+        label = np.argmax(preds[0], axis=-1)
+        self.assertIn(label, [348, 386])
 
-    @parameterized.parameters(*MODEL_LIST)
-    def test_application_predict_even(self, app):
+    @parameterized.parameters(*MODEL_LIST_S)
+    def test_application_predict_even_s(self, app):
         model = app()
         _assert_shape_equal(model.output_shape, (None, _IMAGENET_CLASSES))
         x = _get_elephant((299, 299))
         x = preprocess_input(x)
         preds = model.predict(x)
-        decode_predictions(preds)
+        label = np.argmax(preds[0], axis=-1)
+        self.assertIn(label, [348, 386])
+
+    # @parameterized.parameters(*MODEL_LIST_M)
+    # def test_application_predict_odd_m(self, app):
+    #     model = app()
+    #     _assert_shape_equal(model.output_shape, (None, 21843))
+    #     x = _get_elephant((224, 224))
+    #     x = preprocess_input(x)
+    #     preds = model.predict(x)
+    #     label = np.argmax(preds[0], axis=-1)
+    #     self.assertIn(label, [3671, 3673, 3674])
+    #
+    #
+    # @parameterized.parameters(*MODEL_LIST_M)
+    # def test_application_predict_even_m(self, app):
+    #     model = app()
+    #     _assert_shape_equal(model.output_shape, (None, 21843))
+    #     x = _get_elephant((299, 299))
+    #     x = preprocess_input(x)
+    #     preds = model.predict(x)
+    #     label = np.argmax(preds[0], axis=-1)
+    #     self.assertIn(label, [3671, 3673, 3674])
 
 
 def _get_elephant(target_size):

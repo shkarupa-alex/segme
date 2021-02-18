@@ -5,7 +5,6 @@ from tensorflow.python.keras.layers import VersionAwareLayers
 from tensorflow.python.keras.utils import data_utils
 from tensorflow.python.keras.utils import layer_utils
 from tensorflow.python.lib.io import file_io
-from tensorflow.python.util.tf_export import keras_export
 from .models import ResnetV2, NUM_UNITS
 
 BASE_WEIGHTS_PATH = 'https://storage.googleapis.com/bit_models/'
@@ -91,13 +90,20 @@ def BiT(model_name,
         else:
             img_input = input_tensor
 
+    # Ensure that the model takes into account
+    # any potential predecessors of `input_tensor`.
+    if input_tensor is not None:
+        inputs = layer_utils.get_source_inputs(input_tensor)
+    else:
+        inputs = [img_input]
+
     # Create base model.
-    full_model = ResnetV2(num_units=NUM_UNITS[model_name],
-                          num_outputs=21843 if '-M-' in model_name else 1000,
-                          filters_factor=int(model_name[-1]) * 4)
+    outputs = ResnetV2(img_input, num_units=NUM_UNITS[model_name],
+                       num_outputs=21843 if '-M-' in model_name else 1000,
+                       filters_factor=int(model_name[-1]) * 4)
+    full_model = training.Model(inputs=inputs, outputs=outputs, name=model_name)
 
     # Load weights.
-    _ = full_model(img_input)
     if 'imagenet' == weights and model_name in WEIGHTS_HASHES:
         file_name = model_name + '.h5'
         file_hash = WEIGHTS_HASHES[model_name]
@@ -110,17 +116,12 @@ def BiT(model_name,
     elif weights is not None:
         full_model.load_weights(weights)
 
-    # Ensure that the model takes into account
-    # any potential predecessors of `input_tensor`.
-    if input_tensor is not None:
-        inputs = layer_utils.get_source_inputs(input_tensor)
-    else:
-        inputs = img_input
-
     # Create model.
-    out_layer = 'head/dense' if include_top else 'pre_head_relu'
-    outputs = full_model.get_layer(name=out_layer).output
-    model = training.Model(inputs=full_model.inputs, outputs=outputs, name=model_name)
+    if include_top:
+        return full_model
+
+    outputs = full_model.get_layer(name='head_relu').output
+    model = training.Model(inputs=inputs, outputs=outputs, name=model_name)
 
     return model
 
