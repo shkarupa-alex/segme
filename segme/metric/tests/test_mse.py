@@ -28,6 +28,16 @@ class TestMSE(keras_parameterized.TestCase):
         self.assertEqual(metric.divider, 2.)
         self.assertEqual(metric.name, 'metric1')
 
+    def test_zeros(self):
+        targets = np.zeros((2, 32, 32, 1), 'int32')
+        probs = np.zeros((2, 32, 32, 1), 'float32')
+        weight = np.ones((2, 32, 32, 1), 'float32')
+
+        metric = MSE()
+        metric.update_state(targets, probs, weight)
+        result = self.evaluate(metric.result())
+        self.assertAlmostEqual(result, 0.0, places=7)
+
     def test_value(self):
         trim = np.where(cv2.dilate(self.SNAKE, np.ones((2, 2), 'float32')) > 0, 1., 0.)
         pred = np.round((self.SNAKE / 128.) ** 2 * 255. / 3.97)

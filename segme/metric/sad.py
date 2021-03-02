@@ -47,7 +47,7 @@ def sum_absolute_difference(y_true, y_pred, sample_weight=None):
     if sample_weight is not None:
         result *= sample_weight
 
-    axes = list(range(1, result.shape.ndims))
-    result = tf.reduce_sum(result, axis=axes)
+    axis_hwc = list(range(1, result.shape.ndims))
+    result = tf.reduce_sum(result, axis=axis_hwc)
 
     return result

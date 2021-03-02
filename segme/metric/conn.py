@@ -68,10 +68,10 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
         component_max = tf.argmax(component_sizes, axis=-1, output_type='int32')[:, None, None]
 
         component_back = component_labels != component_max
-        thresh_map.append(component_back[..., None])
-    thresh_map.append(tf.ones_like(y_true, dtype='bool'))
+        thresh_map.append(component_back)
+    thresh_map.append(tf.ones(squezed_shape, dtype='bool'))
 
-    thresh_map = tf.concat(thresh_map, axis=-1)
+    thresh_map = tf.stack(thresh_map, axis=-1)
     thresh_map = tf.reshape(thresh_map, [batch_size, -1, len(thresh_steps) + 1])
     thresh_map = tf.cast(tf.argmax(thresh_map, axis=-1), y_true.dtype) * step
     thresh_map = tf.reshape(thresh_map, true_shape)
@@ -86,7 +86,7 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
     if sample_weight is not None:
         result *= sample_weight
 
-    axes = list(range(1, result.shape.ndims))
-    result = tf.reduce_sum(result, axis=axes)
+    axis_hwc = list(range(1, result.shape.ndims))
+    result = tf.reduce_sum(result, axis=axis_hwc)
 
     return result

@@ -47,8 +47,11 @@ class Grad(SumOverBatchSize):
 
 
 def _togray(inputs):
-    minval, maxval = tf.reduce_min(inputs), tf.reduce_max(inputs)
-    return (inputs - minval) / (maxval - minval)
+    axis_hwc = list(range(1, inputs.shape.ndims))
+    minval = tf.reduce_min(inputs, axis=axis_hwc, keepdims=True)
+    maxval = tf.reduce_max(inputs, axis=axis_hwc, keepdims=True)
+
+    return tf.math.divide_no_nan(inputs - minval, maxval - minval)
 
 
 def _gauss(inputs, sigma):
@@ -72,13 +75,7 @@ def _gauss_filter(sigma, epsilon=1e-2):
     return kernel, size
 
 
-def _gauss_gradient(inputs, sigma):
-    kernel_x, size = _gauss_filter(sigma)
-    kernel_y = kernel_x.transpose()
-
-    kernel_x = tf.constant(kernel_x[..., None, None], dtype=inputs.dtype)
-    kernel_y = tf.constant(kernel_y[..., None, None], dtype=inputs.dtype)
-
+def _gauss_gradient(inputs, size, kernel_x, kernel_y):
     pad_size = max(size - 1, 0)
     pad_after = pad_size // 2
     pad_before = pad_size - pad_after
@@ -101,18 +98,22 @@ def gradient_error(y_true, y_pred, sigma, sample_weight=None):
     y_pred = _togray(y_pred)
     y_true = _togray(y_true)
 
-    y_pred_x, y_pred_y = _gauss_gradient(y_pred, sigma)
-    y_true_x, y_true_y = _gauss_gradient(y_true, sigma)
+    kernel, size = _gauss_filter(sigma)
+    kernel_x = tf.constant(kernel[..., None, None], dtype=y_pred.dtype)
+    kernel_y = tf.constant(kernel.T[..., None, None], dtype=y_pred.dtype)
+
+    y_pred_x, y_pred_y = _gauss_gradient(y_pred, size, kernel_x, kernel_y)
+    y_true_x, y_true_y = _gauss_gradient(y_true, size, kernel_x, kernel_y)
 
     pred_amp = tf.sqrt(y_pred_x ** 2 + y_pred_y ** 2)
     true_amp = tf.sqrt(y_true_x ** 2 + y_true_y ** 2)
 
-    result = (pred_amp - true_amp) ** 2
+    result = tf.math.squared_difference(pred_amp, true_amp)
 
     if sample_weight is not None:
         result *= sample_weight
 
-    axes = list(range(1, result.shape.ndims))
-    result = tf.reduce_sum(result, axis=axes)
+    axis_hwc = list(range(1, result.shape.ndims))
+    result = tf.reduce_sum(result, axis=axis_hwc)
 
     return result
