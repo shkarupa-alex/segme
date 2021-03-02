@@ -21,6 +21,15 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
         self.assertEqual(bce_obj.name, 'loss1')
         self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
 
+    def test_zeros(self):
+        probs = tf.constant([[0.0], [0.0], [0.0]], 'float32')
+        targets = tf.constant([[0], [0], [0]], 'int32')
+
+        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
+        result = self.evaluate(result).tolist()
+
+        self.assertAllClose(result, [0.0, 0.0, 0.0])
+
     def test_value_4d(self):
         logits = tf.constant([
             [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
@@ -39,15 +48,6 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
         result = self.evaluate(loss(targets, logits)).item()
 
         self.assertAlmostEqual(result, 30.057157516479492, places=7)
-
-    def test_zeros(self):
-        probs = tf.constant([[0.0], [0.0], [0.0]], 'float32')
-        targets = tf.constant([[0], [0], [0]], 'int32')
-
-        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
-        result = self.evaluate(result).tolist()
-
-        self.assertAllClose(result, [0.0, 0.0, 0.0])
 
     def test_logits(self):
         logits = tf.constant([[_to_logit(0.97)], [_to_logit(0.45)], [_to_logit(0.03)]], 'float32')

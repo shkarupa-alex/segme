@@ -21,7 +21,7 @@ class LaplaceEdgeSigmoidCrossEntropy(LossFunctionWrapper):
 def laplace(probs):
     laplace = np.reshape([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]], [3, 3, 1, 1])
     laplace = tf.constant(laplace, probs.dtype)
-    edge = tf.nn.conv2d(probs, laplace, strides=[1, 1, 1, 1], padding='SAME')
+    edge = tf.nn.conv2d(probs, laplace, strides=[1] * 4, padding='SAME')
     edge = tf.nn.relu(tf.tanh(edge))
 
     return edge

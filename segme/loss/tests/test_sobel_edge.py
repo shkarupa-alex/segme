@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
-from ..sobel_edge import SobelEdgeSigmoidCrossEntropy
-from ..sobel_edge import sobel_edge_sigmoid_cross_entropy
+from ..sobel_edge import SobelEdgeLoss
+from ..sobel_edge import sobel_edge_loss
 
 
 def _to_logit(prob):
@@ -12,9 +12,9 @@ def _to_logit(prob):
 
 
 @keras_parameterized.run_all_keras_modes
-class TestSobelEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
+class TestSobelEdgeLoss(keras_parameterized.TestCase):
     def test_config(self):
-        bce_obj = SobelEdgeSigmoidCrossEntropy(
+        bce_obj = SobelEdgeLoss(
             reduction=tf.keras.losses.Reduction.NONE,
             name='loss1'
         )
@@ -33,7 +33,7 @@ class TestSobelEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[0], [0], [0]],
         ]], 'int32')
 
-        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs, classes=1)
+        result = sobel_edge_loss(y_true=targets, y_pred=probs, classes=1)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [[
@@ -54,7 +54,7 @@ class TestSobelEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[1], [1], [1]],
         ]], 'int32')
 
-        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=logits, classes=1, from_logits=True)
+        result = sobel_edge_loss(y_true=targets, y_pred=logits, classes=1, from_logits=True)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [[
@@ -75,7 +75,7 @@ class TestSobelEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[1], [1], [1]],
         ]], 'int32')
 
-        result = sobel_edge_sigmoid_cross_entropy(y_true=targets, y_pred=probs, classes=1)
+        result = sobel_edge_loss(y_true=targets, y_pred=probs, classes=1)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [[
@@ -89,7 +89,7 @@ class TestSobelEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
             tf.keras.layers.Input(shape=(100,)),
             tf.keras.layers.Dense(5, activation='sigmoid')]
         )
-        model.compile(loss='SegMe>sobel_edge_sigmoid_cross_entropy')
+        model.compile(loss='SegMe>sobel_edge_loss')
 
 
 if __name__ == '__main__':

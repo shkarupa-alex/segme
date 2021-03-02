@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
-from ..position_aware import PixelPositionAwareSigmoidCrossEntropy
-from ..position_aware import pixel_position_aware_sigmoid_cross_entropy
+from ..position_aware import PixelPositionAwareLoss
+from ..position_aware import pixel_position_aware_loss
 
 
 def _to_logit(prob):
@@ -12,14 +12,31 @@ def _to_logit(prob):
 
 
 @keras_parameterized.run_all_keras_modes
-class TestPixelPositionAwareSigmoidCrossEntropy(keras_parameterized.TestCase):
+class TestPixelPositionAwareLoss(keras_parameterized.TestCase):
     def test_config(self):
-        bce_obj = PixelPositionAwareSigmoidCrossEntropy(
+        bce_obj = PixelPositionAwareLoss(
             reduction=tf.keras.losses.Reduction.NONE,
             name='loss1'
         )
         self.assertEqual(bce_obj.name, 'loss1')
         self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+
+    def test_zeros(self):
+        probs = tf.constant([[
+            [[0.0], [0.0], [0.0]],
+            [[0.0], [0.0], [0.0]],
+            [[0.0], [0.0], [0.0]],
+        ]], 'float32')
+        targets = tf.constant([[
+            [[0], [0], [0]],
+            [[0], [0], [0]],
+            [[0], [0], [0]],
+        ]], 'int32')
+
+        result = pixel_position_aware_loss(y_true=targets, y_pred=probs)
+        result = self.evaluate(result).tolist()
+
+        self.assertAllClose(result, [0.0])
 
     def test_value_4d(self):
         logits = tf.constant([
@@ -35,27 +52,10 @@ class TestPixelPositionAwareSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
-        loss = PixelPositionAwareSigmoidCrossEntropy(from_logits=True, reduction=tf.keras.losses.Reduction.SUM, ksize=3)
+        loss = PixelPositionAwareLoss(from_logits=True, reduction=tf.keras.losses.Reduction.SUM, ksize=3)
         result = self.evaluate(loss(targets, logits)).item()
 
         self.assertAlmostEqual(result, 2.3757147789001465, places=7)
-
-    def test_zeros(self):
-        probs = tf.constant([[
-            [[0.0], [0.0], [0.0]],
-            [[0.0], [0.0], [0.0]],
-            [[0.0], [0.0], [0.0]],
-        ]], 'float32')
-        targets = tf.constant([[
-            [[0], [0], [0]],
-            [[0], [0], [0]],
-            [[0], [0], [0]],
-        ]], 'int32')
-
-        result = pixel_position_aware_sigmoid_cross_entropy(y_true=targets, y_pred=probs)
-        result = self.evaluate(result).tolist()
-
-        self.assertAllClose(result, [0.0])
 
     def test_logits(self):
         logits = tf.constant([[
@@ -69,7 +69,7 @@ class TestPixelPositionAwareSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[1], [1], [1]],
         ]], 'int32')
 
-        result = pixel_position_aware_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True, ksize=2)
+        result = pixel_position_aware_loss(y_true=targets, y_pred=logits, from_logits=True, ksize=2)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [0.49940788745880127])
@@ -86,7 +86,7 @@ class TestPixelPositionAwareSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[1], [1], [1]],
         ]], 'int32')
 
-        result = pixel_position_aware_sigmoid_cross_entropy(y_true=targets, y_pred=probs, ksize=2)
+        result = pixel_position_aware_loss(y_true=targets, y_pred=probs, ksize=2)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [0.49940788745880127])
@@ -96,7 +96,7 @@ class TestPixelPositionAwareSigmoidCrossEntropy(keras_parameterized.TestCase):
             tf.keras.layers.Input(shape=(100,)),
             tf.keras.layers.Dense(5, activation='sigmoid')]
         )
-        model.compile(loss='SegMe>pixel_position_aware_sigmoid_cross_entropy')
+        model.compile(loss='SegMe>pixel_position_aware_loss')
 
 
 if __name__ == '__main__':

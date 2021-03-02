@@ -3,22 +3,22 @@ from tensorflow.python.keras.losses import LossFunctionWrapper
 
 
 @tf.keras.utils.register_keras_serializable(package='SegMe')
-class PixelPositionAwareSigmoidCrossEntropy(LossFunctionWrapper):
+class PixelPositionAwareLoss(LossFunctionWrapper):
     """ Proposed in: 'F3Net: Fusion, Feedback and Focus for Salient Object Detection'
 
-    Implements Equation [6] in https://arxiv.org/pdf/1911.11445.pdf
+    Implements Equation [6] in https://arxiv.org/pdf/1911.11445.pdf (weighted BCE + weighted IoU)
     """
 
     def __init__(
             self, from_logits=False, gamma=5, ksize=31, reduction=tf.keras.losses.Reduction.AUTO,
-            name='pixel_position_aware_sigmoid_cross_entropy'):
+            name='pixel_position_aware_loss'):
         super().__init__(
-            pixel_position_aware_sigmoid_cross_entropy, reduction=reduction, name=name, from_logits=from_logits,
+            pixel_position_aware_loss, reduction=reduction, name=name, from_logits=from_logits,
             gamma=gamma, ksize=ksize)
 
 
 @tf.keras.utils.register_keras_serializable(package='SegMe')
-def pixel_position_aware_sigmoid_cross_entropy(y_true, y_pred, from_logits=False, gamma=5, ksize=31):
+def pixel_position_aware_loss(y_true, y_pred, from_logits=False, gamma=5, ksize=31):
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
