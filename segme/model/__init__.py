@@ -1,3 +1,4 @@
+from .fba_matting import build_fba_matting, fba_matting_loss
 from .cascade_psp import build_cascade_psp, CascadePspRefiner
 from .deeplab_v3_plus import build_deeplab_v3_plus, build_deeplab_v3_plus_with_hierarchical_attention
 from .deeplab_v3_plus import build_deeplab_v3_plus_with_point_rend
