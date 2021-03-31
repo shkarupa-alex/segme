@@ -1,10 +1,10 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.losses import LossFunctionWrapper
+from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
 @tf.keras.utils.register_keras_serializable(package='SegMe')
-class LaplacianPyramidLoss(LossFunctionWrapper):
+class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'Optimizing the Latent Space of Generative Networks'
 
     Implements in https://arxiv.org/pdf/1707.05776.pdf
@@ -39,8 +39,7 @@ def _laplacian_pyramid(inputs, levels, kernel):
     return pyramid
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-def laplacian_pyramid_loss(y_true, y_pred, levels=5, size=5, sigma=2.0):
+def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
@@ -48,16 +47,25 @@ def laplacian_pyramid_loss(y_true, y_pred, levels=5, size=5, sigma=2.0):
         y_pred = tf.convert_to_tensor(y_pred)
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
+        channels = int(y_pred.shape[-1])
+        if channels is None:
+            raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
+
         kernel = _gauss_kernel(size, sigma)[..., None, None]
-        kernel = tf.tile(kernel, (1, 1, tf.shape(y_pred)[-1], 1))
-        kernel = tf.constant(tf.cast(kernel, y_pred.dtype))
+        kernel = np.tile(kernel, (1, 1, channels, 1)).astype(y_pred.dtype.as_numpy_dtype)
+        kernel = tf.constant(kernel, y_pred.dtype)
 
         pyr_true = _laplacian_pyramid(y_true, levels, kernel)
         pyr_pred = _laplacian_pyramid(y_pred, levels, kernel)
 
-        losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
+        if sample_weight is None:
+            losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
+        else:
+            pyr_wght = _laplacian_pyramid(sample_weight, levels, kernel)
+            losses = [tf.abs(_true - _pred) * _wght for _true, _pred, _wght in zip(pyr_true, pyr_pred, pyr_wght)]
+
         axis_hwc = list(range(1, y_pred.shape.ndims))
-        losses = [(2 ** (2 * i) / len(pyr_true)) * tf.reduce_mean(l, axis=axis_hwc) for i, l in enumerate(losses)]
+        losses = [(2 ** i / len(losses)) * tf.reduce_mean(l, axis=axis_hwc) for i, l in enumerate(losses)]
         losses = sum(losses)
 
         return losses

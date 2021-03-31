@@ -14,8 +14,7 @@ class GradientMeanSquaredError(LossFunctionWrapper):
         super().__init__(gradient_mean_squared_error, reduction=reduction, name=name, sigma=sigma)
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-def gradient_mean_squared_error(y_true, y_pred, sigma=1.4):
+def gradient_mean_squared_error(y_true, y_pred, sigma):
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 

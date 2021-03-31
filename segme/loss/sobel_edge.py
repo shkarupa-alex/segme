@@ -37,8 +37,7 @@ def sobel(probs, classes, epsilon):
     return edge
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-def sobel_edge_loss(y_true, y_pred, classes, from_logits=False):
+def sobel_edge_loss(y_true, y_pred, classes, from_logits):
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 

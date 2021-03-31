@@ -30,7 +30,11 @@ class Grad(SumOverBatchSize):
 
         [y_true, y_pred], sample_weight = metrics_utils.ragged_assert_compatible_and_get_flat_values(
             [y_true, y_pred], sample_weight)
-        y_pred, y_true, sample_weight = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true, sample_weight)
+
+        if sample_weight is None:
+            y_pred, y_true = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true, sample_weight)
+        else:
+            y_pred, y_true, sample_weight = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true, sample_weight)
 
         values = gradient_error(y_true, y_pred, self.sigma, sample_weight)
 

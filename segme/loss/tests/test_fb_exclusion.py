@@ -33,7 +33,7 @@ class TestForegroundBackgroundExclusionLoss(keras_parameterized.TestCase):
             [[0.0], [0.0], [0.0], [0.0], [0.0], [0.0]],
         ]], 'float32')
 
-        result = foreground_background_exclusion_loss(f_pred=f_pred, b_pred=b_pred, levels=1)
+        result = foreground_background_exclusion_loss(f_pred=f_pred, b_pred=b_pred, sample_weight=None, levels=1)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [0.0])
@@ -146,6 +146,27 @@ class TestForegroundBackgroundExclusionLoss(keras_parameterized.TestCase):
         result = self.evaluate(loss(f_pred, b_pred)).item()
 
         self.assertAlmostEqual(result, 0.6591184578825429, places=7)
+
+    def test_weight_4d(self):
+        f_pred = tf.constant([
+            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
+             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
+             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
+             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
+            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
+             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
+             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
+             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
+        b_pred = tf.image.flip_left_right(f_pred)
+        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+
+        loss = ForegroundBackgroundExclusionLoss(reduction=tf.keras.losses.Reduction.SUM, levels=2)
+
+        result = self.evaluate(loss(f_pred, b_pred)).item()
+        self.assertAlmostEqual(result, 1.4083517789840698, places=7)
+
+        result = self.evaluate(loss(f_pred, b_pred, weights)).item()
+        self.assertAlmostEqual(result, 0.8105822801589966, places=7)
 
     def test_batch(self):
         f_pred = np.random.rand(2, 32, 32, 1).astype('float32')

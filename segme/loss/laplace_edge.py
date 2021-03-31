@@ -27,8 +27,7 @@ def laplace(probs):
     return edge
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-def laplace_edge_sigmoid_cross_entropy(y_true, y_pred, from_logits=False):
+def laplace_edge_sigmoid_cross_entropy(y_true, y_pred, from_logits):
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 

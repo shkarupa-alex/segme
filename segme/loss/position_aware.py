@@ -1,9 +1,9 @@
 import tensorflow as tf
-from tensorflow.python.keras.losses import LossFunctionWrapper
+from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
 @tf.keras.utils.register_keras_serializable(package='SegMe')
-class PixelPositionAwareLoss(LossFunctionWrapper):
+class PixelPositionAwareLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'F3Net: Fusion, Feedback and Focus for Salient Object Detection'
 
     Implements Equation [6] in https://arxiv.org/pdf/1911.11445.pdf (weighted BCE + weighted IoU)
@@ -17,8 +17,7 @@ class PixelPositionAwareLoss(LossFunctionWrapper):
             gamma=gamma, ksize=ksize)
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-def pixel_position_aware_loss(y_true, y_pred, from_logits=False, gamma=5, ksize=31):
+def pixel_position_aware_loss(y_true, y_pred, sample_weight, from_logits, gamma, ksize):
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
@@ -27,6 +26,8 @@ def pixel_position_aware_loss(y_true, y_pred, from_logits=False, gamma=5, ksize=
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
         weight = 1 + gamma * tf.abs(tf.nn.avg_pool2d(y_true, ksize=ksize, strides=1, padding='SAME') - y_true)
+        if sample_weight is not None:
+            weight *= sample_weight
 
         bce = tf.keras.backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
         wbce = tf.reduce_sum(weight * bce, axis=[1, 2]) / tf.reduce_sum(weight, axis=[1, 2])
