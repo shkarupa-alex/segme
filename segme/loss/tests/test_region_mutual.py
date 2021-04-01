@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
 from ..region_mutual import RegionMutualInformationLoss
 from ..region_mutual import region_mutual_information_loss
-from ..region_mutual import _map_get_pairs, _log_det_by_cholesky
+from ..region_mutual import _map_get_pairs
 from ..region_mutual import _rmi_lower_bound
 
 
@@ -27,19 +27,9 @@ class TestMapGetPairs(keras_parameterized.TestCase):
              [[[1.0], [0.0], [1.0]], [[1.0], [0.0], [0.0]], [[0.0], [1.0], [1.0]], [[0.0], [0.0], [1.0]]],
              [[[1.0], [0.0], [1.0]], [[1.0], [0.0], [1.0]], [[0.0], [1.0], [1.0]], [[0.0], [1.0], [0.0]]]]])
 
-        result = self.evaluate(_map_get_pairs(source_target, source_output, sample_weight=None, radius=2))
+        result = self.evaluate(_map_get_pairs(source_target, source_output, radius=2))
         self.assertAllClose(expected_target, result[0])
         self.assertAllClose(expected_output, result[1])
-
-
-@keras_parameterized.run_all_keras_modes
-class TestLogDetByCholesky(keras_parameterized.TestCase):
-    def test_value(self):
-        source = np.random.rand(1, 4, 4)
-        source = np.matmul(source, np.transpose(source, axes=[0, 2, 1]))
-        _, expected = np.linalg.slogdet(source)
-        result = self.evaluate(_log_det_by_cholesky(source, None))
-        self.assertAllClose(result, expected)
 
 
 @keras_parameterized.run_all_keras_modes
@@ -649,19 +639,19 @@ class TestRmiLowerBound(keras_parameterized.TestCase):
 
     def test_value_maxpool_3(self):
         result = _rmi_lower_bound(
-            self.labels3, self.probs3, sample_weight=None, pool_stride=4, pool_way='maxpool', rmi_radius=3)
+            self.labels3, self.probs3, batch_weight=None, pool_stride=4, pool_way='maxpool', rmi_radius=3)
         result = self.evaluate(result)
         self.assertAlmostEqual(np.sum(result).item(), -11.195279121398926, places=4)
 
     def test_value_avgpool_3(self):
         result = _rmi_lower_bound(
-            self.labels3, self.probs3, sample_weight=None, pool_stride=4, pool_way='avgpool', rmi_radius=3)
+            self.labels3, self.probs3, batch_weight=None, pool_stride=4, pool_way='avgpool', rmi_radius=3)
         result = self.evaluate(result)
         self.assertAlmostEqual(np.sum(result).item(), -9.124303817749023, places=5)
 
     def test_value_resize_3(self):
         result = _rmi_lower_bound(
-            self.labels3, self.probs3, sample_weight=None, pool_stride=4, pool_way='resize', rmi_radius=3)
+            self.labels3, self.probs3, batch_weight=None, pool_stride=4, pool_way='resize', rmi_radius=3)
         result = self.evaluate(result)
         self.assertAlmostEqual(np.sum(result).item(), -10.977413177490234, places=3)
 
@@ -769,10 +759,10 @@ class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
         loss = RegionMutualInformationLoss(from_logits=True, rmi_radius=2, reduction=tf.keras.losses.Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, -3.8004467487335205, places=7)
+        self.assertAlmostEqual(result, -3.8004512786865234, places=7)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, -1.9002233743667603, places=7)
+        self.assertAlmostEqual(result, -1.9002256393432617, places=7)
 
     def test_logits(self):
         logits = tf.constant([[
@@ -810,6 +800,19 @@ class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
         result = self.evaluate(result).item()
 
         self.assertAlmostEqual(result, -0.9504928588867188, places=6)
+
+    def test_multyclass(self):
+        probs = tf.random.uniform((2, 64, 64, 5))
+        targets = tf.cast(tf.random.uniform((2, 64, 64, 1)) * 10, 'int32')
+        weights = tf.ones((2, 64, 64, 1))
+
+        loss = RegionMutualInformationLoss(rmi_radius=2, reduction=tf.keras.losses.Reduction.SUM)
+
+        result = self.evaluate(loss(targets, probs)).item()
+        self.assertAlmostEqual(result, 0.5836958289146423, places=5)
+
+        result = self.evaluate(loss(targets, probs, weights)).item()
+        self.assertAlmostEqual(result, 0.5836958289146423, places=5)
 
     def test_keras_model_compile(self):
         model = tf.keras.models.Sequential([
