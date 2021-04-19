@@ -47,12 +47,13 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
         y_pred = tf.convert_to_tensor(y_pred)
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
-        channels = int(y_pred.shape[-1])
+        channels = y_pred.shape[-1]
         if channels is None:
             raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
 
         kernel = _gauss_kernel(size, sigma)[..., None, None]
-        kernel = np.tile(kernel, (1, 1, channels, 1)).astype(y_pred.dtype.as_numpy_dtype)
+        kernel = kernel.astype(y_pred.dtype.as_numpy_dtype)
+        kernel = np.tile(kernel, (1, 1, channels, 1))
         kernel = tf.constant(kernel, y_pred.dtype)
 
         pyr_true = _laplacian_pyramid(y_true, levels, kernel)

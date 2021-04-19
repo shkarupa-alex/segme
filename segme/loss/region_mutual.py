@@ -91,8 +91,8 @@ def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_ra
             y_pred = tf.nn.avg_pool2d(y_pred, ksize=pool_stride, strides=pool_stride, padding='SAME')
         elif 'resize' == pool_way:  # interpolation
             new_size = height // pool_stride, width // pool_stride
-            y_true = tf.compat.v1.image.resize(y_true, new_size, method='nearest')
-            y_pred = tf.compat.v1.image.resize(y_pred, new_size, method='bilinear', align_corners=True)
+            y_true = tf.image.resize(y_true, new_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+            y_pred = tf.image.resize(y_pred, new_size, method=tf.image.ResizeMethod.BILINEAR)
         else:
             raise NotImplementedError('RMI pool way is unknown: {}'.format(pool_way))
 

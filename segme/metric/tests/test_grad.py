@@ -79,6 +79,16 @@ class TestGrad(keras_parameterized.TestCase):
 
         self.assertEqual(res0, res1)
 
+    def test_channel3(self):
+        targets = np.zeros((2, 32, 32, 3), 'int32')
+        probs = np.zeros((2, 32, 32, 3), 'float32')
+        weight = np.ones((2, 32, 32, 3), 'float32')
+
+        metric = Grad()
+        metric.update_state(targets, probs, weight)
+        result = self.evaluate(metric.result())
+        self.assertAlmostEqual(result, 0.0, places=7)
+
 
 if __name__ == '__main__':
     tf.test.main()

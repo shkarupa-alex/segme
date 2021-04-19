@@ -102,9 +102,18 @@ def gradient_error(y_true, y_pred, sigma, sample_weight=None):
     y_pred = _togray(y_pred)
     y_true = _togray(y_true)
 
+    channels = y_pred.shape[-1]
+    if channels is None:
+        raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
+
     kernel, size = _gauss_filter(sigma)
-    kernel_x = tf.constant(kernel[..., None, None], dtype=y_pred.dtype)
-    kernel_y = tf.constant(kernel.T[..., None, None], dtype=y_pred.dtype)
+    kernel = kernel.astype(y_pred.dtype.as_numpy_dtype)
+
+    kernel_x = np.tile(kernel[..., None, None], (1, 1, channels, 1))
+    kernel_x = tf.constant(kernel_x, dtype=y_pred.dtype)
+
+    kernel_y = np.tile(kernel.T[..., None, None], (1, 1, channels, 1))
+    kernel_y = tf.constant(kernel_y, dtype=y_pred.dtype)
 
     y_pred_x, y_pred_y = _gauss_gradient(y_pred, size, kernel_x, kernel_y)
     y_true_x, y_true_y = _gauss_gradient(y_true, size, kernel_x, kernel_y)
