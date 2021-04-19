@@ -219,44 +219,35 @@ class Backbone(layers.Layer):
         )),
 
         'bit_s_r50x1': (port.BiT_S_R50x1, (
-            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-            'resnet.block3', 'resnet.block4'
+            None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),
-        # 'bit_s_r50x3': (port.BiT_S_R50x1, (
-        #     None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-        #     'resnet.block3', 'resnet.block4'
+        # Bad weights
+        # 'bit_s_r50x3': (port.BiT_S_R50x3, (
+        #     None, 'root_block.standardized_conv2d', 'block1', 'block2', 'block3', 'block4'
         # )),
-        # 'bit_s_r101x1': (port.BiT_S_R50x1, (
-        #     None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-        #     'resnet.block3', 'resnet.block4'
+        # 'bit_s_r101x1': (port.BiT_S_R101x1, (
+        #     None, 'root_block.standardized_conv2d', 'block1', 'block2', 'block3', 'block4'
         # )),
-        'bit_s_r101x3': (port.BiT_S_R50x1, (
-            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-            'resnet.block3', 'resnet.block4'
+        'bit_s_r101x3': (port.BiT_S_R101x3, (
+            None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),
-        'bit_s_r152x4': (port.BiT_S_R50x1, (
-            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-            'resnet.block3', 'resnet.block4'
+        'bit_s_r152x4': (port.BiT_S_R152x4, (
+            None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),
-        'bit_m_r50x1': (port.BiT_S_R50x1, (
-            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-            'resnet.block3', 'resnet.block4'
+        'bit_m_r50x1': (port.BiT_M_R50x1, (
+            None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),
-        'bit_m_r50x3': (port.BiT_S_R50x1, (
-            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-            'resnet.block3', 'resnet.block4'
+        'bit_m_r50x3': (port.BiT_M_R50x3, (
+            None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),
-        'bit_m_r101x1': (port.BiT_S_R50x1, (
-            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-            'resnet.block3', 'resnet.block4'
+        'bit_m_r101x1': (port.BiT_M_R101x1, (
+            None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),
-        'bit_m_r101x3': (port.BiT_S_R50x1, (
-            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-            'resnet.block3', 'resnet.block4'
+        'bit_m_r101x3': (port.BiT_M_R101x3, (
+            None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),
-        'bit_m_r152x4': (port.BiT_S_R50x1, (
-            None, 'resnet.root_block.standardized_conv2d', 'resnet.block1', 'resnet.block2',
-            'resnet.block3', 'resnet.block4'
+        'bit_m_r152x4': (port.BiT_M_R152x4, (
+            None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),
 
         'mobilenet_v3_small': (port.MobileNetV3Small, (

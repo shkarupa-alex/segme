@@ -31,7 +31,6 @@ class TestClassificationHead(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         testing_utils.layer_test(
             ClassificationHead,
@@ -41,7 +40,6 @@ class TestClassificationHead(keras_parameterized.TestCase):
             expected_output_shape=[None, 16, 16, 4],
             expected_output_dtype='float32'
         )
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
 
 if __name__ == '__main__':

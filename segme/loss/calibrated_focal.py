@@ -17,9 +17,7 @@ class CalibratedFocalSigmoidCrossEntropy(LossFunctionWrapper):
             prob0=prob0, prob1=prob1, gamma0=gamma0, gamma1=gamma1, alpha=alpha)
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-def calibrated_focal_sigmoid_cross_entropy(
-        y_true, y_pred, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0, alpha=0.25, from_logits=False):
+def calibrated_focal_sigmoid_cross_entropy(y_true, y_pred, prob0, prob1, gamma0, gamma1, alpha, from_logits):
     y_pred = tf.convert_to_tensor(y_pred)
     y_true = tf.cast(y_true, dtype=y_pred.dtype)
 

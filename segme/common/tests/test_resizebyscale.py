@@ -24,7 +24,6 @@ class TestResizeByScale(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         testing_utils.layer_test(
             ResizeByScale,
@@ -34,10 +33,9 @@ class TestResizeByScale(keras_parameterized.TestCase):
             expected_output_shape=(None, 32, 32, 10),
             expected_output_dtype='float16'
         )
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
     def test_shortcut(self):
-        resize_by_scale(np.random.rand(2, 16, 16, 3), scale=2, align_corners=False)
+        resize_by_scale(np.random.rand(2, 16, 16, 3), scale=2, antialias=True)
 
 
 if __name__ == '__main__':

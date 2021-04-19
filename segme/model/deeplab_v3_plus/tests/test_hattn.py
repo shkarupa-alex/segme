@@ -32,7 +32,6 @@ class TestDeepLabV3PlusWithHierarchicalAttention(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         layer_multi_io_test(
             DeepLabV3PlusWithHierarchicalAttention,
@@ -45,7 +44,6 @@ class TestDeepLabV3PlusWithHierarchicalAttention(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 224, 224, 1)],
             expected_output_dtypes=['float32']
         )
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
     def test_model(self):
         num_classes = 5

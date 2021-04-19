@@ -35,7 +35,7 @@ class Upsample(layers.Layer):
     def call(self, inputs, **kwargs):
         high, low = inputs
 
-        high = resize_by_sample([high, low], align_corners=False)
+        high = resize_by_sample([high, low])
         outputs = self.conv1(layers.concatenate([high, low]))
         short = self.shortcut(high)
         outputs = layers.add([outputs, short])

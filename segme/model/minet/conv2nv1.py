@@ -1,6 +1,7 @@
+import tensorflow as tf
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvBnRelu, ResizeBySample
+from ...common import ConvBnRelu, resize_by_sample
 
 
 @utils.register_keras_serializable(package='SegMe>MINet')
@@ -30,7 +31,6 @@ class Conv2nV1(layers.Layer):
 
         self.relu = layers.ReLU()
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
-        self.resize = ResizeBySample(method='nearest', align_corners=False)
 
         # stage 0
         self.cbr_hh0 = ConvBnRelu(min_channels, 3)
@@ -81,14 +81,14 @@ class Conv2nV1(layers.Layer):
         h2h = self.conv_hh1(h)
         h2l = self.conv_hl1(self.pool(h))
         l2l = self.conv_ll1(l)
-        l2h = self.conv_lh1(self.resize([l, h2h]))
+        l2h = self.conv_lh1(resize_by_sample([l, h2h], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
         h = self.relu(self.bn_h1(layers.add([h2h, l2h])))
         l = self.relu(self.bn_l1(layers.add([l2l, h2l])))
 
         if self.main == 0:
             # stage 2
             h2h = self.conv_hh2(h)
-            l2h = self.conv_lh2(self.resize([l, h2h]))
+            l2h = self.conv_lh2(resize_by_sample([l, h2h], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
             h_fuse = self.relu(self.bn_h2(layers.add([h2h, l2h])))
 
             # stage 3

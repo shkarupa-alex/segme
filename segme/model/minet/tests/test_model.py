@@ -26,7 +26,6 @@ class TestMINet(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         testing_utils.layer_test(
             MINet,
@@ -36,7 +35,6 @@ class TestMINet(keras_parameterized.TestCase):
             expected_output_shape=[None, 64, 64, 1],
             expected_output_dtype='float32'
         )
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
     def test_model(self):
         num_classes = 1

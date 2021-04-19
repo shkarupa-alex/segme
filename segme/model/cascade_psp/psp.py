@@ -22,14 +22,14 @@ class PSP(layers.Layer):
             AdaptiveAveragePooling(size),
             layers.Conv2D(channels, 1, padding='same', use_bias=False)
         ]) for size in self.sizes]
-        self.bottleneck = layers.Conv2D(self.filters, 1, padding='same')
+        self.bottleneck = layers.Conv2D(self.filters, 1, padding='same', activation='relu')
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        priors = [inputs] + [resize_by_sample([stage(inputs), inputs], align_corners=False) for stage in self.stages]
-        bottle = self.bottleneck(layers.concatenate(priors))
-        outputs = layers.ReLU()(bottle)
+        priors = [resize_by_sample([stage(inputs), inputs]) for stage in self.stages]
+        outputs = layers.concatenate([inputs] + priors)
+        outputs = self.bottleneck(outputs)
 
         return outputs
 

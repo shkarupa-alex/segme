@@ -1,5 +1,6 @@
 import numpy as np
 from absl.testing import parameterized
+from tensorflow.keras.applications.imagenet_utils import decode_predictions
 from tensorflow.python.keras.preprocessing import image
 from tensorflow.python.keras.utils import data_utils
 from tensorflow.python.platform import test

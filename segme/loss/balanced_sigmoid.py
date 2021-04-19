@@ -14,8 +14,7 @@ class BalancedSigmoidCrossEntropy(LossFunctionWrapper):
         super().__init__(balanced_sigmoid_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-def balanced_sigmoid_cross_entropy(y_true, y_pred, from_logits=False):
+def balanced_sigmoid_cross_entropy(y_true, y_pred, from_logits):
     y_pred = tf.convert_to_tensor(y_pred)
     y_true = tf.cast(y_true, dtype=y_pred.dtype)
 

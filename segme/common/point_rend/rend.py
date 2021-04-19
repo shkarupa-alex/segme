@@ -57,7 +57,7 @@ class PointRend(layers.Layer):
             predict_logits, point_logits, point_coords = smart_cond(
                 training, lambda: self._train(inputs), lambda: self._eval(inputs))
 
-            predict_logits = resize_by_sample([predict_logits, inputs[0]], align_corners=self.align_corners)
+            predict_logits = resize_by_sample([predict_logits, inputs[0]])
             predict_probs = self.head_act(predict_logits)
 
             return predict_probs, point_logits, point_coords
@@ -103,7 +103,7 @@ class PointRend(layers.Layer):
         return predict_logits, point_logits, point_coords
 
     def _subdiv(self, iteration, coarse_features, fine_features, prev_logits, prev_coords):
-        coarse_features = resize_by_scale(coarse_features, scale=2, align_corners=self.align_corners)
+        coarse_features = resize_by_scale(coarse_features, scale=2)
 
         point_indices, point_coords = uncertain_points_coords_on_grid(coarse_features, points=self.points[1])
 
