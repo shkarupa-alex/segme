@@ -5,13 +5,13 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 @utils.register_keras_serializable(package='SegMe')
 class ResizeByScale(layers.Layer):
-    def __init__(self, scale, method='bilinear', align_corners=True, **kwargs):
+    def __init__(self, scale, method=tf.image.ResizeMethod.BILINEAR, antialias=False, **kwargs):
         kwargs['autocast'] = False
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
         self.scale = float(scale)
         self.method = method
-        self.align_corners = align_corners
+        self.antialias = antialias
 
     def _scale(self, value):
         return None if value is None else int(round(value * self.scale))
@@ -21,7 +21,7 @@ class ResizeByScale(layers.Layer):
             return inputs
 
         new_size = tf.cast(tf.round(tf.cast(tf.shape(inputs)[1:3], self.compute_dtype) * self.scale), 'int32')
-        resized = tf.compat.v1.image.resize(inputs, new_size, method=self.method, align_corners=self.align_corners)
+        resized = tf.image.resize(inputs, new_size, method=self.method, antialias=self.antialias)
 
         inputs_dtype = tf.dtypes.as_dtype(inputs.dtype)
         if inputs_dtype.is_integer:
@@ -50,7 +50,7 @@ class ResizeByScale(layers.Layer):
         config.update({
             'scale': self.scale,
             'method': self.method,
-            'align_corners': self.align_corners
+            'antialias': self.antialias
         })
 
         return config

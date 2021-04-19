@@ -5,7 +5,7 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 
 @utils.register_keras_serializable(package='SegMe')
 class ResizeBySample(layers.Layer):
-    def __init__(self, method='bilinear', align_corners=True, **kwargs):
+    def __init__(self, method=tf.image.ResizeMethod.BILINEAR, antialias=False, **kwargs):
         kwargs['autocast'] = False
         super().__init__(**kwargs)
         self.input_spec = [
@@ -14,13 +14,13 @@ class ResizeBySample(layers.Layer):
         ]
 
         self.method = method
-        self.align_corners = align_corners
+        self.antialias = antialias
 
     def call(self, inputs, **kwargs):
         targets, samples = inputs
 
         new_size = tf.shape(samples)[1:3]
-        resized = tf.compat.v1.image.resize(targets, new_size, method=self.method, align_corners=self.align_corners)
+        resized = tf.image.resize(targets, new_size, method=self.method, antialias=self.antialias)
 
         targets_dtype = tf.dtypes.as_dtype(targets.dtype)
         if targets_dtype.is_integer:
@@ -47,7 +47,7 @@ class ResizeBySample(layers.Layer):
         config = super().get_config()
         config.update({
             'method': self.method,
-            'align_corners': self.align_corners
+            'antialias': self.antialias
         })
 
         return config
