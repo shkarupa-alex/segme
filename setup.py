@@ -19,7 +19,10 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'tensorflow>=2.3.0',
+        'tensorflow>=2.4.1',
+        'tensorflow-hub>=0.11.0',
+        'tensorflow-addons>=0.12.2',
+        'opencv-python>=4.5.1.48'
     ],
     python_requires='>=3.6.0',
     setup_requires=['pytest-runner'],
