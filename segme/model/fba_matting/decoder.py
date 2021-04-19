@@ -63,20 +63,20 @@ class Decoder(layers.Layer):
 
         ppm_out = [feats32]
         for pool_scale in self.ppm:
-            ppm_out.append(resize_by_sample([pool_scale(feats32), feats32], align_corners=False))
+            ppm_out.append(resize_by_sample([pool_scale(feats32), feats32]))
 
         ppm_out = layers.concatenate(ppm_out, axis=-1)
         outputs = self.conv_up1(ppm_out)
 
-        outputs = resize_by_sample([outputs, feats4], align_corners=False)
+        outputs = resize_by_sample([outputs, feats4])
         outputs = layers.concatenate([outputs, feats4], axis=-1)
         outputs = self.conv_up2(outputs)
 
-        outputs = resize_by_sample([outputs, feats2], align_corners=False)
+        outputs = resize_by_sample([outputs, feats2])
         outputs = layers.concatenate([outputs, feats2], axis=-1)
         outputs = self.conv_up3(outputs)
 
-        outputs = resize_by_sample([outputs, image], align_corners=False)
+        outputs = resize_by_sample([outputs, image])
         outputs = layers.concatenate([outputs, image, twomap], axis=-1)
         outputs = self.conv_up4(outputs)
 
