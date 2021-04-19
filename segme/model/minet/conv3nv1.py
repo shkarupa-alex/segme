@@ -1,6 +1,7 @@
+import tensorflow as tf
 from tensorflow.keras import Sequential, layers, utils
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvBnRelu, ResizeBySample
+from ...common import ConvBnRelu, resize_by_sample
 
 
 @utils.register_keras_serializable(package='SegMe>MINet')
@@ -28,7 +29,6 @@ class Conv3nV1(layers.Layer):
 
         self.relu = layers.ReLU()
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
-        self.resize = ResizeBySample(method='nearest', align_corners=False)
 
         # stage 0
         self.cbr_hh0 = ConvBnRelu(min_channels, 3)
@@ -71,11 +71,11 @@ class Conv3nV1(layers.Layer):
 
         # stage 1
         h2h = self.conv_hh1(h)
-        m2h = self.conv_mh1(self.resize([m, h2h]))
+        m2h = self.conv_mh1(resize_by_sample([m, h2h], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
 
         h2m = self.conv_hm1(self.pool(h))
         m2m = self.conv_mm1(m)
-        l2m = self.conv_lm1(self.resize([l, m2m]))
+        l2m = self.conv_lm1(resize_by_sample([l, m2m], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
 
         m2l = self.conv_ml1(self.pool(m))
         l2l = self.conv_ll1(l)
@@ -87,7 +87,7 @@ class Conv3nV1(layers.Layer):
         # stage 2
         h2m = self.conv_hm2(self.pool(h))
         m2m = self.conv_mm2(m)
-        l2m = self.conv_lm2(self.resize([l, m2m]))
+        l2m = self.conv_lm2(resize_by_sample([l, m2m], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
         m = self.relu(self.bn_m2(layers.add([h2m, m2m, l2m])))
 
         # stage 3
