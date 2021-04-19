@@ -46,7 +46,6 @@ class TestDeepLabV3PlusWithPointRend(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 224, 224, 1), (None, None, 1), (None, None, 2)],
             expected_output_dtypes=['float32', 'float16', 'float16']
         )
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
 
     def test_model(self):
         num_classes = 5
@@ -67,7 +66,7 @@ class TestDeepLabV3PlusWithPointRend(keras_parameterized.TestCase):
             rend_weights=True
         )
         model.compile(
-            optimizer='sgd', loss='sparse_categorical_crossentropy',
+            optimizer='sgd', loss=['sparse_categorical_crossentropy', None],
             run_eagerly=testing_utils.should_run_eagerly())
         model.fit(
             {

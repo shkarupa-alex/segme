@@ -653,7 +653,7 @@ class TestRmiLowerBound(keras_parameterized.TestCase):
         result = _rmi_lower_bound(
             self.labels3, self.probs3, batch_weight=None, pool_stride=4, pool_way='resize', rmi_radius=3)
         result = self.evaluate(result)
-        self.assertAlmostEqual(np.sum(result).item(), -10.977413177490234, places=3)
+        self.assertAlmostEqual(np.sum(result).item(), -10.84033489227295, places=3)
 
 
 def _to_logit(prob):

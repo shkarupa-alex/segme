@@ -46,7 +46,6 @@ class TestPointLoss(keras_parameterized.TestCase):
         )
         self.assertTrue(np.all(outputs >= 0.))
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         outputs = layer_multi_io_test(
             PointLoss,
@@ -77,7 +76,6 @@ class TestPointLoss(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
         self.assertTrue(np.all(outputs >= 0.))
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
 
 if __name__ == '__main__':

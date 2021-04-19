@@ -32,7 +32,6 @@ class TestPointHead(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
         tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
         layer_multi_io_test(
             PointHead,
@@ -42,7 +41,6 @@ class TestPointHead(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 16, 3)],
             expected_output_dtypes=['float16']
         )
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
 
 if __name__ == '__main__':

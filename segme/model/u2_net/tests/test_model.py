@@ -36,7 +36,6 @@ class TestU2Net(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 64, 64, 2)] * 7,
             expected_output_dtypes=['float32'] * 7
         )
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
 
     def test_u2netp(self):
         layer_multi_io_test(
@@ -57,7 +56,6 @@ class TestU2Net(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 64, 64, 3)] * 7,
             expected_output_dtypes=['float32'] * 7
         )
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
 
     def test_model(self):
         num_classes = 2

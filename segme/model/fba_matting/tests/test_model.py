@@ -36,7 +36,6 @@ class TestFBAMatting(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 128, 128, 7), (None, 128, 128, 1), (None, 128, 128, 3), (None, 128, 128, 3)],
             expected_output_dtypes=['float32', 'float16', 'float16', 'float16']
         )
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
 
     def test_model(self):
         model = build_fba_matting(psp_sizes=(1, 2, 3, 6))

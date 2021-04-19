@@ -33,7 +33,6 @@ class TestDecoder(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 256, 256, 7)],
             expected_output_dtypes=['float32']
         )
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
 
 if __name__ == '__main__':
     tf.test.main()

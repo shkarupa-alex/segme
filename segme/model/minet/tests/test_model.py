@@ -35,7 +35,6 @@ class TestMINet(keras_parameterized.TestCase):
             expected_output_shape=[None, 64, 64, 1],
             expected_output_dtype='float32'
         )
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
 
     def test_model(self):
         num_classes = 1

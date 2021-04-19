@@ -44,7 +44,6 @@ class TestDeepLabV3PlusWithHierarchicalAttention(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 224, 224, 1)],
             expected_output_dtypes=['float32']
         )
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
 
     def test_model(self):
         num_classes = 5
