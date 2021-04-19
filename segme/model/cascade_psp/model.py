@@ -5,7 +5,7 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .psp import PSP
 from .upsample import Upsample
 from .resnet import ResNet50
-from ...common import HeadActivation, HeadProjection, ResizeBySample
+from ...common import HeadActivation, HeadProjection, resize_by_sample
 
 
 @utils.register_keras_serializable(package='SegMe>CascadePSP')
@@ -22,8 +22,6 @@ class CascadePSP(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.bone = ResNet50()
-
-        self.resize = ResizeBySample(align_corners=False)
 
         self.psp = PSP(1024, self.psp_sizes)
 
@@ -75,13 +73,13 @@ class CascadePSP(layers.Layer):
 
         out2_s8 = self.psp(feats8)
         mask_s8_2 = self.final8(out2_s8)
-        mask_s8_2 = self.resize([mask_s8_2, image])
+        mask_s8_2 = resize_by_sample([mask_s8_2, image])
         pred_s8_2 = self.act(mask_s8_2)
         scale_s8_2 = self._preprocess_mask(pred_s8_2 * 255.)  # tanh in original implementation
 
         out2_s4 = self.up1([out2_s8, feats4])
         mask_s4_2 = self.final4(out2_s4)
-        mask_s4_2 = self.resize([mask_s4_2, image])
+        mask_s4_2 = resize_by_sample([mask_s4_2, image])
         pred_s4_2 = self.act(mask_s4_2)
         scale_s4_2 = self._preprocess_mask(pred_s4_2 * 255.)  # tanh in original implementation
 
@@ -94,12 +92,12 @@ class CascadePSP(layers.Layer):
         out3_s8 = self.psp(feats8)
 
         mask_s8_3 = self.final8(out3_s8)
-        mask_s8_3 = self.resize([mask_s8_3, image])
+        mask_s8_3 = resize_by_sample([mask_s8_3, image])
         pred_s8_3 = self.act(mask_s8_3)
 
         out3_s4 = self.up1([out3_s8, feats4])
         mask_s4_3 = self.final4(out3_s4)
-        mask_s4_3 = self.resize([mask_s4_3, image])
+        mask_s4_3 = resize_by_sample([mask_s4_3, image])
         pred_s4_3 = self.act(mask_s4_3)
 
         out3_s4 = self.up2([out3_s4, feats2])
@@ -135,7 +133,7 @@ class CascadePSP(layers.Layer):
 
         out1 = self.psp(feats8)
         mask_s8 = self.final8(out1)
-        mask_s8 = self.resize([mask_s8, image])
+        mask_s8 = resize_by_sample([mask_s8, image])
         pred_s8 = self.act(mask_s8)
         scale_s8 = self._preprocess_mask(pred_s8 * 255.)  # tanh in original implementation
 

@@ -27,7 +27,7 @@ class PSP(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        priors = [resize_by_sample([stage(inputs), inputs], align_corners=False) for stage in self.stages]
+        priors = [resize_by_sample([stage(inputs), inputs]) for stage in self.stages]
         outputs = layers.concatenate([inputs] + priors)
         outputs = self.bottleneck(outputs)
 
