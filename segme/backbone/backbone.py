@@ -207,15 +207,39 @@ class Backbone(layers.Layer):
             'entry_flow/block3/unit1/sepconv2_pointwise_bn', 'exit_flow/block1/unit1/sepconv2_pointwise_bn',
             'exit_flow/block2/unit1/sepconv3_pointwise_bn'
         )),
+        'aligned_xception_41_stride_16': (port.AlignedXception41Stride16, (
+            None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block2/unit1/sepconv2_pointwise_bn',
+            'entry_flow/block3/unit1/sepconv2_pointwise_bn', 'exit_flow/block2/unit1/sepconv3_pointwise_bn', None
+        )),
+        'aligned_xception_41_stride_8': (port.AlignedXception41Stride8, (
+            None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block2/unit1/sepconv2_pointwise_bn',
+            'exit_flow/block2/unit1/sepconv3_pointwise_bn', None, None
+        )),
         'aligned_xception_65': (port.AlignedXception65, (
             None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block2/unit1/sepconv2_pointwise_bn',
             'entry_flow/block3/unit1/sepconv2_pointwise_bn', 'exit_flow/block1/unit1/sepconv2_pointwise_bn',
             'exit_flow/block2/unit1/sepconv3_pointwise_bn'
         )),
+        'aligned_xception_65_stride_16': (port.AlignedXception65Stride16, (
+            None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block2/unit1/sepconv2_pointwise_bn',
+            'entry_flow/block3/unit1/sepconv2_pointwise_bn', 'exit_flow/block2/unit1/sepconv3_pointwise_bn', None
+        )),
+        'aligned_xception_65_stride_8': (port.AlignedXception65Stride8, (
+            None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block2/unit1/sepconv2_pointwise_bn',
+            'exit_flow/block2/unit1/sepconv3_pointwise_bn', None, None
+        )),
         'aligned_xception_71': (port.AlignedXception71, (
             None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block3/unit1/sepconv2_pointwise_bn',
             'entry_flow/block5/unit1/sepconv2_pointwise_bn', 'exit_flow/block1/unit1/sepconv2_pointwise_bn',
             'exit_flow/block2/unit1/sepconv3_pointwise_bn'
+        )),
+        'aligned_xception_71_stride_16': (port.AlignedXception71Stride16, (
+            None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block3/unit1/sepconv2_pointwise_bn',
+            'entry_flow/block5/unit1/sepconv2_pointwise_bn', 'exit_flow/block2/unit1/sepconv3_pointwise_bn', None
+        )),
+        'aligned_xception_71_stride_8': (port.AlignedXception71Stride8, (
+            None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block3/unit1/sepconv2_pointwise_bn',
+            'exit_flow/block2/unit1/sepconv3_pointwise_bn', None, None
         )),
 
         'bit_s_r50x1': (port.BiT_S_R50x1, (
