@@ -117,13 +117,13 @@ class CascadePSP(layers.Layer):
     def _preprocess_image(self, image):
         image = tf.cast(image, self.compute_dtype)
         image = image[..., ::-1]  # 'RGB'->'BGR'
-        image = tf.nn.bias_add(image, [-103.939, -116.779, -123.68])
+        image = tf.nn.bias_add(image, [-103.939, -116.779, -123.680])
 
         return image
 
     def _preprocess_mask(self, mask):
         mask = tf.cast(mask, self.compute_dtype)
-        mask = tf.nn.bias_add(mask, [-127.])
+        mask -= -127.500
 
         return mask
 
@@ -140,9 +140,10 @@ class CascadePSP(layers.Layer):
         return pred_s8, scale_s8
 
     def _preprocess_s8(self, prev):
+        pred_s8 = tf.cast(prev, 'float32') / 255.
         scale_s8 = self._preprocess_mask(prev)
 
-        return tf.cast(prev, 'float32'), scale_s8
+        return pred_s8, scale_s8
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
