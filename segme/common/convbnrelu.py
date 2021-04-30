@@ -6,7 +6,7 @@ from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 class ConvBnRelu(layers.Layer):
     def __init__(self, filters, kernel_size, strides=1, dilation_rate=1, groups=1, activation='relu', use_bias=True,
                  kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None,
-                 bias_regularizer=None, kernel_constraint=None, bias_constraint=None, **kwargs):
+                 bias_regularizer=None, kernel_constraint=None, bias_constraint=None, fused_bn=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -23,6 +23,7 @@ class ConvBnRelu(layers.Layer):
         self.bias_regularizer = regularizers.get(bias_regularizer)
         self.kernel_constraint = constraints.get(kernel_constraint)
         self.bias_constraint = constraints.get(bias_constraint)
+        self.fused_bn = fused_bn  # TODO: wait for https://github.com/tensorflow/tensorflow/issues/48845
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -42,7 +43,7 @@ class ConvBnRelu(layers.Layer):
                 kernel_constraint=self.kernel_constraint,
                 bias_constraint=self.bias_constraint
             ),
-            layers.BatchNormalization()])
+            layers.BatchNormalization(fused=self.fused_bn)])
 
         if 'linear' != self.activation:
             self.features.add(layers.Activation(self.activation))
@@ -71,7 +72,8 @@ class ConvBnRelu(layers.Layer):
             'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
             'bias_regularizer': regularizers.serialize(self.bias_regularizer),
             'kernel_constraint': constraints.serialize(self.kernel_constraint),
-            'bias_constraint': constraints.serialize(self.bias_constraint)
+            'bias_constraint': constraints.serialize(self.bias_constraint),
+            'fused_bn': self.fused_bn
         })
 
         return config

@@ -18,7 +18,7 @@ class ASPPPool(layers.Layer):
             layers.GlobalAveragePooling2D(),
             # (batch, channels) -> (batch, 1, 1, channels)
             layers.Lambda(lambda pooled: tf.expand_dims(tf.expand_dims(pooled, 1), 1)),
-            ConvBnRelu(self.filters, 1, use_bias=False)
+            ConvBnRelu(self.filters, 1, use_bias=False, fused_bn=False)
         ])
 
         super().build(input_shape)
