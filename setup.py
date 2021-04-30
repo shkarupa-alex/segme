@@ -9,7 +9,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='segme',
-    version='1.5.2',
+    version='1.5.3',
     description='Few models for semantic segmentation',
     long_description=long_description,
     long_description_content_type="text/markdown",
