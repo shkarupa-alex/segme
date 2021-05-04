@@ -96,7 +96,7 @@ def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_ra
         else:
             raise NotImplementedError('RMI pool way is unknown: {}'.format(pool_way))
 
-    # Convert to HCHW for later multiplications
+    # Convert to NCHW for later multiplications
     y_true = tf.transpose(y_true, [0, 3, 1, 2])
     y_pred = tf.transpose(y_pred, [0, 3, 1, 2])
 
@@ -110,7 +110,7 @@ def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_ra
     # Small diagonal matrix, shape = [1, 1, radius^2, radius^2]
     diag_matrix = tf.eye(square_radius, dtype=y_pred.dtype)[None, None, ...]
     # Add this factor to ensure the AA^T is positive definite
-    diag_matrix *= 5e-4  # 1e-8 https://github.com/tensorflow/tensorflow/issues/45235#issuecomment-735917833
+    diag_matrix *= 5e-4
 
     # The mean and covariance of these high dimension points
     # Var(X) = E(X^2) - E(X) E(X), N * Var(X) = X^2 - X E(X)
@@ -126,16 +126,15 @@ def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_ra
     # appro_var = appro_var / n_points, we do not divide the appro_var by number of points here,
     # and the purpose is to avoid underflow issue.
     # If A = A^T, A^-1 = (A^-1)^T.
+    la_cov = tf.cast(la_cov, 'float64')
+    la_pr_cov = tf.cast(la_pr_cov, 'float64')
+    pr_cov_inv = tf.cast(pr_cov_inv, 'float64')
     appro_var = la_cov - tf.matmul(tf.matmul(la_pr_cov, pr_cov_inv), la_pr_cov, transpose_b=True)
 
     # The lower bound. If A is nonsingular, ln( det(A) ) = Tr( ln(A) ).
-    try:
-        rmi_loss = 0.5 * tf.linalg.logdet(appro_var + diag_matrix)
-    except Exception as e:  # TODO
-        import numpy as np
-        np.save('/tmp/chol_y_true.npy', y_true.numpy())
-        np.save('/tmp/chol_y_pred.npy', y_pred.numpy())
-        raise e
+    diag_matrix = tf.cast(diag_matrix, 'float64')
+    rmi_loss = 0.5 * tf.linalg.logdet(appro_var + diag_matrix)
+    rmi_loss = tf.cast(rmi_loss, y_pred.dtype)
 
     if batch_weight is not None:
         rmi_loss *= batch_weight
