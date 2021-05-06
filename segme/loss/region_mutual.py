@@ -104,11 +104,13 @@ def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_ra
     la_vectors, pr_vectors = _map_get_pairs(y_true, y_pred, radius=rmi_radius)
 
     la_vectors = tf.reshape(la_vectors, [batch, channel, square_radius, -1])
+    la_vectors = tf.cast(la_vectors, 'float64')
     la_vectors = tf.stop_gradient(la_vectors)  # We do not need the gradient of label.
     pr_vectors = tf.reshape(pr_vectors, [batch, channel, square_radius, -1])
+    pr_vectors = tf.cast(pr_vectors, 'float64')
 
     # Small diagonal matrix, shape = [1, 1, radius^2, radius^2]
-    diag_matrix = tf.eye(square_radius, dtype=y_pred.dtype)[None, None, ...]
+    diag_matrix = tf.eye(square_radius, dtype=pr_vectors.dtype)[None, None, ...]
     # Add this factor to ensure the AA^T is positive definite
     diag_matrix *= 5e-4
 
@@ -126,13 +128,9 @@ def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_ra
     # appro_var = appro_var / n_points, we do not divide the appro_var by number of points here,
     # and the purpose is to avoid underflow issue.
     # If A = A^T, A^-1 = (A^-1)^T.
-    la_cov = tf.cast(la_cov, 'float64')
-    la_pr_cov = tf.cast(la_pr_cov, 'float64')
-    pr_cov_inv = tf.cast(pr_cov_inv, 'float64')
     appro_var = la_cov - tf.matmul(tf.matmul(la_pr_cov, pr_cov_inv), la_pr_cov, transpose_b=True)
 
     # The lower bound. If A is nonsingular, ln( det(A) ) = Tr( ln(A) ).
-    diag_matrix = tf.cast(diag_matrix, 'float64')
     rmi_loss = 0.5 * tf.linalg.logdet(appro_var + diag_matrix)
     rmi_loss = tf.cast(rmi_loss, y_pred.dtype)
 
