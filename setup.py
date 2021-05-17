@@ -9,7 +9,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='segme',
-    version='1.5.5',
+    version='1.6.0',
     description='Few models for semantic segmentation',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -19,9 +19,9 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'tensorflow>=2.4.1',
+        'tensorflow>=2.5.0',
         'tensorflow-hub>=0.11.0',
-        'tensorflow-addons>=0.12.2',
+        'tensorflow-addons>=0.13.0',
         'opencv-python>=4.5.1.48'
     ],
     python_requires='>=3.6.0',

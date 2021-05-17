@@ -16,7 +16,7 @@ _IMAGENET_CLASSES = 1000
 class ApplicationsLoadWeightTest(test.TestCase, parameterized.TestCase):
     @parameterized.parameters(*MODEL_LIST)
     def test_application_predict_odd(self, app):
-        model = app()
+        model = app(input_shape=(224, 224, 3))
         _assert_shape_equal(model.output_shape, (None, _IMAGENET_CLASSES))
         x = _get_elephant((224, 224))
         x = preprocess_input(x)
@@ -25,7 +25,7 @@ class ApplicationsLoadWeightTest(test.TestCase, parameterized.TestCase):
 
     @parameterized.parameters(*MODEL_LIST)
     def test_application_predict_even(self, app):
-        model = app()
+        model = app(input_shape=(299, 299, 3))
         _assert_shape_equal(model.output_shape, (None, _IMAGENET_CLASSES))
         x = _get_elephant((299, 299))
         x = preprocess_input(x)
