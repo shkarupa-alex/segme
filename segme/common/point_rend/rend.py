@@ -4,8 +4,7 @@ from tensorflow.python.keras.utils.control_flow_util import smart_cond
 from tensorflow.python.keras.utils.conv_utils import normalize_tuple
 from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
 from .head import PointHead
-from .sample import uncertain_points_with_randomness
-from .sample import point_sample, uncertain_points_coords_on_grid
+from .sample import point_sample, uncertain_points_with_randomness, uncertain_points_coords_on_grid
 from ..head import HeadActivation
 from ..resizebysample import resize_by_sample
 from ..resizebyscale import resize_by_scale
@@ -136,7 +135,7 @@ class PointRend(layers.Layer):
                (input_shape[0][0], None, 2)
 
     def compute_output_signature(self, input_signature):
-        expected_dtypes = ['float32'] * 3
+        expected_dtypes = ['float32', self.compute_dtype, self.compute_dtype]
         output_signature = super().compute_output_signature(input_signature)
 
         return [tf.TensorSpec(dtype=dt, shape=ds.shape) for dt, ds in zip(expected_dtypes, output_signature)]

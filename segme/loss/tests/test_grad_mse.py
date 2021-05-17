@@ -79,7 +79,7 @@ class TestGradientMeanSquaredError(keras_parameterized.TestCase):
         self.assertAlmostEqual(result, 8.369307518005371, places=7)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 1.836201548576355, places=7)
+        self.assertAlmostEqual(result, 1.836201548576355, places=6)
 
     def test_keras_model_compile(self):
         model = tf.keras.models.Sequential([

@@ -60,10 +60,10 @@ class TestLaplaceEdgeSigmoidCrossEntropy(keras_parameterized.TestCase):
         loss = LaplaceEdgeSigmoidCrossEntropy(from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 64.32283020019531, places=7)
+        self.assertAlmostEqual(result, 64.32283020019531, places=3)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 38.36336898803711, places=7)
+        self.assertAlmostEqual(result, 38.36336898803711, places=3)
 
     def test_logits(self):
         logits = tf.constant([[

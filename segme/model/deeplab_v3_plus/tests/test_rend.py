@@ -33,20 +33,19 @@ class TestDeepLabV3PlusWithPointRend(keras_parameterized.TestCase):
             expected_output_dtypes=['float32', 'float32', 'float32']
         )
 
-        # TODO: tf 2.5
-        # tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
-        # layer_multi_io_test(
-        #     DeepLabV3PlusWithPointRend,
-        #     kwargs={
-        #         'classes': 1, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
-        #         'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 4,
-        #         'rend_strides': [2, 4], 'rend_units': [2, 2], 'rend_points': [0.1697, 0.0005], 'rend_oversample': 3,
-        #         'rend_importance': 0.75, 'rend_corners': False},
-        #     input_shapes=[(2, 224, 224, 3)],
-        #     input_dtypes=['uint8'],
-        #     expected_output_shapes=[(None, 224, 224, 1), (None, None, 1), (None, None, 2)],
-        #     expected_output_dtypes=['float32', 'float16', 'float16']
-        # )
+        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        layer_multi_io_test(
+            DeepLabV3PlusWithPointRend,
+            kwargs={
+                'classes': 1, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
+                'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 4,
+                'rend_strides': [2, 4], 'rend_units': [2, 2], 'rend_points': [0.1697, 0.0005], 'rend_oversample': 3,
+                'rend_importance': 0.75, 'rend_corners': False},
+            input_shapes=[(2, 224, 224, 3)],
+            input_dtypes=['uint8'],
+            expected_output_shapes=[(None, 224, 224, 1), (None, None, 1), (None, None, 2)],
+            expected_output_dtypes=['float32', 'float16', 'float16']
+        )
 
     def test_model(self):
         num_classes = 5

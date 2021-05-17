@@ -172,7 +172,7 @@ class UncertainPointsWithRandomness(layers.Layer):
     def call(self, inputs, **kwargs):
         input_shape = tf.shape(inputs)
         batch_size = input_shape[0]
-        total_points = tf.cast(input_shape[1] * input_shape[2], self.compute_dtype) * self.points
+        total_points = tf.cast(input_shape[1] * input_shape[2], 'float32') * self.points
 
         sampled_size = tf.cast(total_points * self.oversample, 'int32')
         point_coords = tf.random.uniform((batch_size, sampled_size, 2), dtype=self.compute_dtype)
@@ -239,15 +239,16 @@ class UncertainPointsCoordsOnGrid(layers.Layer):
     def call(self, inputs, **kwargs):
         input_shape = tf.shape(inputs)
         batch_size = input_shape[0]
-        input_height = tf.cast(input_shape[1], self.compute_dtype)
-        input_width = tf.cast(input_shape[2], self.compute_dtype)
 
-        total_points = tf.cast(input_height * input_width * self.points, 'int32')
+        total_points = tf.cast(input_shape[1] * input_shape[2], 'float32') * self.points
+        sampled_size = tf.cast(total_points, 'int32')
         uncert_map = classification_uncertainty(inputs)
         flat_inputs = tf.reshape(uncert_map, [batch_size, -1])
-        _, top_indices = tf.math.top_k(flat_inputs, k=total_points)
+        _, top_indices = tf.math.top_k(flat_inputs, k=sampled_size)
 
         exp_indices = tf.expand_dims(tf.cast(top_indices, self.compute_dtype), axis=-1)
+        input_height = tf.cast(input_shape[1], self.compute_dtype)
+        input_width = tf.cast(input_shape[2], self.compute_dtype)
         point_coords = tf.concat([
             0.5 / input_width + (exp_indices % input_width) / input_width,
             0.5 / input_height + (exp_indices // input_width) / input_height
@@ -264,7 +265,7 @@ class UncertainPointsCoordsOnGrid(layers.Layer):
         return input_shape[:1] + (total_points,), input_shape[:1] + (total_points, 2)
 
     def compute_output_signature(self, input_signature):
-        expected_dtypes = ['int32', input_signature.dtype]
+        expected_dtypes = ['int32', self.compute_dtype]
         output_signature = super().compute_output_signature(input_signature)
 
         return [tf.TensorSpec(dtype=dt, shape=ds.shape) for dt, ds in zip(expected_dtypes, output_signature)]

@@ -4,7 +4,7 @@ from ..rend import PointRend
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
+# @keras_parameterized.run_all_keras_modes
 class TestPointRend(keras_parameterized.TestCase):
     def setUp(self):
         super(TestPointRend, self).setUp()
@@ -26,18 +26,17 @@ class TestPointRend(keras_parameterized.TestCase):
             expected_output_dtypes=['float32', 'float32', 'float32']
         )
 
-        # TODO: tf 2.5
-        # tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
-        # layer_multi_io_test(
-        #     PointRend,
-        #     kwargs={
-        #         'classes': 5, 'units': [4], 'points': (0.165, 0.0005), 'oversample': 4, 'importance': 0.95, 'fines': 2,
-        #         'residual': True, 'align_corners': False},
-        #     input_shapes=[(4, 64, 64, 3), (4, 16, 16, 5), (4, 48, 48, 6), (4, 32, 32, 7)],
-        #     input_dtypes=['uint8', 'float16', 'float16', 'float16'],
-        #     expected_output_shapes=[(None, 64, 64, 5), (None, None, 5), (None, None, 2)],
-        #     expected_output_dtypes=['float32', 'float16', 'float16']
-        # )
+        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        layer_multi_io_test(
+            PointRend,
+            kwargs={
+                'classes': 5, 'units': [4], 'points': (0.165, 0.0005), 'oversample': 4, 'importance': 0.95, 'fines': 2,
+                'residual': True, 'align_corners': False},
+            input_shapes=[(4, 64, 64, 3), (4, 16, 16, 5), (4, 48, 48, 6), (4, 32, 32, 7)],
+            input_dtypes=['uint8', 'float16', 'float16', 'float16'],
+            expected_output_shapes=[(None, 64, 64, 5), (None, None, 5), (None, None, 2)],
+            expected_output_dtypes=['float32', 'float16', 'float16']
+        )
 
 
 if __name__ == '__main__':
