@@ -38,6 +38,9 @@ class SAD(SumOverBatchSize):
 
         return super().update_state(values / self.divider)
 
+    def result(self):
+        return super().result() / 1000.
+
     def get_config(self):
         config = super().get_config()
         config.update({'divider': self.divider})

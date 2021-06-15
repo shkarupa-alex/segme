@@ -46,7 +46,7 @@ class TestSAD(keras_parameterized.TestCase):
         metric.update_state(self.SNAKE[None, ..., None], pred[None, ..., None], trim[None, ..., None])
         result = self.evaluate(metric.result())
 
-        self.assertAlmostEqual(result, 6.8941178, places=7)
+        self.assertAlmostEqual(result, 0.0068941178, places=9)
 
     def test_unweighted(self):
         pred = np.round((self.SNAKE / 128.) ** 2 * 255. / 3.97)
@@ -55,7 +55,7 @@ class TestSAD(keras_parameterized.TestCase):
         metric.update_state(self.SNAKE[None, ..., None], pred[None, ..., None])
         result = self.evaluate(metric.result())
 
-        self.assertAlmostEqual(result, 6.8941178, places=7)
+        self.assertAlmostEqual(result, 0.0068941178, places=9)
 
     def test_batch(self):
         trim0 = np.where(cv2.dilate(self.SNAKE, np.ones((2, 2), 'float32')) > 0, 1., 0.)
