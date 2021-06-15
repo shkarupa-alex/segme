@@ -23,6 +23,9 @@ class MSE(MeanSquaredError):
         return super().update_state(
             y_true=y_true / self.divider, y_pred=y_pred / self.divider, sample_weight=sample_weight)
 
+    def result(self):
+        return super().result() * 1000.
+
     def get_config(self):
         config = super().get_config()
         config.update({'divider': self.divider})

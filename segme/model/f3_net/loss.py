@@ -1,5 +1,5 @@
 import tensorflow as tf
-from segme.loss import PixelPositionAwareLoss
+from ...loss import PixelPositionAwareLoss
 
 
 class ScaledPixelPositionAwareLoss(PixelPositionAwareLoss):

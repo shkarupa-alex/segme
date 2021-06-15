@@ -41,6 +41,9 @@ class Conn(SumOverBatchSize):
 
         return super().update_state(values)
 
+    def result(self):
+        return super().result() / 1000.
+
     def get_config(self):
         config = super().get_config()
         config.update({

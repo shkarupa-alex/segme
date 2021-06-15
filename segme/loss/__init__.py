@@ -18,3 +18,4 @@ from .sobel_edge import SobelEdgeLoss
 from .sobel_edge import sobel_edge_loss
 from .region_mutual import RegionMutualInformationLoss
 from .region_mutual import region_mutual_information_loss
+from .weighted_wrapper import WeightedLossFunctionWrapper
