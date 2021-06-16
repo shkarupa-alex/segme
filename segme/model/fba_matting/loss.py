@@ -49,7 +49,7 @@ def llap_fb(f_true, b_true, f_pred, b_pred, sample_weight):
     return loss
 
 
-def fba_loss(afb_true, afb_pred, sample_weight=None):
+def total_loss(afb_true, afb_pred, sample_weight=None):
     # FBA uses 2**(i) for llap scale factor https://gist.github.com/MarcoForte/a07c40a2b721739bb5c5987671aa5270
 
     a_true, f_true, b_true = afb_true[..., 0:1], afb_true[..., 1:4], afb_true[..., 4:7]
@@ -73,5 +73,6 @@ def fba_loss(afb_true, afb_pred, sample_weight=None):
 
     return _l1_a + _lc_a + _lg_a + _llap_a + 0.25 * (_l1_fb + _lc_fb + _lexcl_fb + _llap_fb)
 
+
 def fba_matting_loss():
-    return WeightedLossFunctionWrapper(fba_loss)
+    return WeightedLossFunctionWrapper(total_loss)

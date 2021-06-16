@@ -1,5 +1,5 @@
 from tensorflow.keras.losses import MeanAbsoluteError, MeanSquaredError, BinaryCrossentropy
-from ...loss import SobelEdgeLoss
+from ...loss import SobelEdgeLoss, WeightedLossFunctionWrapper
 
 
 def _loss_224(y_true, y_pred, sample_weight=None):
@@ -32,5 +32,9 @@ def _loss_56_2(y_true, y_pred, sample_weight=None):
            .25 * MeanSquaredError()(y_true, y_pred, sample_weight)
 
 
-def cascade_psp_losses():
+def total_losses():
     return [_loss_224, _loss_56_2, _loss_28_3, _loss_56, _loss_28_2, _loss_28]
+
+
+def cascade_psp_losses():
+    return [WeightedLossFunctionWrapper(tl) for tl in total_losses()]
