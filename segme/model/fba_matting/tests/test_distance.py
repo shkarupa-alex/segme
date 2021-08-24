@@ -57,7 +57,7 @@ class TestDistance(keras_parameterized.TestCase):
 
         expected = _distance(twomap)
 
-        result = Distance()(twomap[None, ...] * 2. - 1.)[0]
+        result = Distance()(twomap[None, ...])[0]
         result = self.evaluate(result)
 
         # self.assertAllClose(expected, result) # differs since tensorflow-addons v0.13.0
@@ -71,7 +71,7 @@ class TestDistance(keras_parameterized.TestCase):
 
         expected = _distance(twomap)
 
-        result = Distance()(twomap[None, ...] * 2. - 1.)[0]
+        result = Distance()(twomap[None, ...])[0]
         result = self.evaluate(result)
 
         # self.assertAllClose(expected, result) # differs since tensorflow-addons v0.13.0
