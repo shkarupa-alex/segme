@@ -15,7 +15,7 @@ class Distance(layers.Layer):
     def call(self, inputs, **kwargs):
         clicks = []
         for channel in range(2):
-            restored = tf.cast((1. - inputs[..., channel:channel + 1]) * 127.5, 'uint8')
+            restored = tf.cast((1. - inputs[..., channel:channel + 1]) * 255., 'uint8')
             distance = -euclidean_dist_transform(restored, dtype=self.compute_dtype) ** 2
             clicks.extend([
                 tf.exp(distance / (2 * (0.02 * self.length) ** 2)),

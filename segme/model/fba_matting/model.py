@@ -34,12 +34,12 @@ class FBAMatting(layers.Layer):
         image = tf.cast(image, self.compute_dtype)
 
         imnorm = preprocess_input(image)
-        twomap = self.twomap(trimap)
-        distance = self.distance(twomap)
+        twomap = self.twomap(trimap)  # [0; 1]
+        distance = self.distance(twomap)  # [0; 1]
 
         # Rescale twomap and distance to match preprocessed image
         featraw = layers.concatenate([
-            imnorm,
+            imnorm,  # [-1.; 1.]
             twomap * 2 - 1,  # Same scale as  imnorm
             distance * 2 - 1  # Same scale as  imnorm
         ], axis=-1)
