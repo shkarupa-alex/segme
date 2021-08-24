@@ -1,10 +1,12 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.losses import LossFunctionWrapper
+from keras import backend, losses
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-class LaplaceEdgeSigmoidCrossEntropy(LossFunctionWrapper):
+@register_keras_serializable(package='SegMe')
+class LaplaceEdgeSigmoidCrossEntropy(losses.LossFunctionWrapper):
     """ Proposed in: 'Pyramid Feature Attention Network for Saliency detection (2019)'
 
     Implements Equation [10] in https://arxiv.org/pdf/1903.00179.pdf
@@ -12,7 +14,7 @@ class LaplaceEdgeSigmoidCrossEntropy(LossFunctionWrapper):
     """
 
     def __init__(
-            self, from_logits=False, reduction=tf.keras.losses.Reduction.AUTO,
+            self, from_logits=False, reduction=Reduction.AUTO,
             name='laplace_edge_sigmoid_cross_entropy'):
         super().__init__(
             laplace_edge_sigmoid_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
@@ -38,7 +40,7 @@ def laplace_edge_sigmoid_cross_entropy(y_true, y_pred, from_logits):
         if from_logits:
             y_pred = tf.sigmoid(y_pred)
 
-        epsilon = tf.convert_to_tensor(tf.keras.backend.epsilon(), dtype=y_pred.dtype)
+        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
 
         y_true_edge = laplace(y_true)
         y_pred_edge = laplace(y_pred)

@@ -1,7 +1,7 @@
 import numpy as np
 from absl.testing import parameterized
-from tensorflow.python.keras.preprocessing import image
-from tensorflow.python.keras.utils import data_utils
+from keras.preprocessing import image
+from keras.utils import data_utils
 from tensorflow.python.platform import test
 from ..mobilenet_v3 import MobileNetV3Small, MobileNetV3Large, preprocess_input, decode_predictions
 

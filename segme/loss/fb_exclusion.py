@@ -1,8 +1,10 @@
 import tensorflow as tf
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class ForegroundBackgroundExclusionLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'Single Image Reflection Removal with Perceptual Losses'
 
@@ -10,7 +12,7 @@ class ForegroundBackgroundExclusionLoss(WeightedLossFunctionWrapper):
     """
 
     def __init__(
-            self, levels=3, reduction=tf.keras.losses.Reduction.AUTO, name='foreground_background_exclusion_loss'):
+            self, levels=3, reduction=Reduction.AUTO, name='foreground_background_exclusion_loss'):
         super().__init__(foreground_background_exclusion_loss, reduction=reduction, name=name, levels=levels)
 
 

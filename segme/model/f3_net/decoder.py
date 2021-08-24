@@ -1,10 +1,11 @@
-from tensorflow.keras import Sequential, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .cfm import CFM
 from ...common import resize_by_sample
 
 
-@utils.register_keras_serializable(package='SegMe>F3Net')
+@register_keras_serializable(package='SegMe>F3Net')
 class Decoder(layers.Layer):
     def __init__(self, refine, filters, **kwargs):
         super().__init__(**kwargs)

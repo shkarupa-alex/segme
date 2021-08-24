@@ -1,6 +1,6 @@
 import tensorflow as tf
-from tensorflow.keras import Model
-from tensorflow.keras.layers import Input, Lambda
+from keras import Model
+from keras.layers import Input, Lambda
 
 
 def patch_config(config, path, param, patch):

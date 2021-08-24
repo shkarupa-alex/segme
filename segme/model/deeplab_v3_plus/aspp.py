@@ -1,11 +1,12 @@
 import tensorflow as tf
-from tensorflow.keras import Sequential, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Sequential, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .atsepconv import AtrousSepConv
 from ...common import resize_by_sample, ConvBnRelu
 
 
-@utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
+@register_keras_serializable(package='SegMe>DeepLabV3Plus')
 class ASPPPool(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
@@ -40,7 +41,7 @@ class ASPPPool(layers.Layer):
         return config
 
 
-@utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
+@register_keras_serializable(package='SegMe>DeepLabV3Plus')
 class ASPP(layers.Layer):
     _stride_rates = {
         8: [12, 24, 36],

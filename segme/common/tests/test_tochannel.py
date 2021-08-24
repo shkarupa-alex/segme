@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import keras_parameterized, testing_utils
 from ..tochannel import ToChannelFirst, ToChannelLast, to_channel_last, to_channel_first
 
 

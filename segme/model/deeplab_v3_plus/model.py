@@ -1,11 +1,12 @@
-from tensorflow.keras import Model, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Model, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .encoder import Encoder
 from .decoder import Decoder
 from ...common import HeadProjection, HeadActivation, resize_by_sample
 
 
-@utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
+@register_keras_serializable(package='SegMe>DeepLabV3Plus')
 class DeepLabV3Plus(layers.Layer):
     """ Reference: https://arxiv.org/pdf/1802.02611.pdf """
 

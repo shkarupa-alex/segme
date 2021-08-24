@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import tensorflow as tf
+from keras import backend
 from tensorflow_hub import KerasLayer
 
 
@@ -111,7 +112,7 @@ class Refiner:
                 grid_weight[start_y:end_y, start_x:end_x] += 1
 
         # Final full resolution output
-        grid_weight_ = grid_weight.astype(np.float32) + tf.keras.backend.epsilon()
+        grid_weight_ = grid_weight.astype(np.float32) + backend.epsilon()
         grid_mask = np.round(grid_mask.astype(np.float32) / grid_weight_).astype(np.uint8)
         fine = np.where(grid_weight == 0, fine, grid_mask)
 

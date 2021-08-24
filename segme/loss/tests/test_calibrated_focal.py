@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized, layers, models
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..calibrated_focal import CalibratedFocalSigmoidCrossEntropy
 from ..calibrated_focal import calibrated_focal_sigmoid_cross_entropy
 
@@ -15,11 +16,11 @@ def _to_logit(prob):
 class TestCalibratedFocalSigmoidCrossEntropy(keras_parameterized.TestCase):
     def test_config(self):
         bce_obj = CalibratedFocalSigmoidCrossEntropy(
-            reduction=tf.keras.losses.Reduction.NONE,
+            reduction=Reduction.NONE,
             name='loss1'
         )
         self.assertEqual(bce_obj.name, 'loss1')
-        self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, Reduction.NONE)
 
     def test_zeros(self):
         probs = tf.constant([[0.0], [0.0], [0.0]], 'float32')
@@ -46,7 +47,7 @@ class TestCalibratedFocalSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = CalibratedFocalSigmoidCrossEntropy(from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
+        loss = CalibratedFocalSigmoidCrossEntropy(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
         self.assertAlmostEqual(result, 37.52423095703125, places=7)
@@ -75,9 +76,9 @@ class TestCalibratedFocalSigmoidCrossEntropy(keras_parameterized.TestCase):
         self.assertAllClose(result, [0.007614763919264078, 0.033212922513484955, 5.551136217363251e-10])
 
     def test_keras_model_compile(self):
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(5, activation='sigmoid')]
+        model = models.Sequential([
+            layers.Input(shape=(100,)),
+            layers.Dense(5, activation='sigmoid')]
         )
         model.compile(loss='SegMe>calibrated_focal_sigmoid_cross_entropy')
 

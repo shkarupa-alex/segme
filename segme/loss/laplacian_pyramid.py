@@ -1,9 +1,11 @@
 import numpy as np
 import tensorflow as tf
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'Optimizing the Latent Space of Generative Networks'
 
@@ -11,7 +13,7 @@ class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
     """
 
     def __init__(
-            self, levels=5, size=5, sigma=2.0, reduction=tf.keras.losses.Reduction.AUTO,
+            self, levels=5, size=5, sigma=2.0, reduction=Reduction.AUTO,
             name='laplacian_pyramid_loss'):
         super().__init__(
             laplacian_pyramid_loss, reduction=reduction, name=name, levels=levels, size=size, sigma=sigma)

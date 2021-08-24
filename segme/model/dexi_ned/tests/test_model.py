@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import keras_parameterized, testing_utils
+from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
 from ..model import build_dexi_ned, DexiNed
@@ -11,11 +12,11 @@ from ....testing_utils import layer_multi_io_test
 class TestDexiNed(keras_parameterized.TestCase):
     def setUp(self):
         super(TestDexiNed, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+        self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
         super(TestDexiNed, self).tearDown()
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -35,7 +36,7 @@ class TestDexiNed(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 7
         )
 
-        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        mixed_precision.set_policy('mixed_float16')
         layer_multi_io_test(
             DexiNed,
             kwargs={'classes': 3},

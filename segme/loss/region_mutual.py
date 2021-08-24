@@ -1,10 +1,13 @@
 import tensorflow as tf
 from tensorflow.python.framework.ops import EagerTensor
-from tensorflow.python.keras.utils.control_flow_util import smart_cond
+from keras import backend
+from keras.utils.control_flow_util import smart_cond
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class RegionMutualInformationLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'Region Mutual Information Loss for Semantic Segmentation'
 
@@ -13,7 +16,7 @@ class RegionMutualInformationLoss(WeightedLossFunctionWrapper):
 
     def __init__(
             self, from_logits=False, rmi_radius=3, pool_way='avgpool', pool_stride=4,
-            reduction=tf.keras.losses.Reduction.AUTO, name='region_mutual_information_loss'):
+            reduction=Reduction.AUTO, name='region_mutual_information_loss'):
         super().__init__(
             region_mutual_information_loss, reduction=reduction, name=name, from_logits=from_logits,
             rmi_radius=rmi_radius, pool_way=pool_way, pool_stride=pool_stride)
@@ -30,7 +33,7 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
 
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
         y_pred = tf.convert_to_tensor(y_pred)
-        epsilon = tf.convert_to_tensor(tf.keras.backend.epsilon(), dtype=y_pred.dtype.base_dtype)
+        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype.base_dtype)
 
         # Use logits whenever they are available. `softmax` and `sigmoid`
         # activations cache logits on the `output` Tensor.

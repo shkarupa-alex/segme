@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import keras_parameterized, testing_utils
 from ..distance import Distance
 
 

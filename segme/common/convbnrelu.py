@@ -1,8 +1,9 @@
-from tensorflow.keras import Sequential, activations, constraints, initializers, layers, regularizers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Sequential, activations, constraints, initializers, layers, regularizers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class ConvBnRelu(layers.Layer):
     def __init__(self, filters, kernel_size, strides=1, dilation_rate=1, groups=1, activation='relu', use_bias=True,
                  kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None,

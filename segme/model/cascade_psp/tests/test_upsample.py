@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized
 from ..upsample import Upsample
 from ....testing_utils import layer_multi_io_test
 

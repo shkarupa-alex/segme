@@ -1,11 +1,12 @@
 import tensorflow as tf
-from tensorflow.keras import Sequential, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Sequential, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from tensorflow_addons.layers import GroupNormalization
 from ...common import AdaptiveAveragePooling, StandardizedConv2D, resize_by_sample
 
 
-@utils.register_keras_serializable(package='SegMe>FBAMatting')
+@register_keras_serializable(package='SegMe>FBAMatting')
 class Decoder(layers.Layer):
     def __init__(self, pool_scales, **kwargs):
         super().__init__(**kwargs)

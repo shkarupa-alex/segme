@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized, layers, models
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..region_mutual import RegionMutualInformationLoss
 from ..region_mutual import region_mutual_information_loss
 from ..region_mutual import _map_get_pairs
@@ -666,11 +667,11 @@ def _to_logit(prob):
 class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
     def test_config(self):
         bce_obj = RegionMutualInformationLoss(
-            reduction=tf.keras.losses.Reduction.NONE,
+            reduction=Reduction.NONE,
             name='loss1'
         )
         self.assertEqual(bce_obj.name, 'loss1')
-        self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, Reduction.NONE)
 
     def test_zeros(self):
         probs = tf.constant([[
@@ -705,7 +706,7 @@ class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
-        loss = RegionMutualInformationLoss(from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
+        loss = RegionMutualInformationLoss(from_logits=True, reduction=Reduction.SUM)
         result = self.evaluate(loss(targets, logits)).item()
 
         self.assertAlmostEqual(result, -3.8004467487335205, places=5)
@@ -756,7 +757,7 @@ class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
         ], 'int32')
         weights = tf.concat([tf.ones((2, 8, 4, 1)), tf.zeros((2, 8, 4, 1))], axis=2)
 
-        loss = RegionMutualInformationLoss(from_logits=True, rmi_radius=2, reduction=tf.keras.losses.Reduction.SUM)
+        loss = RegionMutualInformationLoss(from_logits=True, rmi_radius=2, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
         self.assertAlmostEqual(result, -3.8004512786865234, places=7)
@@ -806,7 +807,7 @@ class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
         targets = tf.cast(tf.random.uniform((2, 64, 64, 1)) * 10, 'int32')
         weights = tf.ones((2, 64, 64, 1))
 
-        loss = RegionMutualInformationLoss(rmi_radius=2, reduction=tf.keras.losses.Reduction.SUM)
+        loss = RegionMutualInformationLoss(rmi_radius=2, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, probs)).item()
         self.assertAlmostEqual(result, 0.5836958289146423, places=5)
@@ -815,9 +816,9 @@ class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
         self.assertAlmostEqual(result, 0.5836958289146423, places=5)
 
     def test_keras_model_compile(self):
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(5, activation='sigmoid')]
+        model = models.Sequential([
+            layers.Input(shape=(100,)),
+            layers.Dense(5, activation='sigmoid')]
         )
         model.compile(loss='SegMe>region_mutual_information_loss')
 

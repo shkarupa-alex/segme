@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import keras_parameterized, testing_utils
+from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
 from ..model import U2Net, U2NetP, build_u2_net, build_u2_netp
@@ -11,11 +12,11 @@ from ....testing_utils import layer_multi_io_test
 class TestU2Net(keras_parameterized.TestCase):
     def setUp(self):
         super(TestU2Net, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+        self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
         super(TestU2Net, self).tearDown()
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_u2net(self):
         layer_multi_io_test(
@@ -27,7 +28,7 @@ class TestU2Net(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 7
         )
 
-        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        mixed_precision.set_policy('mixed_float16')
         layer_multi_io_test(
             U2Net,
             kwargs={'classes': 2},
@@ -47,7 +48,7 @@ class TestU2Net(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 7
         )
 
-        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        mixed_precision.set_policy('mixed_float16')
         layer_multi_io_test(
             U2NetP,
             kwargs={'classes': 3},

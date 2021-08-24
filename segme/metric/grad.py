@@ -1,14 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.metrics import SumOverBatchSize, metrics_utils
-from tensorflow.python.keras.utils import losses_utils
+from keras.metrics import SumOverBatchSize, metrics_utils
+from keras.utils import losses_utils
+from keras.utils.generic_utils import register_keras_serializable
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class Grad(SumOverBatchSize):
     def __init__(self, divider=255., sigma=1.4, name='grad', dtype=None):
         """Creates a `GradientError` instance for matting task (by default downscales input by 255).

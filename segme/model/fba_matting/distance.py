@@ -1,10 +1,11 @@
 import tensorflow as tf
-from tensorflow.keras import layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers, utils
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from tensorflow_addons.image import euclidean_dist_transform
 
 
-@utils.register_keras_serializable(package='SegMe>FBAMatting')
+@register_keras_serializable(package='SegMe>FBAMatting')
 class Distance(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

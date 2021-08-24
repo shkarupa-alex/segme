@@ -1,4 +1,4 @@
-from tensorflow.keras.losses import BinaryCrossentropy
+from keras.losses import BinaryCrossentropy
 from ...loss import ConsistencyEnhancedSigmoidLoss, WeightedLossFunctionWrapper
 
 

@@ -1,12 +1,13 @@
-from tensorflow.keras import Model, Sequential, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers, models
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .aim import AIM
 from .sim import SIM
 from ...backbone import Backbone
 from ...common import ConvBnRelu, ClassificationHead, resize_by_sample
 
 
-@utils.register_keras_serializable(package='SegMe>MINet')
+@register_keras_serializable(package='SegMe>MINet')
 class MINet(layers.Layer):
     def __init__(self, classes, bone_arch, bone_init, bone_train, **kwargs):
         super().__init__(**kwargs)
@@ -84,6 +85,6 @@ class MINet(layers.Layer):
 def build_minet(classes, bone_arch='resnet_50', bone_init='imagenet', bone_train=False):
     inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = MINet(classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train)(inputs)
-    model = Model(inputs=inputs, outputs=outputs, name='minet')
+    model = models.Model(inputs=inputs, outputs=outputs, name='minet')
 
     return model

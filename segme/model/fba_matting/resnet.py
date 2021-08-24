@@ -1,11 +1,12 @@
 import numpy as np
-from tensorflow.keras import Model, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Model, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from ...backbone.port.big_transfer import bit
 from ...backbone.utils import get_layer
 
 
-@utils.register_keras_serializable(package='SegMe>FBAMatting')
+@register_keras_serializable(package='SegMe>FBAMatting')
 class ResNet50(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

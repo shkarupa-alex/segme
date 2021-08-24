@@ -1,11 +1,11 @@
-import tensorflow as tf
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ...loss import PixelPositionAwareLoss
 
 
 class ScaledPixelPositionAwareLoss(PixelPositionAwareLoss):
     def __init__(
-            self, from_logits=False, gamma=5, ksize=31, reduction=tf.keras.losses.Reduction.AUTO,
-            name='pixel_position_aware_loss', scale=1.):
+            self, from_logits=False, gamma=5, ksize=31, reduction=Reduction.AUTO, name='pixel_position_aware_loss',
+            scale=1.):
         super().__init__(reduction=reduction, name=name, from_logits=from_logits, gamma=gamma, ksize=ksize)
         self.scale = scale
 

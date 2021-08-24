@@ -1,10 +1,11 @@
-from tensorflow.keras import Sequential
-from tensorflow.keras import activations, layers, regularizers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Sequential
+from keras import activations, layers, regularizers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from ...common import ConvBnRelu
 
 
-@utils.register_keras_serializable(package='SegMe>DexiNed')
+@register_keras_serializable(package='SegMe>DexiNed')
 class DoubleConvBlock(layers.Layer):
     def __init__(self, mid_features, out_features=None, stride=1, activation='relu', **kwargs):
         super().__init__(**kwargs)

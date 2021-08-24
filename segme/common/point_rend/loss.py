@@ -1,12 +1,14 @@
 import tensorflow as tf
-from tensorflow.keras import layers, losses, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers, losses
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras.utils.tf_utils import shape_type_conversion
 from .sample import point_sample
 
 
-@utils.register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>PointRend')
 class PointLoss(layers.Layer):
-    def __init__(self, classes, weighted=False, reduction=losses.Reduction.AUTO, **kwargs):
+    def __init__(self, classes, weighted=False, reduction=Reduction.AUTO, **kwargs):
         kwargs['autocast'] = False
         super().__init__(**kwargs)
         self.input_spec = [
@@ -43,7 +45,7 @@ class PointLoss(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        if losses.Reduction.NONE == self.reduction:
+        if Reduction.NONE == self.reduction:
             return input_shape[0][:-1]
 
         return 1

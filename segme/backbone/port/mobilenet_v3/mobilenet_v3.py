@@ -13,12 +13,12 @@ MACs stands for Multiply Adds
 | [mobilenet_v3_small_minimalistic_1.0_224] | 65  | 2.0 |   61.9   |   12.2   |
 """
 import os
-from tensorflow.python.keras import backend
-from tensorflow.python.keras import layers
-from tensorflow.python.keras.applications import imagenet_utils
-from tensorflow.python.keras.engine import training
-from tensorflow.python.keras.utils import data_utils, generic_utils
-from tensorflow.python.keras.utils import layer_utils
+from keras import backend
+from keras import layers
+from keras.applications import imagenet_utils
+from keras.engine import training
+from keras.utils import data_utils, generic_utils
+from keras.utils import layer_utils
 from tensorflow.python.platform import tf_logging as logging
 
 BASE_WEIGHT_PATH = ('https://github.com/DrSlink/mobilenet_v3_keras/'

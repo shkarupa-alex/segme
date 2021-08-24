@@ -19,9 +19,10 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'tensorflow>=2.5.0',
-        'tensorflow-hub>=0.11.0',
-        'tensorflow-addons>=0.13.0',
+        'tensorflow>=2.6.0',
+        'tensorflow-hub>=0.12.0',
+        'tensorflow-addons>=0.14.0',
+        'keras>=2.6.0',
         'opencv-python>=4.5.1.48'
     ],
     python_requires='>=3.6.0',

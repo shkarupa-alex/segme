@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import keras_parameterized, testing_utils
+from keras.mixed_precision import policy as mixed_precision
 from ..sample import ClassificationUncertainty, classification_uncertainty
 from ..sample import PointSample, point_sample
 from ..sample import UncertainPointsWithRandomness, uncertain_points_with_randomness
@@ -12,11 +13,11 @@ from ....testing_utils import layer_multi_io_test
 class TestClassificationUncertainty(keras_parameterized.TestCase):
     def setUp(self):
         super(TestClassificationUncertainty, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+        self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
         super(TestClassificationUncertainty, self).tearDown()
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         testing_utils.layer_test(
@@ -44,7 +45,7 @@ class TestClassificationUncertainty(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
 
-        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        mixed_precision.set_policy('mixed_float16')
         testing_utils.layer_test(
             ClassificationUncertainty,
             kwargs={},
@@ -202,11 +203,11 @@ class TestPointSample(keras_parameterized.TestCase):
 
     def setUp(self):
         super(TestPointSample, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+        self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
         super(TestPointSample, self).tearDown()
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -242,7 +243,7 @@ class TestPointSample(keras_parameterized.TestCase):
             expected_output_dtypes=['int32']
         )
 
-        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        mixed_precision.set_policy('mixed_float16')
         layer_multi_io_test(
             PointSample,
             kwargs={'align_corners': False, 'mode': 'bilinear'},
@@ -331,11 +332,11 @@ class TestPointSample(keras_parameterized.TestCase):
 class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
     def setUp(self):
         super(TestUncertainPointsWithRandomness, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+        self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
         super(TestUncertainPointsWithRandomness, self).tearDown()
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         testing_utils.layer_test(
@@ -355,7 +356,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
 
-        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        mixed_precision.set_policy('mixed_float16')
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
             kwargs={'points': 0.05, 'align_corners': False, 'oversample': 3, 'importance': 0.75},
@@ -383,11 +384,11 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
 class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
     def setUp(self):
         super(TestUncertainPointsCoordsOnGrid, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+        self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
         super(TestUncertainPointsCoordsOnGrid, self).tearDown()
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -407,7 +408,7 @@ class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
             expected_output_dtypes=['int32', 'float32']
         )
 
-        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        mixed_precision.set_policy('mixed_float16')
         layer_multi_io_test(
             UncertainPointsCoordsOnGrid,
             kwargs={'points': 0.04},

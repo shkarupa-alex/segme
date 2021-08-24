@@ -1,6 +1,7 @@
 import tensorflow as tf
-from tensorflow.keras import Model, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers, models, utils
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .decoder import Decoder
 from .distance import Distance
 from .fusion import Fusion
@@ -9,7 +10,7 @@ from .twomap import Twomap
 from ...backbone.port.big_transfer import preprocess_input
 
 
-@utils.register_keras_serializable(package='SegMe>FBAMatting')
+@register_keras_serializable(package='SegMe>FBAMatting')
 class FBAMatting(layers.Layer):
     def __init__(self, pool_scales, **kwargs):
         super().__init__(**kwargs)
@@ -79,6 +80,6 @@ def build_fba_matting(psp_sizes=(1, 2, 3, 6)):
         layers.Input(name='trimap', shape=[None, None, 1], dtype='uint8'),
     ]
     outputs = FBAMatting(psp_sizes)(inputs)
-    model = Model(inputs=inputs, outputs=outputs, name='fba_matting')
+    model = models.Model(inputs=inputs, outputs=outputs, name='fba_matting')
 
     return model

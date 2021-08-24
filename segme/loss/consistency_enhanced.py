@@ -1,16 +1,18 @@
 import tensorflow as tf
-from tensorflow.python.keras.losses import LossFunctionWrapper
+from keras import losses
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-class ConsistencyEnhancedSigmoidLoss(LossFunctionWrapper):
+@register_keras_serializable(package='SegMe')
+class ConsistencyEnhancedSigmoidLoss(losses.LossFunctionWrapper):
     """ Proposed in: 'Multi-scale Interactive Network for Salient Object Detection'
 
     Implements Equation [9] in https://arxiv.org/pdf/2007.09062.pdf
     """
 
     def __init__(
-            self, from_logits=False, reduction=tf.keras.losses.Reduction.AUTO,
+            self, from_logits=False, reduction=Reduction.AUTO,
             name='consistency_enhanced_sigmoid_loss'):
         super().__init__(
             consistency_enhanced_sigmoid_loss, reduction=reduction, name=name, from_logits=from_logits)

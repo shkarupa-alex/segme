@@ -1,5 +1,5 @@
-import tensorflow as tf
 from functools import partial
+from keras import models
 from ..utils import patch_config, wrap_bone
 from . import aligned_xception
 
@@ -19,7 +19,7 @@ def AlignedXception41Stride16(*args, **kwargs):
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv2_depthwise'], 'dilation_rate', (2, 2))
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv3_depthwise'], 'dilation_rate', (2, 2))
 
-    patch = tf.keras.Model.from_config(conf)
+    patch = models.Model.from_config(conf)
     patch.set_weights(base.get_weights())
 
     return patch
@@ -49,7 +49,7 @@ def AlignedXception41Stride8(*args, **kwargs):
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv2_depthwise'], 'dilation_rate', (2, 2))
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv3_depthwise'], 'dilation_rate', (2, 2))
 
-    patch = tf.keras.Model.from_config(conf)
+    patch = models.Model.from_config(conf)
     patch.set_weights(base.get_weights())
 
     return patch
@@ -71,7 +71,7 @@ def AlignedXception65Stride16(*args, **kwargs):
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv2_depthwise'], 'dilation_rate', (2, 2))
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv3_depthwise'], 'dilation_rate', (2, 2))
 
-    patch = tf.keras.Model.from_config(conf)
+    patch = models.Model.from_config(conf)
     patch.set_weights(base.get_weights())
 
     return patch
@@ -101,7 +101,7 @@ def AlignedXception65Stride8(*args, **kwargs):
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv2_depthwise'], 'dilation_rate', (2, 2))
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv3_depthwise'], 'dilation_rate', (2, 2))
 
-    patch = tf.keras.Model.from_config(conf)
+    patch = models.Model.from_config(conf)
     patch.set_weights(base.get_weights())
 
     return patch
@@ -123,7 +123,7 @@ def AlignedXception71Stride16(*args, **kwargs):
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv2_depthwise'], 'dilation_rate', (2, 2))
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv3_depthwise'], 'dilation_rate', (2, 2))
 
-    patch = tf.keras.Model.from_config(conf)
+    patch = models.Model.from_config(conf)
     patch.set_weights(base.get_weights())
 
     return patch
@@ -153,7 +153,7 @@ def AlignedXception71Stride8(*args, **kwargs):
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv2_depthwise'], 'dilation_rate', (2, 2))
     conf = patch_config(conf, ['exit_flow/block2/unit1/sepconv3_depthwise'], 'dilation_rate', (2, 2))
 
-    patch = tf.keras.Model.from_config(conf)
+    patch = models.Model.from_config(conf)
     patch.set_weights(base.get_weights())
 
     return patch

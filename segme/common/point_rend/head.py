@@ -1,9 +1,9 @@
-import tensorflow as tf
-from tensorflow.keras import initializers, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import initializers, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>PointRend')
 class PointHead(layers.Layer):
     def __init__(self, classes, units, fines, residual=False, **kwargs):
         super().__init__(**kwargs)
