@@ -1,12 +1,8 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import tensorflow as tf
-from tensorflow.python.keras.metrics import MeanSquaredError
+from keras.metrics import MeanSquaredError
+from keras.utils.generic_utils import register_keras_serializable
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class MSE(MeanSquaredError):
     def __init__(self, divider=255., name='mse', dtype=None):
         """Creates a `MeanSquaredError` instance for matting task (by default downscales input by 255).

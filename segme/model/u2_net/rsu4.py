@@ -1,9 +1,10 @@
-from tensorflow.keras import layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from ...common import ConvBnRelu, resize_by_sample
 
 
-@utils.register_keras_serializable(package='SegMe>U2Net')
+@register_keras_serializable(package='SegMe>U2Net')
 class RSU4(layers.Layer):
     def __init__(self, mid_features, out_features, **kwargs):
         super().__init__(**kwargs)

@@ -1,8 +1,9 @@
 import tensorflow as tf
-from tensorflow.keras import layers, utils
-from tensorflow.python.keras.utils.control_flow_util import smart_cond
-from tensorflow.python.keras.utils.conv_utils import normalize_tuple
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import backend, layers
+from keras.utils.control_flow_util import smart_cond
+from keras.utils.conv_utils import normalize_tuple
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .head import PointHead
 from .sample import point_sample, uncertain_points_with_randomness, uncertain_points_coords_on_grid
 from ..head import HeadActivation
@@ -10,7 +11,7 @@ from ..resizebysample import resize_by_sample
 from ..resizebyscale import resize_by_scale
 
 
-@utils.register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>PointRend')
 class PointRend(layers.Layer):
     def __init__(self, classes, units, points, oversample, importance, fines, residual, align_corners, **kwargs):
         super().__init__(**kwargs)
@@ -41,7 +42,7 @@ class PointRend(layers.Layer):
 
     def call(self, inputs, training=None, **kwargs):
         if training is None:
-            training = tf.keras.backend.learning_phase()
+            training = backend.learning_phase()
 
         image_shape, coarse_shape = tf.shape(inputs[0]), tf.shape(inputs[1])
         assertions = [

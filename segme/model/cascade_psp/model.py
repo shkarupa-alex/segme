@@ -1,14 +1,15 @@
 import tensorflow as tf
-from tensorflow.keras import Model, Sequential, layers, utils
-from tensorflow.python.keras.utils.control_flow_util import smart_cond
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import backend, layers, models, utils
+from keras.utils.control_flow_util import smart_cond
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .psp import PSP
 from .upsample import Upsample
 from .resnet import ResNet50
 from ...common import HeadActivation, HeadProjection, resize_by_sample
 
 
-@utils.register_keras_serializable(package='SegMe>CascadePSP')
+@register_keras_serializable(package='SegMe>CascadePSP')
 class CascadePSP(layers.Layer):
     def __init__(self, psp_sizes, **kwargs):
         super().__init__(**kwargs)
@@ -29,17 +30,17 @@ class CascadePSP(layers.Layer):
         self.up2 = Upsample(256)
         self.up3 = Upsample(32)
 
-        self.final8 = Sequential([
+        self.final8 = models.Sequential([
             layers.Conv2D(32, 1, padding='same'),
             layers.ReLU(),
             HeadProjection(1)
         ])
-        self.final4 = Sequential([
+        self.final4 = models.Sequential([
             layers.Conv2D(32, 1, padding='same'),
             layers.ReLU(),
             HeadProjection(1)
         ])
-        self.final1 = Sequential([
+        self.final1 = models.Sequential([
             layers.Conv2D(32, 1, padding='same'),
             layers.ReLU(),
             HeadProjection(1)
@@ -51,7 +52,7 @@ class CascadePSP(layers.Layer):
 
     def call(self, inputs, training=None, **kwargs):
         if training is None:
-            training = tf.keras.backend.learning_phase()
+            training = backend.learning_phase()
 
         image, mask, prev = inputs
         no_prev = tf.logical_or(tf.cast(training, 'bool'), tf.reduce_all(tf.equal(mask, prev)))
@@ -168,6 +169,6 @@ def build_cascade_psp(psp_sizes=(1, 2, 3, 6)):
         layers.Input(name='prev', shape=[None, None, 1], dtype='uint8'),
     ]
     outputs = CascadePSP(psp_sizes)(inputs)
-    model = Model(inputs=inputs, outputs=outputs, name='cascade_psp')
+    model = models.Model(inputs=inputs, outputs=outputs, name='cascade_psp')
 
     return model

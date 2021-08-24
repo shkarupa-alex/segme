@@ -1,9 +1,10 @@
-from tensorflow.keras import Sequential
-from tensorflow.keras import layers, regularizers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Sequential
+from keras import layers, regularizers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe>DexiNed')
+@register_keras_serializable(package='SegMe>DexiNed')
 class SingleConvBlock(layers.Layer):
     def __init__(self, out_features, kernel_size=1, stride=1, weight_norm=True, **kwargs):
         super().__init__(**kwargs)

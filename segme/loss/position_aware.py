@@ -1,8 +1,11 @@
 import tensorflow as tf
+from keras import backend
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class PixelPositionAwareLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'F3Net: Fusion, Feedback and Focus for Salient Object Detection'
 
@@ -10,7 +13,7 @@ class PixelPositionAwareLoss(WeightedLossFunctionWrapper):
     """
 
     def __init__(
-            self, from_logits=False, gamma=5, ksize=31, reduction=tf.keras.losses.Reduction.AUTO,
+            self, from_logits=False, gamma=5, ksize=31, reduction=Reduction.AUTO,
             name='pixel_position_aware_loss'):
         super().__init__(
             pixel_position_aware_loss, reduction=reduction, name=name, from_logits=from_logits,
@@ -29,7 +32,7 @@ def pixel_position_aware_loss(y_true, y_pred, sample_weight, from_logits, gamma,
         if sample_weight is not None:
             weight *= sample_weight
 
-        bce = tf.keras.backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
+        bce = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
         wbce = tf.reduce_sum(weight * bce, axis=[1, 2]) / tf.reduce_sum(weight, axis=[1, 2])
 
         if from_logits:

@@ -1,10 +1,12 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.losses import LossFunctionWrapper
+from keras import backend, losses
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-class SobelEdgeLoss(LossFunctionWrapper):
+@register_keras_serializable(package='SegMe')
+class SobelEdgeLoss(losses.LossFunctionWrapper):
     """ Proposed in: 'CascadePSP: Toward Class-Agnostic and Very High-Resolution
     Segmentation via Global and Local Refinement'
 
@@ -13,7 +15,7 @@ class SobelEdgeLoss(LossFunctionWrapper):
     """
 
     def __init__(
-            self, classes=1, from_logits=False, reduction=tf.keras.losses.Reduction.AUTO,
+            self, classes=1, from_logits=False, reduction=Reduction.AUTO,
             name='sobel_edge_loss'):
         super().__init__(
             sobel_edge_loss, classes=classes, reduction=reduction, name=name, from_logits=from_logits)
@@ -44,7 +46,7 @@ def sobel_edge_loss(y_true, y_pred, classes, from_logits):
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
         y_pred = tf.convert_to_tensor(y_pred)
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
-        epsilon = tf.convert_to_tensor(tf.keras.backend.epsilon(), dtype=y_pred.dtype.base_dtype)
+        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype.base_dtype)
 
         if from_logits:
             y_pred = tf.sigmoid(y_pred)
@@ -52,6 +54,6 @@ def sobel_edge_loss(y_true, y_pred, classes, from_logits):
         y_true_edge = sobel(y_true, classes, epsilon)
         y_pred_edge = sobel(y_pred, classes, epsilon)
 
-        loss = tf.keras.losses.mean_absolute_error(y_true=y_true_edge, y_pred=y_pred_edge)
+        loss = losses.mean_absolute_error(y_true=y_true_edge, y_pred=y_pred_edge)
 
         return loss

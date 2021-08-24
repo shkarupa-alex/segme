@@ -1,18 +1,18 @@
-from tensorflow.keras import applications
+from keras.applications import inception_v3, inception_resnet_v2, xception
 from functools import partial
 from ..utils import wrap_bone
 
 InceptionV3 = partial(
     wrap_bone,
-    applications.InceptionV3,
-    applications.inception_v3.preprocess_input)
+    inception_v3.InceptionV3,
+    inception_v3.preprocess_input)
 
 InceptionResNetV2 = partial(
     wrap_bone,
-    applications.InceptionResNetV2,
-    applications.inception_resnet_v2.preprocess_input)
+    inception_resnet_v2.InceptionResNetV2,
+    inception_resnet_v2.preprocess_input)
 
 Xception = partial(
     wrap_bone,
-    applications.Xception,
-    applications.xception.preprocess_input)
+    xception.Xception,
+    xception.preprocess_input)

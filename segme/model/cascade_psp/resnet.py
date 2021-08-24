@@ -1,10 +1,11 @@
 import numpy as np
-from tensorflow.keras import Model, layers, utils
-from tensorflow.keras.applications import resnet
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Model, layers
+from keras.applications import resnet
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe>CascadePSP')
+@register_keras_serializable(package='SegMe>CascadePSP')
 class ResNet50(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

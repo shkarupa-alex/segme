@@ -1,7 +1,8 @@
 import tensorflow as tf
-from tensorflow.keras import Model, initializers, layers, utils
-from tensorflow.keras.applications.imagenet_utils import preprocess_input
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Model, initializers, layers
+from keras.applications.imagenet_utils import preprocess_input
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .dense import DenseBlock
 from .upconv import UpConvBlock
 from .single import SingleConvBlock
@@ -9,7 +10,7 @@ from .double import DoubleConvBlock
 from ...common import HeadActivation, ClassificationHead
 
 
-@utils.register_keras_serializable(package='SegMe>DexiNed')
+@register_keras_serializable(package='SegMe>DexiNed')
 class DexiNed(layers.Layer):
     """ Reference: https://arxiv.org/pdf/1909.01955.pdf """
 

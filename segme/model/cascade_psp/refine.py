@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import tensorflow as tf
+from keras import backend
 from tensorflow_hub import KerasLayer
 
 
@@ -10,19 +11,13 @@ class Refiner:
         self.max_size = max_size
 
         self.image = tf.Variable(
-            shape=(None, None, None, 3), dtype='uint8', initial_value=np.zeros((0, 0, 0, 3)).astype(np.uint8))
+            shape=(1, None, None, 3), dtype='uint8', initial_value=np.zeros((1, 0, 0, 3)).astype(np.uint8))
         self.mask = tf.Variable(
-            shape=(None, None, None, 1), dtype='uint8', initial_value=np.zeros((0, 0, 0, 1)).astype(np.uint8))
+            shape=(1, None, None, 1), dtype='uint8', initial_value=np.zeros((1, 0, 0, 1)).astype(np.uint8))
         self.prev = tf.Variable(
-            shape=(None, None, None, 1), dtype='uint8', initial_value=np.zeros((0, 0, 0, 1)).astype(np.uint8))
+            shape=(1, None, None, 1), dtype='uint8', initial_value=np.zeros((1, 0, 0, 1)).astype(np.uint8))
 
     def __call__(self, image, mask, fast=False):
-        image, mask = np.array(image), np.array(mask)
-        if image.dtype != np.uint8:
-            raise ValueError('Wrong image type: expected uint8')
-        if mask.dtype != np.uint8:
-            raise ValueError('Wrong mask type: expected uint8')
-
         fine, coarse = self._global_step(image, mask)
         if fast:
             return fine
@@ -31,15 +26,22 @@ class Refiner:
 
     def _global_step(self, image, mask):
         height_width = image.shape[:2]
-        if max(height_width) > self.max_size:
-            image = Refiner._resize_max_side(image, self.max_size)
-            mask = Refiner._resize_max_side(mask, self.max_size)
+
+        if max(height_width) < self.max_size:
+            image = Refiner._resize_max_side(image, self.max_size, cv2.INTER_CUBIC)
+            mask = Refiner._resize_max_side(mask, self.max_size, cv2.INTER_LINEAR)
+        elif max(height_width) > self.max_size:
+            image = Refiner._resize_max_side(image, self.max_size, cv2.INTER_AREA)
+            mask = Refiner._resize_max_side(mask, self.max_size, cv2.INTER_AREA)
 
         fine, coarse = self._safe_predict(image, mask)
 
-        if max(height_width) > self.max_size:
-            fine = Refiner._resize_fixed_size(fine, height_width)
-            coarse = Refiner._resize_fixed_size(coarse, height_width)
+        if max(height_width) < self.max_size:
+            fine = Refiner._resize_fixed_size(fine, height_width, interpolation=cv2.INTER_AREA)
+            coarse = Refiner._resize_fixed_size(coarse, height_width, interpolation=cv2.INTER_AREA)
+        elif max(height_width) > self.max_size:
+            fine = Refiner._resize_fixed_size(fine, height_width, interpolation=cv2.INTER_LINEAR)
+            coarse = Refiner._resize_fixed_size(coarse, height_width, interpolation=cv2.INTER_LINEAR)
 
         return fine, coarse
 
@@ -110,7 +112,8 @@ class Refiner:
                 grid_weight[start_y:end_y, start_x:end_x] += 1
 
         # Final full resolution output
-        grid_mask = np.round(grid_mask.astype(np.float32) / grid_weight).astype(np.uint8)
+        grid_weight_ = grid_weight.astype(np.float32) + backend.epsilon()
+        grid_mask = np.round(grid_mask.astype(np.float32) / grid_weight_).astype(np.uint8)
         fine = np.where(grid_weight == 0, fine, grid_mask)
 
         return fine
@@ -126,21 +129,12 @@ class Refiner:
         height, width = image.shape[:2]
 
         _image = np.pad(image, ((0, height % 8), (0, width % 8), (0, 0)))
-        _image = np.expand_dims(_image, axis=0)
-
         _mask = np.pad(mask, ((0, height % 8), (0, width % 8)))
-        _mask = np.expand_dims(_mask, axis=0)
-        _mask = np.expand_dims(_mask, axis=-1)
+        _prev = _mask if prev is None else np.pad(prev, ((0, height % 8), (0, width % 8)))
 
-        _prev = _mask
-        if prev is not None:
-            _prev = np.pad(prev, ((0, height % 8), (0, width % 8)))
-            _prev = np.expand_dims(_prev, axis=0)
-            _prev = np.expand_dims(_prev, axis=-1)
-
-        self.image.assign(_image)
-        self.mask.assign(_mask)
-        self.prev.assign(_prev)
+        self.image.assign(_image[None, ...])
+        self.mask.assign(_mask[None, ..., None])
+        self.prev.assign(_prev[None, ..., None])
 
         fine, coarse = self.model([self.image, self.mask, self.prev])
         fine, coarse = fine[0, :height, :width, 0], coarse[0, :height, :width, 0]
@@ -148,19 +142,21 @@ class Refiner:
         coarse = np.round(coarse * 255).astype(np.uint8)
 
         return fine, coarse
-
-    @classmethod
-    def _resize_max_side(cls, image, max_size, interpolation=cv2.INTER_LINEAR):
+    
+    @staticmethod
+    def _resize_max_side(image, max_size, interpolation=cv2.INTER_LINEAR):
         if len(image.shape) > 3 or len(image.shape) < 2:
             raise ValueError('Wrong image supplied')
 
         aspect = max_size / max(image.shape[:2])
 
         return cv2.resize(image, (0, 0), fx=aspect, fy=aspect, interpolation=interpolation)
-
-    @classmethod
-    def _resize_fixed_size(cls, image, height_width, interpolation=cv2.INTER_LINEAR):
+    
+    @staticmethod
+    def _resize_fixed_size(image, height_width, interpolation=cv2.INTER_LINEAR):
         if len(image.shape) > 3 or len(image.shape) < 2:
             raise ValueError('Wrong image supplied')
+        if len(height_width) != 2:
+            raise ValueError('Wrong desired size supplied')
 
         return cv2.resize(image, height_width[::-1], interpolation=interpolation)

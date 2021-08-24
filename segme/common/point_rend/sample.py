@@ -1,9 +1,10 @@
 import tensorflow as tf
-from tensorflow.keras import layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>PointRend')
 class ClassificationUncertainty(layers.Layer):
     def __init__(self, from_logits=True, **kwargs):
         kwargs['autocast'] = False
@@ -54,7 +55,7 @@ def classification_uncertainty(inputs, **kwargs):
     return ClassificationUncertainty(**kwargs)(inputs)
 
 
-@utils.register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>PointRend')
 class PointSample(layers.Layer):
     def __init__(self, align_corners, mode='bilinear', **kwargs):
         kwargs['autocast'] = False
@@ -150,7 +151,7 @@ def point_sample(inputs, **kwargs):
     return PointSample(**kwargs)(inputs)
 
 
-@utils.register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>PointRend')
 class UncertainPointsWithRandomness(layers.Layer):
     def __init__(self, points, align_corners, oversample, importance, **kwargs):
         kwargs['autocast'] = False
@@ -224,7 +225,7 @@ def uncertain_points_with_randomness(inputs, **kwargs):
     return UncertainPointsWithRandomness(**kwargs)(inputs)
 
 
-@utils.register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>PointRend')
 class UncertainPointsCoordsOnGrid(layers.Layer):
     def __init__(self, points, **kwargs):
         kwargs['autocast'] = False

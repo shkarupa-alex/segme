@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized, layers, models
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..laplacian_pyramid import LaplacianPyramidLoss
 from ..laplacian_pyramid import laplacian_pyramid_loss
 
@@ -9,11 +10,11 @@ from ..laplacian_pyramid import laplacian_pyramid_loss
 class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
     def test_config(self):
         bce_obj = LaplacianPyramidLoss(
-            reduction=tf.keras.losses.Reduction.NONE,
+            reduction=Reduction.NONE,
             name='loss1'
         )
         self.assertEqual(bce_obj.name, 'loss1')
-        self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, Reduction.NONE)
 
     def test_zeros(self):
         probs = tf.constant([[
@@ -164,7 +165,7 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = LaplacianPyramidLoss(reduction=tf.keras.losses.Reduction.SUM, levels=2)
+        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=2)
 
         result = self.evaluate(loss(targets, logits)).item()
         self.assertAlmostEqual(result, 4.413858413696289, places=7)
@@ -172,20 +173,42 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
         result = self.evaluate(loss(targets, logits, weights)).item()
         self.assertAlmostEqual(result, 0.7954950332641602, places=7)
 
+    def test_channels_3_weighted(self):
+        logits = tf.constant([
+            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
+             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
+             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
+             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
+            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
+             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
+             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
+             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
+        targets = tf.constant([
+            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
+             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
+            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
+             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'int32')
+        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+
+        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=2)
+
+        result = self.evaluate(loss(targets, logits, weights)).item()
+        self.assertAlmostEqual(result, 0.8450185060501099, places=7)
+
     def test_batch(self):
         probs = np.random.rand(2, 32, 32, 1).astype('float32')
         targets = (np.random.rand(2, 32, 32, 1) > 0.5).astype('int32')
 
-        loss = LaplacianPyramidLoss(reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
+        loss = LaplacianPyramidLoss(reduction=Reduction.SUM_OVER_BATCH_SIZE)
         res0 = self.evaluate(loss(targets, probs))
         res1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
         self.assertAlmostEqual(res0, res1, places=6)
 
     def test_keras_model_compile(self):
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(5)]
+        model = models.Sequential([
+            layers.Input(shape=(100,)),
+            layers.Dense(5)]
         )
         model.compile(loss='SegMe>laplacian_pyramid_loss')
 

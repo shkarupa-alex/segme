@@ -1,16 +1,18 @@
 import tensorflow as tf
-from tensorflow.python.keras.losses import LossFunctionWrapper
+from keras import backend, losses
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..metric.grad import _togray, _gauss_filter, _gauss_gradient
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe')
-class GradientMeanSquaredError(LossFunctionWrapper):
+@register_keras_serializable(package='SegMe')
+class GradientMeanSquaredError(losses.LossFunctionWrapper):
     """ Proposed in: 'Learning-based Sampling for Natural Image Matting'
 
     Implements Equation [7] in https://openaccess.thecvf.com/content_CVPR_2019/papers/Tang_Learning-Based_Sampling_for_Natural_Image_Matting_CVPR_2019_paper.pdf
     """
 
-    def __init__(self, sigma=1.4, reduction=tf.keras.losses.Reduction.AUTO, name='gradient_mean_squared_error'):
+    def __init__(self, sigma=1.4, reduction=Reduction.AUTO, name='gradient_mean_squared_error'):
         super().__init__(gradient_mean_squared_error, reduction=reduction, name=name, sigma=sigma)
 
 
@@ -21,7 +23,7 @@ def gradient_mean_squared_error(y_true, y_pred, sigma):
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
         y_pred = tf.convert_to_tensor(y_pred)
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
-        epsilon = tf.convert_to_tensor(tf.keras.backend.epsilon(), dtype=y_pred.dtype.base_dtype)
+        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype.base_dtype)
 
         y_pred = _togray(y_pred)
         y_true = _togray(y_true)

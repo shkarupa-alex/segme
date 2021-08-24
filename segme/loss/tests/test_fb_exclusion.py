@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized, layers, models
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..fb_exclusion import ForegroundBackgroundExclusionLoss
 from ..fb_exclusion import foreground_background_exclusion_loss
 
@@ -9,11 +10,11 @@ from ..fb_exclusion import foreground_background_exclusion_loss
 class TestForegroundBackgroundExclusionLoss(keras_parameterized.TestCase):
     def test_config(self):
         bce_obj = ForegroundBackgroundExclusionLoss(
-            reduction=tf.keras.losses.Reduction.NONE,
+            reduction=Reduction.NONE,
             name='loss1'
         )
         self.assertEqual(bce_obj.name, 'loss1')
-        self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, Reduction.NONE)
 
     def test_zeros(self):
         f_pred = tf.constant([[
@@ -142,7 +143,7 @@ class TestForegroundBackgroundExclusionLoss(keras_parameterized.TestCase):
             1.4, 9.2, 5.7, 8.9, 9.5, 0.4, 3.3, 7.7, 0.2, 5.6, 9.5, 6.4, 0.5, 0.0, 3.2, 3.1
         ], 'float32', shape=(1, 32, 32, 1))
 
-        loss = ForegroundBackgroundExclusionLoss(reduction=tf.keras.losses.Reduction.SUM)
+        loss = ForegroundBackgroundExclusionLoss(reduction=Reduction.SUM)
         result = self.evaluate(loss(f_pred, b_pred)).item()
 
         self.assertAlmostEqual(result, 0.6591184578825429, places=7)
@@ -160,7 +161,7 @@ class TestForegroundBackgroundExclusionLoss(keras_parameterized.TestCase):
         b_pred = tf.image.flip_left_right(f_pred)
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = ForegroundBackgroundExclusionLoss(reduction=tf.keras.losses.Reduction.SUM, levels=2)
+        loss = ForegroundBackgroundExclusionLoss(reduction=Reduction.SUM, levels=2)
 
         result = self.evaluate(loss(f_pred, b_pred)).item()
         self.assertAlmostEqual(result, 1.4083517789840698, places=7)
@@ -172,16 +173,16 @@ class TestForegroundBackgroundExclusionLoss(keras_parameterized.TestCase):
         f_pred = np.random.rand(2, 32, 32, 1).astype('float32')
         b_pred = np.random.rand(2, 32, 32, 1).astype('float32')
 
-        loss = ForegroundBackgroundExclusionLoss(reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
+        loss = ForegroundBackgroundExclusionLoss(reduction=Reduction.SUM_OVER_BATCH_SIZE)
         res0 = self.evaluate(loss(f_pred, b_pred))
         res1 = sum([self.evaluate(loss(f_pred[i:i + 1], b_pred[i:i + 1])) for i in range(2)]) / 2
 
         self.assertAlmostEqual(res0, res1, places=6)
 
     def test_keras_model_compile(self):
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(5)]
+        model = models.Sequential([
+            layers.Input(shape=(100,)),
+            layers.Dense(5)]
         )
         model.compile(loss='SegMe>foreground_background_exclusion_loss')
 

@@ -1,10 +1,11 @@
-from tensorflow.keras import Sequential, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .atsepconv import AtrousSepConv
 from ...common import resize_by_sample, ConvBnRelu
 
 
-@utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
+@register_keras_serializable(package='SegMe>DeepLabV3Plus')
 class Decoder(layers.Layer):
     def __init__(self, low_filters, decoder_filters, **kwargs):
         super().__init__(**kwargs)

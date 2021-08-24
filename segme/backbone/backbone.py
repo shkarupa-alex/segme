@@ -1,10 +1,11 @@
-from tensorflow.keras import backend as K, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import backend, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from . import core
 from . import port
 
 
-@utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class Backbone(layers.Layer):
     _scales = [1, 2, 4, 8, 16, 32]
     _config = {
@@ -14,7 +15,7 @@ class Backbone(layers.Layer):
         # "output stride".
 
         # ======================================================================
-        #                   tf.keras.applications
+        #                   applications
         # ======================================================================
 
         # MobileNet
@@ -324,7 +325,7 @@ class Backbone(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        if 'channels_last' != K.image_data_format():
+        if 'channels_last' != backend.image_data_format():
             raise ValueError('Only NHWC mode (channels last) supported')
 
         channel_size = input_shape[-1]

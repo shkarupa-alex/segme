@@ -1,12 +1,12 @@
-import tensorflow as tf
-from tensorflow.keras import Model, Sequential, layers, utils
-from tensorflow.python.keras.utils.control_flow_util import smart_cond
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import backend, layers, models
+from keras.utils.control_flow_util import smart_cond
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .model import DeepLabV3Plus
 from ...common import resize_by_sample, resize_by_scale, ConvBnRelu
 
 
-@utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
+@register_keras_serializable(package='SegMe>DeepLabV3Plus')
 class DeepLabV3PlusWithHierarchicalAttention(DeepLabV3Plus):
     """ Reference: https://arxiv.org/pdf/2005.10821.pdf """
 
@@ -24,7 +24,7 @@ class DeepLabV3PlusWithHierarchicalAttention(DeepLabV3Plus):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.attn = Sequential([
+        self.attn = models.Sequential([
             ConvBnRelu(256, 3, use_bias=False),
             ConvBnRelu(256, 3, use_bias=False),
             layers.Conv2D(2, kernel_size=1, padding='same', use_bias=False, activation='sigmoid')
@@ -34,7 +34,7 @@ class DeepLabV3PlusWithHierarchicalAttention(DeepLabV3Plus):
 
     def call(self, inputs, training=None, **kwargs):
         if training is None:
-            training = tf.keras.backend.learning_phase()
+            training = backend.learning_phase()
 
         outputs = smart_cond(
             training,
@@ -117,6 +117,6 @@ def build_deeplab_v3_plus_with_hierarchical_attention(
         classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,
         aspp_stride=aspp_stride, low_filters=low_filters, decoder_filters=decoder_filters,
         train_scales=train_scales, eval_scales=eval_scales)(inputs)
-    model = Model(inputs=inputs, outputs=outputs, name='deeplab_v3_plus_with_hierarchical_attention')
+    model = models.Model(inputs=inputs, outputs=outputs, name='deeplab_v3_plus_with_hierarchical_attention')
 
     return model

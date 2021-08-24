@@ -1,11 +1,13 @@
 import tensorflow as tf
-from tensorflow.keras import Model, layers, losses, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Model, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras.utils.tf_utils import shape_type_conversion
 from .model import DeepLabV3Plus
-from ...common import HeadProjection, PointRend, PointLoss
+from ...common import PointRend, PointLoss
 
 
-@utils.register_keras_serializable(package='SegMe>DeepLabV3Plus')
+@register_keras_serializable(package='SegMe>DeepLabV3Plus')
 class DeepLabV3PlusWithPointRend(DeepLabV3Plus):
     def __init__(
             self, classes, bone_arch, bone_init, bone_train, aspp_filters, aspp_stride, low_filters, decoder_filters,
@@ -61,7 +63,7 @@ class DeepLabV3PlusWithPointRend(DeepLabV3Plus):
 def build_deeplab_v3_plus_with_point_rend(
         classes, bone_arch, bone_init, bone_train, rend_weights, aspp_filters=256, aspp_stride=32,
         low_filters=48, decoder_filters=256, rend_strides=(2,), rend_units=(256, 256, 256), rend_points=(0.008, 0.06),
-        rend_oversample=3, rend_importance=0.75, rend_corners=True, rend_reduction=losses.Reduction.AUTO):
+        rend_oversample=3, rend_importance=0.75, rend_corners=True, rend_reduction=Reduction.AUTO):
     model_inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
 
     rend_inputs = [layers.Input(name='label', shape=[None, None, 1], dtype='int32')]

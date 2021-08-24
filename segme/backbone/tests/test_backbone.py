@@ -1,6 +1,6 @@
 import tensorflow as tf
 from absl.testing import parameterized
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized
 from ..backbone import Backbone
 from ...testing_utils import layer_multi_io_test
 

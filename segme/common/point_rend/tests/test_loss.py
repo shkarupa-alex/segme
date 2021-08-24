@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.losses import Reduction
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized
+from keras.mixed_precision import policy as mixed_precision
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..loss import PointLoss
 from ....testing_utils import layer_multi_io_test
 
@@ -10,11 +11,11 @@ from ....testing_utils import layer_multi_io_test
 class TestPointLoss(keras_parameterized.TestCase):
     def setUp(self):
         super(TestPointLoss, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.experimental.global_policy()
+        self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
         super(TestPointLoss, self).tearDown()
-        tf.keras.mixed_precision.experimental.set_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         outputs = layer_multi_io_test(
@@ -46,7 +47,7 @@ class TestPointLoss(keras_parameterized.TestCase):
         )
         self.assertTrue(np.all(outputs >= 0.))
 
-        tf.keras.mixed_precision.experimental.set_policy('mixed_float16')
+        mixed_precision.set_policy('mixed_float16')
         outputs = layer_multi_io_test(
             PointLoss,
             kwargs={'classes': 5, 'weighted': True, 'reduction': Reduction.NONE},

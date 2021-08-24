@@ -1,9 +1,10 @@
-from tensorflow.keras import Sequential, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import Sequential, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from ...common import resize_by_sample
 
 
-@utils.register_keras_serializable(package='SegMe>CascadePSP')
+@register_keras_serializable(package='SegMe>CascadePSP')
 class Upsample(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)

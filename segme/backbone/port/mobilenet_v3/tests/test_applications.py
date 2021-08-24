@@ -1,5 +1,5 @@
 from absl.testing import parameterized
-from tensorflow.python.keras import backend
+from keras import backend
 from tensorflow.python.platform import test
 from ..mobilenet_v3 import MobileNetV3Small, MobileNetV3Large
 

@@ -17,6 +17,8 @@
 """Group normalization."""
 
 import tensorflow as tf
+from keras import initializers, layers
+from keras.utils.generic_utils import register_keras_serializable
 
 
 def group_normalize(x, gamma, beta, num_groups=None, group_size=None, eps=1e-5):
@@ -83,8 +85,8 @@ def group_normalize(x, gamma, beta, num_groups=None, group_size=None, eps=1e-5):
     return tf.reshape(x, orig_shape)
 
 
-@tf.keras.utils.register_keras_serializable(package='SegMe>Backbone>BigTransfer')
-class GroupNormalization(tf.keras.layers.Layer):
+@register_keras_serializable(package='SegMe>Backbone>BigTransfer')
+class GroupNormalization(layers.Layer):
     """A group-norm "layer" (see abs/1803.08494 go/dune-gn).
 
     This function creates beta/gamma variables in a name_scope, and uses them to
@@ -114,7 +116,7 @@ class GroupNormalization(tf.keras.layers.Layer):
           eps: float, a small additive constant to avoid /sqrt(0).
           beta_init: initializer for bias, defaults to zeros.
           gamma_init: initializer for scale, defaults to ones.
-          **kwargs: other tf.keras.layers.Layer arguments.
+          **kwargs: other layers.Layer arguments.
         """
         super(GroupNormalization, self).__init__(**kwargs)
         if num_groups is None and group_size is None:
@@ -123,8 +125,8 @@ class GroupNormalization(tf.keras.layers.Layer):
         self._num_groups = num_groups
         self._group_size = group_size
         self._eps = eps
-        self._beta_init = tf.keras.initializers.get(beta_init)
-        self._gamma_init = tf.keras.initializers.get(gamma_init)
+        self._beta_init = initializers.get(beta_init)
+        self._gamma_init = initializers.get(gamma_init)
 
     def build(self, input_size):
         channels = input_size[-1]
@@ -150,8 +152,8 @@ class GroupNormalization(tf.keras.layers.Layer):
             'num_groups': self._num_groups,
             'group_size': self._group_size,
             'eps': self._eps,
-            'beta_init': tf.keras.initializers.serialize(self._beta_init),
-            'gamma_init': tf.keras.initializers.serialize(self._gamma_init)
+            'beta_init': initializers.serialize(self._beta_init),
+            'gamma_init': initializers.serialize(self._gamma_init)
         })
 
         return config

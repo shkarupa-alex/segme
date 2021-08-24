@@ -1,9 +1,10 @@
 import tensorflow as tf
-from tensorflow.keras import initializers, layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import initializers, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class HeadProjection(layers.Layer):
     def __init__(self, classes, kernel_size=1, kernel_initializer='glorot_uniform', **kwargs):
         super().__init__(**kwargs)
@@ -40,7 +41,7 @@ class HeadProjection(layers.Layer):
         return config
 
 
-@utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class HeadActivation(layers.Layer):
     def __init__(self, classes, **kwargs):
         super().__init__(**kwargs)
@@ -73,7 +74,7 @@ class HeadActivation(layers.Layer):
         return config
 
 
-@utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class ClassificationHead(layers.Layer):
     def __init__(self, classes, kernel_size=1, kernel_initializer='glorot_uniform', **kwargs):
         super().__init__(**kwargs)

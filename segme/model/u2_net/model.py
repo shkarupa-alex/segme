@@ -1,7 +1,8 @@
 import tensorflow as tf
-from tensorflow.keras import Model, layers, utils
-from tensorflow.keras.applications.imagenet_utils import preprocess_input
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers, models
+from keras.applications.imagenet_utils import preprocess_input
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from .rsu7 import RSU7
 from .rsu6 import RSU6
 from .rsu5 import RSU5
@@ -10,7 +11,7 @@ from .rsu4f import RSU4F
 from ...common import HeadProjection, HeadActivation, ClassificationHead, resize_by_sample
 
 
-@utils.register_keras_serializable(package='SegMe>U2Net')
+@register_keras_serializable(package='SegMe>U2Net')
 class U2Net(layers.Layer):
     """ Reference: https://arxiv.org/pdf/2005.09007.pdf """
 
@@ -144,7 +145,7 @@ class U2Net(layers.Layer):
         return config
 
 
-@utils.register_keras_serializable(package='SegMe>U2Net')
+@register_keras_serializable(package='SegMe>U2Net')
 class U2NetP(layers.Layer):
     """ Reference: https://arxiv.org/pdf/2005.09007.pdf """
 
@@ -280,7 +281,7 @@ class U2NetP(layers.Layer):
 def build_u2_net(classes):
     inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = U2Net(classes)(inputs)
-    model = Model(inputs=inputs, outputs=outputs, name='u2_net')
+    model = models.Model(inputs=inputs, outputs=outputs, name='u2_net')
 
     return model
 
@@ -288,6 +289,6 @@ def build_u2_net(classes):
 def build_u2_netp(classes):
     inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = U2NetP(classes)(inputs)
-    model = Model(inputs=inputs, outputs=outputs, name='u2_netp')
+    model = models.Model(inputs=inputs, outputs=outputs, name='u2_netp')
 
     return model

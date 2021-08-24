@@ -16,15 +16,11 @@ We made a few more changes on top of MSRA's modifications:
  Andrew G. Howard, Menglong Zhu, Bo Chen, Dmitry Kalenichenko, Weijun Wang, Tobias Weyand, Marco Andreetto, Hartwig Adam
  https://arxiv.org/abs/1704.04861
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from tensorflow.python.keras import backend
-from tensorflow.python.keras.applications import imagenet_utils
-from tensorflow.python.keras.engine import training
-from tensorflow.python.keras.layers import VersionAwareLayers
-from tensorflow.python.keras.utils import layer_utils
+from keras import backend
+from keras.applications import imagenet_utils
+from keras.engine import training
+from keras.layers import VersionAwareLayers
+from keras.utils import layer_utils
 from tensorflow.python.lib.io import file_io
 
 layers = VersionAwareLayers()

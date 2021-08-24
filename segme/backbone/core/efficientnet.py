@@ -1,4 +1,4 @@
-from tensorflow.python.keras.applications import efficientnet
+from keras.applications import efficientnet
 from functools import partial
 from ..utils import wrap_bone
 

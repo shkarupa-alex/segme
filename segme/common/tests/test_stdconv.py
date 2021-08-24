@@ -1,6 +1,5 @@
-import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import keras_parameterized, testing_utils
 from ..stdconv import StandardizedConv2D
 
 

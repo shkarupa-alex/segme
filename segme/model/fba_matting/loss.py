@@ -1,4 +1,4 @@
-from tensorflow.keras.losses import MeanAbsoluteError
+from keras.losses import MeanAbsoluteError
 from ...loss import WeightedLossFunctionWrapper
 from ...loss import ForegroundBackgroundExclusionLoss, GradientMeanSquaredError, LaplacianPyramidLoss
 

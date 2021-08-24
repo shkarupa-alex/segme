@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized, layers, models
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..sobel_edge import SobelEdgeLoss
 from ..sobel_edge import sobel_edge_loss
 
@@ -15,11 +16,11 @@ def _to_logit(prob):
 class TestSobelEdgeLoss(keras_parameterized.TestCase):
     def test_config(self):
         bce_obj = SobelEdgeLoss(
-            reduction=tf.keras.losses.Reduction.NONE,
+            reduction=Reduction.NONE,
             name='loss1'
         )
         self.assertEqual(bce_obj.name, 'loss1')
-        self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, Reduction.NONE)
 
     def test_zeros(self):
         probs = tf.constant([[
@@ -57,7 +58,7 @@ class TestSobelEdgeLoss(keras_parameterized.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = SobelEdgeLoss(from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
+        loss = SobelEdgeLoss(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
         self.assertAlmostEqual(result, 8.756433486938477, places=7)
@@ -108,9 +109,9 @@ class TestSobelEdgeLoss(keras_parameterized.TestCase):
         ]])
 
     def test_keras_model_compile(self):
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(5, activation='sigmoid')]
+        model = models.Sequential([
+            layers.Input(shape=(100,)),
+            layers.Dense(5, activation='sigmoid')]
         )
         model.compile(loss='SegMe>sobel_edge_loss')
 

@@ -1,4 +1,4 @@
-from tensorflow.keras.losses import MeanAbsoluteError, MeanSquaredError, BinaryCrossentropy
+from keras.losses import MeanAbsoluteError, MeanSquaredError, BinaryCrossentropy
 from ...loss import SobelEdgeLoss, WeightedLossFunctionWrapper
 
 

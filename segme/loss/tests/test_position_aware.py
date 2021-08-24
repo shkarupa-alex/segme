@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized, layers, models
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..position_aware import PixelPositionAwareLoss
 from ..position_aware import pixel_position_aware_loss
 
@@ -15,11 +16,11 @@ def _to_logit(prob):
 class TestPixelPositionAwareLoss(keras_parameterized.TestCase):
     def test_config(self):
         bce_obj = PixelPositionAwareLoss(
-            reduction=tf.keras.losses.Reduction.NONE,
+            reduction=Reduction.NONE,
             name='loss1'
         )
         self.assertEqual(bce_obj.name, 'loss1')
-        self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, Reduction.NONE)
 
     def test_zeros(self):
         probs = tf.constant([[
@@ -53,7 +54,7 @@ class TestPixelPositionAwareLoss(keras_parameterized.TestCase):
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
-        loss = PixelPositionAwareLoss(from_logits=True, reduction=tf.keras.losses.Reduction.SUM, ksize=3)
+        loss = PixelPositionAwareLoss(from_logits=True, reduction=Reduction.SUM, ksize=3)
         result = self.evaluate(loss(targets, logits)).item()
 
         self.assertAlmostEqual(result, 2.3757147789001465, places=7)
@@ -73,7 +74,7 @@ class TestPixelPositionAwareLoss(keras_parameterized.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = PixelPositionAwareLoss(from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
+        loss = PixelPositionAwareLoss(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
         self.assertAlmostEqual(result, 2.3521335124969482, places=7)
@@ -118,9 +119,9 @@ class TestPixelPositionAwareLoss(keras_parameterized.TestCase):
         self.assertAllClose(result, [0.49940788745880127])
 
     def test_keras_model_compile(self):
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(5, activation='sigmoid')]
+        model = models.Sequential([
+            layers.Input(shape=(100,)),
+            layers.Dense(5, activation='sigmoid')]
         )
         model.compile(loss='SegMe>pixel_position_aware_loss')
 

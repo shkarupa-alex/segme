@@ -1,9 +1,10 @@
 import tensorflow as tf
-from tensorflow.keras import layers, utils
-from tensorflow.python.keras.utils.tf_utils import shape_type_conversion
+from keras import layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe')
 class ResizeBySample(layers.Layer):
     def __init__(self, method=tf.image.ResizeMethod.BILINEAR, antialias=False, **kwargs):
         kwargs['autocast'] = False

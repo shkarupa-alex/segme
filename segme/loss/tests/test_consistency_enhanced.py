@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
+from keras import keras_parameterized, layers, models
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..consistency_enhanced import ConsistencyEnhancedSigmoidLoss
 from ..consistency_enhanced import consistency_enhanced_sigmoid_loss
 
@@ -15,11 +16,11 @@ def _to_logit(prob):
 class TestConsistencyEnhancedSigmoidLoss(keras_parameterized.TestCase):
     def test_config(self):
         loss = ConsistencyEnhancedSigmoidLoss(
-            reduction=tf.keras.losses.Reduction.NONE,
+            reduction=Reduction.NONE,
             name='loss1'
         )
         self.assertEqual(loss.name, 'loss1')
-        self.assertEqual(loss.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(loss.reduction, Reduction.NONE)
 
     def test_zeros(self):
         probs = tf.constant([[0.0], [0.0], [0.0]], 'float32')
@@ -44,7 +45,7 @@ class TestConsistencyEnhancedSigmoidLoss(keras_parameterized.TestCase):
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
-        loss = ConsistencyEnhancedSigmoidLoss(from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
+        loss = ConsistencyEnhancedSigmoidLoss(from_logits=True, reduction=Reduction.SUM)
         result = self.evaluate(loss(targets, logits)).item()
 
         self.assertAlmostEqual(result, 0.2696363031864166, places=7)
@@ -64,7 +65,7 @@ class TestConsistencyEnhancedSigmoidLoss(keras_parameterized.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = ConsistencyEnhancedSigmoidLoss(from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
+        loss = ConsistencyEnhancedSigmoidLoss(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
         self.assertAlmostEqual(result, 0.269636332988739, places=7)
@@ -91,9 +92,9 @@ class TestConsistencyEnhancedSigmoidLoss(keras_parameterized.TestCase):
         self.assertAllClose(result, [0.00869564, 0.1594203, 0.00869564])
 
     def test_keras_model_compile(self):
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(5, activation='sigmoid')]
+        model = models.Sequential([
+            layers.Input(shape=(100,)),
+            layers.Dense(5, activation='sigmoid')]
         )
         model.compile(loss='SegMe>consistency_enhanced_sigmoid_loss')
 
