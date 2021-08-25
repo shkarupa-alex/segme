@@ -12,10 +12,8 @@ class Twomap(layers.Layer):
         self.input_spec = layers.InputSpec(ndim=4, axes={-1: 1}, dtype='uint8')  # trimap
 
     def call(self, inputs, **kwargs):
-        twomap = layers.concatenate([
-            tf.cast(inputs == 0, self.compute_dtype),
-            tf.cast(inputs == 255, self.compute_dtype)
-        ], axis=-1)
+        twomap = layers.concatenate([inputs == 0, inputs == 255], axis=-1)
+        twomap = tf.cast(twomap, self.compute_dtype)
 
         return twomap
 

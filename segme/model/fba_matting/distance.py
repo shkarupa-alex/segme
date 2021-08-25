@@ -16,7 +16,7 @@ class Distance(layers.Layer):
         clicks = []
         for channel in range(2):
             restored = tf.cast((1. - inputs[..., channel:channel + 1]) * 255., 'uint8')
-            distance = -euclidean_dist_transform(restored, dtype=self.compute_dtype) ** 2
+            distance = -euclidean_dist_transform(restored) ** 2
             clicks.extend([
                 tf.exp(distance / (2 * (0.02 * self.length) ** 2)),
                 tf.exp(distance / (2 * (0.08 * self.length) ** 2)),
@@ -24,6 +24,8 @@ class Distance(layers.Layer):
             ])
 
         clicks = tf.concat(clicks, axis=-1)
+        # TODO: revert after https://github.com/tensorflow/addons/issues/2549
+        clicks = tf.cast(clicks, dtype=self.compute_dtype)
 
         return clicks
 
