@@ -18,28 +18,6 @@ class Backbone(layers.Layer):
         #                   applications
         # ======================================================================
 
-        # MobileNet
-        'mobilenet': (core.MobileNet, (
-            # sm
-            None, 'conv_pw_1_relu', 'conv_pw_3_relu',
-            'conv_pw_5_relu', 'conv_pw_11_relu', 'conv_pw_13_relu'
-        )),
-        'mobilenet_dw': (core.MobileNet, (
-            None, 'conv_dw_1_relu', 'conv_dw_3_relu',
-            'conv_dw_5_relu', 'conv_dw_11_relu', 'conv_dw_13_relu'
-        )),
-        'mobilenet_v2': (core.MobileNetV2, (
-            # sm
-            None, 'block_1_expand_relu', 'block_3_expand_relu',
-            'block_6_expand_relu', 'block_13_expand_relu', 'out_relu'
-        )),
-        'mobilenet_v2_dw': (core.MobileNetV2, (
-            # deeplab
-            None, 'expanded_conv_depthwise_relu', 'block_2_depthwise_relu',
-            'block_5_depthwise_relu', 'block_12_depthwise_relu',
-            'block_16_depthwise_relu'  # block_16_project_BN in deeplab
-        )),
-
         # DenseNet
         'densenet121': (core.DenseNet121, (
             # sm
@@ -143,6 +121,48 @@ class Backbone(layers.Layer):
             None, 'block2_sepconv2_bn', 'block3_sepconv2_bn',
             'block4_sepconv2_bn', 'block13_sepconv2_bn', 'block14_sepconv2_act'
         )),  # scales shape mismatch
+
+        # MobileNet
+        'mobilenet': (core.MobileNet, (
+            # sm
+            None, 'conv_pw_1_relu', 'conv_pw_3_relu',
+            'conv_pw_5_relu', 'conv_pw_11_relu', 'conv_pw_13_relu'
+        )),
+        'mobilenet_dw': (core.MobileNet, (
+            None, 'conv_dw_1_relu', 'conv_dw_3_relu',
+            'conv_dw_5_relu', 'conv_dw_11_relu', 'conv_dw_13_relu'
+        )),
+        'mobilenet_v2': (core.MobileNetV2, (
+            # sm
+            None, 'block_1_expand_relu', 'block_3_expand_relu',
+            'block_6_expand_relu', 'block_13_expand_relu', 'out_relu'
+        )),
+        'mobilenet_v2_dw': (core.MobileNetV2, (
+            # deeplab
+            None, 'expanded_conv_depthwise_relu', 'block_2_depthwise_relu',
+            'block_5_depthwise_relu', 'block_12_depthwise_relu',
+            'block_16_depthwise_relu'  # block_16_project_BN in deeplab
+        )),
+        'mobilenet_v3_small': (core.MobileNetV3Small, (
+            # None, 'multiply', 're_lu_3', 'multiply_1', 'multiply_11',
+            # 'multiply_17'
+            None, 7, 24, 45, 159, 228
+        )),
+        'mobilenet_v3_small_dw': (core.MobileNetV3Small, (
+            # None, 'multiply', 'expanded_conv/project/BatchNorm',
+            # 'expanded_conv_2/Add', 'expanded_conv_7/Add', 'multiply_17'
+            None, 7, 21, 39, 153, 228
+        )),
+        'mobilenet_v3_large': (core.MobileNetV3Large, (
+            # None, 're_lu_2', 're_lu_6', 'multiply_1', 'multiply_13',
+            # 'multiply_19'
+            None, 16, 34, 88, 193, 262
+        )),
+        'mobilenet_v3_large_dw': (core.MobileNetV3Large, (
+            # None, 'expanded_conv/Add', 'expanded_conv_2/Add',
+            # 'expanded_conv_5/Add', 'expanded_conv_11/Add', 'multiply_19'
+            None, 13, 31, 82, 187, 262
+        )),
 
         # NASNet
         # 'nasnetlarge': unable to find right nodes in tree
@@ -273,29 +293,6 @@ class Backbone(layers.Layer):
         )),
         'bit_m_r152x4': (port.BiT_M_R152x4, (
             None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
-        )),
-
-        'mobilenet_v3_small': (port.MobileNetV3Small, (
-            # None, 'activation', 'activation_2', 'activation_6',
-            # 'activation_16', 'activation_22'
-            None, 4, 20, 38, 117, 165
-        )),
-        'mobilenet_v3_small_dw': (port.MobileNetV3Small, (
-            # deeplab
-            # None, 'activation', 'activation_1', 'activation_5',
-            # 'activation_15', 'activation_21'
-            None, 4, 8, 32, 104, 152
-        )),
-        'mobilenet_v3_large': (port.MobileNetV3Large, (
-            # None, 'activation_2', 'activation_6', 'activation_12',
-            # 'activation_24', 'activation_30'
-            None, 13, 31, 79, 146, 194
-        )),
-        'mobilenet_v3_large_dw': (port.MobileNetV3Large, (
-            # deeplab
-            # None, 'activation_1', 'activation_5', 'activation_11',
-            # 'activation_23', 'activation_29'
-            None, 7, 25, 66, 133, 181
         )),
 
         # NASNet
