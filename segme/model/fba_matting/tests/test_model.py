@@ -21,7 +21,7 @@ class TestFBAMatting(keras_parameterized.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             FBAMatting,
-            kwargs={'pool_scales': (1, 2, 3, 6)},
+            kwargs={'bone_arch': 'bit_m_r50x1_stride_8', 'bone_init': 'imagenet', 'pool_scales': (1, 2, 3, 6)},
             input_shapes=[(2, 128, 128, 3), (2, 128, 128, 1)],
             input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 128, 128, 7), (None, 128, 128, 1), (None, 128, 128, 3), (None, 128, 128, 3)],
@@ -31,7 +31,7 @@ class TestFBAMatting(keras_parameterized.TestCase):
         mixed_precision.set_policy('mixed_float16')
         layer_multi_io_test(
             FBAMatting,
-            kwargs={'pool_scales': (1, 2, 3, 6)},
+            kwargs={'bone_arch': 'bit_m_r50x1_stride_8', 'bone_init': 'imagenet', 'pool_scales': (1, 2, 3, 6)},
             input_shapes=[(2, 128, 128, 3), (2, 128, 128, 1)],
             input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 128, 128, 7), (None, 128, 128, 1), (None, 128, 128, 3), (None, 128, 128, 3)],
@@ -39,7 +39,7 @@ class TestFBAMatting(keras_parameterized.TestCase):
         )
 
     def test_model(self):
-        model = build_fba_matting(psp_sizes=(1, 2, 3, 6))
+        model = build_fba_matting()
         model.compile(
             optimizer='sgd', loss=['mse', None, None, None],
             run_eagerly=testing_utils.should_run_eagerly())

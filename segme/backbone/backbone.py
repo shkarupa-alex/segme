@@ -282,6 +282,9 @@ class Backbone(layers.Layer):
         'bit_m_r50x1': (port.BiT_M_R50x1, (
             None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),
+        'bit_m_r50x1_stride_8': (port.BiT_M_R50x1Stride8, (
+            None, 'standardized_conv2d', 'block1_out', 'block4_out', None, None
+        )),
         'bit_m_r50x3': (port.BiT_M_R50x3, (
             None, 'standardized_conv2d', 'block1_out', 'block2_out', 'block3_out', 'block4_out'
         )),

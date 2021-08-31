@@ -7,7 +7,8 @@ from ...testing_utils import layer_multi_io_test
 _CUSTOM_TESTS = {
     'inception_v3', 'inception_resnet_v2', 'xception', 'vgg_16', 'vgg_19',
     'aligned_xception_41_stride_16', 'aligned_xception_65_stride_16', 'aligned_xception_71_stride_16',
-    'aligned_xception_41_stride_8', 'aligned_xception_65_stride_8', 'aligned_xception_71_stride_8'}
+    'aligned_xception_41_stride_8', 'aligned_xception_65_stride_8', 'aligned_xception_71_stride_8',
+    'bit_m_r50x1_stride_8'}
 _DEFAULT_TEST = set(Backbone._config.keys()) - _CUSTOM_TESTS
 _DEFAULT_IMAGENET_TEST = _DEFAULT_TEST - {'aligned_xception_41', 'aligned_xception_65', 'aligned_xception_71'}
 
@@ -198,36 +199,12 @@ class TestBackbone(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 5
         )
 
-    def test_layer_aligned_xception_stride_16_trainable(self):
+    @parameterized.parameters([
+        'aligned_xception_41_stride_16', 'aligned_xception_65_stride_16', 'aligned_xception_71_stride_16'])
+    def test_layer_aligned_xception_stride_16_trainable(self, ae_arch):
         layer_multi_io_test(
             Backbone,
-            kwargs={'arch': 'aligned_xception_41_stride_16', 'init': None, 'trainable': True},
-            input_shapes=[(2, 224, 224, 3)],
-            input_dtypes=['uint8'],
-            expected_output_shapes=[
-                (None, 112, 112, None),
-                (None, 56, 56, None),
-                (None, 28, 28, None),
-                (None, 14, 14, None)
-            ],
-            expected_output_dtypes=['float32'] * 4
-        )
-        layer_multi_io_test(
-            Backbone,
-            kwargs={'arch': 'aligned_xception_65_stride_16', 'init': None, 'trainable': True},
-            input_shapes=[(2, 224, 224, 3)],
-            input_dtypes=['uint8'],
-            expected_output_shapes=[
-                (None, 112, 112, None),
-                (None, 56, 56, None),
-                (None, 28, 28, None),
-                (None, 14, 14, None)
-            ],
-            expected_output_dtypes=['float32'] * 4
-        )
-        layer_multi_io_test(
-            Backbone,
-            kwargs={'arch': 'aligned_xception_71_stride_16', 'init': None, 'trainable': True},
+            kwargs={'arch': ae_arch, 'init': None, 'trainable': True},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
             expected_output_shapes=[
@@ -239,10 +216,12 @@ class TestBackbone(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 4
         )
 
-    def test_layer_aligned_xception_stride_8_trainable(self):
+    @parameterized.parameters([
+        'aligned_xception_41_stride_8', 'aligned_xception_65_stride_8', 'aligned_xception_71_stride_8'])
+    def test_layer_aligned_xception_stride_8_trainable(self, ae_arch):
         layer_multi_io_test(
             Backbone,
-            kwargs={'arch': 'aligned_xception_41_stride_8', 'init': None, 'trainable': True},
+            kwargs={'arch': ae_arch, 'init': None, 'trainable': True},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
             expected_output_shapes=[
@@ -252,27 +231,33 @@ class TestBackbone(keras_parameterized.TestCase):
             ],
             expected_output_dtypes=['float32'] * 3
         )
+
+    @parameterized.parameters(['bit_m_r50x1_stride_8'])
+    def test_layer_bit_stride_8_trainable(self, bit_arch):
         layer_multi_io_test(
             Backbone,
-            kwargs={'arch': 'aligned_xception_65_stride_8', 'init': None, 'trainable': True},
+            kwargs={'arch': bit_arch, 'init': None, 'trainable': True},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
             expected_output_shapes=[
-                (None, 112, 112, None),
-                (None, 56, 56, None),
-                (None, 28, 28, None)
+                (None, 112, 112, 64),
+                (None, 56, 56, 256),
+                (None, 28, 28, 2048)
             ],
             expected_output_dtypes=['float32'] * 3
         )
+
+    @parameterized.parameters(['bit_m_r50x1_stride_8'])
+    def test_layer_bit_stride_8_imagenet(self, bit_arch):
         layer_multi_io_test(
             Backbone,
-            kwargs={'arch': 'aligned_xception_71_stride_8', 'init': None, 'trainable': True},
+            kwargs={'arch': bit_arch, 'init': 'imagenet', 'trainable': False},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
             expected_output_shapes=[
-                (None, 112, 112, None),
-                (None, 56, 56, None),
-                (None, 28, 28, None)
+                (None, 112, 112, 64),
+                (None, 56, 56, 256),
+                (None, 28, 28, 2048)
             ],
             expected_output_dtypes=['float32'] * 3
         )

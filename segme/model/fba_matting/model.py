@@ -5,25 +5,26 @@ from keras.utils.tf_utils import shape_type_conversion
 from .decoder import Decoder
 from .distance import Distance
 from .fusion import Fusion
-from .resnet import ResNet50
+from .encoder import Encoder
 from .twomap import Twomap
-from ...backbone.port.big_transfer import preprocess_input
 
 
 @register_keras_serializable(package='SegMe>FBAMatting')
 class FBAMatting(layers.Layer):
-    def __init__(self, pool_scales, **kwargs):
+    def __init__(self, bone_arch, bone_init, pool_scales, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             layers.InputSpec(ndim=4, axes={-1: 3}, dtype='uint8'),  # image
             layers.InputSpec(ndim=4, axes={-1: 1}, dtype='uint8'),  # trimap
         ]
         self.pool_scales = pool_scales
+        self.bone_arch = bone_arch
+        self.bone_init = bone_init
 
     def build(self, input_shape):
         self.twomap = Twomap()
         self.distance = Distance()
-        self.encoder = ResNet50()
+        self.encoder = Encoder(self.bone_arch, self.bone_init)
         self.decoder = Decoder(self.pool_scales)
         self.fusion = Fusion()
 
@@ -31,25 +32,22 @@ class FBAMatting(layers.Layer):
 
     def call(self, inputs, **kwargs):
         image, trimap = inputs  # TODO: scale to multiple of 8?
-        image = tf.cast(image, self.compute_dtype)
-
-        imnorm = preprocess_input(image)
         twomap = self.twomap(trimap)  # [0; 1]
         distance = self.distance(twomap)  # [0; 1]
 
         # Rescale twomap and distance to match preprocessed image
         featraw = layers.concatenate([
-            imnorm,  # [-1.; 1.]
-            twomap * 2 - 1,  # Same scale as  imnorm
-            distance * 2 - 1  # Same scale as  imnorm
+            image,
+            tf.cast(twomap * 255., 'uint8'),  # Same scale as  image
+            tf.cast(tf.round(distance * 255.), 'uint8')  # Same scale as  image
         ], axis=-1)
         feats2, feats4, feats32 = self.encoder(featraw)
 
-        imscal = image / 255.  # Same scale as twomap, alpha, foreground and background
+        imscal = tf.cast(image, self.compute_dtype) / 255.  # Same scale as twomap, alpha, foreground and background
         alfgbg = self.decoder([feats2, feats4, feats32, imscal, twomap])
 
         alpha, foreground, background = self.fusion([imscal, alfgbg])  # TODO: try twice?
-        alpha = tf.round(alpha * 255.)
+        alpha = tf.round(alpha * 255.)  # TODO: cast?
         foreground = tf.round(foreground * 255.)
         background = tf.round(background * 255.)
 
@@ -69,17 +67,21 @@ class FBAMatting(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({'pool_scales': self.pool_scales})
+        config.update({
+            'bone_arch': self.bone_arch,
+            'bone_init': self.bone_init,
+            'pool_scales': self.pool_scales,
+        })
 
         return config
 
 
-def build_fba_matting(psp_sizes=(1, 2, 3, 6)):
+def build_fba_matting(bone_arch='bit_m_r50x1_stride_8', bone_init='imagenet', psp_sizes=(1, 2, 3, 6)):
     inputs = [
         layers.Input(name='image', shape=[None, None, 3], dtype='uint8'),
         layers.Input(name='trimap', shape=[None, None, 1], dtype='uint8'),
     ]
-    outputs = FBAMatting(psp_sizes)(inputs)
+    outputs = FBAMatting(bone_arch, bone_init, psp_sizes)(inputs)
     model = models.Model(inputs=inputs, outputs=outputs, name='fba_matting')
 
     return model
