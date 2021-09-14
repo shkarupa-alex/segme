@@ -3,7 +3,22 @@ import tensorflow as tf
 from keras import keras_parameterized, layers, models
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..laplacian_pyramid import LaplacianPyramidLoss
-from ..laplacian_pyramid import laplacian_pyramid_loss
+from ..laplacian_pyramid import _gauss_kernel, laplacian_pyramid_loss
+
+
+@keras_parameterized.run_all_keras_modes
+class TestGaussKernel(keras_parameterized.TestCase):
+    def test_value(self):
+        # Differs from https://gist.github.com/MarcoForte/a07c40a2b721739bb5c5987671aa5270#file-laplacian_loss-py-L7
+        # expected = np.array(
+        #     [[1, 4, 6, 4, 1], [4, 16, 24, 16, 4], [6, 24, 36, 24, 6], [4, 16, 24, 16, 4], [1, 4, 6, 4, 1]], 'uint8')
+        expected = np.array(
+            [[1, 4, 6, 4, 1], [4, 15, 24, 15, 4], [6, 24, 38, 24, 6], [4, 15, 24, 15, 4], [1, 4, 6, 4, 1]], 'uint8')
+
+        result = _gauss_kernel(5, 1.056)
+        result = np.round(result * 256).astype('uint8')
+
+        self.assertTrue(np.all(expected == result))
 
 
 @keras_parameterized.run_all_keras_modes
@@ -143,12 +158,11 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
             1.4, 9.2, 5.7, 8.9, 9.5, 0.4, 3.3, 7.7, 0.2, 5.6, 9.5, 6.4, 0.5, 0.0, 3.2, 3.1
         ], 'float32', shape=(1, 32, 32, 1))
 
-        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=5, size=5, sigma=2.0)
+        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=4, size=5, sigma=1.056)
         result = self.evaluate(result).item()
 
-        # self.assertAllClose(result, 3.398733139038086) # ^ 2*i
-        # self.assertAllClose(result, 3.9416346549987793)  # ^ 2*i without scaling factor
-        self.assertAllClose(result, 0.9663101434707642)
+        # self.assertAllClose(result, 6.944647789001465) # FBA
+        self.assertAllClose(result, 1.5281223058700562)
 
     def test_weight_4d(self):
         logits = tf.constant([
@@ -165,13 +179,13 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=2)
+        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 4.413858413696289, places=7)
+        self.assertAlmostEqual(result, 9.284266471862793, places=7)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 0.7954950332641602, places=7)
+        self.assertAlmostEqual(result, 3.8828001022338867, places=7)
 
     def test_channels_3_weighted(self):
         logits = tf.constant([
@@ -190,14 +204,14 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
              [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'int32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=2)
+        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 0.8450185060501099, places=7)
+        self.assertAlmostEqual(result, 3.6001851558685303, places=7)
 
     def test_batch(self):
-        probs = np.random.rand(2, 32, 32, 1).astype('float32')
-        targets = (np.random.rand(2, 32, 32, 1) > 0.5).astype('int32')
+        probs = np.random.rand(2, 128, 128, 3).astype('float32')
+        targets = (np.random.rand(2, 128, 128, 3) > 0.5).astype('int32')
 
         loss = LaplacianPyramidLoss(reduction=Reduction.SUM_OVER_BATCH_SIZE)
         res0 = self.evaluate(loss(targets, probs))
