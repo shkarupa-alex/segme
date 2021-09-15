@@ -109,6 +109,7 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
             kernel_wght = np.tile(kernel, (1, 1, channels_wght, 1))
             kernel_wght = tf.constant(kernel_wght, y_pred.dtype)
             pyr_wght = _laplacian_pyramid(sample_weight, levels, kernel_wght)
+            pyr_wght = [tf.stop_gradient(pw) for pw in pyr_wght]
             losses = [tf.abs(_true - _pred) * _wght for _true, _pred, _wght in zip(pyr_true, pyr_pred, pyr_wght)]
 
         axis_hwc = list(range(1, y_pred.shape.ndims))

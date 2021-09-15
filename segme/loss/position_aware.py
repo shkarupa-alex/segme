@@ -31,6 +31,7 @@ def pixel_position_aware_loss(y_true, y_pred, sample_weight, from_logits, gamma,
         weight = 1 + gamma * tf.abs(tf.nn.avg_pool2d(y_true, ksize=ksize, strides=1, padding='SAME') - y_true)
         if sample_weight is not None:
             weight *= sample_weight
+        weight = tf.stop_gradient(weight)
 
         bce = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
         wbce = tf.reduce_sum(weight * bce, axis=[1, 2]) / tf.reduce_sum(weight, axis=[1, 2])

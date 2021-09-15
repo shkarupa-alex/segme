@@ -37,6 +37,7 @@ def gradient_mean_squared_error(y_true, y_pred, sigma):
 
         pred_amp = tf.sqrt(y_pred_x ** 2 + y_pred_y ** 2 + epsilon)
         true_amp = tf.sqrt(y_true_x ** 2 + y_true_y ** 2 + epsilon)
+        true_amp = tf.stop_gradient(true_amp)
 
         loss = tf.math.squared_difference(pred_amp, true_amp)
         loss = tf.reduce_mean(loss, axis=-1)

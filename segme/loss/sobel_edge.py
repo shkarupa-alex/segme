@@ -52,6 +52,7 @@ def sobel_edge_loss(y_true, y_pred, classes, from_logits):
             y_pred = tf.sigmoid(y_pred)
 
         y_true_edge = sobel(y_true, classes, epsilon)
+        y_true_edge = tf.stop_gradient(y_true_edge)
         y_pred_edge = sobel(y_pred, classes, epsilon)
 
         loss = losses.mean_absolute_error(y_true=y_true_edge, y_pred=y_pred_edge)

@@ -11,6 +11,7 @@ class CalibratedFocalSigmoidCrossEntropy(losses.LossFunctionWrapper):
     Implements Equations from https://arxiv.org/pdf/2002.09437.pdf
     Note: remember to use focal loss trick: initialize last layer's bias with small negative value like -1.996
     """
+
     def __init__(
             self, from_logits=False, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0, alpha=0.25,
             reduction=Reduction.AUTO, name='calibrated_focal_sigmoid_cross_entropy'):
@@ -41,4 +42,6 @@ def calibrated_focal_sigmoid_cross_entropy(y_true, y_pred, prob0, prob1, gamma0,
 
     modulating_factor = tf.pow(1.0 - p_t, gamma)
 
-    return tf.reduce_mean(alpha_factor * modulating_factor * ce, axis=-1)
+    total_factor = tf.stop_gradient(alpha_factor * modulating_factor)
+
+    return tf.reduce_mean(total_factor * ce, axis=-1)

@@ -26,5 +26,6 @@ def balanced_sigmoid_cross_entropy(y_true, y_pred, from_logits):
     negative = total - tf.reduce_sum(y_true)
     beta = negative / total
     beta_factor = y_true * beta + (1 - y_true) * (1. - beta)
+    beta_factor = tf.stop_gradient(beta_factor)
 
     return tf.reduce_mean(beta_factor * ce, axis=-1)
