@@ -19,8 +19,17 @@ class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
             laplacian_pyramid_loss, reduction=reduction, name=name, levels=levels, size=size, sigma=sigma)
 
 
+def _pad_odd(inputs):
+    height_width = tf.shape(inputs)[1:3]
+    hpad, wpad = tf.unstack(height_width % 2)
+    paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
+    padded = tf.pad(inputs, paddings, 'REFLECT')
+
+    return padded
+
+
 def _gauss_kernel(size, sigma):
-    # Implements [9] in 'Diffusion Distance for Histogram Comparison', OI 10.1109/CVPR.2006.99
+    # Implements [9] in 'Diffusion Distance for Histogram Comparison', DOI 10.1109/CVPR.2006.99
     space = np.arange(size) - (size - 1) / 2
 
     sigma2 = sigma ** 2
@@ -69,6 +78,7 @@ def _laplacian_pyramid(inputs, levels, kernel):
 
     current = inputs
     for level in range(levels):
+        current = _pad_odd(current)
         downsampled = _gauss_downsample(current, kernel)
         upsampled = _gauss_upsample(downsampled, kernel)
         pyramid.append(current - upsampled)
