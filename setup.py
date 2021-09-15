@@ -23,7 +23,8 @@ setup(
         'tensorflow-hub>=0.12.0',
         'tensorflow-addons>=0.14.0',
         'keras>=2.6.0',
-        'opencv-python>=4.5.1.48'
+        'opencv-python>=4.5.1.48',
+        'vit_keras>=0.1.0'
     ],
     python_requires='>=3.6.0',
     setup_requires=['pytest-runner'],
