@@ -1,5 +1,6 @@
 from .adppool import AdaptiveAveragePooling, AdaptiveMaxPooling
 from .convbnrelu import ConvBnRelu
+from .featalign import FeatureAlignment
 from .head import HeadProjection, HeadActivation, ClassificationHead
 from .point_rend import PointRend, PointLoss
 from .stdconv import StandardizedConv2D

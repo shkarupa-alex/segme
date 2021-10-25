@@ -23,6 +23,7 @@ setup(
         'tensorflow-hub>=0.12.0',
         'tensorflow-addons>=0.14.0',
         'keras>=2.6.0',
+        'tfmiss>=0.15.2',
         'opencv-python>=4.5.1.48',
         'vit_keras>=0.1.0'
     ],
