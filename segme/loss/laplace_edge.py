@@ -43,6 +43,8 @@ def laplace_edge_sigmoid_cross_entropy(y_true, y_pred, from_logits):
         epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
 
         y_true_edge = laplace(y_true)
+        y_true_edge = tf.stop_gradient(y_true_edge)
+
         y_pred_edge = laplace(y_pred)
         y_pred_edge = tf.clip_by_value(y_pred_edge, epsilon, 1. - epsilon)
         y_pred_edge = tf.math.log(y_pred_edge / (1. - y_pred_edge))

@@ -9,7 +9,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='segme',
-    version='1.7.3',
+    version='1.8.0',
     description='Few models for semantic segmentation',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -23,7 +23,9 @@ setup(
         'tensorflow-hub>=0.12.0',
         'tensorflow-addons>=0.14.0',
         'keras>=2.6.0',
-        'opencv-python>=4.5.1.48'
+        'tfmiss>=0.15.2',
+        'opencv-python>=4.5.1.48',
+        'vit_keras>=0.1.0'
     ],
     python_requires='>=3.6.0',
     setup_requires=['pytest-runner'],

@@ -9,7 +9,7 @@ from .weighted_wrapper import WeightedLossFunctionWrapper
 class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'Optimizing the Latent Space of Generative Networks'
 
-    Implements in https://arxiv.org/pdf/1707.05776.pdf
+    Implements Lap1 in https://arxiv.org/pdf/1707.05776.pdf
     """
 
     def __init__(
@@ -19,24 +19,71 @@ class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
             laplacian_pyramid_loss, reduction=reduction, name=name, levels=levels, size=size, sigma=sigma)
 
 
-def _gauss_kernel(size, sigma):
-    grid = np.mgrid[0:size, 0:size].astype('float32').T
-    gauss = np.exp((grid - size // 2) ** 2 / (-2 * sigma ** 2)) ** 2
-    kernel = np.sum(gauss, axis=-1)
-    kernel /= np.sum(kernel)
+def _pad_odd(inputs):
+    height_width = tf.shape(inputs)[1:3]
+    hpad, wpad = tf.unstack(height_width % 2)
+    paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
+    padded = tf.pad(inputs, paddings, 'REFLECT')
 
-    return kernel
+    return padded
+
+
+def _gauss_kernel(size, sigma):
+    # Implements [9] in 'Diffusion Distance for Histogram Comparison', DOI 10.1109/CVPR.2006.99
+    space = np.arange(size) - (size - 1) / 2
+
+    sigma2 = sigma ** 2
+    gauss1d = np.exp(-space ** 2 / (2 * sigma2)) / np.sqrt(2 * np.pi * sigma2)
+
+    gauss2d = gauss1d[..., None] * gauss1d[None, ...]
+
+    gauss2d /= np.sum(gauss2d)
+
+    return gauss2d
+
+
+def _gauss_filter(inputs, kernel):
+    paddings = [((k - 1) // 2, k // 2) for k in kernel.shape[:2][::-1]]
+    paddings = [(0, 0)] + paddings + [(0, 0)]
+
+    padded = tf.pad(inputs, paddings, 'REFLECT')
+    blurred = tf.nn.depthwise_conv2d(padded, kernel, strides=[1, 1, 1, 1], padding='VALID')
+
+    return blurred
+
+
+def _gauss_downsample(inputs, kernel):
+    blurred = _gauss_filter(inputs, kernel)
+    downsampled = blurred[:, ::2, ::2, :]
+
+    return downsampled
+
+
+def _gauss_upsample(inputs, kernel):
+    shape = tf.shape(inputs)
+    batch, height, width, channel = tf.unstack(shape)
+
+    upsampled = tf.concat([inputs, tf.zeros_like(inputs)], axis=-1)
+    upsampled = tf.reshape(upsampled, [batch * height, width * 2 * channel])
+
+    upsampled = tf.concat([upsampled, tf.zeros_like(upsampled)], axis=-1)
+    upsampled = tf.reshape(upsampled, [batch, height * 2, width * 2, channel])
+
+    return _gauss_filter(upsampled, kernel * 4.)
 
 
 def _laplacian_pyramid(inputs, levels, kernel):
+    # https://paperswithcode.com/method/laplacian-pyramid
     pyramid = []
 
-    outputs = inputs
+    current = inputs
     for level in range(levels):
-        blurred = tf.nn.depthwise_conv2d(outputs, kernel, strides=[1, 1, 1, 1], padding='SAME')
-        pyramid.append(outputs - blurred)
-        outputs = tf.nn.avg_pool2d(blurred, 2, 2, 'VALID')
-    pyramid.append(outputs)  # Low-frequency residual
+        current = _pad_odd(current)
+        downsampled = _gauss_downsample(current, kernel)
+        upsampled = _gauss_upsample(downsampled, kernel)
+        pyramid.append(current - upsampled)
+        current = downsampled
+    pyramid.append(current)  # Low-frequency residual
 
     return pyramid
 
@@ -58,8 +105,9 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
 
         kernel_pred = np.tile(kernel, (1, 1, channels_pred, 1))
         kernel_pred = tf.constant(kernel_pred, y_pred.dtype)
-        pyr_true = _laplacian_pyramid(y_true, levels, kernel_pred)
         pyr_pred = _laplacian_pyramid(y_pred, levels, kernel_pred)
+        pyr_true = _laplacian_pyramid(y_true, levels, kernel_pred)
+        pyr_true = [tf.stop_gradient(pt) for pt in pyr_true]
 
         if sample_weight is None:
             losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
@@ -71,6 +119,7 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
             kernel_wght = np.tile(kernel, (1, 1, channels_wght, 1))
             kernel_wght = tf.constant(kernel_wght, y_pred.dtype)
             pyr_wght = _laplacian_pyramid(sample_weight, levels, kernel_wght)
+            pyr_wght = [tf.stop_gradient(pw) for pw in pyr_wght]
             losses = [tf.abs(_true - _pred) * _wght for _true, _pred, _wght in zip(pyr_true, pyr_pred, pyr_wght)]
 
         axis_hwc = list(range(1, y_pred.shape.ndims))

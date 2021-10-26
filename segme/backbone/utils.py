@@ -23,7 +23,9 @@ def patch_config(config, path, param, patch):
 
         return config
 
-    raise ValueError('Layer {} not found'.format(head))
+    top_layers = [layer.get('name', None) for layer in config['layers']]
+
+    raise ValueError('Layer {} not found. Top-level layers: {}'.format(head, top_layers))
 
 
 def get_layer(model, name_idx):

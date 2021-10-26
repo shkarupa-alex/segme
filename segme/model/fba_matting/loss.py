@@ -38,12 +38,12 @@ def lg_a(a_true, a_pred, sample_weight):
 
 
 def llap_a(a_true, a_pred, sample_weight):
-    return LaplacianPyramidLoss()(a_true, a_pred, sample_weight=sample_weight)
+    return LaplacianPyramidLoss(sigma=1.056)(a_true, a_pred, sample_weight=sample_weight)
 
 
 def llap_fb(f_true, b_true, f_pred, b_pred, sample_weight):
-    loss = LaplacianPyramidLoss()(f_true, f_pred, sample_weight=sample_weight)
-    loss += LaplacianPyramidLoss()(b_true, b_pred, sample_weight=sample_weight)
+    loss = LaplacianPyramidLoss(sigma=1.056)(f_true, f_pred, sample_weight=sample_weight)
+    loss += LaplacianPyramidLoss(sigma=1.056)(b_true, b_pred, sample_weight=sample_weight)
     loss /= 2.
 
     return loss

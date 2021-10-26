@@ -121,10 +121,16 @@ class Refiner:
     def _safe_predict(self, image, mask, prev=None):
         if len(image.shape) != 3:
             raise ValueError('Wrong image supplied')
+        if image.dtype != 'uint8':
+            raise ValueError('Wrong image dtype')
         if len(mask.shape) != 2:
             raise ValueError('Wrong mask supplied')
+        if mask.dtype != 'uint8':
+            raise ValueError('Wrong mask dtype')
         if prev is not None and len(prev.shape) != 2:
             raise ValueError('Wrong prev supplied')
+        if prev is not None and prev.dtype != 'uint8':
+            raise ValueError('Wrong prev dtype')
 
         height, width = image.shape[:2]
 
@@ -142,7 +148,7 @@ class Refiner:
         coarse = np.round(coarse * 255).astype(np.uint8)
 
         return fine, coarse
-    
+
     @staticmethod
     def _resize_max_side(image, max_size, interpolation=cv2.INTER_LINEAR):
         if len(image.shape) > 3 or len(image.shape) < 2:
@@ -151,7 +157,7 @@ class Refiner:
         aspect = max_size / max(image.shape[:2])
 
         return cv2.resize(image, (0, 0), fx=aspect, fy=aspect, interpolation=interpolation)
-    
+
     @staticmethod
     def _resize_fixed_size(image, height_width, interpolation=cv2.INTER_LINEAR):
         if len(image.shape) > 3 or len(image.shape) < 2:
