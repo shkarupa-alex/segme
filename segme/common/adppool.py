@@ -17,6 +17,7 @@
 
 import tensorflow as tf
 from keras import layers
+from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from keras.utils.conv_utils import normalize_tuple
@@ -31,7 +32,47 @@ class AdaptivePooling(layers.Layer):
         self.reduce_function = reduce_function
         self.output_size = normalize_tuple(output_size, 2, 'output_size')
 
-    def call(self, inputs, *args):
+    @shape_type_conversion
+    def build(self, input_shape):
+        height, width = input_shape[1:3]
+
+        known_dims = 2 - int(height is None) - int(width is None)
+
+        self.large_and_divisible = None  # 0 == known_dims
+        if 1 == known_dims and width is None:
+            large = height > self.output_size[0]
+            divisible = 0 == height % self.output_size[0]
+            if not large or not divisible:
+                self.large_and_divisible = False
+        elif 1 == known_dims and height is None:
+            large = width > self.output_size[1]
+            divisible = 0 == width % self.output_size[1]
+            if not large or not divisible:
+                self.large_and_divisible = False
+        elif 2 == known_dims:
+            large = height > self.output_size[0] and width > self.output_size[1]
+            divisible = 0 == height % self.output_size[0] == width % self.output_size[1]
+            self.large_and_divisible = large and divisible
+
+        self.input_spec = layers.InputSpec(ndim=4, axes={1: height, 2: width})
+        print(input_shape, known_dims, self.large_and_divisible)
+
+        super().build(input_shape)
+
+    def case_global(self, inputs):
+        return self.reduce_function(inputs, axis=[1, 2], keepdims=True)
+
+    def case_divisible(self, inputs):
+        split_x = tf.split(inputs, self.output_size[0], axis=1)
+        split_x = tf.stack(split_x, axis=1)
+        split_y = tf.split(split_x, self.output_size[1], axis=3)
+        split_y = tf.stack(split_y, axis=3)
+
+        outputs = self.reduce_function(split_y, axis=[2, 4])
+
+        return outputs
+
+    def case_nondivisible(self, inputs):
         inputs_shape = tf.shape(inputs)
         inputs_shape1, inputs_shape2 = inputs_shape[1], inputs_shape[2]
         start_points_x = tf.cast(
@@ -71,6 +112,24 @@ class AdaptivePooling(layers.Layer):
         y_pooled = tf.concat(pooled, axis=2)
 
         return y_pooled
+
+    def call(self, inputs, *args, **kwargs):
+        if (1, 1) == self.output_size:
+            return self.case_global(inputs)
+
+        large_and_divisible = self.large_and_divisible
+        if large_and_divisible is None:
+            height_width = tf.shape(inputs)[1:3]
+            large = tf.reduce_all(height_width >= self.output_size)
+            divisible = tf.reduce_all(tf.cast(height_width % self.output_size, 'bool'))
+            large_and_divisible = large & divisible
+
+        outputs = smart_cond(
+            large_and_divisible,
+            lambda: self.case_divisible(inputs),
+            lambda: self.case_nondivisible(inputs))
+
+        return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
