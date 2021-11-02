@@ -1,0 +1,1 @@
+from .trimap import alpha_trimap
