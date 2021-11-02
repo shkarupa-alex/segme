@@ -23,6 +23,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from keras.utils.conv_utils import normalize_tuple
 
 
+@register_keras_serializable(package='SegMe')
 class AdaptivePooling(layers.Layer):
     # TODO: wait for https://github.com/tensorflow/addons/pull/2322
 
