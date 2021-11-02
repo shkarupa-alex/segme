@@ -26,7 +26,7 @@ class FBAMatting(layers.Layer):
         self.distance = Distance()
         self.encoder = Encoder(self.bone_arch, self.bone_init)
         self.decoder = Decoder(self.pool_scales)
-        self.fusion = Fusion()
+        self.fusion = Fusion(dtype='float32')
 
         super().build(input_shape)
 
