@@ -51,6 +51,5 @@ class TestAlphaTrimap(unittest.TestCase):
         trimap = alpha_trimap(alpha, (2, 5))
 
 
-
 if __name__ == '__main__':
     tf.test.main()

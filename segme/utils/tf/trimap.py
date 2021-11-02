@@ -28,7 +28,7 @@ def alpha_trimap(alpha, size, name=None):
         dilated = tf.cast(tf.greater(alpha, 0), 'int32')
 
         _, eroded, dilated = tf.while_loop(
-            lambda i, e, d: i < size,
+            lambda i, *_: i < size,
             lambda i, e, d: (i + 1,
                              tf.nn.erosion2d(e, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4),
                              tf.nn.dilation2d(d, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4)),
