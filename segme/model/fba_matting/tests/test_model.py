@@ -22,9 +22,9 @@ class TestFBAMatting(keras_parameterized.TestCase):
         layer_multi_io_test(
             FBAMatting,
             kwargs={'bone_arch': 'bit_m_r50x1_stride_8', 'bone_init': 'imagenet', 'pool_scales': (1, 2, 3, 6)},
-            input_shapes=[(2, 128, 128, 3), (2, 128, 128, 1)],
+            input_shapes=[(2, 120, 120, 3), (2, 120, 120, 1)],
             input_dtypes=['uint8'] * 2,
-            expected_output_shapes=[(None, 128, 128, 7), (None, 128, 128, 1), (None, 128, 128, 3), (None, 128, 128, 3)],
+            expected_output_shapes=[(None, 120, 120, 7), (None, 120, 120, 1), (None, 120, 120, 3), (None, 120, 120, 3)],
             expected_output_dtypes=['float32'] * 4
         )
 
@@ -32,10 +32,10 @@ class TestFBAMatting(keras_parameterized.TestCase):
         layer_multi_io_test(
             FBAMatting,
             kwargs={'bone_arch': 'bit_m_r50x1_stride_8', 'bone_init': 'imagenet', 'pool_scales': (1, 2, 3, 6)},
-            input_shapes=[(2, 128, 128, 3), (2, 128, 128, 1)],
+            input_shapes=[(2, 120, 120, 3), (2, 120, 120, 1)],
             input_dtypes=['uint8'] * 2,
-            expected_output_shapes=[(None, 128, 128, 7), (None, 128, 128, 1), (None, 128, 128, 3), (None, 128, 128, 3)],
-            expected_output_dtypes=['float32', 'float16', 'float16', 'float16']
+            expected_output_shapes=[(None, 120, 120, 7), (None, 120, 120, 1), (None, 120, 120, 3), (None, 120, 120, 3)],
+            expected_output_dtypes=['float32', 'float32', 'float32', 'float32']
         )
 
     def test_model(self):
@@ -45,14 +45,14 @@ class TestFBAMatting(keras_parameterized.TestCase):
             run_eagerly=testing_utils.should_run_eagerly())
         model.fit(
             [
-                np.random.random((2, 224, 224, 3)).astype(np.uint8),
-                np.random.random((2, 224, 224, 1)).astype(np.uint8),
+                np.random.random((2, 240, 240, 3)).astype(np.uint8),
+                np.random.random((2, 240, 240, 1)).astype(np.uint8),
             ],
             [
-                np.random.random((2, 224, 224, 7)).astype(np.float32),
-                np.random.random((2, 224, 224, 1)).astype(np.float32),
-                np.random.random((2, 224, 224, 3)).astype(np.float32),
-                np.random.random((2, 224, 224, 3)).astype(np.float32)
+                np.random.random((2, 240, 240, 7)).astype(np.float32),
+                np.random.random((2, 240, 240, 1)).astype(np.float32),
+                np.random.random((2, 240, 240, 3)).astype(np.float32),
+                np.random.random((2, 240, 240, 3)).astype(np.float32)
             ],
             epochs=1, batch_size=10)
 
