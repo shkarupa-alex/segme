@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras import layers, models, keras_parameterized, testing_utils
 from ..adppool import AdaptiveAveragePooling, AdaptiveMaxPooling
 
 
@@ -59,6 +59,18 @@ class TestAdaptiveAveragePooling(keras_parameterized.TestCase):
             127, 128, 129, 142, 143, 144, 157, 158, 159, 367, 368, 369, 382, 383, 384, 397, 398, 399, 607, 608, 609,
             622, 623, 624, 637, 638, 639, 895, 896, 897, 910, 911, 912, 925, 926, 927, 1135, 1136, 1137, 1150, 1151,
             1152, 1165, 1166, 1167, 1375, 1376, 1377, 1390, 1391, 1392, 1405, 1406, 1407])
+
+    # def test_placeholder(self):
+    #     shape = [2, 16, 16, 3]
+    #     data = np.arange(0, np.prod(shape)).reshape(shape).astype('float32')
+    #     target = np.random.uniform(size=(2, 3, 3, 3))
+    #     dataset = tf.data.Dataset.from_tensor_slices((data, target)).batch(2)
+    #
+    #     inputs = layers.Input([None, None, 3], dtype='float32')
+    #     outputs = AdaptiveAveragePooling(3)(inputs)
+    #     model = models.Model(inputs=inputs, outputs=outputs)
+    #     model.compile('adam', 'mse', run_eagerly=testing_utils.should_run_eagerly())
+    #     model.fit(dataset)
 
 
 @keras_parameterized.run_all_keras_modes

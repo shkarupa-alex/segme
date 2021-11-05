@@ -56,7 +56,6 @@ class AdaptivePooling(layers.Layer):
             self.large_and_divisible = large and divisible
 
         self.input_spec = layers.InputSpec(ndim=4, axes={1: height, 2: width})
-        print(input_shape, known_dims, self.large_and_divisible)
 
         super().build(input_shape)
 
@@ -119,18 +118,22 @@ class AdaptivePooling(layers.Layer):
             return self.case_global(inputs)
 
         large_and_divisible = self.large_and_divisible
-        if large_and_divisible is None:
+        if large_and_divisible is True:
+            return self.case_divisible(inputs)
+        elif large_and_divisible is False:
+            return self.case_nondivisible(inputs)
+        else:
             height_width = tf.shape(inputs)[1:3]
-            large = tf.reduce_all(height_width >= self.output_size)
+            large = tf.reduce_all(tf.greater_equal(height_width, self.output_size))
             divisible = tf.reduce_all(tf.cast(height_width % self.output_size, 'bool'))
             large_and_divisible = large & divisible
 
-        outputs = smart_cond(
-            large_and_divisible,
-            lambda: self.case_divisible(inputs),
-            lambda: self.case_nondivisible(inputs))
+            outputs = smart_cond(
+                large_and_divisible,
+                lambda: self.case_divisible(inputs),
+                lambda: self.case_nondivisible(inputs))
 
-        return outputs
+            return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
