@@ -37,5 +37,6 @@ def alpha_trimap(alpha, size, name=None):
         trimap = tf.fill(tf.shape(alpha), 128)
         trimap = tf.where(tf.equal(eroded, 1 - size), 255, trimap)
         trimap = tf.where(tf.equal(dilated, size), 0, trimap)
+        trimap = tf.cast(trimap, 'uint8')
 
         return trimap

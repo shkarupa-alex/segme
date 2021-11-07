@@ -12,13 +12,17 @@ class TestAugmentAlpha(tf.test.TestCase):
 
     def test_no_aug(self):
         alpha = augment_alpha(self.alpha, prob=0.)
+        self.assertListEqual(alpha.shape.as_list(), list(self.alpha.shape))
+
         alpha = self.evaluate(alpha)
+        self.assertDTypeEqual(alpha, 'uint8')
+        self.assertTupleEqual(alpha.shape, self.alpha.shape)
         self.assertAllEqual(self.alpha, alpha)
 
-    def test_aug(self):
-        alpha = augment_alpha(self.alpha, prob=1.)
-        alpha = self.evaluate(alpha)
-        self.assertNotAllEqual(self.alpha, alpha)
+    # def test_aug(self):
+    #     alpha = augment_alpha(self.alpha, prob=1.)
+    #     alpha = self.evaluate(alpha)
+    #     self.assertNotAllEqual(self.alpha, alpha)
 
 
 @test_util.run_all_in_graph_and_eager_modes

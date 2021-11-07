@@ -25,11 +25,15 @@ class TestAlphaTrimap(tf.test.TestCase):
             result = alpha_trimap(alpha[None, ..., None], size)[0, ..., 0]
             result = self.evaluate(result)
 
+            self.assertDTypeEqual(result, 'uint8')
             self.assertListEqual(expected.tolist(), result.tolist())
 
     def test_random(self):
         alpha = np.random.randint(0, 255, size=(16, 8), dtype='uint8')
-        trimap = alpha_trimap(alpha[None, ..., None], (2, 5))
+        result = alpha_trimap(alpha[None, ..., None], (2, 5))
+        result = self.evaluate(result)
+
+        self.assertDTypeEqual(result, 'uint8')
 
 
 if __name__ == '__main__':

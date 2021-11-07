@@ -24,7 +24,7 @@ def augment_alpha(alpha, prob=0.1, low=0.5, high=2, name=None):
 
         apply, rate = tf.unstack(tf.random.uniform([2], 0., 1.))
         alpha = tf.cond(
-            apply < prob,
+            tf.less(apply, prob),
             lambda: _transform(alpha, rate),
             lambda: alpha)
 
