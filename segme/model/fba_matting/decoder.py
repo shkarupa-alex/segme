@@ -81,7 +81,7 @@ class Decoder(layers.Layer):
         outputs = layers.concatenate([outputs, image, twomap], axis=-1)
         outputs = self.conv_up4(outputs)
 
-        alpha = tf.clip_by_value(outputs[..., 0:1], 0., 1.)  # TODO: try clip(2 * sigmoid)
+        alpha = tf.clip_by_value(outputs[..., 0:1], 0., 1.)
         foreground = tf.nn.sigmoid(outputs[..., 1:4])
         background = tf.nn.sigmoid(outputs[..., 4:7])
 

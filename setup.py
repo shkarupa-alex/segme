@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from pathlib import Path
 from setuptools import setup, find_packages
 
 with open('README.md', 'r') as fh:
@@ -9,7 +10,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='segme',
-    version='1.8.1',
+    version='1.8.2',
     description='Few models for semantic segmentation',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -18,15 +19,7 @@ setup(
     author_email='shkarupa.alex@gmail.com',
     license='MIT',
     packages=find_packages(),
-    install_requires=[
-        'tensorflow>=2.6.0',
-        'tensorflow-hub>=0.12.0',
-        'tensorflow-addons>=0.14.0',
-        'keras>=2.6.0',
-        'tfmiss>=0.15.3',
-        'opencv-python>=4.5.1.48',
-        'vit_keras>=0.1.0'
-    ],
+    install_requires=Path("requirements.txt").read_text().splitlines(),
     python_requires='>=3.6.0',
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],

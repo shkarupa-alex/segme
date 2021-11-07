@@ -26,12 +26,12 @@ class FBAMatting(layers.Layer):
         self.distance = Distance()
         self.encoder = Encoder(self.bone_arch, self.bone_init)
         self.decoder = Decoder(self.pool_scales)
-        self.fusion = Fusion()
+        self.fusion = Fusion(dtype='float32')
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        image, trimap = inputs  # TODO: scale to multiple of 8?
+        image, trimap = inputs
         twomap = self.twomap(trimap)  # [0; 1]
         distance = self.distance(twomap)  # [0; 1]
 
@@ -43,11 +43,11 @@ class FBAMatting(layers.Layer):
         ], axis=-1)
         feats2, feats4, feats32 = self.encoder(featraw)
 
-        imscal = tf.cast(image, self.compute_dtype) / 255.  # Same scale as twomap, alpha, foreground and background
+        imscal = tf.cast(image, 'float32') / 255.  # Same scale as twomap, alpha, foreground and background
         alfgbg = self.decoder([feats2, feats4, feats32, imscal, twomap])
 
-        alpha, foreground, background = self.fusion([imscal, alfgbg])  # TODO: try twice?
-        alpha = tf.round(alpha * 255.)  # TODO: cast?
+        alpha, foreground, background = self.fusion([imscal, alfgbg])
+        alpha = tf.round(alpha * 255.)
         foreground = tf.round(foreground * 255.)
         background = tf.round(background * 255.)
 
@@ -61,9 +61,8 @@ class FBAMatting(layers.Layer):
 
     def compute_output_signature(self, input_signature):
         outptut_signature = super().compute_output_signature(input_signature)
-        alfgbg_signature = tf.TensorSpec(dtype='float32', shape=outptut_signature[0].shape)
 
-        return (alfgbg_signature,) + outptut_signature[1:]
+        return [tf.TensorSpec(dtype='float32', shape=os.shape) for os in outptut_signature]
 
     def get_config(self):
         config = super().get_config()
