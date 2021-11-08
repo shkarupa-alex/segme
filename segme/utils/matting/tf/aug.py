@@ -14,13 +14,13 @@ def augment_alpha(alpha, prob=0.1, low=0.5, high=2, name=None):
         if 'uint8' != alpha.dtype:
             raise ValueError('Expecting `alpha` dtype to be `uint8`.')
 
-        def _transform(a, r):
-            a = tf.cast(a, 'float32') / 255.
-            a = a ** (r * (high - low) + low),  # ^ [low; high]
-            a = tf.clip_by_value(a, 0., 1.)
-            a = tf.cast(tf.round(a * 255.), 'uint8')
+        def _transform(alpha_, rate_):
+            alpha_ = tf.cast(alpha_, 'float32') / 255.
+            alpha_ = alpha_ ** (rate_ * (high - low) + low)  # ^ [low; high]
+            alpha_ = tf.clip_by_value(alpha_, 0., 1.)
+            alpha_ = tf.cast(tf.round(alpha_ * 255.), 'uint8')
 
-            return a
+            return alpha_
 
         apply, rate = tf.unstack(tf.random.uniform([2], 0., 1.))
         alpha = tf.cond(
