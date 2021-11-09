@@ -8,7 +8,7 @@ from ...np.fgbg import solve_fgbg as solve_fgbg_np
 
 
 @test_util.run_all_in_graph_and_eager_modes
-class TestAlphaTrimap(tf.test.TestCase):
+class TestSolveFgBg(tf.test.TestCase):
     def test_value(self):
         image = os.path.join(os.path.dirname(__file__), '..', '..', 'np', 'tests', 'data', 'lemur_image.png')
         image = cv2.imread(image)

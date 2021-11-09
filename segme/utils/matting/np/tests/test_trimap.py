@@ -50,6 +50,9 @@ class TestAlphaTrimap(unittest.TestCase):
         alpha = np.random.randint(0, 255, size=(16, 8), dtype='uint8')
         trimap = alpha_trimap(alpha, (2, 5))
 
+        self.assertEqual(trimap.dtype, 'uint8')
+        self.assertTupleEqual(trimap.shape, alpha.shape)
+
 
 if __name__ == '__main__':
-    tf.test.main()
+    unittest.main()
