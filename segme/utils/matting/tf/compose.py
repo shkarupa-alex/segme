@@ -52,9 +52,10 @@ def compose_two(fg, alpha, rest=None, prob=0.5, solve=False, regularization=0.00
             delta = delta[accept]
 
             accept01 = tf.tile(accept, [2])
+            accept10 = tf.concat([accept, tf.zeros_like(accept, dtype='bool')], 0)
+
             fg01 = fg01[accept01]
-            for j in range(len(rest01)):
-                rest01[j] = rest01[j][accept01]
+            rest01_ = [r[accept10] for r in rest01]
 
             fg01 = tf.cast(fg01, 'float32') / 255.
             fg0, fg1 = tf.split(fg01, 2, axis=0)
@@ -71,7 +72,7 @@ def compose_two(fg, alpha, rest=None, prob=0.5, solve=False, regularization=0.00
                     fg_, alpha_, regularization=regularization, small_size=small_size, small_steps=small_steps,
                     big_steps=big_steps, grad_weight=grad_weight)
 
-            return fg_, alpha_, rest01
+            return fg_, alpha_, rest01_
 
         apply = tf.random.uniform((), 0., 1.)
         fg, alpha, rest_ = tf.cond(
