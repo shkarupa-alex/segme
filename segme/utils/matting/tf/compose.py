@@ -48,14 +48,14 @@ def compose_two(fg, alpha, rest=None, prob=0.5, solve=False, regularization=0.00
             alpha_ = alpha0 + delta
 
             accept = tf.reduce_any(alpha_ > 0., axis=[1, 2, 3]) & tf.reduce_any(alpha_ < 1., axis=[1, 2, 3])
-            alpha_ = alpha_[accept]
-            delta = delta[accept]
+            alpha_ = tf.boolean_mask(alpha_, accept)
+            delta = tf.boolean_mask(delta, accept)
 
             accept01 = tf.tile(accept, [2])
             accept10 = tf.concat([accept, tf.zeros_like(accept, dtype='bool')], 0)
 
-            fg01 = fg01[accept01]
-            rest01_ = [r[accept10] for r in rest01]
+            fg01 = tf.boolean_mask(fg01, accept01)
+            rest01_ = [tf.boolean_mask(r, accept10) for r in rest01]
 
             fg01 = tf.cast(fg01, 'float32') / 255.
             fg0, fg1 = tf.split(fg01, 2, axis=0)
@@ -74,13 +74,20 @@ def compose_two(fg, alpha, rest=None, prob=0.5, solve=False, regularization=0.00
 
             return fg_, alpha_, rest01_
 
-        apply = tf.random.uniform((), 0., 1.)
-        fg, alpha, rest_ = tf.cond(
-            tf.less(apply, prob),
-            lambda: _transform(fg, alpha, rest_),
-            lambda: (fg, alpha, rest_))
+        batch_size = tf.shape(fg)[0]
+        same_batch = tf.reduce_all([tf.equal(batch_size, tf.shape(t)[0]) for t in [alpha] + rest_])
 
-        if rest:
-            return fg, alpha, rest_
+        assert_odd_batch = tf.debugging.assert_equal(tf.math.mod(batch_size, 2), 0, 'Batch size should be even')
+        assert_same_batch = tf.debugging.assert_equal(same_batch, True, 'All input tensors should have same batch size')
 
-        return fg, alpha
+        with tf.control_dependencies([assert_odd_batch, assert_same_batch]):
+            apply = tf.random.uniform((), 0., 1.)
+            fg, alpha, rest_ = tf.cond(
+                tf.less(apply, prob),
+                lambda: _transform(fg, alpha, rest_),
+                lambda: (fg, alpha, rest_))
+
+            if rest:
+                return fg, alpha, rest_
+
+            return fg, alpha
