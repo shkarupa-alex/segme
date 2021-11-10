@@ -74,20 +74,15 @@ def compose_two(fg, alpha, rest=None, prob=0.5, solve=False, regularization=0.00
 
             return fg_, alpha_, rest01_
 
-        batch_size = tf.shape(fg)[0]
-        same_batch = tf.reduce_all([tf.equal(batch_size, tf.shape(t)[0]) for t in [alpha] + rest_])
+        even_batch = tf.equal(tf.math.mod(tf.shape(fg)[0], 2), 0)
+        apply = tf.less(tf.random.uniform((), 0., 1.), prob)
 
-        assert_odd_batch = tf.debugging.assert_equal(tf.math.mod(batch_size, 2), 0, 'Batch size should be even')
-        assert_same_batch = tf.debugging.assert_equal(same_batch, True, 'All input tensors should have same batch size')
+        fg, alpha, rest_ = tf.cond(
+            tf.logical_and(even_batch, apply),
+            lambda: _transform(fg, alpha, rest_),
+            lambda: (fg, alpha, rest_))
 
-        with tf.control_dependencies([assert_odd_batch, assert_same_batch]):
-            apply = tf.random.uniform((), 0., 1.)
-            fg, alpha, rest_ = tf.cond(
-                tf.less(apply, prob),
-                lambda: _transform(fg, alpha, rest_),
-                lambda: (fg, alpha, rest_))
+        if rest:
+            return fg, alpha, rest_
 
-            if rest:
-                return fg, alpha, rest_
-
-            return fg, alpha
+        return fg, alpha
