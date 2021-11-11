@@ -48,14 +48,15 @@ def compose_two(fg, alpha, rest=None, prob=0.5, solve=False, regularization=0.00
             alpha_ = alpha0 + delta
 
             accept = tf.reduce_any(alpha_ > 0., axis=[1, 2, 3]) & tf.reduce_any(alpha_ < 1., axis=[1, 2, 3])
-            alpha_ = tf.boolean_mask(alpha_, accept)
-            delta = tf.boolean_mask(delta, accept)
+            alpha_ = alpha_[accept]
+            alpha0 = alpha0[accept]
+            delta = delta[accept]
 
-            accept01 = tf.tile(accept, [2])
-            accept10 = tf.concat([accept, tf.zeros_like(accept, dtype='bool')], 0)
+            accept_twice = tf.tile(accept, [2])
+            fg01 = fg01[accept_twice]
 
-            fg01 = tf.boolean_mask(fg01, accept01)
-            rest01_ = [tf.boolean_mask(r, accept10) for r in rest01]
+            accept_half = tf.concat([accept, tf.zeros_like(accept, dtype='bool')], 0)
+            rest01_ = [r[accept_half] for r in rest01]
 
             fg01 = tf.cast(fg01, 'float32') / 255.
             fg0, fg1 = tf.split(fg01, 2, axis=0)
@@ -75,10 +76,10 @@ def compose_two(fg, alpha, rest=None, prob=0.5, solve=False, regularization=0.00
             return fg_, alpha_, rest01_
 
         even_batch = tf.equal(tf.math.mod(tf.shape(fg)[0], 2), 0)
-        apply = tf.less(tf.random.uniform((), 0., 1.), prob)
+        apply = tf.random.uniform((), 0., 1.) < prob
 
         fg, alpha, rest_ = tf.cond(
-            tf.logical_and(even_batch, apply),
+            even_batch & apply,
             lambda: _transform(fg, alpha, rest_),
             lambda: (fg, alpha, rest_))
 
