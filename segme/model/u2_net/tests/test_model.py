@@ -16,7 +16,7 @@ class TestU2Net(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestU2Net, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_u2net(self):
         layer_multi_io_test(
@@ -28,7 +28,7 @@ class TestU2Net(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 7
         )
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             U2Net,
             kwargs={'classes': 2},
@@ -48,7 +48,7 @@ class TestU2Net(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 7
         )
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             U2NetP,
             kwargs={'classes': 3},

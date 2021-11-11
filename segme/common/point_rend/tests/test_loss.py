@@ -15,7 +15,7 @@ class TestPointLoss(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestPointLoss, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         outputs = layer_multi_io_test(
@@ -47,7 +47,7 @@ class TestPointLoss(keras_parameterized.TestCase):
         )
         self.assertTrue(np.all(outputs >= 0.))
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         outputs = layer_multi_io_test(
             PointLoss,
             kwargs={'classes': 5, 'weighted': True, 'reduction': Reduction.NONE},

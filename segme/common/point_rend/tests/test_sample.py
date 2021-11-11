@@ -17,7 +17,7 @@ class TestClassificationUncertainty(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestClassificationUncertainty, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         testing_utils.layer_test(
@@ -45,7 +45,7 @@ class TestClassificationUncertainty(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         testing_utils.layer_test(
             ClassificationUncertainty,
             kwargs={},
@@ -207,7 +207,7 @@ class TestPointSample(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestPointSample, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -243,7 +243,7 @@ class TestPointSample(keras_parameterized.TestCase):
             expected_output_dtypes=['int32']
         )
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             PointSample,
             kwargs={'align_corners': False, 'mode': 'bilinear'},
@@ -336,7 +336,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestUncertainPointsWithRandomness, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         testing_utils.layer_test(
@@ -356,7 +356,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         testing_utils.layer_test(
             UncertainPointsWithRandomness,
             kwargs={'points': 0.05, 'align_corners': False, 'oversample': 3, 'importance': 0.75},
@@ -388,7 +388,7 @@ class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestUncertainPointsCoordsOnGrid, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -408,7 +408,7 @@ class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
             expected_output_dtypes=['int32', 'float32']
         )
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             UncertainPointsCoordsOnGrid,
             kwargs={'points': 0.04},

@@ -1,7 +1,6 @@
 import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
 
 
 @register_keras_serializable(package='SegMe')
@@ -19,18 +18,11 @@ class StandardizedConv2D(layers.Conv2D):
     Author: Lucas Beyer
     """
 
-    @shape_type_conversion
-    def build(self, input_shape):
-        super(StandardizedConv2D, self).build(input_shape)
+    def convolution_op(self, inputs, kernel):
+        # Kernel has shape HWIO, normalize over HWI
+        mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
 
-        # Wrap a standardization around the conv OP.
-        default_conv_op = self._convolution_op
+        # Author code uses std + 1e-5
+        kernel_ = (kernel - mean) / tf.sqrt(var + 1e-10)
 
-        def standardized_conv_op(inputs, kernel):
-            # Kernel has shape HWIO, normalize over HWI
-            mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
-            # Author code uses std + 1e-5
-            return default_conv_op(inputs, (kernel - mean) / tf.sqrt(var + 1e-10))
-
-        self._convolution_op = standardized_conv_op
-        self.built = True
+        return super().convolution_op(inputs, kernel_)

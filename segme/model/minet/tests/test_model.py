@@ -15,7 +15,7 @@ class TestMINet(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestMINet, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         testing_utils.layer_test(
@@ -27,7 +27,7 @@ class TestMINet(keras_parameterized.TestCase):
             expected_output_dtype='float32'
         )
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         testing_utils.layer_test(
             MINet,
             kwargs={'classes': 1, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False},
