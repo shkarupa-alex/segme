@@ -16,7 +16,7 @@ class TestDistance(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestDistance, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         result = testing_utils.layer_test(
@@ -95,7 +95,7 @@ class TestDistance(keras_parameterized.TestCase):
         twomap = np.concatenate([src0, 1 - src0], axis=-1).astype('float16')
 
         tf.debugging.enable_check_numerics()
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
 
         result = Distance()(twomap)
         result = self.evaluate(result)

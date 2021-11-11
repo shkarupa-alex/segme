@@ -16,7 +16,7 @@ class TestFBAMatting(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestFBAMatting, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -28,7 +28,7 @@ class TestFBAMatting(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'] * 4
         )
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             FBAMatting,
             kwargs={'bone_arch': 'bit_m_r50x1_stride_8', 'bone_init': 'imagenet', 'pool_scales': (1, 2, 3, 6)},

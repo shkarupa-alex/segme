@@ -16,7 +16,7 @@ class TestDeepLabV3Plus(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(TestDeepLabV3Plus, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         # TODO: wait for issue with Sequential model restoring
@@ -32,7 +32,7 @@ class TestDeepLabV3Plus(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             DeepLabV3Plus,
             kwargs={
