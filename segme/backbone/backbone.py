@@ -225,22 +225,22 @@ class Backbone(layers.Layer):
         #                   external
         # ======================================================================
         'swin_tiny_224': (ext.SwinTransformerTiny224, (
-            None, None, 'patch_embed', 'layers.0', 'layers.1', 'norm'
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
         'swin_small_224': (ext.SwinTransformerSmall224, (
-            None, None, 'patch_embed', 'layers.0', 'layers.1', 'norm'
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
         'swin_base_224': (ext.SwinTransformerBase224, (
-            None, None, 'patch_embed', 'layers.0', 'layers.1', 'norm'
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
         'swin_base_384': (ext.SwinTransformerBase384, (
-            None, None, 'patch_embed', 'layers.0', 'layers.1', 'norm'
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
         'swin_large_224': (ext.SwinTransformerLarge224, (
-            None, None, 'patch_embed', 'layers.0', 'layers.1', 'norm'
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
         'swin_large_384': (ext.SwinTransformerLarge384, (
-            None, None, 'patch_embed', 'layers.0', 'layers.1', 'norm'
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
 
         # ======================================================================
