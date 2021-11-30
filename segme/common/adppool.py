@@ -33,32 +33,6 @@ class AdaptivePooling(layers.Layer):
         self.reduce_function = reduce_function
         self.output_size = normalize_tuple(output_size, 2, 'output_size')
 
-    @shape_type_conversion
-    def build(self, input_shape):
-        height, width = input_shape[1:3]
-
-        known_dims = 2 - int(height is None) - int(width is None)
-
-        self.large_and_divisible = None  # 0 == known_dims
-        if 1 == known_dims and width is None:
-            large = height > self.output_size[0]
-            divisible = 0 == height % self.output_size[0]
-            if not large or not divisible:
-                self.large_and_divisible = False
-        elif 1 == known_dims and height is None:
-            large = width > self.output_size[1]
-            divisible = 0 == width % self.output_size[1]
-            if not large or not divisible:
-                self.large_and_divisible = False
-        elif 2 == known_dims:
-            large = height > self.output_size[0] and width > self.output_size[1]
-            divisible = 0 == height % self.output_size[0] == width % self.output_size[1]
-            self.large_and_divisible = large and divisible
-
-        self.input_spec = layers.InputSpec(ndim=4, axes={1: height, 2: width})
-
-        super().build(input_shape)
-
     def case_global(self, inputs):
         return self.reduce_function(inputs, axis=[1, 2], keepdims=True)
 
@@ -117,23 +91,19 @@ class AdaptivePooling(layers.Layer):
         if (1, 1) == self.output_size:
             return self.case_global(inputs)
 
-        large_and_divisible = self.large_and_divisible
-        if large_and_divisible is True:
-            return self.case_divisible(inputs)
-        elif large_and_divisible is False:
-            return self.case_nondivisible(inputs)
-        else:
-            height_width = tf.shape(inputs)[1:3]
-            large = tf.reduce_all(tf.greater_equal(height_width, self.output_size))
-            divisible = tf.reduce_all(tf.cast(height_width % self.output_size, 'bool'))
-            large_and_divisible = large & divisible
+        height, width = tf.unstack(tf.shape(inputs)[1:3])
+        pad_h = (self.output_size[0] - height % self.output_size[0]) % self.output_size[0]
+        pad_w = (self.output_size[1] - width % self.output_size[1]) % self.output_size[1]
 
-            outputs = smart_cond(
-                large_and_divisible,
-                lambda: self.case_divisible(inputs),
-                lambda: self.case_nondivisible(inputs))
+        # Hack to allow build non-divisible branch
+        inputs_ = tf.pad(inputs, [[0, 0], [0, pad_h], [0, pad_w], [0, 0]])
 
-            return outputs
+        outputs = smart_cond(
+            (pad_h == 0) & (pad_w == 0),
+            lambda: self.case_divisible(inputs_),
+            lambda: self.case_nondivisible(inputs))
+
+        return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
