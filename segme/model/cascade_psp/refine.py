@@ -6,7 +6,7 @@ from tensorflow_hub import KerasLayer
 
 
 class Refiner:
-    def __init__(self, hub_uri, max_size=900):
+    def __init__(self, hub_uri, max_size=960):
         self.model = KerasLayer(hub_uri)
         self.max_size = max_size
 
@@ -133,10 +133,12 @@ class Refiner:
             raise ValueError('Wrong prev dtype')
 
         height, width = image.shape[:2]
+        h_pad = (24 - height % 24) % 24
+        w_pad = (24 - width % 24) % 24
 
-        _image = np.pad(image, ((0, height % 8), (0, width % 8), (0, 0)))
-        _mask = np.pad(mask, ((0, height % 8), (0, width % 8)))
-        _prev = _mask if prev is None else np.pad(prev, ((0, height % 8), (0, width % 8)))
+        _image = np.pad(image, ((0, h_pad), (0, w_pad), (0, 0)))
+        _mask = np.pad(mask, ((0, h_pad), (0, w_pad)))
+        _prev = _mask if prev is None else np.pad(prev, ((0, h_pad), (0, w_pad)))
 
         self.image.assign(_image[None, ...])
         self.mask.assign(_mask[None, ..., None])

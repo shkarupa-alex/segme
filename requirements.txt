@@ -3,5 +3,6 @@ tensorflow-hub>=0.12.0
 tensorflow-addons>=0.15.0
 keras>=2.7.0
 tfmiss>=0.15.4
+tfswin>=2.0.0
 opencv-python>=4.5.1.48
 vit_keras>=0.1.0

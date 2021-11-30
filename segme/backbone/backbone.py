@@ -2,6 +2,7 @@ from keras import backend, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from . import core
+from . import ext
 from . import port
 
 
@@ -221,7 +222,29 @@ class Backbone(layers.Layer):
         )),
 
         # ======================================================================
-        #                   port
+        #                   external
+        # ======================================================================
+        'swin_tiny_224': (ext.SwinTransformerTiny224, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
+        )),
+        'swin_small_224': (ext.SwinTransformerSmall224, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
+        )),
+        'swin_base_224': (ext.SwinTransformerBase224, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
+        )),
+        'swin_base_384': (ext.SwinTransformerBase384, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
+        )),
+        'swin_large_224': (ext.SwinTransformerLarge224, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
+        )),
+        'swin_large_384': (ext.SwinTransformerLarge384, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
+        )),
+
+        # ======================================================================
+        #                   ported
         # ======================================================================
         'aligned_xception_41': (port.AlignedXception41, (
             None, 'entry_flow/block1/unit1/sepconv2_pointwise_bn', 'entry_flow/block2/unit1/sepconv2_pointwise_bn',

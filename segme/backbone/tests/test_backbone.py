@@ -6,6 +6,7 @@ from ...testing_utils import layer_multi_io_test
 
 _CUSTOM_TESTS = {
     'inception_v3', 'inception_resnet_v2', 'xception', 'vgg_16', 'vgg_19',
+    'swin_tiny_224', 'swin_small_224', 'swin_base_224', 'swin_base_384', 'swin_large_224', 'swin_large_384',
     'aligned_xception_41_stride_16', 'aligned_xception_65_stride_16', 'aligned_xception_71_stride_16',
     'aligned_xception_41_stride_8', 'aligned_xception_65_stride_8', 'aligned_xception_71_stride_8',
     'bit_m_r50x1_stride_8'}
@@ -197,6 +198,72 @@ class TestBackbone(keras_parameterized.TestCase):
                 (None, 14, 14, None)
             ],
             expected_output_dtypes=['float32'] * 5
+        )
+
+    @parameterized.parameters(['swin_tiny_224', 'swin_small_224', 'swin_base_224', 'swin_large_224'])
+    def test_layer_swin_trainable_224(self, swin_arch):
+        layer_multi_io_test(
+            Backbone,
+            kwargs={'arch': swin_arch, 'init': None, 'trainable': True},
+            input_shapes=[(2, 224, 224, 3)],
+            input_dtypes=['uint8'],
+            expected_output_shapes=[
+                (None, 56, 56, None),
+                (None, 28, 28, None),
+                (None, 14, 14, None),
+                (None, 7, 7, None)
+            ],
+            expected_output_dtypes=['float32'] * 4
+        )
+
+    @parameterized.parameters(['swin_base_384', 'swin_large_384'])
+    def test_layer_swin_trainable_384(self, swin_arch):
+        layer_multi_io_test(
+            Backbone,
+            kwargs={'arch': swin_arch, 'init': None, 'trainable': True},
+            input_shapes=[(2, 384, 384, 3)],
+            input_dtypes=['uint8'],
+            expected_output_shapes=[
+                (None, 96, 96, None),
+                (None, 48, 48, None),
+                (None, 24, 24, None),
+                (None, 12, 12, None)
+            ],
+            expected_output_dtypes=['float32'] * 4
+        )
+
+    @parameterized.parameters(['swin_tiny_224', 'swin_small_224', 'swin_base_224', 'swin_large_224'])
+    def test_layer_swin_imagenet_224(self, swin_arch):
+        layer_multi_io_test(
+            Backbone,
+            kwargs={'arch': swin_arch, 'init': 'imagenet',
+                    'trainable': False},
+            input_shapes=[(2, 224, 224, 3)],
+            input_dtypes=['uint8'],
+            expected_output_shapes=[
+                (None, 56, 56, None),
+                (None, 28, 28, None),
+                (None, 14, 14, None),
+                (None, 7, 7, None)
+            ],
+            expected_output_dtypes=['float32'] * 4
+        )
+
+    @parameterized.parameters(['swin_base_384', 'swin_large_384'])
+    def test_layer_swin_imagenet_384(self, swin_arch):
+        layer_multi_io_test(
+            Backbone,
+            kwargs={'arch': swin_arch, 'init': 'imagenet',
+                    'trainable': False},
+            input_shapes=[(2, 384, 384, 3)],
+            input_dtypes=['uint8'],
+            expected_output_shapes=[
+                (None, 96, 96, None),
+                (None, 48, 48, None),
+                (None, 24, 24, None),
+                (None, 12, 12, None)
+            ],
+            expected_output_dtypes=['float32'] * 4
         )
 
     @parameterized.parameters([
