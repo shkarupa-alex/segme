@@ -7,7 +7,7 @@ from ..mse import MSE
 
 @keras_parameterized.run_all_keras_modes
 class TestMSE(keras_parameterized.TestCase):
-    SNAKE = np.round(np.array([
+    SNAKE = np.array([
         [1, 2, 0, 0, 0, 0, 0, 0, 0],
         [0, 3, 4, 5, 6, 0, 0, 0, 0],
         [0, 0, 0, 0, 7, 8, 9, 8, 0],
@@ -18,14 +18,10 @@ class TestMSE(keras_parameterized.TestCase):
         [0, 5, 0, 0, 0, 0, 0, 0, 2],
         [0, 6, 7, 8, 9, 8, 7, 0, 3],
         [0, 0, 0, 0, 0, 0, 7, 5, 4]
-    ]).astype('float32') * 255. / 9.)
+    ]).astype('float32') / 9.
 
     def test_config(self):
-        metric = MSE(
-            divider=2.,
-            name='metric1'
-        )
-        self.assertEqual(metric.divider, 2.)
+        metric = MSE(name='metric1')
         self.assertEqual(metric.name, 'metric1')
 
     def test_zeros(self):
@@ -40,26 +36,26 @@ class TestMSE(keras_parameterized.TestCase):
 
     def test_value(self):
         trim = np.where(cv2.dilate(self.SNAKE, np.ones((2, 2), 'float32')) > 0, 1., 0.)
-        pred = np.round((self.SNAKE / 128.) ** 2 * 255. / 3.97)
+        pred = (self.SNAKE * 1.9921875) ** 2 / 3.97
 
         metric = MSE()
         metric.update_state(self.SNAKE[None, ..., None], pred[None, ..., None], trim[None, ..., None])
         result = self.evaluate(metric.result())
 
-        self.assertAlmostEqual(result, 20.358324, places=5)
+        self.assertAlmostEqual(result, 20.319115, places=5)
 
     def test_unweighted(self):
-        pred = np.round((self.SNAKE / 128.) ** 2 * 255. / 3.97)
+        pred = (self.SNAKE * 1.9921875) ** 2 / 3.97
 
         metric = MSE()
         metric.update_state(self.SNAKE[None, ..., None], pred[None, ..., None])
         result = self.evaluate(metric.result())
 
-        self.assertAlmostEqual(result, 15.834253, places=6)
+        self.assertAlmostEqual(result, 15.803756, places=6)
 
     def test_batch(self):
         trim0 = np.where(cv2.dilate(self.SNAKE, np.ones((2, 2), 'float32')) > 0, 1., 0.)
-        pred0 = np.round((self.SNAKE / 128.) ** 2 * 255. / 3.97)
+        pred0 = (self.SNAKE * 1.9921875) ** 2 / 3.97
 
         targ1 = np.pad(self.SNAKE[3:, 3:], [[0, 3], [0, 3]])
         trim1 = np.pad(trim0[3:, 3:], [[0, 3], [0, 3]])
@@ -77,7 +73,7 @@ class TestMSE(keras_parameterized.TestCase):
             np.array([trim0[..., None], trim1[..., None]]))
         res1 = self.evaluate(metric.result())
 
-        self.assertEqual(res0, res1)
+        self.assertAlmostEqual(res0, res1, places=5)
 
 
 if __name__ == '__main__':

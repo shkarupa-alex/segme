@@ -8,21 +8,25 @@ from tensorflow_addons.image import connected_components
 
 @register_keras_serializable(package='SegMe')
 class Conn(SumOverBatchSize):
-    def __init__(self, divider=255., step=0.1, name='conn', dtype=None):
+    def __init__(self, step=0.1, name='conn', dtype=None):
         """Creates a `ConnectivityError` instance for matting task (by default downscales input by 255).
 
         Args:
-            divider: A float value for input scaling.
             name: (Optional) string name of the metric instance.
             dtype: (Optional) data type of the metric result.
         """
         super().__init__(name, dtype=dtype)
-        self.divider = divider
         self.step = step
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        y_true = tf.cast(y_true, self._dtype) / self.divider
-        y_pred = tf.cast(y_pred, self._dtype) / self.divider
+        dtype_true = tf.dtypes.as_dtype(y_true.dtype)
+        scale_true = dtype_true.max if dtype_true.is_integer else 1.
+        y_true = tf.cast(y_true, self._dtype) / scale_true
+
+        dtype_pred = tf.dtypes.as_dtype(y_pred.dtype)
+        scale_pred = dtype_pred.max if dtype_pred.is_integer else 1.
+        y_pred = tf.cast(y_pred, self._dtype) / scale_pred
+
         if sample_weight is not None:
             sample_weight = tf.cast(sample_weight, self._dtype)
 
@@ -43,10 +47,7 @@ class Conn(SumOverBatchSize):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            'divider': self.divider,
-            'step': self.step
-        })
+        config.update({'step': self.step})
 
         return config
 

@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.ops.gen_image_ops import resize_bilinear
 
 
 def _solve_fgbg_step(step, image, fg, bg, alpha, grad_weight, regularization):
