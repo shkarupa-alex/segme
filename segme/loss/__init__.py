@@ -4,8 +4,8 @@ from .calibrated_focal import CalibratedFocalSigmoidCrossEntropy
 from .calibrated_focal import calibrated_focal_sigmoid_cross_entropy
 from .consistency_enhanced import ConsistencyEnhancedSigmoidLoss
 from .consistency_enhanced import consistency_enhanced_sigmoid_loss
-from .fb_exclusion import ForegroundBackgroundExclusionLoss
-from .fb_exclusion import foreground_background_exclusion_loss
+from .rt_exclusion import ReflectionTransmissionExclusionLoss
+from .rt_exclusion import reflection_transmission_exclusion_loss
 from .grad_mse import GradientMeanSquaredError
 from .grad_mse import gradient_mean_squared_error
 from .laplace_edge import LaplaceEdgeSigmoidCrossEntropy

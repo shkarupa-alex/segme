@@ -47,11 +47,8 @@ class FBAMatting(layers.Layer):
         alfgbg = self.decoder([feats2, feats4, feats32, imscal, twomap])
 
         alpha, foreground, background = self.fusion([imscal, alfgbg])
-        alpha = tf.round(alpha * 255.)
-        foreground = tf.round(foreground * 255.)
-        background = tf.round(background * 255.)
 
-        return alfgbg * 255., alpha, foreground, background
+        return alfgbg, alpha, foreground, background
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):

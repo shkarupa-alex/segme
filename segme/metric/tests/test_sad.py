@@ -7,7 +7,7 @@ from ..sad import SAD
 
 @keras_parameterized.run_all_keras_modes
 class TestSAD(keras_parameterized.TestCase):
-    SNAKE = np.round(np.array([
+    SNAKE = np.array([
         [1, 2, 0, 0, 0, 0, 0, 0, 0],
         [0, 3, 4, 5, 6, 0, 0, 0, 0],
         [0, 0, 0, 0, 7, 8, 9, 8, 0],
@@ -18,14 +18,10 @@ class TestSAD(keras_parameterized.TestCase):
         [0, 5, 0, 0, 0, 0, 0, 0, 2],
         [0, 6, 7, 8, 9, 8, 7, 0, 3],
         [0, 0, 0, 0, 0, 0, 7, 5, 4]
-    ]).astype('float32') * 255. / 9.)
+    ]).astype('float32') / 9.
 
     def test_config(self):
-        metric = SAD(
-            divider=2.,
-            name='metric1'
-        )
-        self.assertEqual(metric.divider, 2.)
+        metric = SAD(name='metric1')
         self.assertEqual(metric.name, 'metric1')
 
     def test_zeros(self):
@@ -40,26 +36,26 @@ class TestSAD(keras_parameterized.TestCase):
 
     def test_value(self):
         trim = np.where(cv2.dilate(self.SNAKE, np.ones((2, 2), 'float32')) > 0, 1., 0.)
-        pred = np.round((self.SNAKE / 128.) ** 2 * 255. / 3.97)
+        pred = (self.SNAKE * 1.9921875) ** 2 / 3.97
 
         metric = SAD()
         metric.update_state(self.SNAKE[None, ..., None], pred[None, ..., None], trim[None, ..., None])
         result = self.evaluate(metric.result())
 
-        self.assertAlmostEqual(result, 0.0068941178, places=9)
+        self.assertAlmostEqual(result, 0.0068928814, places=9)
 
     def test_unweighted(self):
-        pred = np.round((self.SNAKE / 128.) ** 2 * 255. / 3.97)
+        pred = (self.SNAKE * 1.9921875) ** 2 / 3.97
 
         metric = SAD()
         metric.update_state(self.SNAKE[None, ..., None], pred[None, ..., None])
         result = self.evaluate(metric.result())
 
-        self.assertAlmostEqual(result, 0.0068941178, places=9)
+        self.assertAlmostEqual(result, 0.0068928814, places=9)
 
     def test_batch(self):
         trim0 = np.where(cv2.dilate(self.SNAKE, np.ones((2, 2), 'float32')) > 0, 1., 0.)
-        pred0 = np.round((self.SNAKE / 128.) ** 2 * 255. / 3.97)
+        pred0 = (self.SNAKE * 1.9921875) ** 2 / 3.97
 
         targ1 = np.pad(self.SNAKE[3:, 3:], [[0, 3], [0, 3]])
         trim1 = np.pad(trim0[3:, 3:], [[0, 3], [0, 3]])

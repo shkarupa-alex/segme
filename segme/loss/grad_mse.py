@@ -23,7 +23,6 @@ def gradient_mean_squared_error(y_true, y_pred, sigma):
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
         y_pred = tf.convert_to_tensor(y_pred)
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
-        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype.base_dtype)
 
         y_pred = _togray(y_pred)
         y_true = _togray(y_true)
@@ -35,8 +34,8 @@ def gradient_mean_squared_error(y_true, y_pred, sigma):
         y_pred_x, y_pred_y = _gauss_gradient(y_pred, size, kernel_x, kernel_y)
         y_true_x, y_true_y = _gauss_gradient(y_true, size, kernel_x, kernel_y)
 
-        pred_amp = tf.sqrt(y_pred_x ** 2 + y_pred_y ** 2 + epsilon)
-        true_amp = tf.sqrt(y_true_x ** 2 + y_true_y ** 2 + epsilon)
+        pred_amp = tf.sqrt(y_pred_x ** 2 + y_pred_y ** 2)
+        true_amp = tf.sqrt(y_true_x ** 2 + y_true_y ** 2)
         true_amp = tf.stop_gradient(true_amp)
 
         loss = tf.math.squared_difference(pred_amp, true_amp)
