@@ -40,7 +40,7 @@ class TestGradientMeanSquaredError(keras_parameterized.TestCase):
 
     def test_value_4d(self):
         # Very simple loss, not checked with found reimplementation
-        targets = np.round(np.array([
+        targets = np.array([
             [1, 2, 0, 0, 0, 0, 0, 0, 0],
             [0, 3, 4, 5, 6, 0, 0, 0, 0],
             [0, 0, 0, 0, 7, 8, 9, 8, 0],
@@ -51,13 +51,13 @@ class TestGradientMeanSquaredError(keras_parameterized.TestCase):
             [0, 5, 0, 0, 0, 0, 0, 0, 2],
             [0, 6, 7, 8, 9, 8, 7, 0, 3],
             [0, 0, 0, 0, 0, 0, 7, 5, 4]
-        ]).astype('float32') * 255. / 9.)
-        probs = np.round((targets / 128.) ** 2 * 255. / 3.97)
+        ]).astype('float32') / 9.
+        probs = (targets * 1.9921875) ** 2 / 3.97
         trim = np.where(cv2.dilate(targets, np.ones((2, 2), 'float32')) > 0, 1., 0.)
 
         result = gradient_mean_squared_error(y_true=targets[None, ..., None], y_pred=probs[None, ..., None], sigma=1.4)
         result = np.sum(self.evaluate(result) * trim[None, ...]).item()
-        self.assertAlmostEqual(result, 1.667233, places=5)  # same for reduce_sum
+        self.assertAlmostEqual(result, 1.664048, places=5)  # same for reduce_sum
 
     def test_weight_4d(self):
         logits = tf.constant([
@@ -77,10 +77,10 @@ class TestGradientMeanSquaredError(keras_parameterized.TestCase):
         loss = GradientMeanSquaredError(reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 8.369307518005371, places=7)
+        self.assertAlmostEqual(result, 8.369308471679688, places=7)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 1.836201548576355, places=6)
+        self.assertAlmostEqual(result, 1.8362021446228027, places=6)
 
     def test_keras_model_compile(self):
         model = models.Sequential([

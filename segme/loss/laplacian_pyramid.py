@@ -52,6 +52,13 @@ def _gauss_filter(inputs, kernel):
     return blurred
 
 
+def _regular_downsample(inputs):
+    size = tf.shape(inputs)[1:3] // 2
+    down = tf.image.resize(inputs, size)
+
+    return down
+
+
 def _gauss_downsample(inputs, kernel):
     blurred = _gauss_filter(inputs, kernel)
     downsampled = blurred[:, ::2, ::2, :]
@@ -77,12 +84,31 @@ def _laplacian_pyramid(inputs, levels, kernel):
     pyramid = []
 
     current = inputs
+    residual = current
     for level in range(levels):
+        residual = current
         current = _pad_odd(current)
         downsampled = _gauss_downsample(current, kernel)
         upsampled = _gauss_upsample(downsampled, kernel)
         pyramid.append(current - upsampled)
         current = downsampled
+
+    # Low-frequency residual. Using smooth downsampling instead of odd slice from gaussian filter
+    residual = _regular_downsample(residual)
+    pyramid.append(residual)
+
+    return pyramid
+
+
+def _weight_pyramid(inputs, levels):
+    # https://gist.github.com/MarcoForte/a07c40a2b721739bb5c5987671aa5270
+    pyramid = []
+
+    current = inputs
+    for level in range(levels):
+        current = _pad_odd(current)
+        pyramid.append(current)
+        current = _regular_downsample(current)
     pyramid.append(current)  # Low-frequency residual
 
     return pyramid
@@ -109,21 +135,14 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
         pyr_true = _laplacian_pyramid(y_true, levels, kernel_pred)
         pyr_true = [tf.stop_gradient(pt) for pt in pyr_true]
 
-        if sample_weight is None:
-            losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
-        else:
-            channels_wght = sample_weight.shape[-1]
-            if channels_wght is None:
-                raise ValueError('Channel dimension of the sample weights should be defined. Found `None`.')
-
-            kernel_wght = np.tile(kernel, (1, 1, channels_wght, 1))
-            kernel_wght = tf.constant(kernel_wght, y_pred.dtype)
-            pyr_wght = _laplacian_pyramid(sample_weight, levels, kernel_wght)
-            pyr_wght = [tf.stop_gradient(pw) for pw in pyr_wght]
-            losses = [tf.abs(_true - _pred) * _wght for _true, _pred, _wght in zip(pyr_true, pyr_pred, pyr_wght)]
+        losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
+        if sample_weight is not None:
+            weights = _weight_pyramid(sample_weight, levels)
+            weights = [tf.stop_gradient(pw) for pw in weights]
+            losses = [ls * sw for ls, sw in zip(losses, weights)]
 
         axis_hwc = list(range(1, y_pred.shape.ndims))
-        losses = [(2 ** i / len(losses)) * tf.reduce_mean(l, axis=axis_hwc) for i, l in enumerate(losses)]
+        losses = [tf.reduce_mean(l, axis=axis_hwc) * (2 ** i) for i, l in enumerate(losses)]
         losses = sum(losses)
 
         return losses
