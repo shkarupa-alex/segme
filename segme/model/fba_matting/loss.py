@@ -48,7 +48,6 @@ def llap_fb(f_true, b_true, f_pred, b_pred, sample_weight):
 
 
 def total_loss(afb_true, afb_pred, sample_weight=None, stage=0):
-    print('stage', stage)
     a_true, f_true, b_true = afb_true[..., 0:1], afb_true[..., 1:4], afb_true[..., 4:7]
     a_pred, f_pred, b_pred = afb_pred[..., 0:1], afb_pred[..., 1:4], afb_pred[..., 4:7]
 
