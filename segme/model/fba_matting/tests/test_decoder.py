@@ -35,5 +35,6 @@ class TestDecoder(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
+
 if __name__ == '__main__':
     tf.test.main()
