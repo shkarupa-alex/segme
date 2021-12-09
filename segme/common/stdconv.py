@@ -19,6 +19,9 @@ class StandardizedConv2D(layers.Conv2D):
     """
 
     def convolution_op(self, inputs, kernel):
+        if kernel.dtype != tf.dtypes.float32:
+            raise ValueError('Expection kernel dtype to be float32.')
+
         # Kernel has shape HWIO, normalize over HWI
         mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
 
