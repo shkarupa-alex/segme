@@ -89,7 +89,13 @@ def solve_fgbg(image, alpha, regularization=0.005, small_size=32, small_steps=10
 
         image = tf.cast(image, 'float32') / 255.
         alpha = tf.cast(alpha, 'float32') / 255.
-        fgbg = tf.reduce_mean(image, axis=[1, 2], keepdims=True)
+
+        fg = tf.math.divide_no_nan(
+            tf.reduce_sum(image * alpha, axis=[1, 2], keepdims=True),
+            tf.reduce_sum(alpha, axis=[1, 2], keepdims=True))
+        bg = tf.math.divide_no_nan(
+            tf.reduce_sum(image * (1. - alpha), axis=[1, 2], keepdims=True),
+            tf.reduce_sum(1. - alpha, axis=[1, 2], keepdims=True))
 
         height, width = tf.unstack(tf.shape(image)[1:3])
         levels = tf.cast(tf.math.maximum(height, width), 'float32')
@@ -100,7 +106,7 @@ def solve_fgbg(image, alpha, regularization=0.005, small_size=32, small_steps=10
         _, _, fg, bg, _, _, _, _, _, _, _, _, _ = tf.while_loop(
             lambda level, *_: level <= levels,
             _solve_fgbg_level,
-            [0, image, fgbg, fgbg, alpha, height, width, levels, small_size, small_steps, big_steps, grad_weight,
+            [0, image, fg, bg, alpha, height, width, levels, small_size, small_steps, big_steps, grad_weight,
              regularization],
             shape_invariants=shapes)
 
