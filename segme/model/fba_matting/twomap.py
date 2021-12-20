@@ -14,6 +14,7 @@ class Twomap(layers.Layer):
     def call(self, inputs, **kwargs):
         twomap = layers.concatenate([inputs == 0, inputs == 255], axis=-1)
         twomap = tf.cast(twomap, self.compute_dtype)
+        twomap = tf.stop_gradient(twomap)
 
         return twomap
 
