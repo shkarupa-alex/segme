@@ -14,7 +14,7 @@ class StructuralSimilarityLoss(WeightedLossFunctionWrapper):
     """
 
     def __init__(
-            self, max_val=1., factors=(0.0448, 0.2856, 0.3001, 0.2363, 0.1333), size=5, sigma=2.0, k1=0.01, k2=0.03,
+            self, max_val=1., factors=(0.0448, 0.2856, 0.3001, 0.2363, 0.1333), size=11, sigma=2.0, k1=0.01, k2=0.03,
             reduction=Reduction.AUTO, name='structural_similarity_loss'):
         super().__init__(
             structural_similarity_loss, reduction=reduction, name=name, max_val=max_val, factors=factors, size=size,
@@ -90,7 +90,7 @@ def _ssim_kernel(size, sigma, channels, dtype):
 def structural_similarity_loss(y_true, y_pred, sample_weight, max_val, factors, size, sigma, k1, k2):
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
-    assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(y_true)[1:3]), size ** (len(factors) - 1))
+    assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(y_true)[1:3]), size * 2 ** (len(factors) - 1))
     assert_true_delta = tf.assert_less(tf.reduce_max(y_true) - tf.reduce_min(y_true), max_val + backend.epsilon())
 
     with tf.control_dependencies([assert_true_rank, assert_pred_rank, assert_true_shape, assert_true_delta]):
