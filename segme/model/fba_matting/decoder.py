@@ -14,7 +14,8 @@ class Decoder(layers.Layer):
             layers.InputSpec(ndim=4),  # features x2
             layers.InputSpec(ndim=4),  # features x4
             layers.InputSpec(ndim=4),  # features x32
-            layers.InputSpec(ndim=4, axes={-1: 3}),  # image
+            layers.InputSpec(ndim=4, axes={-1: 3}),  # image (scaled)
+            layers.InputSpec(ndim=4, axes={-1: 3}),  # image (normalized)
             layers.InputSpec(ndim=4, axes={-1: 2}),  # twomap
         ]
 
@@ -60,7 +61,7 @@ class Decoder(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        feats2, feats4, feats32, image, twomap = inputs
+        feats2, feats4, feats32, imscal, imnorm, twomap = inputs
 
         ppm_out = [feats32]
         for pool_scale in self.ppm:
@@ -77,8 +78,8 @@ class Decoder(layers.Layer):
         outputs = layers.concatenate([outputs, feats2], axis=-1)
         outputs = self.conv_up3(outputs)
 
-        outputs = resize_by_sample([outputs, image])
-        outputs = layers.concatenate([outputs, image, twomap], axis=-1)
+        outputs = resize_by_sample([outputs, imscal])
+        outputs = layers.concatenate([outputs, imscal, imnorm, twomap], axis=-1)
         outputs = self.conv_up4(outputs)
 
         alpha = tf.clip_by_value(outputs[..., :1], 0., 1.)
