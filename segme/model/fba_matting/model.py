@@ -41,6 +41,7 @@ class FBAMatting(layers.Layer):
             tf.cast(twomap * 255., 'uint8'),  # Same scale as  image
             tf.cast(tf.round(distance * 255.), 'uint8')  # Same scale as  image
         ], axis=-1)
+        featraw = tf.stop_gradient(featraw)
         feats2, feats4, feats32 = self.encoder(featraw)
 
         imscal = tf.cast(image, 'float32') / 255.  # Same scale as twomap, alpha, foreground and background
