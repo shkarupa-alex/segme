@@ -12,11 +12,8 @@ class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
     Implements Lap1 in https://arxiv.org/pdf/1707.05776.pdf
     """
 
-    def __init__(
-            self, levels=5, size=5, sigma=2.0, reduction=Reduction.AUTO,
-            name='laplacian_pyramid_loss'):
-        super().__init__(
-            laplacian_pyramid_loss, reduction=reduction, name=name, levels=levels, size=size, sigma=sigma)
+    def __init__(self, levels=5, size=5, sigma=1.5, reduction=Reduction.AUTO, name='laplacian_pyramid_loss'):
+        super().__init__(laplacian_pyramid_loss, reduction=reduction, name=name, levels=levels, size=size, sigma=sigma)
 
 
 def _pad_odd(inputs):
@@ -91,8 +88,8 @@ def _laplacian_pyramid(inputs, levels, kernel):
         pyramid.append(current - upsampled)
         current = downsampled
 
-    # Low-frequency residual. Using smooth downsampling instead of odd slice from gaussian filter
-    pyramid.append(current)
+    # Disabled: low-frequency residual
+    # pyramid.append(current)
 
     return pyramid
 
@@ -107,7 +104,8 @@ def _weight_pyramid(inputs, levels):
         pyramid.append(current)
         current = _regular_downsample(current)
 
-    pyramid.append(current)  # Low-frequency residual
+    # Disabled: low-frequency residual
+    # pyramid.append(current)
 
     return pyramid
 
