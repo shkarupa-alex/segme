@@ -83,17 +83,16 @@ def _laplacian_pyramid(inputs, levels, kernel):
     # https://paperswithcode.com/method/laplacian-pyramid
     pyramid = []
 
-    residual = current = inputs
+    current = inputs
     for level in range(levels):
-        residual = current = _pad_odd(current)
+        current = _pad_odd(current)
         downsampled = _gauss_downsample(current, kernel)
         upsampled = _gauss_upsample(downsampled, kernel)
         pyramid.append(current - upsampled)
         current = downsampled
 
     # Low-frequency residual. Using smooth downsampling instead of odd slice from gaussian filter
-    residual = _regular_downsample(residual)
-    pyramid.append(residual)
+    pyramid.append(current)
 
     return pyramid
 
