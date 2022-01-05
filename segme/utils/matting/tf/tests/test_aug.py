@@ -1,7 +1,33 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from ..aug import augment_alpha, augment_trimap
+from ..aug import augment_foreground, augment_alpha, augment_trimap
+
+
+@test_util.run_all_in_graph_and_eager_modes
+class TestAugmentForeground(tf.test.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.foreground = np.random.uniform(0., 255., (2, 16, 16, 3)).astype('uint8')
+
+    def test_no_aug(self):
+        foreground = augment_foreground(self.foreground, mix_prob=0., inv_prob=0.)
+        self.assertListEqual(foreground.shape.as_list(), list(self.foreground.shape))
+
+        foreground = self.evaluate(foreground)
+        self.assertDTypeEqual(foreground, 'uint8')
+        self.assertTupleEqual(foreground.shape, self.foreground.shape)
+        self.assertAllEqual(self.foreground, foreground)
+
+    def test_aug_mix(self):
+        foreground = augment_foreground(self.foreground, mix_prob=1., inv_prob=0.)
+        foreground = self.evaluate(foreground)
+        self.assertNotAllEqual(self.foreground, foreground)
+
+    def test_aug_inv(self):
+        foreground = augment_foreground(self.foreground, mix_prob=0., inv_prob=1.)
+        foreground = self.evaluate(foreground)
+        self.assertAllEqual(self.foreground, (255. - foreground.astype('float32')).astype('uint8'))
 
 
 @test_util.run_all_in_graph_and_eager_modes
