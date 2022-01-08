@@ -1,7 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.framework.ops import EagerTensor
 from keras import backend
-from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from .weighted_wrapper import WeightedLossFunctionWrapper
@@ -48,11 +47,15 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
                 assert len(y_pred.op.inputs) == 1
                 y_pred = y_pred.op.inputs[0]
             else:
+                tf.get_logger().warning('Attribute `_keras_logits` and previous operation not found. '
+                                        'Loss computation may be inaccurate.')
                 y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)
-                y_pred = smart_cond(
-                    tf.shape(y_pred)[-1] == 1,
-                    lambda: tf.math.log(y_pred / (1. - y_pred)),  # Restore sigmoid
-                    lambda: tf.math.log(y_pred))  # Restore softmax
+                if y_pred.shape[-1] is None:
+                    raise ValueError('Number of classes in `y_pred` should be statically known.')
+                if 1 == y_pred.shape[-1]:
+                    y_pred = tf.math.log(y_pred / (1. - y_pred))  # Restore sigmoid
+                else:
+                    y_pred = tf.math.log(y_pred)  # Restore softmax
 
         # Label mask -- [N, H, W, 1]
         num_classes = tf.shape(y_pred)[-1]
