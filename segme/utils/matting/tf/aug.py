@@ -15,8 +15,9 @@ def augment_foreground(foreground, mix_prob=0.2, inv_prob=0.2, name=None):
             raise ValueError('Expecting `foreground` dtype to be `uint8`.')
 
         def _mix_transform(foreground_):
-            color = tf.random.uniform([1, 1, 1, 3], 0., 1.)
-            weight = tf.random.uniform((), 0., 1.)
+            batch = tf.shape(foreground_)[0]
+            color = tf.random.uniform([batch, 1, 1, 3], 0., 1.)
+            weight = tf.random.uniform([batch, 1, 1, 1], 0., 1.)
 
             foreground_ = tf.cast(foreground_, 'float32') / 255.
             foreground_ = foreground_ * weight + color * (1. - weight)
