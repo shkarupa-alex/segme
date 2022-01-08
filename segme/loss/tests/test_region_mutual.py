@@ -781,7 +781,7 @@ class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
             from_logits=True)
         result = self.evaluate(result).item()
 
-        self.assertAlmostEqual(result, -0.9504930973052979, places=6)
+        self.assertAlmostEqual(result, -0.9504928588867188, places=6)
 
     def test_probs(self):
         probs = tf.constant([[
@@ -804,16 +804,20 @@ class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
 
     def test_multyclass(self):
         probs = tf.random.uniform((2, 64, 64, 5))
+        logits = _to_logit(probs)
+        probs = tf.constant(probs)
+        probs._keras_logits = logits
+
         targets = tf.cast(tf.random.uniform((2, 64, 64, 1)) * 10, 'int32')
         weights = tf.ones((2, 64, 64, 1))
 
         loss = RegionMutualInformationLoss(rmi_radius=2, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, probs)).item()
-        self.assertAlmostEqual(result, 0.5836958289146423, places=5)
+        self.assertAlmostEqual(result, 0.5853663682937622, places=5)
 
         result = self.evaluate(loss(targets, probs, weights)).item()
-        self.assertAlmostEqual(result, 0.5836958289146423, places=5)
+        self.assertAlmostEqual(result, 0.5853663682937622, places=5)
 
     def test_keras_model_compile(self):
         model = models.Sequential([

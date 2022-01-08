@@ -34,34 +34,30 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
         y_pred = tf.convert_to_tensor(y_pred)
         epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype.base_dtype)
 
-        # Use logits whenever they are available. `softmax` and `sigmoid`
-        # activations cache logits on the `output` Tensor.
-        if not from_logits:
+        if y_pred.shape[-1] is None:
+            raise ValueError('Number of classes in `y_pred` should be statically known.')
+
+        # In multiclass case replace `softmax` activation with `sigmoid`.
+        if not from_logits and y_pred.shape[-1] > 1:
             if hasattr(y_pred, '_keras_logits'):
                 y_pred = y_pred._keras_logits
-            elif not isinstance(y_pred, (EagerTensor, tf.Variable)) and y_pred.op.type in {'Sigmoid', 'Softmax'}:
-                # When softmax activation function is used for y_pred operation, we
-                # use logits from the softmax function directly to compute loss in order
-                # to prevent collapsing zero when training.
+            elif not isinstance(y_pred, (EagerTensor, tf.Variable)) and 'Softmax' != y_pred.op.type:
+                # When softmax activation function is used for y_pred operation, we use logits from the softmax
+                # function directly to compute loss in order to prevent collapsing zero when training.
                 # See b/117284466
                 assert len(y_pred.op.inputs) == 1
                 y_pred = y_pred.op.inputs[0]
             else:
-                tf.get_logger().warning('Attribute `_keras_logits` and previous operation not found. '
-                                        'Loss computation may be inaccurate.')
-                y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)
-                if y_pred.shape[-1] is None:
-                    raise ValueError('Number of classes in `y_pred` should be statically known.')
-                if 1 == y_pred.shape[-1]:
-                    y_pred = tf.math.log(y_pred / (1. - y_pred))  # Restore sigmoid
-                else:
-                    y_pred = tf.math.log(y_pred)  # Restore softmax
+                raise ValueError('Unable to restore `softmax` logits.')
+            from_logits = True
+
+        if from_logits:
+            y_pred = tf.nn.sigmoid(y_pred)  # Use sigmoid instead of softmax
 
         # Label mask -- [N, H, W, 1]
         num_classes = tf.shape(y_pred)[-1]
         y_true_onehot = tf.one_hot(tf.squeeze(y_true, axis=-1), depth=num_classes)
         y_true_onehot = tf.cast(y_true_onehot, dtype=y_pred.dtype)
-        y_prob = tf.nn.sigmoid(y_pred)
 
         # Decouple sample_weight to batch items weight and erase invalid pixels
         if sample_weight is not None:
@@ -70,7 +66,7 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
             valid_pixels = sample_weight > 0.
 
             y_true_onehot = tf.where(valid_pixels, y_true_onehot, 0)
-            y_prob = tf.where(valid_pixels, y_prob, epsilon)
+            y_pred = tf.where(valid_pixels, y_pred, epsilon)
         else:
             batch_weight = None
 
@@ -78,7 +74,7 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
         y_true_onehot = tf.stop_gradient(y_true_onehot)
 
         rmi_loss = _rmi_lower_bound(
-            y_true_onehot, y_prob, batch_weight=batch_weight, pool_stride=pool_stride, pool_way=pool_way,
+            y_true_onehot, y_pred, batch_weight=batch_weight, pool_stride=pool_stride, pool_way=pool_way,
             rmi_radius=rmi_radius)
 
         return rmi_loss
