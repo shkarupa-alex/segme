@@ -13,9 +13,10 @@ class TestGaussKernel(keras_parameterized.TestCase):
         # expected = np.array(
         #     [[1, 4, 6, 4, 1], [4, 16, 24, 16, 4], [6, 24, 36, 24, 6], [4, 16, 24, 16, 4], [1, 4, 6, 4, 1]], 'uint8')
         expected = np.array(
-            [[1, 4, 6, 4, 1], [4, 15, 24, 15, 4], [6, 24, 36, 24, 6], [4, 15, 24, 15, 4], [1, 4, 6, 4, 1]], 'uint8')
+            [[1, 4, 6, 4, 1], [4, 15, 24, 15, 4], [6, 24, 37, 24, 6], [4, 15, 24, 15, 4], [1, 4, 6, 4, 1]], 'uint8')
 
-        result = _gauss_kernel(5, 1.075)
+        result = _gauss_kernel(5, 1.06)
+        result = result * result.T
         result = np.round(result * 255).astype('uint8')
 
         self.assertTrue(np.all(expected == result))
@@ -187,7 +188,7 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
         result = self.evaluate(result).item()
 
         # self.assertAlmostEqual(result, 6.944647789001465, places=7) # FBA (without residual)
-        self.assertAlmostEqual(result, 6.970605373382568, places=7)  # 6.970605373382568 without residual
+        self.assertAlmostEqual(result, 6.970603942871094, places=7)  # without residual
 
     def test_weight_4d(self):
         logits = tf.constant([
@@ -207,10 +208,10 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
         loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 4.3208513259887695, places=7)
+        self.assertAlmostEqual(result, 4.224889755249023, places=7)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 2.2509474754333496, places=7)
+        self.assertAlmostEqual(result, 2.1088650226593018, places=7)
 
     def test_channels_3_weighted(self):
         logits = tf.constant([
@@ -232,7 +233,7 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
         loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 2.0947327613830566, places=7)
+        self.assertAlmostEqual(result, 2.0541932582855225, places=7)
 
     def test_batch(self):
         probs = np.random.rand(2, 128, 128, 3).astype('float32')

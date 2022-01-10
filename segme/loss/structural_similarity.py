@@ -56,8 +56,6 @@ def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernel, k1, k
         value = similarity if last_level else contrast_structure
         value = value if sample_weight is None else value * sample_weight
         value = tf.reduce_mean(value, axis=[1, 2])
-        if tf.executing_eagerly():
-            print(value.numpy())
         value = tf.nn.relu(value) ** f
         pyramid.append(value)
 
