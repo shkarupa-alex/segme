@@ -16,9 +16,7 @@ class ASPPPool(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.pool = Sequential([
-            layers.GlobalAveragePooling2D(),
-            # (batch, channels) -> (batch, 1, 1, channels)
-            layers.Lambda(lambda pooled: tf.expand_dims(tf.expand_dims(pooled, 1), 1)),
+            layers.GlobalAveragePooling2D(keepdims=True),
             ConvBnRelu(self.filters, 1, use_bias=False, fused_bn=False)
         ])
 
