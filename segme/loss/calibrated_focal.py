@@ -27,7 +27,7 @@ def calibrated_focal_sigmoid_cross_entropy(y_true, y_pred, prob0, prob1, gamma0,
     ce = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
     pred_prob = y_pred if not from_logits else tf.sigmoid(y_pred)
 
-    p_t = (y_true * pred_prob) + ((1 - y_true) * (1. - pred_prob))
+    p_t = y_true * pred_prob + (1 - y_true) * (1. - pred_prob)
 
     alpha = tf.convert_to_tensor(alpha, dtype=y_pred.dtype)
     alpha_factor = y_true * alpha + (1 - y_true) * (1. - alpha)

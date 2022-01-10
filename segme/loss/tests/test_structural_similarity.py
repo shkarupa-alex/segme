@@ -2,30 +2,60 @@ import numpy as np
 import tensorflow as tf
 from keras import keras_parameterized, layers, models
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..laplacian_pyramid import LaplacianPyramidLoss
-from ..laplacian_pyramid import _gauss_kernel, laplacian_pyramid_loss
+from ..structural_similarity import StructuralSimilarityLoss
+from ..structural_similarity import _ssim_kernel, _ssim_level, structural_similarity_loss
 
 
 @keras_parameterized.run_all_keras_modes
-class TestGaussKernel(keras_parameterized.TestCase):
+class TestSsimLevel(keras_parameterized.TestCase):
     def test_value(self):
-        # Differs from https://gist.github.com/MarcoForte/a07c40a2b721739bb5c5987671aa5270#file-laplacian_loss-py-L7
-        # expected = np.array(
-        #     [[1, 4, 6, 4, 1], [4, 16, 24, 16, 4], [6, 24, 36, 24, 6], [4, 16, 24, 16, 4], [1, 4, 6, 4, 1]], 'uint8')
-        expected = np.array(
-            [[1, 4, 6, 4, 1], [4, 15, 24, 15, 4], [6, 24, 37, 24, 6], [4, 15, 24, 15, 4], [1, 4, 6, 4, 1]], 'uint8')
+        y_true = np.array([
+            0., 0., 0.01, 0.03, 0.09, 0.04, 0.1, 0.18, 0.11, 0.27, 0.2, 0.29, 0.2, 0.36, 0.38, 0.43, 0.47, 0.44, 0.57,
+            0.74, 0.78, 0.8, 0.01, 0.02, 0.05, 0.05, 0.14, 0.11, 0.19, 0.23, 0.2, 0.29, 0.39, 0.34, 0.47, 0.42, 0.57,
+            0.59, 0.58, 0.67, 0.72, 0.76, 0.84, 0.87, 0.01, 0.03, 0.1, 0.07, 0.15, 0.12, 0.23, 0.27, 0.42, 0.3, 0.44,
+            0.36, 0.48, 0.45, 0.62, 0.6, 0.71, 0.68, 0.73, 0.8, 0.87, 0.88, 0.02, 0.03, 0.1, 0.1, 0.15, 0.13, 0.24,
+            0.27, 0.44, 0.34, 0.44, 0.39, 0.48, 0.46, 0.62, 0.64, 0.75, 0.7, 0.76, 0.82, 0.89, 0.9, 0.02, 0.04, 0.11,
+            0.1, 0.2, 0.13, 0.35, 0.28, 0.45, 0.34, 0.46, 0.42, 0.5, 0.47, 0.65, 0.65, 0.76, 0.73, 0.83, 0.83, 0.94,
+            0.9, 0.07, 0.05, 0.12, 0.12, 0.21, 0.24, 0.35, 0.33, 0.45, 0.35, 0.5, 0.47, 0.58, 0.54, 0.68, 0.67, 0.8,
+            0.74, 0.85, 0.87, 0.95, 0.95, 0.08, 0.07, 0.14, 0.14, 0.22, 0.24, 0.36, 0.36, 0.47, 0.45, 0.55, 0.48, 0.59,
+            0.54, 0.71, 0.7, 0.83, 0.77, 0.86, 0.88, 0.95, 0.95, 0.08, 0.07, 0.19, 0.17, 0.31, 0.26, 0.37, 0.4, 0.51,
+            0.47, 0.59, 0.53, 0.65, 0.55, 0.74, 0.73, 0.85, 0.83, 0.91, 0.88, 0.96, 0.97, 0.09, 0.09, 0.21, 0.21, 0.31,
+            0.29, 0.41, 0.46, 0.52, 0.54, 0.61, 0.56, 0.66, 0.62, 0.78, 0.74, 0.88, 0.86, 0.96, 0.93, 0.97, 0.98, 0.13,
+            0.15, 0.3, 0.23, 0.32, 0.35, 0.42, 0.59, 0.56, 0.63, 0.62, 0.64, 0.66, 0.7, 0.8, 0.75, 0.95, 0.93, 0.96,
+            0.95, 0.98, 0.98, 0.22, 0.24, 0.56, 0.34, 0.7, 0.37, 0.76, 0.6, 0.81, 0.69, 0.86, 0.72, 0.88, 0.88, 0.93,
+            0.92, 0.95, 0.95, 0.96, 0.96, 0.99, 1.]).reshape((1, 11, 11, 2)).astype('float32')
+        y_pred = np.array([
+            0.2, -0.2, 0.21, -0.17, 0.29, 0.24, 0.3, -0.02, 0.31, 0.47, -0., 0.09, 0.4, 0.16, 0.18, 0.23, 0.67, 0.64,
+            0.77, 0.94, 0.98, 0.6, -0.19, 0.22, 0.25, -0.15, -0.06, -0.09, -0.01, 0.43, -0., 0.49, 0.19, 0.54, 0.67,
+            0.62, 0.77, 0.39, 0.38, 0.87, 0.92, 0.96, 1.04, 1.07, 0.21, 0.23, -0.1, -0.13, 0.35, 0.32, 0.03, 0.47, 0.22,
+            0.5, 0.24, 0.16, 0.28, 0.65, 0.42, 0.8, 0.91, 0.88, 0.53, 0.6, 0.67, 1.08, 0.22, 0.23, -0.1, 0.3, -0.05,
+            0.33, 0.44, 0.47, 0.64, 0.14, 0.25, 0.19, 0.28, 0.26, 0.82, 0.83, 0.95, 0.5, 0.56, 0.62, 0.69, 0.7, -0.18,
+            -0.16, -0.09, -0.1, 0., -0.07, 0.55, 0.08, 0.65, 0.15, 0.26, 0.62, 0.3, 0.27, 0.45, 0.85, 0.96, 0.53, 1.02,
+            1.03, 0.74, 1.1, 0.27, 0.25, 0.32, -0.08, 0.01, 0.43, 0.15, 0.53, 0.25, 0.15, 0.3, 0.67, 0.38, 0.74, 0.48,
+            0.47, 1., 0.54, 0.65, 0.67, 1.15, 1.15, -0.12, 0.27, -0.06, 0.34, 0.42, 0.04, 0.56, 0.16, 0.67, 0.25, 0.75,
+            0.68, 0.79, 0.34, 0.51, 0.9, 0.63, 0.97, 0.66, 0.68, 0.75, 1.15, 0.28, -0.13, -0.01, 0.37, 0.51, 0.06, 0.17,
+            0.6, 0.71, 0.67, 0.79, 0.73, 0.85, 0.75, 0.94, 0.93, 0.65, 0.63, 0.71, 1.08, 1.16, 1.17, 0.29, -0.11, 0.41,
+            0.41, 0.11, 0.09, 0.61, 0.66, 0.32, 0.74, 0.41, 0.36, 0.86, 0.82, 0.58, 0.94, 0.68, 1.06, 0.76, 0.73, 1.17,
+            1.18, -0.07, -0.05, 0.5, 0.03, 0.52, 0.55, 0.22, 0.79, 0.36, 0.83, 0.82, 0.84, 0.86, 0.51, 1., 0.95, 0.75,
+            0.73, 1.16, 0.75, 0.78, 0.78, 0.42, 0.04, 0.36, 0.14, 0.9, 0.17, 0.56, 0.8, 0.61, 0.49, 0.66, 0.92, 1.08,
+            0.68, 1.13, 0.72, 1.15, 1.15, 0.76, 0.76, 1.18, 0.8]).reshape((1, 11, 11, 2)).astype('float32')
 
-        result = _gauss_kernel(5, 1.06)
-        result = result * result.T
-        result = np.round(result * 255).astype('uint8')
+        # expected = tf.image.ssim(y_true, y_pred, max_val=1., filter_size=11, filter_sigma=1.5, k1=0.01, k2=0.03)
+        # expected = self.evaluate(expected).item()
+        # 0.5326015949249268 when compensation = 1
 
-        self.assertTrue(np.all(expected == result))
+        kernel = _ssim_kernel(size=11, sigma=1.5, channels=2, dtype='float32')
+        result, _ = _ssim_level(y_true, y_pred, max_val=1.0, kernel=kernel, k1=0.01, k2=0.03)
+        result = tf.reduce_mean(result)
+        result = self.evaluate(result).item()
+
+        self.assertEqual(0.5322474241256714, result)
 
 
 @keras_parameterized.run_all_keras_modes
-class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
+class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
     def test_config(self):
-        bce_obj = LaplacianPyramidLoss(
+        bce_obj = StructuralSimilarityLoss(
             reduction=Reduction.NONE,
             name='loss1'
         )
@@ -48,9 +78,11 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
             [[0], [0], [0], [0], [0], [0]],
             [[0], [0], [0], [0], [0], [0]],
             [[0], [0], [0], [0], [0], [0]],
-        ]], 'int32')
+        ]], 'float32')
 
-        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=1, size=5, sigma=2.0)
+        result = structural_similarity_loss(
+            y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
+            k1=0.01, k2=0.03)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [0.0])
@@ -73,9 +105,11 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
             [[0], [0], [0], [0], [0], [0], [0]],
             [[0], [0], [0], [0], [0], [0], [0]],
             [[0], [0], [0], [0], [0], [0], [0]],
-        ]], 'int32')
+        ]], 'float32')
 
-        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=1, size=5, sigma=2.0)
+        result = structural_similarity_loss(
+            y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
+            k1=0.01, k2=0.03)
         result = self.evaluate(result).tolist()
 
         self.assertAllClose(result, [0.0])
@@ -131,7 +165,7 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
             2.1, 8.6, 3.4, 1.1, 5.4, 1.8, 6.4, 2.9, 2.5, 7.4, 5.2, 1.9, 3.3, 0.1, 7.5, 1.8, 9.4, 2.5, 9.3, 7.7, 5.1,
             3.5, 2.2, 5.5, 9.5, 3.3, 4.6, 7.6, 9.2, 6.0, 7.4, 2.5, 7.4, 8.1, 5.9, 7.2, 6.4, 1.1, 3.9, 9.1, 1.0, 0.8,
             6.3, 2.5, 2.1, 4.3, 1.2, 3.9, 4.0, 1.3, 8.6, 9.7, 3.0, 3.0, 5.3, 2.2, 0.4, 1.0
-        ], 'float32', shape=(1, 32, 32, 1))
+        ], 'float32', shape=(1, 32, 32, 1)) / 10.
         targets = tf.constant([
             9.9, 4.6, 2.7, 3.8, 9.0, 5.0, 9.7, 5.9, 6.1, 3.9, 5.9, 2.8, 2.1, 8.5, 7.8, 1.6, 5.6, 3.0, 1.4, 1.1, 7.6,
             5.4, 1.3, 2.4, 9.8, 9.2, 5.6, 5.2, 0.7, 6.0, 7.6, 3.9, 8.4, 5.3, 1.0, 7.2, 6.9, 2.8, 3.8, 9.6, 1.7, 7.5,
@@ -182,13 +216,19 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
             9.7, 7.6, 4.5, 8.3, 8.0, 8.9, 7.8, 0.0, 3.1, 0.4, 9.5, 5.9, 9.7, 2.7, 6.0, 7.6, 3.0, 2.5, 5.5, 9.4, 1.2,
             6.2, 6.0, 7.3, 3.6, 2.5, 7.8, 3.5, 2.0, 0.6, 5.3, 6.5, 1.7, 9.1, 6.3, 4.2, 9.0, 5.2, 6.4, 1.8, 1.3, 8.5,
             1.4, 9.2, 5.7, 8.9, 9.5, 0.4, 3.3, 7.7, 0.2, 5.6, 9.5, 6.4, 0.5, 0.0, 3.2, 3.1
-        ], 'float32', shape=(1, 32, 32, 1))
+        ], 'float32', shape=(1, 32, 32, 1)) / 10.
 
-        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=4, size=5, sigma=1.056)
+        # expected = 1. - tf.image.ssim_multiscale(
+        #     targets, probs, 1., power_factors=(0.1001, 0.2363, 0.1333), filter_size=5, filter_sigma=1.5,
+        #     k1=0.01, k2=0.03)
+        # expected = self.evaluate(expected).item()
+
+        result = structural_similarity_loss(
+            y_true=targets, y_pred=probs, sample_weight=None, max_val=1.,
+            factors=(0.1001, 0.2363, 0.1333), size=5, sigma=1.5, k1=0.01, k2=0.03)
         result = self.evaluate(result).item()
 
-        # self.assertAlmostEqual(result, 6.944647789001465, places=7) # FBA (without residual)
-        self.assertAlmostEqual(result, 6.970603942871094, places=7)  # without residual
+        self.assertAlmostEqual(result, 0.8302181363105774, places=7)  # 0.8249481320381165 when compensation = 1
 
     def test_weight_4d(self):
         logits = tf.constant([
@@ -202,16 +242,16 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
              [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
         targets = tf.constant([
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
+            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'float32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
+        loss = StructuralSimilarityLoss(reduction=Reduction.SUM, factors=(0.5,), size=2)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 4.224889755249023, places=7)
+        self.assertAlmostEqual(result, 1.6507585048675537, places=7)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 2.1088650226593018, places=7)
+        self.assertAlmostEqual(result, 1.729214072227478, places=7)
 
     def test_channels_3_weighted(self):
         logits = tf.constant([
@@ -227,19 +267,19 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
             [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
              [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
             [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
-             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'int32')
+             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
+        loss = StructuralSimilarityLoss(reduction=Reduction.SUM, factors=(0.5,), size=2)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 2.0541932582855225, places=7)
+        self.assertAlmostEqual(result, 1.767329454421997, places=7)
 
     def test_batch(self):
-        probs = np.random.rand(2, 128, 128, 3).astype('float32')
-        targets = (np.random.rand(2, 128, 128, 3) > 0.5).astype('int32')
+        probs = np.random.rand(2, 640, 640, 3).astype('float32')
+        targets = (np.random.rand(2, 640, 640, 3) > 0.5).astype('float32')
 
-        loss = LaplacianPyramidLoss(reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = StructuralSimilarityLoss(reduction=Reduction.SUM_OVER_BATCH_SIZE)
         res0 = self.evaluate(loss(targets, probs))
         res1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
@@ -250,7 +290,7 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
             layers.Input(shape=(100,)),
             layers.Dense(5)]
         )
-        model.compile(loss='SegMe>laplacian_pyramid_loss')
+        model.compile(loss='SegMe>structural_similarity_loss')
 
 
 if __name__ == '__main__':

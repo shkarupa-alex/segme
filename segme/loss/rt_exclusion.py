@@ -79,13 +79,13 @@ def _down_sample(reflections, transmissions, weights, level):
 
 
 def reflection_transmission_exclusion_loss(r_pred, t_pred, sample_weight, levels):
+    r_pred = tf.convert_to_tensor(r_pred)
+    t_pred = tf.cast(t_pred, dtype=r_pred.dtype)
+
     assert_r_rank = tf.assert_rank(r_pred, 4)
     assert_t_rank = tf.assert_rank(t_pred, 4)
 
     with tf.control_dependencies([assert_r_rank, assert_t_rank]):
-        r_pred = tf.convert_to_tensor(r_pred)
-        t_pred = tf.cast(t_pred, dtype=r_pred.dtype)
-
         loss = []
         for level in range(levels):
             r_pred_down, t_pred_down, sample_weight_down = _down_sample(r_pred, t_pred, sample_weight, level)

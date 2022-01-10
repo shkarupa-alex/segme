@@ -1,7 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.framework.ops import EagerTensor
 from keras import backend
-from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from .weighted_wrapper import WeightedLossFunctionWrapper
@@ -28,37 +27,34 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
     if pool_stride > 1 and pool_way not in {'maxpool', 'avgpool', 'resize'}:
         raise ValueError('Unsupported RMI pooling way: {}'.format(pool_way))
 
+    y_pred = tf.convert_to_tensor(y_pred)
+
+    channels_pred = y_pred.shape[-1]
+    if channels_pred is None:
+        raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
+
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        y_pred = tf.convert_to_tensor(y_pred)
-        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype.base_dtype)
+        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
 
-        # Use logits whenever they are available. `softmax` and `sigmoid`
-        # activations cache logits on the `output` Tensor.
-        if not from_logits:
+        # In multiclass case replace `softmax` activation with `sigmoid`.
+        if not from_logits and channels_pred > 1:
             if hasattr(y_pred, '_keras_logits'):
                 y_pred = y_pred._keras_logits
-            elif not isinstance(y_pred, (EagerTensor, tf.Variable)) and y_pred.op.type in {'Sigmoid', 'Softmax'}:
-                # When softmax activation function is used for y_pred operation, we
-                # use logits from the softmax function directly to compute loss in order
-                # to prevent collapsing zero when training.
+            elif not isinstance(y_pred, (EagerTensor, tf.Variable)) and 'Softmax' != y_pred.op.type:
+                # When softmax activation function is used for y_pred operation, we use logits from the softmax
+                # function directly to compute loss in order to prevent collapsing zero when training.
                 # See b/117284466
                 assert len(y_pred.op.inputs) == 1
                 y_pred = y_pred.op.inputs[0]
             else:
-                y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)
-                y_pred = smart_cond(
-                    tf.shape(y_pred)[-1] == 1,
-                    lambda: tf.math.log(y_pred / (1. - y_pred)),  # Restore sigmoid
-                    lambda: tf.math.log(y_pred))  # Restore softmax
+                raise ValueError('Unable to restore `softmax` logits.')
+            from_logits = True
 
-        # Label mask -- [N, H, W, 1]
-        num_classes = tf.shape(y_pred)[-1]
-        y_true_onehot = tf.one_hot(tf.squeeze(y_true, axis=-1), depth=num_classes)
-        y_true_onehot = tf.cast(y_true_onehot, dtype=y_pred.dtype)
-        y_prob = tf.nn.sigmoid(y_pred)
+        if from_logits:
+            y_pred = tf.nn.sigmoid(y_pred)  # Use sigmoid instead of softmax
 
         # Decouple sample_weight to batch items weight and erase invalid pixels
         if sample_weight is not None:
@@ -66,16 +62,21 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
             batch_weight = tf.reduce_mean(sample_weight, axis=axis_hw)
             valid_pixels = sample_weight > 0.
 
-            y_true_onehot = tf.where(valid_pixels, y_true_onehot, 0)
-            y_prob = tf.where(valid_pixels, y_prob, epsilon)
+            y_true = tf.where(valid_pixels, y_true, 0)
+            y_pred = tf.where(valid_pixels, y_pred, epsilon)
         else:
             batch_weight = None
+
+        # Label mask -- [N, H, W, 1]
+        num_classes = tf.shape(y_pred)[-1]
+        y_true_onehot = tf.one_hot(tf.squeeze(y_true, axis=-1), depth=num_classes)
+        y_true_onehot = tf.cast(y_true_onehot, dtype=y_pred.dtype)
 
         # Get region mutual information
         y_true_onehot = tf.stop_gradient(y_true_onehot)
 
         rmi_loss = _rmi_lower_bound(
-            y_true_onehot, y_prob, batch_weight=batch_weight, pool_stride=pool_stride, pool_way=pool_way,
+            y_true_onehot, y_pred, batch_weight=batch_weight, pool_stride=pool_stride, pool_way=pool_way,
             rmi_radius=rmi_radius)
 
         return rmi_loss

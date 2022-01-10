@@ -1,5 +1,6 @@
 import tensorflow as tf
-from keras import layers, models, utils
+from keras import layers, models
+from keras.applications.imagenet_utils import preprocess_input
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from .decoder import Decoder
@@ -41,10 +42,13 @@ class FBAMatting(layers.Layer):
             tf.cast(twomap * 255., 'uint8'),  # Same scale as  image
             tf.cast(tf.round(distance * 255.), 'uint8')  # Same scale as  image
         ], axis=-1)
+        featraw = tf.stop_gradient(featraw)
         feats2, feats4, feats32 = self.encoder(featraw)
 
-        imscal = tf.cast(image, 'float32') / 255.  # Same scale as twomap, alpha, foreground and background
-        alfgbg = self.decoder([feats2, feats4, feats32, imscal, twomap])
+        imft32 = tf.cast(image, 'float32')
+        imscal = imft32 / 255.  # Same scale as twomap, alpha, foreground and background
+        imnorm = preprocess_input(imft32, mode='torch')
+        alfgbg = self.decoder([feats2, feats4, feats32, imscal, imnorm, twomap])
 
         alpha, foreground, background = self.fusion([imscal, alfgbg])
 

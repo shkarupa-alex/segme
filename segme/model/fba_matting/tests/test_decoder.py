@@ -19,8 +19,9 @@ class TestDecoder(keras_parameterized.TestCase):
         layer_multi_io_test(
             Decoder,
             kwargs={'pool_scales': (1, 2, 3, 6)},
-            input_shapes=[(2, 128, 128, 4), (2, 64, 64, 6), (2, 32, 32, 8), (2, 256, 256, 3), (2, 256, 256, 2)],
-            input_dtypes=['float32'] * 5,
+            input_shapes=[
+                (2, 128, 128, 4), (2, 64, 64, 6), (2, 32, 32, 8), (2, 256, 256, 3), (2, 256, 256, 3), (2, 256, 256, 2)],
+            input_dtypes=['float32'] * 6,
             expected_output_shapes=[(None, 256, 256, 7)],
             expected_output_dtypes=['float32']
         )
@@ -29,8 +30,9 @@ class TestDecoder(keras_parameterized.TestCase):
         layer_multi_io_test(
             Decoder,
             kwargs={'pool_scales': (1, 2, 3, 6)},
-            input_shapes=[(2, 128, 128, 4), (2, 64, 64, 6), (2, 32, 32, 8), (2, 256, 256, 3), (2, 256, 256, 2)],
-            input_dtypes=['float16'] * 5,
+            input_shapes=[
+                (2, 128, 128, 4), (2, 64, 64, 6), (2, 32, 32, 8), (2, 256, 256, 3), (2, 256, 256, 3), (2, 256, 256, 2)],
+            input_dtypes=['float16'] * 6,
             expected_output_shapes=[(None, 256, 256, 7)],
             expected_output_dtypes=['float32']
         )

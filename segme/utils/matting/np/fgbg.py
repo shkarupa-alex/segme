@@ -14,14 +14,24 @@ def solve_fgbg(image, alpha, regularization=0.005, small_size=32, small_steps=10
 
     if 3 == len(alpha.shape) and 1 != alpha.shape[-1]:
         raise ValueError('Expecting `alpha` channels size to be 1.')
+    if 2 == len(alpha.shape):
+        alpha = alpha[..., None]
 
     if 'uint8' != image.dtype or 'uint8' != alpha.dtype:
         raise ValueError('Expecting `image` and `alpha` dtype to be `uint8`.')
 
     image = image.astype('float32') / 255.
     alpha = alpha.astype('float32') / 255.
-    fg = np.mean(image, axis=(0, 1), keepdims=True)
-    bg = np.copy(fg)
+
+    if 0. == np.sum(alpha):
+        fg = np.zeros((1, 1, 3))
+    else:
+        fg = np.sum(image * alpha, axis=(0, 1), keepdims=True) / np.sum(alpha)
+
+    if 0. == np.sum(1. - alpha):
+        bg = np.zeros((1, 1, 3))
+    else:
+        bg = np.sum(image * (1. - alpha), axis=(0, 1), keepdims=True) / np.sum(1. - alpha)
 
     height, width = image.shape[:2]
     levels = int(np.ceil(np.log2(max(width, height))))

@@ -77,7 +77,7 @@ class TestGradientMeanSquaredError(keras_parameterized.TestCase):
         loss = GradientMeanSquaredError(reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 8.369308471679688, places=7)
+        self.assertAlmostEqual(result, 8.369308471679688, places=5)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
         self.assertAlmostEqual(result, 1.8362021446228027, places=6)

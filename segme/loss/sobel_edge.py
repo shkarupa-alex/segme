@@ -40,13 +40,14 @@ def sobel(probs, classes, epsilon):
 
 
 def sobel_edge_loss(y_true, y_pred, classes, from_logits):
+    y_pred = tf.convert_to_tensor(y_pred)
+    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        y_pred = tf.convert_to_tensor(y_pred)
-        y_true = tf.cast(y_true, dtype=y_pred.dtype)
-        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype.base_dtype)
+        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
 
         if from_logits:
             y_pred = tf.sigmoid(y_pred)

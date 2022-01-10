@@ -71,13 +71,14 @@ def _gauss_filter(sigma, epsilon=1e-2):
     half = np.ceil(sigma * np.sqrt(-2 * np.log(np.sqrt(2 * np.pi) * sigma * epsilon))).astype(np.int32)
     size = 2 * half + 1
 
-    kernel = np.zeros((size, size))
-    for i in range(0, size):
-        for j in range(0, size):
-            kernel[i, j] = _gauss(i - half, sigma) * _dgauss(j - half, sigma)
-    kernel = kernel / np.sqrt(np.sum(np.abs(kernel) * np.abs(kernel)))
+    arange = np.arange(size)
+    kernel0 = _gauss(arange[:, None] - half, sigma)
+    kernel1 = _dgauss(arange[None, :] - half, sigma)
 
-    return kernel, size
+    kernel0 = kernel0 / np.sqrt(np.sum(kernel0 ** 2))
+    kernel1 = kernel1 / np.sqrt(np.sum(kernel1 ** 2))
+
+    return kernel0, kernel1, size
 
 
 def _gauss_gradient(inputs, size, kernel_x, kernel_y):
@@ -93,28 +94,32 @@ def _gauss_gradient(inputs, size, kernel_x, kernel_y):
     col_afters = tf.repeat(inputs[:, :, -1:, ...], pad_before, axis=2)
     inputs = tf.concat([col_before, inputs, col_afters], axis=2)
 
-    grad_x = tf.nn.conv2d(inputs, kernel_x, strides=[1] * 4, padding='VALID')
-    grad_y = tf.nn.conv2d(inputs, kernel_y, strides=[1] * 4, padding='VALID')
+    grad_x = tf.nn.depthwise_conv2d(inputs, kernel_x[0], strides=[1] * 4, padding='VALID')
+    grad_x = tf.nn.depthwise_conv2d(grad_x, kernel_x[1], strides=[1] * 4, padding='VALID')
+
+    grad_y = tf.nn.depthwise_conv2d(inputs, kernel_y[0], strides=[1] * 4, padding='VALID')
+    grad_y = tf.nn.depthwise_conv2d(grad_y, kernel_y[1], strides=[1] * 4, padding='VALID')
 
     return grad_x, grad_y
 
 
 def gradient_error(y_true, y_pred, sigma, sample_weight=None):
-    y_pred = _togray(y_pred)
-    y_true = _togray(y_true)
-
     channels = y_pred.shape[-1]
     if channels is None:
         raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
 
-    kernel, size = _gauss_filter(sigma)
-    kernel = kernel.astype(y_pred.dtype.as_numpy_dtype)
+    y_pred = _togray(y_pred)
+    y_true = _togray(y_true)
 
-    kernel_x = np.tile(kernel[..., None, None], (1, 1, channels, 1))
-    kernel_x = tf.constant(kernel_x, dtype=y_pred.dtype)
+    kernel0, kernel1, size = _gauss_filter(sigma)
+    kernel0 = np.tile(kernel0[..., None, None], (1, 1, channels, 1))
+    kernel1 = np.tile(kernel1[..., None, None], (1, 1, channels, 1))
+    kernel0 = kernel0.astype(y_pred.dtype.as_numpy_dtype)
+    kernel1 = kernel1.astype(y_pred.dtype.as_numpy_dtype)
 
-    kernel_y = np.tile(kernel.T[..., None, None], (1, 1, channels, 1))
-    kernel_y = tf.constant(kernel_y, dtype=y_pred.dtype)
+    kernel_x = tf.cast(kernel0, y_pred.dtype), tf.cast(kernel1, y_pred.dtype)
+    kernel_y = kernel0.transpose([1, 0, 2, 3]), kernel1.transpose([1, 0, 2, 3])
+    kernel_y = tf.cast(kernel_y[0], y_pred.dtype), tf.cast(kernel_y[1], y_pred.dtype)
 
     y_pred_x, y_pred_y = _gauss_gradient(y_pred, size, kernel_x, kernel_y)
     y_true_x, y_true_y = _gauss_gradient(y_true, size, kernel_x, kernel_y)
