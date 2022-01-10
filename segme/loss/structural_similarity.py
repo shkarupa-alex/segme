@@ -91,16 +91,16 @@ def structural_similarity_loss(y_true, y_pred, sample_weight, max_val, factors, 
     y_pred = tf.convert_to_tensor(y_pred)
     y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
+    channels_pred = y_pred.shape[-1]
+    if channels_pred is None:
+        raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
+
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
     assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(y_true)[1:3]), size * 2 ** (len(factors) - 1))
     assert_true_delta = tf.assert_less(tf.reduce_max(y_true) - tf.reduce_min(y_true), max_val + backend.epsilon())
 
     with tf.control_dependencies([assert_true_rank, assert_pred_rank, assert_true_shape, assert_true_delta]):
-        channels_pred = y_pred.shape[-1]
-        if channels_pred is None:
-            raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
-
         kernel = _ssim_kernel(size, sigma, channels_pred, y_pred.dtype)
         losses = 1. - _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernel, k1, k2)
 
