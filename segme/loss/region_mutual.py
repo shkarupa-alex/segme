@@ -29,17 +29,18 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
 
     y_pred = tf.convert_to_tensor(y_pred)
 
+    channels_pred = y_pred.shape[-1]
+    if channels_pred is None:
+        raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
+
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
         epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
 
-        if y_pred.shape[-1] is None:
-            raise ValueError('Number of classes in `y_pred` should be statically known.')
-
         # In multiclass case replace `softmax` activation with `sigmoid`.
-        if not from_logits and y_pred.shape[-1] > 1:
+        if not from_logits and channels_pred > 1:
             if hasattr(y_pred, '_keras_logits'):
                 y_pred = y_pred._keras_logits
             elif not isinstance(y_pred, (EagerTensor, tf.Variable)) and 'Softmax' != y_pred.op.type:
@@ -55,21 +56,21 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
         if from_logits:
             y_pred = tf.nn.sigmoid(y_pred)  # Use sigmoid instead of softmax
 
-        # Label mask -- [N, H, W, 1]
-        num_classes = tf.shape(y_pred)[-1]
-        y_true_onehot = tf.one_hot(tf.squeeze(y_true, axis=-1), depth=num_classes)
-        y_true_onehot = tf.cast(y_true_onehot, dtype=y_pred.dtype)
-
         # Decouple sample_weight to batch items weight and erase invalid pixels
         if sample_weight is not None:
             axis_hw = list(range(1, sample_weight.shape.ndims - 1))
             batch_weight = tf.reduce_mean(sample_weight, axis=axis_hw)
             valid_pixels = sample_weight > 0.
 
-            y_true_onehot = tf.where(valid_pixels, y_true_onehot, 0)
+            y_true = tf.where(valid_pixels, y_true, 0)
             y_pred = tf.where(valid_pixels, y_pred, epsilon)
         else:
             batch_weight = None
+
+        # Label mask -- [N, H, W, 1]
+        num_classes = tf.shape(y_pred)[-1]
+        y_true_onehot = tf.one_hot(tf.squeeze(y_true, axis=-1), depth=num_classes)
+        y_true_onehot = tf.cast(y_true_onehot, dtype=y_pred.dtype)
 
         # Get region mutual information
         y_true_onehot = tf.stop_gradient(y_true_onehot)
