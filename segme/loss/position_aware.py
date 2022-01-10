@@ -21,13 +21,13 @@ class PixelPositionAwareLoss(WeightedLossFunctionWrapper):
 
 
 def pixel_position_aware_loss(y_true, y_pred, sample_weight, from_logits, gamma, ksize):
+    y_pred = tf.convert_to_tensor(y_pred)
+    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        y_pred = tf.convert_to_tensor(y_pred)
-        y_true = tf.cast(y_true, dtype=y_pred.dtype)
-
         weight = 1 + gamma * tf.abs(tf.nn.avg_pool2d(y_true, ksize=ksize, strides=1, padding='SAME') - y_true)
         if sample_weight is not None:
             weight *= sample_weight

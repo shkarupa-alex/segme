@@ -27,12 +27,13 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
     if pool_stride > 1 and pool_way not in {'maxpool', 'avgpool', 'resize'}:
         raise ValueError('Unsupported RMI pooling way: {}'.format(pool_way))
 
+    y_pred = tf.convert_to_tensor(y_pred)
+
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        y_pred = tf.convert_to_tensor(y_pred)
-        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype.base_dtype)
+        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
 
         if y_pred.shape[-1] is None:
             raise ValueError('Number of classes in `y_pred` should be statically known.')

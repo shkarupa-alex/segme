@@ -111,13 +111,13 @@ def _weight_pyramid(inputs, levels):
 
 
 def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
+    y_pred = tf.convert_to_tensor(y_pred)
+    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+
     assert_true_rank = tf.assert_rank(y_true, 4)
     assert_pred_rank = tf.assert_rank(y_pred, 4)
 
     with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        y_pred = tf.convert_to_tensor(y_pred)
-        y_true = tf.cast(y_true, dtype=y_pred.dtype)
-
         channels_pred = y_pred.shape[-1]
         if channels_pred is None:
             raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')

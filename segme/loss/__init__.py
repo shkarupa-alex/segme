@@ -14,6 +14,8 @@ from .laplace_edge import LaplaceEdgeSigmoidCrossEntropy
 from .laplace_edge import laplace_edge_sigmoid_cross_entropy
 from .laplacian_pyramid import LaplacianPyramidLoss
 from .laplacian_pyramid import laplacian_pyramid_loss
+from .normalized_focal import NormalizedFocalSigmoidCrossEntropy
+from .normalized_focal import normalized_focal_sigmoid_cross_entropy
 from .position_aware import PixelPositionAwareLoss
 from .position_aware import pixel_position_aware_loss
 from .rt_exclusion import ReflectionTransmissionExclusionLoss
