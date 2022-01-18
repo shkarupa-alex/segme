@@ -3,6 +3,8 @@ import numpy as np
 
 
 def solve_fgbg(image, alpha, regularization=0.005, small_size=32, small_steps=10, big_steps=2, grad_weight=0.1):
+    # Based on https://github.com/pymatting/pymatting/blob/master/pymatting/foreground/estimate_foreground_ml.py
+
     if 3 != len(image.shape):
         raise ValueError('Expecting `image` rank to be 3.')
 
