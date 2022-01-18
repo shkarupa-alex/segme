@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
+from .fg import solve_fg
 
 
-def compose_two(fg0, alpha0, fg1, alpha1):
+def compose_two(fg0, alpha0, fg1, alpha1, solve=True):
     if 3 != len(fg0.shape):
         raise ValueError('Expecting `fg` rank to be 3.')
 
@@ -79,5 +80,8 @@ def compose_two(fg0, alpha0, fg1, alpha1):
 
     fg = np.round(fg * 255.).astype('uint8')
     alpha = np.round(alpha * 255.).astype('uint8')
+
+    if solve:
+        fg = solve_fg(fg, alpha)
 
     return fg, alpha

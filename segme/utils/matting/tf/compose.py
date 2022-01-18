@@ -1,8 +1,9 @@
 import tensorflow as tf
 from keras import backend
+from .fg import solve_fg
 
 
-def compose_two(fg, alpha, rest=None, prob=0.5, name=None):
+def compose_two(fg, alpha, rest=None, solve=True, prob=0.5, name=None):
     with tf.name_scope(name or 'compose_two'):
         fg = tf.convert_to_tensor(fg, 'uint8')
         alpha = tf.convert_to_tensor(alpha, 'uint8')
@@ -65,6 +66,9 @@ def compose_two(fg, alpha, rest=None, prob=0.5, name=None):
 
             fg_ = tf.cast(tf.round(fg_ * 255.), 'uint8')
             alpha_ = tf.cast(tf.round(alpha_ * 255.), 'uint8')
+
+            if solve:
+                fg_ = solve_fg(fg_, alpha_)
 
             return fg_, alpha_, rest01_
 
