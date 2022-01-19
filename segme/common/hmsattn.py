@@ -2,7 +2,7 @@ from keras import backend, layers, models
 from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .convbnrelu import ConvBnRelu
+from .convnormrelu import ConvNormRelu
 from .resizebysample import resize_by_sample
 from .resizebyscale import resize_by_scale
 
@@ -15,12 +15,13 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
       layer: The `Layer` instance to be wrapped.
     """
 
-    def __init__(self, layer, scales=((0.5,), (0.25, 0.5, 2.0)), filters=256, dropout=0., **kwargs):
+    def __init__(self, layer, scales=((0.5,), (0.25, 0.5, 2.0)), filters=256, dropout=0., standardized=False, **kwargs):
         super().__init__(layer, **kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
         self.scales = scales
         self.filters = filters
         self.dropout = dropout
+        self.standardized = standardized
 
         if 2 != len(scales) or not all([isinstance(s, (list, tuple)) for s in scales]):
             raise ValueError('Expecting `scales` to be a train/eval pair of scale lists/tuples.')
@@ -33,8 +34,8 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
 
     def build(self, input_shape=None):
         self.attention = models.Sequential([
-            ConvBnRelu(self.filters, 3),
-            ConvBnRelu(self.filters, 3),
+            ConvNormRelu(self.filters, 3, standardized=self.standardized),
+            ConvNormRelu(self.filters, 3, standardized=self.standardized),
             layers.Dropout(self.dropout),
             layers.Conv2D(1, kernel_size=1, padding='same', use_bias=False, activation='sigmoid')
         ])
@@ -97,7 +98,8 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
         config.update({
             'scales': self.scales,
             'filters': self.filters,
-            'dropout': self.dropout
+            'dropout': self.dropout,
+            'standardized': self.standardized
         })
 
         return config
