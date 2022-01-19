@@ -34,8 +34,8 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
 
     def build(self, input_shape=None):
         self.attention = models.Sequential([
-            ConvNormRelu(self.filters, 3, standardized=self.standardized),
-            ConvNormRelu(self.filters, 3, standardized=self.standardized),
+            ConvNormRelu(self.filters, 3, padding='same', standardized=self.standardized),
+            ConvNormRelu(self.filters, 3, padding='same', standardized=self.standardized),
             layers.Dropout(self.dropout),
             layers.Conv2D(1, kernel_size=1, padding='same', use_bias=False, activation='sigmoid')
         ])
