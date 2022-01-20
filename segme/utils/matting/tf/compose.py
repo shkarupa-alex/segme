@@ -1,14 +1,13 @@
 import tensorflow as tf
-from keras import backend as K
-from .fbgb import solve_fgbg
+from keras import backend
+from .fg import solve_fg
 
 
-def compose_two(fg, alpha, rest=None, prob=0.5, solve=False, regularization=0.005, small_size=32, small_steps=10,
-                big_steps=2, grad_weight=0.1, name=None):
+def compose_two(fg, alpha, rest=None, solve=True, prob=0.5, name=None):
     with tf.name_scope(name or 'compose_two'):
         fg = tf.convert_to_tensor(fg, 'uint8')
         alpha = tf.convert_to_tensor(alpha, 'uint8')
-        eps = tf.convert_to_tensor(K.epsilon(), 'float32')
+        eps = tf.convert_to_tensor(backend.epsilon(), 'float32')
 
         if 4 != len(fg.shape):
             raise ValueError('Expecting `fg` rank to be 4.')
@@ -69,9 +68,7 @@ def compose_two(fg, alpha, rest=None, prob=0.5, solve=False, regularization=0.00
             alpha_ = tf.cast(tf.round(alpha_ * 255.), 'uint8')
 
             if solve:
-                fg_, _ = solve_fgbg(
-                    fg_, alpha_, regularization=regularization, small_size=small_size, small_steps=small_steps,
-                    big_steps=big_steps, grad_weight=grad_weight)
+                fg_ = solve_fg(fg_, alpha_)
 
             return fg_, alpha_, rest01_
 

@@ -1,7 +1,7 @@
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import resize_by_sample, ConvBnRelu
+from ...common import resize_by_sample, ConvNormRelu
 
 
 @register_keras_serializable(package='SegMe>F3Net')
@@ -13,15 +13,15 @@ class CFM(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.cbr1h = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
-        self.cbr2h = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
-        self.cbr3h = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
-        self.cbr4h = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr1h = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
+        self.cbr2h = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
+        self.cbr3h = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
+        self.cbr4h = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
 
-        self.cbr1v = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
-        self.cbr2v = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
-        self.cbr3v = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
-        self.cbr4v = ConvBnRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr1v = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
+        self.cbr2v = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
+        self.cbr3v = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
+        self.cbr4v = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
 
         super().build(input_shape)
 

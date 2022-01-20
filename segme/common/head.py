@@ -16,10 +16,7 @@ class HeadProjection(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.proj = layers.Conv2D(
-            self.classes,
-            self.kernel_size,
-            padding='same',
-            kernel_initializer=self.kernel_initializer)
+            self.classes, self.kernel_size, padding='same', kernel_initializer=self.kernel_initializer)
 
         super().build(input_shape)
 

@@ -1,7 +1,7 @@
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvBnRelu, resize_by_sample
+from ...common import ConvNormRelu, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>U2Net')
@@ -15,29 +15,29 @@ class RSU6(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.cbr0 = ConvBnRelu(self.out_features, 3)
+        self.cbr0 = ConvNormRelu(self.out_features, 3, padding='same')
 
-        self.cbr1 = ConvBnRelu(self.mid_features, 3)
+        self.cbr1 = ConvNormRelu(self.mid_features, 3, padding='same')
         self.pool1 = layers.MaxPool2D(2, padding='same')
 
-        self.cbr2 = ConvBnRelu(self.mid_features, 3)
+        self.cbr2 = ConvNormRelu(self.mid_features, 3, padding='same')
         self.pool2 = layers.MaxPool2D(2, padding='same')
 
-        self.cbr3 = ConvBnRelu(self.mid_features, 3)
+        self.cbr3 = ConvNormRelu(self.mid_features, 3, padding='same')
         self.pool3 = layers.MaxPool2D(2, padding='same')
 
-        self.cbr4 = ConvBnRelu(self.mid_features, 3)
+        self.cbr4 = ConvNormRelu(self.mid_features, 3, padding='same')
         self.pool4 = layers.MaxPool2D(2, padding='same')
 
-        self.cbr5 = ConvBnRelu(self.mid_features, 3)
+        self.cbr5 = ConvNormRelu(self.mid_features, 3, padding='same')
 
-        self.cbr6 = ConvBnRelu(self.mid_features, 3, dilation_rate=2)
+        self.cbr6 = ConvNormRelu(self.mid_features, 3, padding='same', dilation_rate=2)
 
-        self.cbr5d = ConvBnRelu(self.mid_features, 3)
-        self.cbr4d = ConvBnRelu(self.mid_features, 3)
-        self.cbr3d = ConvBnRelu(self.mid_features, 3)
-        self.cbr2d = ConvBnRelu(self.mid_features, 3)
-        self.cbr1d = ConvBnRelu(self.out_features, 3)
+        self.cbr5d = ConvNormRelu(self.mid_features, 3, padding='same')
+        self.cbr4d = ConvNormRelu(self.mid_features, 3, padding='same')
+        self.cbr3d = ConvNormRelu(self.mid_features, 3, padding='same')
+        self.cbr2d = ConvNormRelu(self.mid_features, 3, padding='same')
+        self.cbr1d = ConvNormRelu(self.out_features, 3, padding='same')
 
         super().build(input_shape)
 

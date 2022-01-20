@@ -4,7 +4,7 @@ from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from .decoder import Decoder
 from ...backbone import Backbone
-from ...common import ConvBnRelu, HeadActivation, HeadProjection, resize_by_sample
+from ...common import ConvNormRelu, HeadActivation, HeadProjection, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>F3Net')
@@ -22,10 +22,10 @@ class F3Net(layers.Layer):
     def build(self, input_shape):
         self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=[4, 8, 16, 32])
 
-        self.squeeze2 = ConvBnRelu(self.filters, 1, kernel_initializer='he_normal')
-        self.squeeze3 = ConvBnRelu(self.filters, 1, kernel_initializer='he_normal')
-        self.squeeze4 = ConvBnRelu(self.filters, 1, kernel_initializer='he_normal')
-        self.squeeze5 = ConvBnRelu(self.filters, 1, kernel_initializer='he_normal')
+        self.squeeze2 = ConvNormRelu(self.filters, 1, padding='same', kernel_initializer='he_normal')
+        self.squeeze3 = ConvNormRelu(self.filters, 1, padding='same', kernel_initializer='he_normal')
+        self.squeeze4 = ConvNormRelu(self.filters, 1, padding='same', kernel_initializer='he_normal')
+        self.squeeze5 = ConvNormRelu(self.filters, 1, padding='same', kernel_initializer='he_normal')
 
         self.decoder1 = Decoder(False, self.filters)
         self.decoder2 = Decoder(True, self.filters)

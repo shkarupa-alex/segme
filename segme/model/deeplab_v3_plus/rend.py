@@ -3,18 +3,19 @@ from keras import Model, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from keras.utils.tf_utils import shape_type_conversion
-from .model import DeepLabV3Plus
+from .base import DeepLabV3PlusBase
 from ...common import PointRend, PointLoss
 
 
 @register_keras_serializable(package='SegMe>DeepLabV3Plus')
-class DeepLabV3PlusWithPointRend(DeepLabV3Plus):
+class DeepLabV3PlusWithPointRend(DeepLabV3PlusBase):
     def __init__(
-            self, classes, bone_arch, bone_init, bone_train, aspp_filters, aspp_stride, low_filters, decoder_filters,
-            rend_strides, rend_units, rend_points, rend_oversample, rend_importance, rend_corners, **kwargs):
+            self, rend_strides, rend_units, rend_points, rend_oversample, rend_importance, rend_corners, classes,
+            bone_arch, bone_init, bone_train, aspp_filters, aspp_stride, low_filters, decoder_filters, **kwargs):
         super().__init__(
             classes=classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,
-            aspp_stride=aspp_stride, low_filters=low_filters, decoder_filters=decoder_filters, **kwargs)
+            aspp_stride=aspp_stride, low_filters=low_filters, decoder_filters=decoder_filters, add_strides=rend_strides,
+            **kwargs)
 
         self.rend_strides = rend_strides
         self.rend_units = rend_units
@@ -22,8 +23,6 @@ class DeepLabV3PlusWithPointRend(DeepLabV3Plus):
         self.rend_oversample = rend_oversample
         self.rend_importance = rend_importance
         self.rend_corners = rend_corners
-
-        self.add_strides = rend_strides
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -34,7 +33,7 @@ class DeepLabV3PlusWithPointRend(DeepLabV3Plus):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs, _, *rend_feats = self._call(inputs)
+        outputs, _, *rend_feats = super().call(inputs)
         outputs = self.rend([inputs, outputs, *rend_feats])
 
         return outputs
@@ -57,6 +56,8 @@ class DeepLabV3PlusWithPointRend(DeepLabV3Plus):
             'rend_corners': self.rend_corners
         })
 
+        del config['add_strides']
+
         return config
 
 
@@ -74,7 +75,7 @@ def build_deeplab_v3_plus_with_point_rend(
         tf.get_logger().warning('Don\'t forget to pass "label" input into features')
 
     outputs, point_logits, point_coords = DeepLabV3PlusWithPointRend(
-        classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,
+        classes=classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,
         aspp_stride=aspp_stride, low_filters=low_filters, decoder_filters=decoder_filters, rend_strides=rend_strides,
         rend_units=rend_units, rend_points=rend_points, rend_oversample=rend_oversample,
         rend_importance=rend_importance, rend_corners=rend_corners)(model_inputs)

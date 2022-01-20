@@ -2,8 +2,7 @@ import tensorflow as tf
 from keras import Sequential, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from tensorflow_addons.layers import GroupNormalization
-from ...common import AdaptiveAveragePooling, StandardizedConv2D, resize_by_sample
+from ...common import AdaptiveAveragePooling, ConvNormRelu, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>FBAMatting')
@@ -16,7 +15,7 @@ class Decoder(layers.Layer):
             layers.InputSpec(ndim=4),  # features x32
             layers.InputSpec(ndim=4, axes={-1: 3}),  # image (scaled)
             layers.InputSpec(ndim=4, axes={-1: 3}),  # image (normalized)
-            layers.InputSpec(ndim=4, axes={-1: 2}),  # twomap
+            layers.InputSpec(ndim=4, axes={-1: 2}),  # twomap (scaled)
         ]
 
         self.pool_scales = pool_scales
@@ -25,37 +24,20 @@ class Decoder(layers.Layer):
     def build(self, input_shape):
         self.ppm = [Sequential([
             AdaptiveAveragePooling(scale),
-            StandardizedConv2D(256, 1, padding='same'),
-            GroupNormalization(),
-            layers.LeakyReLU()
+            ConvNormRelu(256, 1, padding='same', activation='leaky_relu', standardized=True)
         ]) for scale in self.pool_scales]
 
         self.conv_up1 = Sequential([
-            StandardizedConv2D(256, 3, padding='same'),
-            GroupNormalization(),
-            layers.LeakyReLU(),
-            StandardizedConv2D(256, 3, padding='same'),
-            GroupNormalization(),
-            layers.LeakyReLU()
+            ConvNormRelu(256, 3, padding='same', activation='leaky_relu', standardized=True),
+            ConvNormRelu(256, 3, padding='same', activation='leaky_relu', standardized=True)
         ])
-        self.conv_up2 = Sequential([
-            StandardizedConv2D(256, 3, padding='same'),
-            GroupNormalization(),
-            layers.LeakyReLU()
-        ])
-        self.conv_up3 = Sequential([
-            StandardizedConv2D(64, 3, padding='same'),
-            GroupNormalization(),
-            layers.LeakyReLU()
-        ])
+        self.conv_up2 = ConvNormRelu(256, 3, padding='same', activation='leaky_relu', standardized=True)
+        self.conv_up3 = ConvNormRelu(64, 3, padding='same', activation='leaky_relu', standardized=True)
 
         self.conv_up4 = Sequential([
-            layers.Conv2D(32, 3, padding='same'),
-            layers.LeakyReLU(),
-            layers.Conv2D(16, 3, padding='same'),
-            layers.LeakyReLU(),
-            layers.Conv2D(7, 1, padding='same'),
-            layers.Activation('linear', dtype='float32')
+            layers.Conv2D(32, 3, padding='same', activation='leaky_relu'),
+            layers.Conv2D(16, 3, padding='same', activation='leaky_relu'),
+            layers.Conv2D(7, 1, padding='same', dtype='float32')
         ])
 
         super().build(input_shape)

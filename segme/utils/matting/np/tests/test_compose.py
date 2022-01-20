@@ -10,7 +10,7 @@ class TestComposeTwo(unittest.TestCase):
         fg1 = np.random.uniform(0., 255., (16, 16, 3)).astype('uint8')
         alpha1 = np.random.uniform(0., 255., (16, 16, 1)).astype('uint8')
 
-        fg, alpha = compose_two(fg0, alpha0, fg1, alpha1)
+        fg, alpha = compose_two(fg0, alpha0, fg1, alpha1, solve=False)
 
         self.assertEqual(fg.dtype, 'uint8')
         self.assertEqual(alpha.dtype, 'uint8')
@@ -23,7 +23,7 @@ class TestComposeTwo(unittest.TestCase):
         fg1 = np.random.uniform(0., 255., (16, 16, 3)).astype('uint8')
         alpha1 = np.random.uniform(0., 255., (16, 16, 1)).astype('uint8')
 
-        fg, alpha = compose_two(fg0, alpha0, fg1, alpha1, solve=True)
+        fg, alpha = compose_two(fg0, alpha0, fg1, alpha1)
 
         self.assertEqual(fg.dtype, 'uint8')
         self.assertEqual(alpha.dtype, 'uint8')

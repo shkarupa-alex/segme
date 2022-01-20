@@ -44,8 +44,8 @@ def _solve_fgbg_step(step, image, fg, bg, alpha, grad_weight, regularization):
 
 def _solve_fgbg_level(level, image, fg, bg, alpha, height, width, levels, small_size, small_steps, big_steps,
                       grad_weight, regularization):
-    height_ = tf.cast(tf.math.round(tf.cast(height, 'float32') ** tf.cast(level / levels, 'float32')), 'int32')
-    width_ = tf.cast(tf.math.round(tf.cast(width, 'float32') ** tf.cast(level / levels, 'float32')), 'int32')
+    height_ = tf.cast(tf.math.round(tf.cast(height, 'float32') ** (level / levels)), 'int32')
+    width_ = tf.cast(tf.math.round(tf.cast(width, 'float32') ** (level / levels)), 'int32')
 
     image_ = tf.image.resize(image, [height_, width_])
     alpha_ = tf.image.resize(alpha, [height_, width_])
@@ -62,7 +62,7 @@ def _solve_fgbg_level(level, image, fg, bg, alpha, height, width, levels, small_
         [0, image_, fg, bg, alpha_, grad_weight, regularization],
         shape_invariants=shapes)
 
-    return level + 1, image, fg, bg, alpha, height, width, levels, small_size, small_steps, big_steps, grad_weight, \
+    return level + 1., image, fg, bg, alpha, height, width, levels, small_size, small_steps, big_steps, grad_weight, \
            regularization
 
 
@@ -99,14 +99,14 @@ def solve_fgbg(image, alpha, regularization=0.005, small_size=32, small_steps=10
 
         height, width = tf.unstack(tf.shape(image)[1:3])
         levels = tf.cast(tf.math.maximum(height, width), 'float32')
-        levels = tf.cast(tf.math.ceil(tf.math.log(levels) / np.log(2)), 'int32')
+        levels = tf.math.ceil(tf.math.log(levels) / np.log(2))
 
         shapes = [[]] + [[None, None, None, 3]] * 3 + [[None, None, None, 1]] + [[]] * 8
         shapes = list(map(tf.TensorShape, shapes))
         _, _, fg, bg, _, _, _, _, _, _, _, _, _ = tf.while_loop(
             lambda level, *_: level <= levels,
             _solve_fgbg_level,
-            [0, image, fg, bg, alpha, height, width, levels, small_size, small_steps, big_steps, grad_weight,
+            [0., image, fg, bg, alpha, height, width, levels, small_size, small_steps, big_steps, grad_weight,
              regularization],
             shape_invariants=shapes)
 

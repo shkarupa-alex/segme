@@ -1,7 +1,7 @@
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvBnRelu, resize_by_sample
+from ...common import ConvNormRelu, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>MINet')
@@ -22,8 +22,8 @@ class SIM(layers.Layer):
         self.relu = layers.ReLU()
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
 
-        self.cbr_hh0 = ConvBnRelu(self.channels, 3)
-        self.cbr_hl0 = ConvBnRelu(self.filters, 3)
+        self.cbr_hh0 = ConvNormRelu(self.channels, 3, padding='same')
+        self.cbr_hl0 = ConvNormRelu(self.filters, 3, padding='same')
 
         self.conv_hh1 = layers.Conv2D(self.channels, 3, padding='same')
         self.conv_hl1 = layers.Conv2D(self.filters, 3, padding='same')

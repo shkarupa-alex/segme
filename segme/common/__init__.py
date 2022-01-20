@@ -1,7 +1,8 @@
 from .adppool import AdaptiveAveragePooling, AdaptiveMaxPooling
-from .convbnrelu import ConvBnRelu
+from .convnormrelu import ConvNormRelu
 from .featalign import FeatureAlignment
 from .head import HeadProjection, HeadActivation, ClassificationHead
+from .hmsattn import HierarchicalMultiScaleAttention
 from .point_rend import PointRend, PointLoss
 from .stdconv import StandardizedConv2D
 from .resizebysample import ResizeBySample, resize_by_sample

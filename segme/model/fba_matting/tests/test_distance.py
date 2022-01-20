@@ -5,6 +5,7 @@ import tensorflow as tf
 from keras import keras_parameterized, testing_utils
 from keras.mixed_precision import policy as mixed_precision
 from ..distance import Distance
+from .test_twomap import _twomap
 
 
 @keras_parameterized.run_all_keras_modes
@@ -22,84 +23,57 @@ class TestDistance(keras_parameterized.TestCase):
         result = testing_utils.layer_test(
             Distance,
             kwargs={},
-            input_shape=[2, 64, 64, 2],
-            input_dtype='float32',
+            input_shape=[2, 64, 64, 1],
+            input_dtype='uint8',
             expected_output_shape=[None, 64, 64, 6],
             expected_output_dtype='float32'
         )
-        self.assertAllLessEqual(result, 1.)
+        self.assertAllLessEqual(result, 255.)
         self.assertAllGreaterEqual(result, 0.)
 
     def test_value(self):
-        twomap = np.array([
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0],
-             [1, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 0], [1, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 0], [1, 0],
-             [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 0], [1, 0], [1, 0],
-             [1, 0], [0, 0], [0, 0], [0, 0], [0, 0], [1, 0], [1, 0], [0, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 0], [0, 0], [0, 0],
-             [1, 0], [0, 1], [0, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 0], [0, 0],
-             [0, 0], [0, 1], [0, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 0], [0, 0],
-             [0, 1], [0, 1], [0, 0], [0, 1], [0, 1], [0, 0], [0, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 1],
-             [0, 0], [0, 1], [0, 1], [0, 0], [0, 1], [0, 1], [0, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 0], [0, 0], [0, 0],
-             [0, 0], [0, 0], [0, 0], [0, 1], [0, 1], [0, 0], [0, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 0], [1, 0],
-             [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [0, 0], [0, 0], [1, 0], [1, 0],
-             [0, 1], [0, 0], [0, 0], [0, 0], [0, 1], [0, 0], [0, 1], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 0], [1, 0],
-             [0, 1], [0, 1], [0, 0], [0, 1], [0, 0], [0, 0], [0, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0],
-             [0, 0], [0, 1], [0, 0], [0, 0], [0, 0], [1, 0], [1, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0],
-             [1, 0], [0, 1], [0, 1], [0, 0], [1, 0], [1, 0], [1, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0],
-             [1, 0], [0, 1], [0, 1], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0],
-             [0, 0], [0, 1], [0, 1], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0]],
-            [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [0, 0],
-             [0, 1], [0, 1], [0, 1], [0, 0], [1, 0], [1, 0], [0, 0], [1, 0]]
-        ], 'float32')
-
+        trimap = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 128, 128, 0, 128, 0, 0],
+            [0, 0, 0, 0, 0, 0, 128, 0, 128, 128, 128, 128, 128, 0, 128, 0],
+            [0, 0, 0, 0, 0, 128, 0, 0, 0, 128, 128, 128, 128, 0, 0, 128],
+            [0, 0, 0, 0, 0, 128, 128, 128, 0, 255, 128, 128, 128, 128, 0, 128],
+            [0, 0, 0, 0, 0, 0, 128, 128, 128, 255, 128, 128, 128, 128, 0, 128],
+            [0, 0, 0, 0, 0, 0, 128, 128, 255, 255, 128, 255, 255, 128, 128, 0],
+            [0, 0, 0, 0, 0, 0, 0, 255, 128, 255, 255, 128, 255, 255, 128, 0],
+            [0, 0, 0, 0, 0, 128, 128, 128, 128, 128, 128, 255, 255, 128, 128, 0],
+            [0, 0, 0, 0, 0, 0, 128, 0, 128, 128, 128, 128, 128, 128, 128, 0],
+            [0, 0, 0, 0, 128, 128, 0, 0, 255, 128, 128, 128, 255, 128, 255, 0],
+            [0, 0, 0, 0, 0, 0, 128, 0, 255, 255, 128, 255, 128, 128, 128, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 128, 255, 128, 128, 128, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 128, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 128, 255, 255, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 128, 255, 255, 255, 128, 0, 0, 128, 0]
+        ], 'uint8')
+        twomap = _twomap(trimap)
         expected = _distance(twomap)
+        expected = np.round(expected * 255.).astype('uint8')
 
-        result = Distance()(twomap[None, ...])[0]
+        result = Distance()(trimap[None, ..., None])[0]
         result = self.evaluate(result)
 
         # self.assertAllClose(expected, result) # differs since tensorflow-addons v0.13.0
         diff = np.sum(np.abs(result - expected) > 1e-6) / np.prod(result.shape)
         self.assertLess(diff, 0.03)
 
-    def test_zeros(self):
-        twomap = np.random.rand(64, 64, 2) > 0.5
-        twomap[..., 1] = 0
-        twomap = twomap.astype('float32')
+    def test_single(self):
+        for value in [0, 128, 255]:
+            trimap = np.full((64, 64), value, dtype='uint8')
+            twomap = _twomap(trimap)
+            expected = _distance(twomap)
+            expected = np.round(expected * 255.).astype('uint8')
 
-        expected = _distance(twomap)
+            result = Distance()(trimap[None, ..., None])[0]
+            result = self.evaluate(result)
 
-        result = Distance()(twomap[None, ...])[0]
-        result = self.evaluate(result)
-
-        # self.assertAllClose(expected, result) # differs since tensorflow-addons v0.13.0
-        diff = np.sum(np.abs(result - expected) > 1e-6) / np.prod(result.shape)
-        self.assertLess(diff, 0.01)
-
-    def test_fp16(self):
-        path = os.path.join(os.path.dirname(__file__), 'assets', 'distance_fp16.npy')
-        src0 = np.load(path)
-        twomap = np.concatenate([src0, 1 - src0], axis=-1).astype('float16')
-
-        tf.debugging.enable_check_numerics()
-        mixed_precision.set_global_policy('mixed_float16')
-
-        result = Distance()(twomap)
-        result = self.evaluate(result)
-        self.assertTrue(np.all(np.isfinite(result)))
+            # self.assertAllClose(expected, result) # differs since tensorflow-addons v0.13.0
+            diff = np.sum(np.abs(result - expected) > 1e-6) / np.prod(result.shape)
+            self.assertLess(diff, 0.01)
 
 
 def _distance(twomap, length=320):

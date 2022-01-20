@@ -6,7 +6,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from scipy import ndimage
 from vit_keras import vit
 from ...backbone.utils import patch_config
-from ...common import ConvBnRelu
+from ...common import ConvNormRelu
 
 
 @register_keras_serializable(package='SegMe>TriTrans')
@@ -104,7 +104,7 @@ class DecoderCup(layers.Layer):
         self.width_height = int(width_height ** 0.5)
         self.channels = channels
 
-        self.conv = ConvBnRelu(self.filters, kernel_size=3)
+        self.conv = ConvNormRelu(self.filters, kernel_size=3, padding='same')
 
         super().build(input_shape)
 
