@@ -15,7 +15,7 @@ class TestTwomap(keras_parameterized.TestCase):
             expected_output_shape=[None, 64, 64, 2],
             expected_output_dtype='float32'
         )
-        self.assertAllLessEqual(result, 1.)
+        self.assertAllLessEqual(result, 255.)
         self.assertAllGreaterEqual(result, 0.)
 
     def test_value(self):
@@ -37,8 +37,8 @@ class TestTwomap(keras_parameterized.TestCase):
             [0, 0, 0, 0, 0, 0, 0, 0, 128, 255, 255, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 128, 255, 255, 255, 128, 0, 0, 128, 0]
         ], 'uint8')
-
         expected = _twomap(trimap)
+        expected = (expected * 255.).astype('uint8')
 
         result = Twomap()(trimap[None, ..., None])[0]
         result = self.evaluate(result)

@@ -3,7 +3,7 @@ from keras import Sequential, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from .atsepconv import AtrousSepConv
-from ...common import resize_by_sample, ConvBnRelu
+from ...common import resize_by_sample, ConvNormRelu
 
 
 @register_keras_serializable(package='SegMe>DeepLabV3Plus')
@@ -17,7 +17,8 @@ class ASPPPool(layers.Layer):
     def build(self, input_shape):
         self.pool = Sequential([
             layers.GlobalAveragePooling2D(keepdims=True),
-            ConvBnRelu(self.filters, 1, use_bias=False, fused_bn=False)
+            # TODO: wait for https://github.com/tensorflow/tensorflow/issues/48845
+            ConvNormRelu(self.filters, 1, bn_fused=False)
         ])
 
         super().build(input_shape)
@@ -63,11 +64,11 @@ class ASPP(layers.Layer):
         self.conv3r1 = AtrousSepConv(filters=self.filters, dilation=rate1, name='aspp2')
         self.conv3r2 = AtrousSepConv(filters=self.filters, dilation=rate2, name='aspp3')
 
-        self.conv1 = ConvBnRelu(self.filters, 1, use_bias=False, name='aspp0')
+        self.conv1 = ConvNormRelu(self.filters, 1, name='aspp0')
         self.pool = ASPPPool(filters=self.filters, name='aspp4')
 
         self.proj = Sequential([
-            ConvBnRelu(self.filters, 1, use_bias=False),
+            ConvNormRelu(self.filters, 1),
             layers.Dropout(0.1)  # 0.5 in some implementations
         ])
 

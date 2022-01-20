@@ -1,80 +1,33 @@
 from keras import Model, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .encoder import Encoder
-from .decoder import Decoder
-from ...common import HeadProjection, HeadActivation, resize_by_sample
+from .base import DeepLabV3PlusBase
+from ...common import resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>DeepLabV3Plus')
-class DeepLabV3Plus(layers.Layer):
+class DeepLabV3Plus(DeepLabV3PlusBase):
     """ Reference: https://arxiv.org/pdf/1802.02611.pdf """
 
-    def __init__(
-            self, classes, bone_arch, bone_init, bone_train, aspp_filters, aspp_stride, low_filters, decoder_filters,
-            **kwargs):
-        super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
-        self.classes = classes
-        self.bone_arch = bone_arch
-        self.bone_init = bone_init
-        self.bone_train = bone_train
-        self.aspp_filters = aspp_filters
-        self.aspp_stride = aspp_stride
-        self.low_filters = low_filters
-        self.decoder_filters = decoder_filters
-
-        self.add_strides = None
-
-    @shape_type_conversion
-    def build(self, input_shape):
-        self.enc = Encoder(
-            self.bone_arch, self.bone_init, self.bone_train, self.aspp_filters, self.aspp_stride,
-            add_strides=self.add_strides)
-        self.dec = Decoder(self.low_filters, self.decoder_filters)
-        self.proj = HeadProjection(self.classes)
-        self.act = HeadActivation(self.classes)
-
-        super().build(input_shape)
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('add_strides')
+        super().__init__(*args, **kwargs)
 
     def call(self, inputs, **kwargs):
-        outputs, *_ = self._call(inputs)
+        outputs = super().call(inputs)[0]
         outputs = resize_by_sample([outputs, inputs])
         outputs = self.act(outputs)
 
         return outputs
 
-    def _call(self, inputs):
-        low_feats, high_feats, *add_feats = self.enc(inputs)
-        dec_feats = self.dec([low_feats, high_feats])
-
-        outputs = self.proj(dec_feats)
-
-        return (outputs, dec_feats, *add_feats)
-
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return self.proj.compute_output_shape(input_shape)
+        return super().compute_output_shape(input_shape)[0]
 
     def compute_output_signature(self, input_signature):
-        proj_signature = self.proj.compute_output_signature(input_signature)
+        proj_signature = super().compute_output_signature(input_signature)[0]
 
         return self.act.compute_output_signature(proj_signature)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            'classes': self.classes,
-            'bone_arch': self.bone_arch,
-            'bone_init': self.bone_init,
-            'bone_train': self.bone_train,
-            'aspp_filters': self.aspp_filters,
-            'aspp_stride': self.aspp_stride,
-            'low_filters': self.low_filters,
-            'decoder_filters': self.decoder_filters
-        })
-
-        return config
 
 
 def build_deeplab_v3_plus(

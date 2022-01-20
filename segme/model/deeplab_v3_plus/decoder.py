@@ -2,7 +2,7 @@ from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from .atsepconv import AtrousSepConv
-from ...common import resize_by_sample, ConvBnRelu
+from ...common import resize_by_sample, ConvNormRelu
 
 
 @register_keras_serializable(package='SegMe>DeepLabV3Plus')
@@ -18,7 +18,7 @@ class Decoder(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.proj = ConvBnRelu(self.low_filters, 1, use_bias=False)
+        self.proj = ConvNormRelu(self.low_filters, 1)
         self.conv0 = AtrousSepConv(self.decoder_filters)
         self.conv1 = AtrousSepConv(self.decoder_filters)
 

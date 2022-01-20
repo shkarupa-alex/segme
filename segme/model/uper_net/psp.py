@@ -1,7 +1,7 @@
 from keras import layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvBnRelu, resize_by_sample, AdaptiveAveragePooling
+from ...common import ConvNormRelu, resize_by_sample, AdaptiveAveragePooling
 
 
 @register_keras_serializable(package='SegMe>UPerNet')
@@ -16,9 +16,9 @@ class PSP(layers.Layer):
     def build(self, input_shape):
         self.stages = [models.Sequential([
             AdaptiveAveragePooling(size),
-            ConvBnRelu(self.filters, 1, use_bias=False)
+            ConvNormRelu(self.filters, 1, padding='same')
         ]) for size in self.sizes]
-        self.bottleneck = ConvBnRelu(self.filters, 3, use_bias=False)
+        self.bottleneck = ConvNormRelu(self.filters, 3, padding='same')
 
         super().build(input_shape)
 

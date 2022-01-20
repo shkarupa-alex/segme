@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvBnRelu, resize_by_sample
+from ...common import ConvNormRelu, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>MINet')
@@ -32,9 +32,9 @@ class Conv3nV1(layers.Layer):
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
 
         # stage 0
-        self.cbr_hh0 = ConvBnRelu(min_channels, 3)
-        self.cbr_mm0 = ConvBnRelu(min_channels, 3)
-        self.cbr_ll0 = ConvBnRelu(min_channels, 3)
+        self.cbr_hh0 = ConvNormRelu(min_channels, 3, padding='same')
+        self.cbr_mm0 = ConvNormRelu(min_channels, 3, padding='same')
+        self.cbr_ll0 = ConvNormRelu(min_channels, 3, padding='same')
 
         # stage 1
         self.conv_hh1 = layers.Conv2D(min_channels, 3, padding='same')

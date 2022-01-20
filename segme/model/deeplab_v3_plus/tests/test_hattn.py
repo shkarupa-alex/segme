@@ -25,8 +25,8 @@ class TestDeepLabV3PlusWithHierarchicalAttention(keras_parameterized.TestCase):
             DeepLabV3PlusWithHierarchicalAttention,
             kwargs={
                 'classes': 4, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
-                'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 4,
-                'train_scales': (0.5, 2.0), 'eval_scales': (0.25, 0.5, 2.0)},
+                'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 5,
+                'scales': ((0.5,), (0.25, 0.5, 2.0))},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
             expected_output_shapes=[(None, 224, 224, 4)],
@@ -39,7 +39,7 @@ class TestDeepLabV3PlusWithHierarchicalAttention(keras_parameterized.TestCase):
             kwargs={
                 'classes': 1, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
                 'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 4,
-                'train_scales': (0.5, 2.0), 'eval_scales': (0.25, 0.5, 2.0)},
+                'scales': ((0.5,), (0.25, 0.5, 2.0))},
             input_shapes=[(2, 224, 224, 3)],
             input_dtypes=['uint8'],
             expected_output_shapes=[(None, 224, 224, 1)],
@@ -57,8 +57,7 @@ class TestDeepLabV3PlusWithHierarchicalAttention(keras_parameterized.TestCase):
             aspp_stride=16,
             low_filters=16,
             decoder_filters=4,
-            train_scales=(0.5, 2.0),
-            eval_scales=(0.25, 0.5, 2.0)
+            scales=((0.5,), (0.25, 0.5, 2.0))
         )
         model.compile(
             optimizer='sgd', loss='sparse_categorical_crossentropy',

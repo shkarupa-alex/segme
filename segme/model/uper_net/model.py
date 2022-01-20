@@ -6,7 +6,7 @@ from tfswin.norm import LayerNorm
 from .decoder import Decoder
 from .head import Head
 from ...backbone import Backbone
-from ...common import ConvBnRelu
+from ...common import ConvNormRelu
 
 
 @register_keras_serializable(package='SegMe>UPerNet')
@@ -37,7 +37,7 @@ class UPerNet(layers.Layer):
         self.head = Head(self.classes, self.dropout)
 
         if self.bone_train:
-            self.aux_conv = ConvBnRelu(self.aux_filters, 3, use_bias=False)
+            self.aux_conv = ConvNormRelu(self.aux_filters, 3, padding='same')
             self.aux_head = Head(self.classes, self.dropout)
 
         super().build(input_shape)

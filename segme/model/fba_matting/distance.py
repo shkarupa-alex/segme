@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras import layers, utils
+from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tensorflow_addons.image import euclidean_dist_transform
@@ -9,26 +9,31 @@ from tensorflow_addons.image import euclidean_dist_transform
 class Distance(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4, axes={-1: 2})  # twomap
-        self.length = 320
+        self.input_spec = layers.InputSpec(ndim=4, axes={-1: 1}, dtype='uint8')  # trimap
 
     def call(self, inputs, **kwargs):
-        clicks = []
-        for channel in range(2):
-            restored = tf.cast((1. - inputs[..., channel:channel + 1]) * 255., 'uint8')
-            distance = -euclidean_dist_transform(restored, dtype='float32') ** 2
-            clicks.extend([
-                tf.exp(distance / (2 * (0.02 * self.length) ** 2)),
-                tf.exp(distance / (2 * (0.08 * self.length) ** 2)),
-                tf.exp(distance / (2 * (0.16 * self.length) ** 2)),
-            ])
+        outputs = distance_transform(inputs)
+        outputs = tf.cast(outputs, self.compute_dtype)
 
-        clicks = tf.concat(clicks, axis=-1)
-        clicks = tf.cast(clicks, dtype=self.compute_dtype)
-        clicks = tf.stop_gradient(clicks)
-
-        return clicks
+        return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (6,)
+
+
+def distance_transform(trimap, length=320):
+    clicks = []
+    for value in [0, 255]:
+        twomap = tf.cast(trimap != value, 'uint8') * 255
+        distance = -euclidean_dist_transform(twomap, dtype='float32') ** 2
+        clicks.extend([
+            tf.exp(distance / (2 * (0.02 * length) ** 2)),
+            tf.exp(distance / (2 * (0.08 * length) ** 2)),
+            tf.exp(distance / (2 * (0.16 * length) ** 2)),
+        ])
+
+    clicks = tf.concat(clicks, axis=-1)
+    clicks = tf.cast(tf.round(clicks * 255.), dtype='uint8')
+
+    return clicks

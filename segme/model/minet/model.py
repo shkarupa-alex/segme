@@ -4,7 +4,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from .aim import AIM
 from .sim import SIM
 from ...backbone import Backbone
-from ...common import ConvBnRelu, ClassificationHead, resize_by_sample
+from ...common import ConvNormRelu, ClassificationHead, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>MINet')
@@ -29,12 +29,12 @@ class MINet(layers.Layer):
         self.sim4 = SIM(32)
         self.sim2 = SIM(32)
 
-        self.upconv32 = ConvBnRelu(64, 3)
-        self.upconv16 = ConvBnRelu(64, 3)
-        self.upconv8 = ConvBnRelu(64, 3)
-        self.upconv4 = ConvBnRelu(64, 3)
-        self.upconv2 = ConvBnRelu(32, 3)
-        self.upconv1 = ConvBnRelu(32, 3)
+        self.upconv32 = ConvNormRelu(64, 3, padding='same')
+        self.upconv16 = ConvNormRelu(64, 3, padding='same')
+        self.upconv8 = ConvNormRelu(64, 3, padding='same')
+        self.upconv4 = ConvNormRelu(64, 3, padding='same')
+        self.upconv2 = ConvNormRelu(32, 3, padding='same')
+        self.upconv1 = ConvNormRelu(32, 3, padding='same')
 
         self.head = ClassificationHead(self.classes)
 

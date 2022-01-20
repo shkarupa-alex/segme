@@ -42,12 +42,6 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
 
         super().build(input_shape)
 
-        layer_shape = self.layer.compute_output_shape(input_shape)
-        if not isinstance(layer_shape, (list, tuple)) or 2 != len(layer_shape):
-            raise ValueError('Expecting `layer` to return 2 outputs: logits and high-level features.')
-        if {4} != set([len(s) for s in layer_shape]):
-            raise ValueError('Expecting `layer` to return 2 4D outputs: logits and high-level features.')
-
     def call(self, inputs, training=None, **kwargs):
         if training is None:
             training = backend.learning_phase()

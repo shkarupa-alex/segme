@@ -1,7 +1,7 @@
 from keras import Sequential, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvBnRelu
+from ...common import ConvNormRelu
 
 
 @register_keras_serializable(package='SegMe>DeepLabV3Plus')
@@ -18,7 +18,7 @@ class AtrousSepConv(layers.Layer):
             layers.DepthwiseConv2D(kernel_size=3, padding='same', dilation_rate=self.dilation, use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU(),
-            ConvBnRelu(self.filters, 1, use_bias=False)
+            ConvNormRelu(self.filters, 1)
         ])
 
         super().build(input_shape)
