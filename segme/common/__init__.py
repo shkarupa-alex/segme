@@ -1,10 +1,11 @@
 from .adppool import AdaptiveAveragePooling, AdaptiveMaxPooling
-from .aspp import ASPP
+from .aspp import AtrousSeparableConv, AtrousSpatialPyramidPooling
 from .convnormrelu import ConvNormRelu, DepthwiseConvNormRelu
 from .featalign import FeatureAlignment
 from .head import HeadProjection, HeadActivation, ClassificationHead
 from .hmsattn import HierarchicalMultiScaleAttention
 from .point_rend import PointRend, PointLoss
+from .ppm import PyramidPooling
 from .sameconv import SameConv, SameStandardizedConv, SameDepthwiseConv, SameStandardizedDepthwiseConv
 from .stdconv import StandardizedConv2D, StandardizedDepthwiseConv2D
 from .resizebysample import ResizeBySample, resize_by_sample

@@ -3,6 +3,7 @@ from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfmiss.keras.layers import DCNv2
 from .resizebysample import resize_by_sample
+from .sameconv import SameConv
 
 
 @register_keras_serializable(package='SegMe')
@@ -22,10 +23,9 @@ class FeatureSelection(layers.Layer):
 
         self.attend = models.Sequential([
             layers.GlobalAvgPool2D(keepdims=True),
-            layers.Conv2D(channels, 1, use_bias=False, kernel_initializer='he_uniform'),
-            layers.Activation('sigmoid')
+            SameConv(channels, 1, activation='sigmoid', use_bias=False, kernel_initializer='he_uniform')
         ])
-        self.conv = layers.Conv2D(self.filters, 1, use_bias=False, kernel_initializer='he_uniform')
+        self.conv = SameConv(self.filters, 1, use_bias=False, kernel_initializer='he_uniform')
 
         super().build(input_shape)
 
@@ -62,8 +62,8 @@ class FeatureAlignment(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.select = FeatureSelection(self.filters)
-        self.offset = layers.Conv2D(
-            self.filters * 2, 1, padding='same', use_bias=False, kernel_initializer='he_uniform')
+        self.offset = SameConv(
+            self.filters * 2, 1, use_bias=False, kernel_initializer='he_uniform')
         self.dcn = DCNv2(
             self.filters, 3, padding='same', deformable_groups=self.deformable_groups, custom_alignment=True)
         self.relu = layers.ReLU()
