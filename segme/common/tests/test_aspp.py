@@ -9,7 +9,7 @@ class TestAtrousSeparableConv(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
             AtrousSeparableConv,
-            kwargs={'filters': 10, 'dilation': 1, 'activation': 'relu', 'standardized': False},
+            kwargs={'filters': 10, 'kernel_size': 3, 'dilation_rate': 1, 'activation': 'relu', 'standardized': False},
             input_shape=[2, 16, 16, 3],
             input_dtype='float32',
             expected_output_shape=[None, 16, 16, 10],
@@ -17,7 +17,8 @@ class TestAtrousSeparableConv(keras_parameterized.TestCase):
         )
         testing_utils.layer_test(
             AtrousSeparableConv,
-            kwargs={'filters': 64, 'dilation': 4, 'activation': 'leaky_relu', 'standardized': True},
+            kwargs={'filters': 64, 'kernel_size': 3, 'dilation_rate': 4, 'activation': 'leaky_relu',
+                    'standardized': True},
             input_shape=[2, 16, 16, 32],
             input_dtype='float32',
             expected_output_shape=[None, 16, 16, 64],

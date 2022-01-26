@@ -8,7 +8,7 @@ from .resizebyscale import resize_by_scale
 from .sameconv import SameConv
 
 
-@register_keras_serializable(package='Miss')
+@register_keras_serializable(package='SegMe')
 class HierarchicalMultiScaleAttention(layers.Wrapper):
     """ Proposed in: https://arxiv.org/abs/2005.10821
 
