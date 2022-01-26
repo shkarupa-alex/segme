@@ -1,4 +1,5 @@
 from .adppool import AdaptiveAveragePooling, AdaptiveMaxPooling
+from .aspp import ASPP
 from .convnormrelu import ConvNormRelu, DepthwiseConvNormRelu
 from .featalign import FeatureAlignment
 from .head import HeadProjection, HeadActivation, ClassificationHead
