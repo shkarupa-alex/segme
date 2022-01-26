@@ -1,5 +1,5 @@
 from .adppool import AdaptiveAveragePooling, AdaptiveMaxPooling
-from .convnormrelu import ConvNormRelu
+from .convnormrelu import ConvNormRelu, DepthwiseConvNormRelu
 from .featalign import FeatureAlignment
 from .head import HeadProjection, HeadActivation, ClassificationHead
 from .hmsattn import HierarchicalMultiScaleAttention
