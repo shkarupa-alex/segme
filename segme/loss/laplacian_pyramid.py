@@ -85,8 +85,8 @@ def _laplacian_pyramid(inputs, levels, kernel):
         pyramid.append(current - upsampled)
         current = downsampled
 
-    # Disabled: low-frequency residual
-    # pyramid.append(current)
+    # low-frequency residual
+    pyramid.append(current)
 
     return pyramid
 
@@ -101,8 +101,8 @@ def _weight_pyramid(inputs, levels):
         pyramid.append(current)
         current = _regular_downsample(current)
 
-    # Disabled: low-frequency residual
-    # pyramid.append(current)
+    # low-frequency residual
+    pyramid.append(current)
 
     return pyramid
 
