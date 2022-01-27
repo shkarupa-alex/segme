@@ -1,8 +1,8 @@
+import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .atsepconv import AtrousSepConv
-from ...common import resize_by_sample, ConvNormRelu
+from ...common import resize_by_sample, AtrousSeparableConv, ConvNormRelu
 
 
 @register_keras_serializable(package='SegMe>DeepLabV3Plus')
@@ -19,8 +19,10 @@ class Decoder(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.proj = ConvNormRelu(self.low_filters, 1)
-        self.conv0 = AtrousSepConv(self.decoder_filters)
-        self.conv1 = AtrousSepConv(self.decoder_filters)
+        self.conv0 = AtrousSeparableConv(
+            self.decoder_filters, 3, dilation_rate=1, activation='relu', standardized=False)
+        self.conv1 = AtrousSeparableConv(
+            self.decoder_filters, 3, dilation_rate=1, activation='relu', standardized=False)
 
         super().build(input_shape)
 
@@ -28,7 +30,7 @@ class Decoder(layers.Layer):
         low_feats, high_feats = inputs
 
         outputs = resize_by_sample([high_feats, low_feats])
-        outputs = layers.concatenate([self.proj(low_feats), outputs])
+        outputs = tf.concat([self.proj(low_feats), outputs], axis=-1)
         outputs = self.conv0(outputs)
         outputs = self.conv1(outputs)
 

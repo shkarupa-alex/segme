@@ -10,7 +10,7 @@ class DeepLabV3Plus(DeepLabV3PlusBase):
     """ Reference: https://arxiv.org/pdf/1802.02611.pdf """
 
     def __init__(self, *args, **kwargs):
-        kwargs.pop('add_strides')
+        kwargs.pop('add_strides', None)
         super().__init__(*args, **kwargs)
 
     def call(self, inputs, **kwargs):
@@ -22,10 +22,12 @@ class DeepLabV3Plus(DeepLabV3PlusBase):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return super().compute_output_shape(input_shape)[0]
+        output_shape = input_shape[:-1] + super().compute_output_shape(input_shape)[0][-1:]
+
+        return output_shape
 
     def compute_output_signature(self, input_signature):
-        proj_signature = super().compute_output_signature(input_signature)[0]
+        proj_signature = super().compute_output_signature(input_signature)
 
         return self.act.compute_output_signature(proj_signature)
 
