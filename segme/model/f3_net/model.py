@@ -22,10 +22,10 @@ class F3Net(layers.Layer):
     def build(self, input_shape):
         self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=[4, 8, 16, 32])
 
-        self.squeeze2 = ConvNormRelu(self.filters, 1, padding='same', kernel_initializer='he_normal')
-        self.squeeze3 = ConvNormRelu(self.filters, 1, padding='same', kernel_initializer='he_normal')
-        self.squeeze4 = ConvNormRelu(self.filters, 1, padding='same', kernel_initializer='he_normal')
-        self.squeeze5 = ConvNormRelu(self.filters, 1, padding='same', kernel_initializer='he_normal')
+        self.squeeze2 = ConvNormRelu(self.filters, 1, kernel_initializer='he_normal')
+        self.squeeze3 = ConvNormRelu(self.filters, 1, kernel_initializer='he_normal')
+        self.squeeze4 = ConvNormRelu(self.filters, 1, kernel_initializer='he_normal')
+        self.squeeze5 = ConvNormRelu(self.filters, 1, kernel_initializer='he_normal')
 
         self.decoder1 = Decoder(False, self.filters)
         self.decoder2 = Decoder(True, self.filters)

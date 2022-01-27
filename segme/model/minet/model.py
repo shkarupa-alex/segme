@@ -29,12 +29,12 @@ class MINet(layers.Layer):
         self.sim4 = SIM(32)
         self.sim2 = SIM(32)
 
-        self.upconv32 = ConvNormRelu(64, 3, padding='same')
-        self.upconv16 = ConvNormRelu(64, 3, padding='same')
-        self.upconv8 = ConvNormRelu(64, 3, padding='same')
-        self.upconv4 = ConvNormRelu(64, 3, padding='same')
-        self.upconv2 = ConvNormRelu(32, 3, padding='same')
-        self.upconv1 = ConvNormRelu(32, 3, padding='same')
+        self.upconv32 = ConvNormRelu(64, 3)
+        self.upconv16 = ConvNormRelu(64, 3)
+        self.upconv8 = ConvNormRelu(64, 3)
+        self.upconv4 = ConvNormRelu(64, 3)
+        self.upconv2 = ConvNormRelu(32, 3)
+        self.upconv1 = ConvNormRelu(32, 3)
 
         self.head = ClassificationHead(self.classes)
 
@@ -45,19 +45,19 @@ class MINet(layers.Layer):
 
         out1, out2, out3, out4, out5 = self.trans([c1, c2, c3, c4, c5])
 
-        out5 = self.upconv32(layers.add([self.sim32(out5), out5]))
+        out5 = self.upconv32(self.sim32(out5) + out5)
 
-        out4 = layers.add([resize_by_sample([out5, out4]), out4])
-        out4 = self.upconv16(layers.add([self.sim16(out4), out4]))
+        out4 = resize_by_sample([out5, out4]) + out4
+        out4 = self.upconv16(self.sim16(out4) + out4)
 
-        out3 = layers.add([resize_by_sample([out4, out3]), out3])
-        out3 = self.upconv8(layers.add([self.sim8(out3), out3]))
+        out3 = resize_by_sample([out4, out3]) + out3
+        out3 = self.upconv8(self.sim8(out3) + out3)
 
-        out2 = layers.add([resize_by_sample([out3, out2]), out2])
-        out2 = self.upconv4(layers.add([self.sim4(out2), out2]))
+        out2 = resize_by_sample([out3, out2]) + out2
+        out2 = self.upconv4(self.sim4(out2) + out2)
 
-        out1 = layers.add([resize_by_sample([out2, out1]), out1])
-        out1 = self.upconv2(layers.add([self.sim2(out1), out1]))
+        out1 = resize_by_sample([out2, out1]) + out1
+        out1 = self.upconv2(self.sim2(out1) + out1)
 
         outputs = self.upconv1(resize_by_sample([out1, inputs]))
 

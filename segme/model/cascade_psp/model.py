@@ -3,10 +3,9 @@ from keras import backend, layers, models
 from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .psp import PSP
 from .upsample import Upsample
 from .resnet import ResNet50
-from ...common import HeadActivation, HeadProjection, resize_by_sample
+from ...common import PyramidPooling, SameConv, HeadActivation, HeadProjection, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>CascadePSP')
@@ -24,24 +23,24 @@ class CascadePSP(layers.Layer):
     def build(self, input_shape):
         self.bone = ResNet50()
 
-        self.psp = PSP(1024, self.psp_sizes)
+        self.psp = PyramidPooling(1024, self.psp_sizes)
 
         self.up1 = Upsample(512)
         self.up2 = Upsample(256)
         self.up3 = Upsample(32)
 
         self.final8 = models.Sequential([
-            layers.Conv2D(32, 1, padding='same'),
+            SameConv(32, 1),
             layers.ReLU(),
             HeadProjection(1)
         ])
         self.final4 = models.Sequential([
-            layers.Conv2D(32, 1, padding='same'),
+            SameConv(32, 1),
             layers.ReLU(),
             HeadProjection(1)
         ])
         self.final1 = models.Sequential([
-            layers.Conv2D(32, 1, padding='same'),
+            SameConv(32, 1),
             layers.ReLU(),
             HeadProjection(1)
         ])
@@ -69,7 +68,7 @@ class CascadePSP(layers.Layer):
         """
         Second iteration, s4 output
         """
-        inp2 = layers.concatenate([image, mask, scale_s8_1, scale_s8_1])
+        inp2 = tf.concat([image, mask, scale_s8_1, scale_s8_1], axis=-1)
         _, feats4, feats8 = self.bone(inp2)
 
         out2_s8 = self.psp(feats8)
@@ -87,7 +86,7 @@ class CascadePSP(layers.Layer):
         """
         Third iteration, s1 output
         """
-        inp3 = layers.concatenate([image, mask, scale_s8_2, scale_s4_2])
+        inp3 = tf.concat([image, mask, scale_s8_2, scale_s4_2], axis=-1)
 
         feats2, feats4, feats8 = self.bone(inp3)
         out3_s8 = self.psp(feats8)
@@ -104,7 +103,7 @@ class CascadePSP(layers.Layer):
         out3_s4 = self.up2([out3_s4, feats2])
         out3_s4 = self.up3([out3_s4, image])
 
-        mask_s1_3 = self.final1(layers.concatenate([out3_s4, image]))
+        mask_s1_3 = self.final1(tf.concat([out3_s4, image], axis=-1))
         pred_s1_3 = self.act(mask_s1_3)
 
         """
@@ -129,7 +128,7 @@ class CascadePSP(layers.Layer):
         return mask
 
     def _estimate_s8(self, image, mask):
-        inp1 = layers.concatenate([image, mask, mask, mask])
+        inp1 = tf.concat([image, mask, mask, mask], axis=-1)
         _, _, feats8 = self.bone(inp1)
 
         out1 = self.psp(feats8)

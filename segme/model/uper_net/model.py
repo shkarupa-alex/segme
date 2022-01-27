@@ -37,7 +37,7 @@ class UPerNet(layers.Layer):
         self.head = Head(self.classes, self.dropout)
 
         if self.bone_train:
-            self.aux_conv = ConvNormRelu(self.aux_filters, 3, padding='same')
+            self.aux_conv = ConvNormRelu(self.aux_filters, 3)
             self.aux_head = Head(self.classes, self.dropout)
 
         super().build(input_shape)

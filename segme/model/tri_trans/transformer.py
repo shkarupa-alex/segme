@@ -104,7 +104,7 @@ class DecoderCup(layers.Layer):
         self.width_height = int(width_height ** 0.5)
         self.channels = channels
 
-        self.conv = ConvNormRelu(self.filters, kernel_size=3, padding='same')
+        self.conv = ConvNormRelu(self.filters, kernel_size=3)
 
         super().build(input_shape)
 

@@ -22,8 +22,8 @@ class DenseBlock(layers.Layer):
         for _ in range(self.num_layers):
             self.layers.append(Sequential([
                 layers.ReLU(),
-                ConvNormRelu(self.out_features, 3, padding='same', kernel_regularizer=regularizers.l2(1e-3)),
-                ConvNormRelu(self.out_features, 3, padding='same', activation='linear', kernel_regularizer=regularizers.l2(1e-3)),
+                ConvNormRelu(self.out_features, 3, kernel_regularizer=regularizers.l2(1e-3)),
+                ConvNormRelu(self.out_features, 3, activation='linear', kernel_regularizer=regularizers.l2(1e-3)),
             ]))
 
         super().build(input_shape)
@@ -33,7 +33,7 @@ class DenseBlock(layers.Layer):
 
         for layer in self.layers:
             features = layer(features)
-            features = layers.add([features, skip]) / 2.
+            features = (features + skip) / 2.
 
         return features
 

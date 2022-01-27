@@ -13,15 +13,15 @@ class CFM(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.cbr1h = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
-        self.cbr2h = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
-        self.cbr3h = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
-        self.cbr4h = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
+        self.cbr1h = ConvNormRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr2h = ConvNormRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr3h = ConvNormRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr4h = ConvNormRelu(self.filters, 3, kernel_initializer='he_normal')
 
-        self.cbr1v = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
-        self.cbr2v = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
-        self.cbr3v = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
-        self.cbr4v = ConvNormRelu(self.filters, 3, padding='same', kernel_initializer='he_normal')
+        self.cbr1v = ConvNormRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr2v = ConvNormRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr3v = ConvNormRelu(self.filters, 3, kernel_initializer='he_normal')
+        self.cbr4v = ConvNormRelu(self.filters, 3, kernel_initializer='he_normal')
 
         super().build(input_shape)
 
@@ -33,10 +33,10 @@ class CFM(layers.Layer):
         out2h = self.cbr2h(out1h)
         out1v = self.cbr1v(down)
         out2v = self.cbr2v(out1v)
-        fuse = layers.multiply([out2h, out2v])
-        out3h = layers.add([self.cbr3h(fuse), out1h])
+        fuse = out2h + out2v
+        out3h = self.cbr3h(fuse) + out1h
         out4h = self.cbr4h(out3h)
-        out3v = layers.add([self.cbr3v(fuse), out1v])
+        out3v = self.cbr3v(fuse) + out1v
         out4v = self.cbr4v(out3v)
 
         return out4h, out4v

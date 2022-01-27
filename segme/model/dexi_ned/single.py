@@ -2,6 +2,7 @@ from keras import Sequential
 from keras import layers, regularizers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
+from ...common import SameConv
 
 
 @register_keras_serializable(package='SegMe>DexiNed')
@@ -16,11 +17,8 @@ class SingleConvBlock(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.features = Sequential([layers.Conv2D(
-            filters=self.out_features,
-            kernel_size=self.kernel_size,
-            strides=self.stride,
-            padding='same',
+        self.features = Sequential([SameConv(
+            filters=self.out_features, kernel_size=self.kernel_size, strides=self.stride,
             kernel_regularizer=regularizers.l2(1e-3))])
         if self.weight_norm:
             self.features.add(layers.BatchNormalization())

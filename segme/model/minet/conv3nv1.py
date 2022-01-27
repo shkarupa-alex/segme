@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvNormRelu, resize_by_sample
+from ...common import ConvNormRelu, SameConv, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>MINet')
@@ -32,33 +32,33 @@ class Conv3nV1(layers.Layer):
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
 
         # stage 0
-        self.cbr_hh0 = ConvNormRelu(min_channels, 3, padding='same')
-        self.cbr_mm0 = ConvNormRelu(min_channels, 3, padding='same')
-        self.cbr_ll0 = ConvNormRelu(min_channels, 3, padding='same')
+        self.cbr_hh0 = ConvNormRelu(min_channels, 3)
+        self.cbr_mm0 = ConvNormRelu(min_channels, 3)
+        self.cbr_ll0 = ConvNormRelu(min_channels, 3)
 
         # stage 1
-        self.conv_hh1 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_hm1 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_mh1 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_mm1 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_ml1 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_lm1 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_ll1 = layers.Conv2D(min_channels, 3, padding='same')
+        self.conv_hh1 = SameConv(min_channels, 3)
+        self.conv_hm1 = SameConv(min_channels, 3)
+        self.conv_mh1 = SameConv(min_channels, 3)
+        self.conv_mm1 = SameConv(min_channels, 3)
+        self.conv_ml1 = SameConv(min_channels, 3)
+        self.conv_lm1 = SameConv(min_channels, 3)
+        self.conv_ll1 = SameConv(min_channels, 3)
         self.bn_h1 = layers.BatchNormalization()
         self.bn_m1 = layers.BatchNormalization()
         self.bn_l1 = layers.BatchNormalization()
 
         # stage 2
-        self.conv_hm2 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_lm2 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_mm2 = layers.Conv2D(min_channels, 3, padding='same')
+        self.conv_hm2 = SameConv(min_channels, 3)
+        self.conv_lm2 = SameConv(min_channels, 3)
+        self.conv_mm2 = SameConv(min_channels, 3)
         self.bn_m2 = layers.BatchNormalization()
 
         # stage 3
-        self.conv_mm3 = layers.Conv2D(self.filters, 3, padding='same')
+        self.conv_mm3 = SameConv(self.filters, 3)
         self.bn_m3 = layers.BatchNormalization()
 
-        self.identity = layers.Conv2D(self.filters, 1, padding='same')
+        self.identity = SameConv(self.filters, 1)
 
         super().build(input_shape)
 
@@ -81,18 +81,18 @@ class Conv3nV1(layers.Layer):
         m2l = self.conv_ml1(self.pool(m))
         l2l = self.conv_ll1(l)
 
-        h = self.relu(self.bn_h1(layers.add([h2h, m2h])))
-        m = self.relu(self.bn_m1(layers.add([h2m, m2m, l2m])))
-        l = self.relu(self.bn_l1(layers.add([m2l, l2l])))
+        h = self.relu(self.bn_h1(h2h + m2h))
+        m = self.relu(self.bn_m1(h2m + m2m + l2m))
+        l = self.relu(self.bn_l1(m2l + l2l))
 
         # stage 2
         h2m = self.conv_hm2(self.pool(h))
         m2m = self.conv_mm2(m)
         l2m = self.conv_lm2(resize_by_sample([l, m2m], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
-        m = self.relu(self.bn_m2(layers.add([h2m, m2m, l2m])))
+        m = self.relu(self.bn_m2(h2m + m2m + l2m))
 
         # stage 3
-        out = layers.add([self.bn_m3(self.conv_mm3(m)), self.identity(inputs_m)])
+        out = self.bn_m3(self.conv_mm3(m)) + self.identity(inputs_m)
 
         return self.relu(out)
 

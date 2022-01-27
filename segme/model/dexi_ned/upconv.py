@@ -2,6 +2,7 @@ from keras import Sequential
 from keras import initializers, layers, regularizers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
+from ...common import SameConv
 
 
 @register_keras_serializable(package='SegMe>DexiNed')
@@ -26,11 +27,10 @@ class UpConvBlock(layers.Layer):
             kernel_init0 = trunc_init0 if is_last else 'glorot_uniform'
             kernel_init1 = trunc_init1 if is_last else 'glorot_uniform'
 
-            self.features.add(layers.Conv2D(
+            self.features.add(SameConv(
                 filters=out_features,
                 kernel_size=1,
                 strides=1,
-                padding='same',
                 activation='relu',
                 kernel_initializer=kernel_init0,
                 kernel_regularizer=regularizers.l2(1e-3)))

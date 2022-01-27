@@ -1,8 +1,8 @@
+import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .psp import PSP
-from ...common import ConvNormRelu, resize_by_sample
+from ...common import ConvNormRelu, PyramidPooling, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>UPerNet')
@@ -19,10 +19,10 @@ class Decoder(layers.Layer):
         self.scales = len(input_shape)
         self.input_spec = [layers.InputSpec(ndim=4) for _ in range(self.scales)]
 
-        self.psp = PSP(self.filters, self.psp_sizes)
-        self.lat_convs = [ConvNormRelu(self.filters, 1, padding='same') for _ in range(self.scales - 1)]
-        self.fpn_convs = [ConvNormRelu(self.filters, 3, padding='same') for _ in range(self.scales - 1)]
-        self.bottleneck = ConvNormRelu(self.filters, 3, padding='same')
+        self.psp = PyramidPooling(self.filters, self.psp_sizes)
+        self.lat_convs = [ConvNormRelu(self.filters, 1) for _ in range(self.scales - 1)]
+        self.fpn_convs = [ConvNormRelu(self.filters, 3) for _ in range(self.scales - 1)]
+        self.bottleneck = ConvNormRelu(self.filters, 3)
 
         super().build(input_shape)
 
@@ -39,7 +39,7 @@ class Decoder(layers.Layer):
         for i in range(self.scales - 1, 0, -1):
             outputs[i] = resize_by_sample([outputs[i], outputs[0]])
 
-        outputs = layers.concatenate(outputs, axis=-1)
+        outputs = tf.concat(outputs, axis=-1)
         outputs = self.bottleneck(outputs)
 
         return outputs

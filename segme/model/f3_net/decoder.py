@@ -30,10 +30,10 @@ class Decoder(layers.Layer):
             refine4 = resize_by_sample([fback, out4h])
             refine3 = resize_by_sample([fback, out3h])
             refine2 = resize_by_sample([fback, out2h])
-            out5v = layers.add([out5v, refine5])
-            out4h, out4v = self.cfm45([layers.add([out4h, refine4]), out5v])
-            out3h, out3v = self.cfm34([layers.add([out3h, refine3]), out4v])
-            out2h, pred = self.cfm23([layers.add([out2h, refine2]), out3v])
+            out5v = out5v + refine5
+            out4h, out4v = self.cfm45([out4h + refine4, out5v])
+            out3h, out3v = self.cfm34([out3h + refine3, out4v])
+            out2h, pred = self.cfm23([out2h + refine2, out3v])
         else:
             out4h, out4v = self.cfm45([out4h, out5v])
             out3h, out3v = self.cfm34([out3h, out4v])
