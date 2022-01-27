@@ -31,9 +31,7 @@ class PyramidPooling(layers.Layer):
     def call(self, inputs, **kwargs):
         outputs = [stage(inputs) for stage in self.stages]
         outputs = [resize_by_sample([o, inputs]) for o in outputs]
-        outputs.append(inputs)
-
-        outputs = tf.concat(outputs, axis=-1)
+        outputs = tf.concat([inputs] + outputs, axis=-1)
         outputs = self.bottleneck(outputs)
 
         return outputs
