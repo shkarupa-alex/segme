@@ -50,7 +50,7 @@ class TestBoundarySparseCategoricalLoss(keras_parameterized.TestCase):
 
         loss = BoundarySparseCategoricalLoss(from_logits=True, reduction=Reduction.SUM)
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 5.899469375610352, places=7)
+        self.assertAlmostEqual(result, 5.899469375610352, places=6)
 
     def test_weight_4d(self):
         logits = tf.constant([
@@ -70,10 +70,10 @@ class TestBoundarySparseCategoricalLoss(keras_parameterized.TestCase):
         loss = BoundarySparseCategoricalLoss(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 5.899469375610352, places=7)
+        self.assertAlmostEqual(result, 5.899469375610352, places=6)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 3.4788036346435547, places=7)
+        self.assertAlmostEqual(result, 3.4788036346435547, places=6)
 
     def test_keras_model_compile(self):
         model = models.Sequential([

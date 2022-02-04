@@ -61,10 +61,10 @@ class TestSobelEdgeLoss(keras_parameterized.TestCase):
         loss = SobelEdgeLoss(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 8.756433486938477, places=7)
+        self.assertAlmostEqual(result, 8.756433486938477, places=5)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 4.587716579437256, places=7)
+        self.assertAlmostEqual(result, 4.587716579437256, places=6)
 
     def test_logits(self):
         logits = tf.constant([[

@@ -189,7 +189,7 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
 
         # self.assertAlmostEqual(result, 6.944647789001465, places=7) # FBA (without residual)
         # self.assertAlmostEqual(result, 6.970603942871094, places=7)  # without residual
-        self.assertAlmostEqual(result, 7.640613555908203, places=7)  # with residual
+        self.assertAlmostEqual(result, 7.640613555908203, places=5)  # with residual
 
     def test_weight_4d(self):
         logits = tf.constant([
@@ -209,10 +209,10 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
         loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 18.13964080810547, places=7)
+        self.assertAlmostEqual(result, 18.13964080810547, places=6)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 8.490735054016113, places=7)
+        self.assertAlmostEqual(result, 8.490735054016113, places=5)
 
     def test_channels_3_weighted(self):
         logits = tf.constant([
@@ -234,7 +234,7 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
         loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 9.086468696594238, places=7)
+        self.assertAlmostEqual(result, 9.086468696594238, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 128, 128, 3).astype('float32')

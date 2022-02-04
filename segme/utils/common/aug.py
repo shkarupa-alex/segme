@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 
@@ -25,13 +26,14 @@ def augment_onthefly(images, masks, hflip_prob=0.8, vflip_prob=0.6, brightness_p
 
         masks_ = []
         for i in range(len(masks)):
-            masks_.append(tf.convert_to_tensor(masks[i], 'uint8'))
+            mask_dtype = None
+            if isinstance(masks[i], np.ndarray):
+                mask_dtype = str(masks[i].dtype)
+
+            masks_.append(tf.convert_to_tensor(masks[i], dtype=mask_dtype))
 
             if 4 != masks_[i].shape.rank:
                 raise ValueError('Expecting `masks` items rank to be 4.')
-
-            if 'uint8' != masks_[i].dtype:
-                raise ValueError('Expecting `masks` items dtype to be `uint8`.')
 
         seed = tf.cast(tf.random.uniform([2], 0., 1024.), 'int32')
         probs = tf.convert_to_tensor([

@@ -146,7 +146,7 @@ class TestReflectionTransmissionExclusionLoss(keras_parameterized.TestCase):
         loss = ReflectionTransmissionExclusionLoss(reduction=Reduction.SUM)
         result = self.evaluate(loss(r_pred, t_pred)).item()
 
-        self.assertAlmostEqual(result, 0.7521405816078186, places=7)
+        self.assertAlmostEqual(result, 0.7521405816078186, places=6)
 
     def test_weight_4d(self):
         r_pred = tf.constant([
@@ -164,10 +164,10 @@ class TestReflectionTransmissionExclusionLoss(keras_parameterized.TestCase):
         loss = ReflectionTransmissionExclusionLoss(reduction=Reduction.SUM, levels=2)
 
         result = self.evaluate(loss(r_pred, t_pred)).item()
-        self.assertAlmostEqual(result, 1.4083516597747803, places=7)
+        self.assertAlmostEqual(result, 1.4083516597747803, places=6)
 
         result = self.evaluate(loss(r_pred, t_pred, weights)).item()
-        self.assertAlmostEqual(result, 0.810582160949707, places=7)
+        self.assertAlmostEqual(result, 0.810582160949707, places=6)
 
     def test_batch(self):
         r_pred = np.random.rand(2, 32, 32, 1).astype('float32')

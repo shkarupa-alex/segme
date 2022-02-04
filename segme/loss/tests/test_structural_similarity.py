@@ -49,7 +49,7 @@ class TestSsimLevel(keras_parameterized.TestCase):
         result = tf.reduce_mean(result)
         result = self.evaluate(result).item()
 
-        self.assertEqual(0.5322474241256714, result)
+        self.assertAlmostEqual(0.5322474241256714, result, places=6)
 
 
 @keras_parameterized.run_all_keras_modes
@@ -228,7 +228,7 @@ class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
             factors=(0.1001, 0.2363, 0.1333), size=5, sigma=1.5, k1=0.01, k2=0.03)
         result = self.evaluate(result).item()
 
-        self.assertAlmostEqual(result, 0.8302181363105774, places=7)  # 0.8249481320381165 when compensation = 1
+        self.assertAlmostEqual(result, 0.8302181363105774, places=6)  # 0.8249481320381165 when compensation = 1
 
     def test_weight_4d(self):
         logits = tf.constant([
@@ -248,10 +248,10 @@ class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
         loss = StructuralSimilarityLoss(reduction=Reduction.SUM, factors=(0.5,), size=2)
 
         result = self.evaluate(loss(targets, logits)).item()
-        self.assertAlmostEqual(result, 1.6507585048675537, places=7)
+        self.assertAlmostEqual(result, 1.6507585048675537, places=6)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 1.729214072227478, places=7)
+        self.assertAlmostEqual(result, 1.729214072227478, places=6)
 
     def test_channels_3_weighted(self):
         logits = tf.constant([
@@ -273,7 +273,7 @@ class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
         loss = StructuralSimilarityLoss(reduction=Reduction.SUM, factors=(0.5,), size=2)
 
         result = self.evaluate(loss(targets, logits, weights)).item()
-        self.assertAlmostEqual(result, 1.767329454421997, places=7)
+        self.assertAlmostEqual(result, 1.767329454421997, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 640, 640, 3).astype('float32')
