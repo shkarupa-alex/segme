@@ -80,3 +80,23 @@ class FrequencyEdge(layers.Layer):
         })
 
         return config
+
+
+def extract_edges(labels):
+    mask = tf.cast(labels, 'float32')
+
+    gy = tf.concat([
+        mask[:, 1:2] - mask[:, 0:1],
+        (mask[:, 2:] - mask[:, :-2]) / 2.,
+        mask[:, -1:] - mask[:, -2:-1]
+    ], axis=1)
+    gx = tf.concat([
+        mask[:, :, 1:2] - mask[:, :, 0:1],
+        (mask[:, :, 2:] - mask[:, :, :-2]) / 2.,
+        mask[:, :, -1:] - mask[:, :, -2:-1]
+    ], axis=2)
+
+    edge = tf.abs(gy) + tf.abs(gx)
+    edge = tf.cast(edge > 0, 'int32')
+
+    return edge
