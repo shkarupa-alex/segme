@@ -1,3 +1,4 @@
+from .adaptive_intensity import BinaryAdaptivePixelIntensityLoss
 from .balanced_sigmoid import BalancedSigmoidCrossEntropy
 from .balanced_sigmoid import balanced_sigmoid_cross_entropy
 from .boundary_categorical import BoundarySparseCategoricalLoss
