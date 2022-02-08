@@ -39,7 +39,7 @@ class ObjectAttention(layers.Layer):
 
         foregrounds = tf.nn.sigmoid(decoder_map)
         backgrounds = 1. - foregrounds
-        edges = tf.where(backgrounds < self.denoise, backgrounds, 0.)
+        edges = tf.where(backgrounds < self.denoise, backgrounds, tf.zeros_like(backgrounds))
 
         outputs = (foregrounds + edges) * encoder_map
 

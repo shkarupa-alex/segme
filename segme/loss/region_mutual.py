@@ -62,8 +62,8 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
             batch_weight = tf.reduce_mean(sample_weight, axis=axis_hw)
             valid_pixels = sample_weight > 0.
 
-            y_true = tf.where(valid_pixels, y_true, 0)
-            y_pred = tf.where(valid_pixels, y_pred, epsilon)
+            y_true = tf.where(valid_pixels, y_true, tf.zeros_like(y_true))
+            y_pred = tf.where(valid_pixels, y_pred, tf.zeros_like(y_pred) + epsilon)
         else:
             batch_weight = None
 

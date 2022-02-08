@@ -31,7 +31,7 @@ class UnionAttention(layers.Layer):
 
         channel_masks = channel_masks[:, 0, 0]
         threshold = percentile(channel_masks, self.confidence * 100, axis=-1, keepdims=True, interpolation='linear')
-        channel_masks = tf.where(channel_masks > threshold, channel_masks, 0.)
+        channel_masks = tf.where(channel_masks > threshold, channel_masks, tf.zeros_like(channel_masks))
         channel_masks = channel_masks[:, None, None]
 
         channel_outputs *= channel_masks
