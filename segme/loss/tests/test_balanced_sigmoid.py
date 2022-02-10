@@ -38,6 +38,7 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
         result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=probs, from_logits=False)
         result = self.evaluate(result).tolist()
 
+        # Zero when all labels negative
         self.assertAllClose(result, np.zeros((1, 16, 16), 'float32'), atol=1e-4)
 
     def test_false(self):
@@ -47,6 +48,7 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
         result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=probs, from_logits=False)
         result = self.evaluate(result).tolist()
 
+        # Zero when all labels positive
         self.assertAllClose(result, np.zeros((1, 16, 16), 'float32'), atol=1e-4)
 
     def test_true(self):
