@@ -60,7 +60,7 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
 
         self.assertAllClose(result, np.zeros((1, 16, 16), 'float32'), atol=1e-4)
 
-    def test_value_4d(self):
+    def test_value(self):
         logits = tf.constant([
             [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
              [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
@@ -78,7 +78,7 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
         result = self.evaluate(loss(targets, logits))
         self.assertAlmostEqual(result, 30.057157516479492, places=7)
 
-    def test_weight_4d(self):
+    def test_weight(self):
         logits = tf.constant([
             [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
              [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],

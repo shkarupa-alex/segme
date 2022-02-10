@@ -68,7 +68,7 @@ class TestGeneralizedDiceLoss(keras_parameterized.TestCase):
         result = self.evaluate(loss(targets, logits))
         self.assertAlmostEqual(result, 0.207183837890625, places=7)
 
-    def test_value_4d(self):
+    def test_value(self):
         logits = tf.constant([
             [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
              [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
@@ -86,7 +86,7 @@ class TestGeneralizedDiceLoss(keras_parameterized.TestCase):
         result = self.evaluate(loss(targets, logits))
         self.assertAlmostEqual(result, 0.5023754239082336, places=6)
 
-    def test_weight_4d(self):
+    def test_weight(self):
         logits = tf.constant([
             [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
              [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
