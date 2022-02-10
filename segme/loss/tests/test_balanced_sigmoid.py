@@ -125,7 +125,7 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
 
         self.assertAllClose(result, [0.01015307, 0.26616925, 0.02030611])
 
-    def test_keras_model_compile(self):
+    def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
         model.compile(loss='SegMe>BalancedSigmoidCrossEntropy')
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))

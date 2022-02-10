@@ -115,7 +115,7 @@ class TestGeneralizedDiceLoss(keras_parameterized.TestCase):
         result = self.evaluate(loss(targets, logits, weights))
         self.assertAlmostEqual(result, 0.5165324211120605, places=7)
 
-    def test_keras_model_compile(self):
+    def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
         model.compile(loss='SegMe>GeneralizedDiceLoss')
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
