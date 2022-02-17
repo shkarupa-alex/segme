@@ -1,5 +1,5 @@
-from ...loss import BinaryAdaptivePixelIntensityLoss
+from ...loss import AdaptivePixelIntensityLoss
 
 
 def tracer_losses():
-    return [BinaryAdaptivePixelIntensityLoss() for _ in range(5)]
+    return [AdaptivePixelIntensityLoss() for _ in range(5)]

@@ -1,10 +1,10 @@
 from keras.losses import BinaryCrossentropy
-from ...loss import ConsistencyEnhancedSigmoidLoss, WeightedLossFunctionWrapper
+from ...loss import ConsistencyEnhancedLoss, WeightedLossFunctionWrapper
 
 
 def total_loss(y_true, y_pred, sample_weight=None):
     return BinaryCrossentropy()(y_true, y_pred, sample_weight) + \
-           ConsistencyEnhancedSigmoidLoss()(y_true, y_pred, sample_weight)
+           ConsistencyEnhancedLoss()(y_true, y_pred, sample_weight)
 
 
 def minet_loss():
