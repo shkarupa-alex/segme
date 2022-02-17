@@ -3,6 +3,7 @@ from keras import backend
 from tensorflow.python.ops.image_ops_impl import _fspecial_gauss, _ssim_helper
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
+from .common_loss import validate_input
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -50,7 +51,9 @@ def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernel, k1, k
         similarity, contrast_structure = _ssim_level(
             y_true, y_pred, max_val=max_val, kernel=kernel, k1=k1, k2=k2)
         if sample_weight is not None:
-            sample_weight = tf.nn.avg_pool(sample_weight, ksize=kernel.shape[:2], strides=1, padding='VALID')
+            sample_weight = -tf.nn.max_pool2d(  # min pooling
+                -sample_weight, ksize=kernel.shape[:2], strides=1, padding='VALID')
+            sample_weight = tf.stop_gradient(sample_weight)
         last_level = len(factors) - 1 == i
 
         value = similarity if last_level else contrast_structure
@@ -60,15 +63,17 @@ def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernel, k1, k
         pyramid.append(value)
 
         if not last_level:
-            y_true = _pad_odd(y_true)
-            y_true = tf.nn.avg_pool(y_true, ksize=2, strides=2, padding='VALID')
+            assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(y_true)[1:3]), 2)
+            with tf.control_dependencies([assert_true_shape]):
+                y_true = _pad_odd(y_true)
+                y_true = tf.nn.avg_pool2d(y_true, ksize=2, strides=2, padding='VALID')
 
-            y_pred = _pad_odd(y_pred)
-            y_pred = tf.nn.avg_pool(y_pred, ksize=2, strides=2, padding='VALID')
+                y_pred = _pad_odd(y_pred)
+                y_pred = tf.nn.avg_pool2d(y_pred, ksize=2, strides=2, padding='VALID')
 
-            if sample_weight is not None:
-                sample_weight = _pad_odd(sample_weight)
-                sample_weight = tf.nn.avg_pool(sample_weight, ksize=2, strides=2, padding='VALID')
+                if sample_weight is not None:
+                    sample_weight = _pad_odd(sample_weight)
+                    sample_weight = tf.nn.avg_pool2d(sample_weight, ksize=2, strides=2, padding='VALID')
 
     pyramid = tf.stack(pyramid, axis=-1)
     pyramid = tf.reduce_prod(pyramid, [-1])
@@ -80,26 +85,19 @@ def _ssim_kernel(size, sigma, channels, dtype):
     kernel = _fspecial_gauss(size, sigma)
     kernel = tf.tile(kernel, multiples=[1, 1, channels, 1])
     kernel = tf.cast(kernel, dtype)
-    kernel = tf.constant(kernel)
 
     return kernel
 
 
 def structural_similarity_loss(y_true, y_pred, sample_weight, max_val, factors, size, sigma, k1, k2):
-    y_pred = tf.convert_to_tensor(y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+    y_true, y_pred, sample_weight = validate_input(
+        y_true, y_pred, sample_weight, dtype=None, rank=4, channel='same')
 
-    channels_pred = y_pred.shape[-1]
-    if channels_pred is None:
-        raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
+    kernel = _ssim_kernel(size, sigma, y_pred.shape[-1], y_pred.dtype)
 
-    assert_true_rank = tf.assert_rank(y_true, 4)
-    assert_pred_rank = tf.assert_rank(y_pred, 4)
-    assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(y_true)[1:3]), size * 2 ** (len(factors) - 1))
-    assert_true_delta = tf.assert_less(tf.reduce_max(y_true) - tf.reduce_min(y_true), max_val + backend.epsilon())
+    max_delta = tf.reduce_max(y_true) - tf.reduce_min(y_true)
+    assert_true_delta = tf.assert_less(max_delta, max_val + backend.epsilon())
+    with tf.control_dependencies([assert_true_delta]):
+        loss = 1. - _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernel, k1, k2)
 
-    with tf.control_dependencies([assert_true_rank, assert_pred_rank, assert_true_shape, assert_true_delta]):
-        kernel = _ssim_kernel(size, sigma, channels_pred, y_pred.dtype)
-        losses = 1. - _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernel, k1, k2)
-
-        return losses
+    return loss

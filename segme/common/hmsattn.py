@@ -5,9 +5,10 @@ from keras.utils.tf_utils import shape_type_conversion
 from .convnormrelu import ConvNormRelu
 from .resizebysample import resize_by_sample
 from .resizebyscale import resize_by_scale
+from .sameconv import SameConv
 
 
-@register_keras_serializable(package='Miss')
+@register_keras_serializable(package='SegMe')
 class HierarchicalMultiScaleAttention(layers.Wrapper):
     """ Proposed in: https://arxiv.org/abs/2005.10821
 
@@ -34,10 +35,10 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
 
     def build(self, input_shape=None):
         self.attention = models.Sequential([
-            ConvNormRelu(self.filters, 3, padding='same', standardized=self.standardized),
-            ConvNormRelu(self.filters, 3, padding='same', standardized=self.standardized),
+            ConvNormRelu(self.filters, 3, standardized=self.standardized),
+            ConvNormRelu(self.filters, 3, standardized=self.standardized),
             layers.Dropout(self.dropout),
-            layers.Conv2D(1, kernel_size=1, padding='same', use_bias=False, activation='sigmoid')
+            SameConv(1, kernel_size=1, use_bias=False, activation='sigmoid')
         ])
 
         super().build(input_shape)

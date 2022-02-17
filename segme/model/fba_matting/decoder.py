@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import Sequential, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import AdaptiveAveragePooling, ConvNormRelu, resize_by_sample
+from ...common import AdaptiveAveragePooling, ConvNormRelu, PyramidPooling, SameConv, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>FBAMatting')
@@ -22,22 +22,15 @@ class Decoder(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.ppm = [Sequential([
-            AdaptiveAveragePooling(scale),
-            ConvNormRelu(256, 1, padding='same', activation='leaky_relu', standardized=True)
-        ]) for scale in self.pool_scales]
+        self.ppm = PyramidPooling(256, self.pool_scales, activation='leaky_relu', standardized=True)
 
-        self.conv_up1 = Sequential([
-            ConvNormRelu(256, 3, padding='same', activation='leaky_relu', standardized=True),
-            ConvNormRelu(256, 3, padding='same', activation='leaky_relu', standardized=True)
-        ])
-        self.conv_up2 = ConvNormRelu(256, 3, padding='same', activation='leaky_relu', standardized=True)
-        self.conv_up3 = ConvNormRelu(64, 3, padding='same', activation='leaky_relu', standardized=True)
-
+        self.conv_up1 = ConvNormRelu(256, 3, activation='leaky_relu', standardized=True)
+        self.conv_up2 = ConvNormRelu(256, 3, activation='leaky_relu', standardized=True)
+        self.conv_up3 = ConvNormRelu(64, 3, activation='leaky_relu', standardized=True)
         self.conv_up4 = Sequential([
-            layers.Conv2D(32, 3, padding='same', activation='leaky_relu'),
-            layers.Conv2D(16, 3, padding='same', activation='leaky_relu'),
-            layers.Conv2D(7, 1, padding='same', dtype='float32')
+            SameConv(32, 3, activation='leaky_relu'),
+            SameConv(16, 3, activation='leaky_relu'),
+            SameConv(7, 1, dtype='float32')
         ])
 
         super().build(input_shape)
@@ -45,29 +38,26 @@ class Decoder(layers.Layer):
     def call(self, inputs, **kwargs):
         feats2, feats4, feats32, imscal, imnorm, twomap = inputs
 
-        ppm_out = [feats32]
-        for pool_scale in self.ppm:
-            ppm_out.append(resize_by_sample([pool_scale(feats32), feats32]))
+        ppm_out = self.ppm(feats32)
 
-        ppm_out = layers.concatenate(ppm_out, axis=-1)
         outputs = self.conv_up1(ppm_out)
 
         outputs = resize_by_sample([outputs, feats4])
-        outputs = layers.concatenate([outputs, feats4], axis=-1)
+        outputs = tf.concat([outputs, feats4], axis=-1)
         outputs = self.conv_up2(outputs)
 
         outputs = resize_by_sample([outputs, feats2])
-        outputs = layers.concatenate([outputs, feats2], axis=-1)
+        outputs = tf.concat([outputs, feats2], axis=-1)
         outputs = self.conv_up3(outputs)
 
         outputs = resize_by_sample([outputs, imscal])
-        outputs = layers.concatenate([outputs, imscal, imnorm, twomap], axis=-1)
+        outputs = tf.concat([outputs, imscal, imnorm, twomap], axis=-1)
         outputs = self.conv_up4(outputs)
 
         alpha = tf.clip_by_value(outputs[..., :1], 0., 1.)
         fgbg = tf.nn.sigmoid(outputs[..., 1:])
 
-        alfgbg = layers.concatenate([alpha, fgbg], axis=-1, dtype='float32')
+        alfgbg = tf.concat([alpha, fgbg], axis=-1)
 
         return alfgbg
 

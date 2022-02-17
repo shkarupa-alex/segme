@@ -1,7 +1,7 @@
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .aspp import ASPP
+from ...common import AtrousSpatialPyramidPooling
 from ...backbone import Backbone
 
 
@@ -26,7 +26,7 @@ class Encoder(layers.Layer):
             self.scales = sorted(set(self.scales))
 
         self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=self.scales)
-        self.aspp = ASPP(self.aspp_filters, self.aspp_stride)
+        self.aspp = AtrousSpatialPyramidPooling(self.aspp_filters, self.aspp_stride)
 
         super().build(input_shape)
 

@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
+from .common_loss import validate_input
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -44,13 +45,6 @@ def _gauss_filter(inputs, kernel):
     blurred = tf.nn.depthwise_conv2d(blurred, kernel[1], strides=[1, 1, 1, 1], padding='VALID')
 
     return blurred
-
-
-def _regular_downsample(inputs):
-    size = tf.shape(inputs)[1:3] // 2
-    down = tf.image.resize(inputs, size)
-
-    return down
 
 
 def _gauss_downsample(inputs, kernel):
@@ -99,7 +93,7 @@ def _weight_pyramid(inputs, levels):
     for level in range(levels):
         current = _pad_odd(current)
         pyramid.append(current)
-        current = _regular_downsample(current)
+        current = -tf.nn.avg_pool2d(-current, ksize=2, strides=2, padding='VALID')
 
     # Disabled: low-frequency residual
     # pyramid.append(current)
@@ -108,33 +102,27 @@ def _weight_pyramid(inputs, levels):
 
 
 def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
-    y_pred = tf.convert_to_tensor(y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+    y_true, y_pred, sample_weight = validate_input(
+        y_true, y_pred, sample_weight, dtype=None, rank=4, channel='same')
 
-    channels_pred = y_pred.shape[-1]
-    if channels_pred is None:
-        raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
+    kernel = _gauss_kernel(size, sigma)
+    kernel = np.tile(kernel[..., None, None], (1, 1, y_pred.shape[-1], 1))
+    kernel = tf.cast(kernel, y_pred.dtype), tf.cast(kernel.transpose([1, 0, 2, 3]), y_pred.dtype)
 
-    assert_true_rank = tf.assert_rank(y_true, 4)
-    assert_pred_rank = tf.assert_rank(y_pred, 4)
-
-    with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        kernel = _gauss_kernel(size, sigma)
-        kernel = np.tile(kernel[..., None, None], (1, 1, channels_pred, 1))
-        kernel = tf.cast(kernel, y_pred.dtype), tf.cast(kernel.transpose([1, 0, 2, 3]), y_pred.dtype)
-
+    assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(y_true)[1:3]), 2 ** levels)
+    with tf.control_dependencies([assert_true_shape]):
         pyr_pred = _laplacian_pyramid(y_pred, levels, kernel)
         pyr_true = _laplacian_pyramid(y_true, levels, kernel)
         pyr_true = [tf.stop_gradient(pt) for pt in pyr_true]
 
-        losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
-        if sample_weight is not None:
-            weights = _weight_pyramid(sample_weight, levels)
-            weights = [tf.stop_gradient(pw) for pw in weights]
-            losses = [ls * sw for ls, sw in zip(losses, weights)]
+    losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
+    if sample_weight is not None:
+        weights = _weight_pyramid(sample_weight, levels)
+        weights = [tf.stop_gradient(pw) for pw in weights]
+        losses = [ls * sw for ls, sw in zip(losses, weights)]
 
-        axis_hwc = list(range(1, y_pred.shape.ndims))
-        losses = [tf.reduce_mean(l, axis=axis_hwc) * (2 ** i) for i, l in enumerate(losses)]
-        losses = sum(losses)
+    axis_hwc = list(range(1, y_pred.shape.ndims))
+    losses = [tf.reduce_mean(l, axis=axis_hwc) * (2 ** i) for i, l in enumerate(losses)]
+    losses = sum(losses)
 
-        return losses
+    return losses

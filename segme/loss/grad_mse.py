@@ -3,6 +3,7 @@ import tensorflow as tf
 from keras import backend, losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
+from .common_loss import validate_input
 from ..metric.grad import _togray, _gauss_filter, _gauss_gradient
 
 
@@ -18,40 +19,31 @@ class GradientMeanSquaredError(losses.LossFunctionWrapper):
 
 
 def gradient_mean_squared_error(y_true, y_pred, sigma):
-    y_pred = tf.convert_to_tensor(y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+    y_true, y_pred, sample_weight = validate_input(
+        y_true, y_pred, weight=None, dtype=None, rank=4, channel='same')
+
+    y_pred = _togray(y_pred)
+    y_true = _togray(y_true)
 
     channels = y_pred.shape[-1]
-    if channels is None:
-        raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
+    kernel0, kernel1, size = _gauss_filter(sigma)
+    kernel0 = np.tile(kernel0[..., None, None], (1, 1, channels, 1))
+    kernel1 = np.tile(kernel1[..., None, None], (1, 1, channels, 1))
+    kernel0 = kernel0.astype(y_pred.dtype.as_numpy_dtype)
+    kernel1 = kernel1.astype(y_pred.dtype.as_numpy_dtype)
 
-    assert_true_rank = tf.assert_rank(y_true, 4)
-    assert_pred_rank = tf.assert_rank(y_pred, 4)
+    kernel_x = tf.cast(kernel0, y_pred.dtype), tf.cast(kernel1, y_pred.dtype)
+    kernel_y = kernel0.transpose([1, 0, 2, 3]), kernel1.transpose([1, 0, 2, 3])
+    kernel_y = tf.cast(kernel_y[0], y_pred.dtype), tf.cast(kernel_y[1], y_pred.dtype)
 
-    with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
+    y_pred_x, y_pred_y = _gauss_gradient(y_pred, size, kernel_x, kernel_y)
+    y_true_x, y_true_y = _gauss_gradient(y_true, size, kernel_x, kernel_y)
 
-        y_pred = _togray(y_pred)
-        y_true = _togray(y_true)
+    pred_amp = tf.sqrt(y_pred_x ** 2 + y_pred_y ** 2 + backend.epsilon())
+    true_amp = tf.sqrt(y_true_x ** 2 + y_true_y ** 2 + backend.epsilon())
+    true_amp = tf.stop_gradient(true_amp)
 
-        kernel0, kernel1, size = _gauss_filter(sigma)
-        kernel0 = np.tile(kernel0[..., None, None], (1, 1, channels, 1))
-        kernel1 = np.tile(kernel1[..., None, None], (1, 1, channels, 1))
-        kernel0 = kernel0.astype(y_pred.dtype.as_numpy_dtype)
-        kernel1 = kernel1.astype(y_pred.dtype.as_numpy_dtype)
+    loss = tf.math.squared_difference(pred_amp, true_amp)
+    loss = tf.reduce_mean(loss, axis=-1)
 
-        kernel_x = tf.cast(kernel0, y_pred.dtype), tf.cast(kernel1, y_pred.dtype)
-        kernel_y = kernel0.transpose([1, 0, 2, 3]), kernel1.transpose([1, 0, 2, 3])
-        kernel_y = tf.cast(kernel_y[0], y_pred.dtype), tf.cast(kernel_y[1], y_pred.dtype)
-
-        y_pred_x, y_pred_y = _gauss_gradient(y_pred, size, kernel_x, kernel_y)
-        y_true_x, y_true_y = _gauss_gradient(y_true, size, kernel_x, kernel_y)
-
-        pred_amp = tf.sqrt(y_pred_x ** 2 + y_pred_y ** 2 + epsilon)
-        true_amp = tf.sqrt(y_true_x ** 2 + y_true_y ** 2 + epsilon)
-        true_amp = tf.stop_gradient(true_amp)
-
-        loss = tf.math.squared_difference(pred_amp, true_amp)
-        loss = tf.reduce_mean(loss, axis=-1)
-
-        return loss
+    return loss

@@ -32,7 +32,7 @@ class FBAMatting(layers.Layer):
         image, twomap, distance = inputs
 
         # Rescale twomap and distance to match preprocessed image
-        featraw = layers.concatenate([image, twomap, distance], axis=-1)
+        featraw = tf.concat([image, twomap, distance], axis=-1)
         feats2, feats4, feats32 = self.encoder(featraw)
 
         imft32 = tf.cast(image, 'float32')

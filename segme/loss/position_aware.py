@@ -1,7 +1,7 @@
 import tensorflow as tf
-from keras import backend
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
+from .common_loss import validate_input, crossentropy, iou
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -21,26 +21,27 @@ class PixelPositionAwareLoss(WeightedLossFunctionWrapper):
 
 
 def pixel_position_aware_loss(y_true, y_pred, sample_weight, from_logits, gamma, ksize):
-    y_pred = tf.convert_to_tensor(y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+    y_true, y_pred, sample_weight = validate_input(
+        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
 
-    assert_true_rank = tf.assert_rank(y_true, 4)
-    assert_pred_rank = tf.assert_rank(y_pred, 4)
+    y_true_1h = tf.one_hot(y_true[..., 0], max(2, y_pred.shape[-1]), dtype=y_pred.dtype)
 
-    with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        weight = 1 + gamma * tf.abs(tf.nn.avg_pool2d(y_true, ksize=ksize, strides=1, padding='SAME') - y_true)
-        if sample_weight is not None:
-            weight *= sample_weight
+    min_shape = tf.reduce_min(tf.shape(y_true)[1:3])
+    assert_shape = tf.assert_greater(min_shape, ksize - 1)
+    with tf.control_dependencies([assert_shape]):
+        weight = 1 + gamma * tf.abs(tf.nn.avg_pool2d(y_true_1h, ksize=ksize, strides=1, padding='SAME') - y_true_1h)
         weight = tf.stop_gradient(weight)
 
-        bce = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
-        wbce = tf.reduce_sum(weight * bce, axis=[1, 2]) / tf.reduce_sum(weight, axis=[1, 2])
+    sample_weight = weight if sample_weight is None else sample_weight * weight
 
-        if from_logits:
-            y_pred = tf.nn.sigmoid(y_pred)
+    wce = crossentropy(y_true, y_pred, sample_weight, from_logits)
+    wce = tf.math.divide_no_nan(
+        tf.reduce_sum(wce, axis=[1, 2]),
+        tf.reduce_mean(tf.reduce_sum(sample_weight, axis=[1, 2]), axis=-1, keepdims=True))
 
-        intersection = tf.reduce_sum(y_pred * y_true * weight, axis=[1, 2])
-        union = tf.reduce_sum((y_pred + y_true) * weight, axis=[1, 2])
-        wiou = 1. - (intersection + 1.) / (union - intersection + 1.)
+    wiou = iou(
+        y_true, y_pred, sample_weight, from_logits=from_logits, from_1hot=False, square=False, smooth=1., dice=False)
 
-        return tf.reduce_mean(tf.concat([wbce, wiou], axis=-1), axis=-1)
+    loss = wce + wiou
+
+    return tf.reduce_mean(loss, axis=-1)

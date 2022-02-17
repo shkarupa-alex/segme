@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models
+from keras import keras_parameterized, layers, models, testing_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..grad_mse import GradientMeanSquaredError
 from ..grad_mse import gradient_mean_squared_error
@@ -10,36 +10,70 @@ from ..grad_mse import gradient_mean_squared_error
 @keras_parameterized.run_all_keras_modes
 class TestGradientMeanSquaredError(keras_parameterized.TestCase):
     def test_config(self):
-        bce_obj = GradientMeanSquaredError(
+        loss = GradientMeanSquaredError(
             reduction=Reduction.NONE,
             name='loss1'
         )
-        self.assertEqual(bce_obj.name, 'loss1')
-        self.assertEqual(bce_obj.reduction, Reduction.NONE)
+        self.assertEqual(loss.name, 'loss1')
+        self.assertEqual(loss.reduction, Reduction.NONE)
 
     def test_zeros(self):
-        probs = tf.constant([[
-            [[0.0], [0.0], [0.0]],
-            [[0.0], [0.0], [0.0]],
-            [[0.0], [0.0], [0.0]],
-        ]], 'float32')
-        targets = tf.constant([[
-            [[0], [0], [0]],
-            [[0], [0], [0]],
-            [[0], [0], [0]],
-        ]], 'int32')
+        probs = tf.zeros((1, 16, 16, 1), 'float32')
+        targets = tf.zeros((1, 16, 16, 1), 'int32')
 
         result = gradient_mean_squared_error(y_true=targets, y_pred=probs, sigma=1.4)
-        result = self.evaluate(result).tolist()
+        result = self.evaluate(result).mean(axis=(1, 2))
 
-        self.assertAllClose(result, [[
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0],
-        ]])
+        self.assertAllClose(result, [0.], atol=1e-4)
 
-    def test_value_4d(self):
-        # Very simple loss, not checked with found reimplementation
+    def test_ones(self):
+        probs = tf.ones((1, 16, 16, 1), 'float32')
+        targets = tf.ones((1, 16, 16, 1), 'int32')
+
+        result = gradient_mean_squared_error(y_true=targets, y_pred=probs, sigma=1.4)
+        result = self.evaluate(result).mean(axis=(1, 2))
+
+        self.assertAllClose(result, [0.], atol=1e-4)
+
+    def test_false(self):
+        probs = tf.zeros((1, 16, 16, 1), 'float32')
+        targets = tf.ones((1, 16, 16, 1), 'int32')
+
+        result = gradient_mean_squared_error(y_true=targets, y_pred=probs, sigma=1.4)
+        result = self.evaluate(result).mean(axis=(1, 2))
+
+        self.assertAllClose(result, [0.], atol=1e-4)
+
+    def test_true(self):
+        probs = tf.ones((1, 16, 16, 1), 'float32')
+        targets = tf.zeros((1, 16, 16, 1), 'int32')
+
+        result = gradient_mean_squared_error(y_true=targets, y_pred=probs, sigma=1.4)
+        result = self.evaluate(result).mean(axis=(1, 2))
+
+        self.assertAllClose(result, [0.], atol=1e-4)
+
+    def test_multi(self):
+        logits = tf.constant([
+            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
+             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
+             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
+             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
+            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
+             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
+             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
+             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
+        targets = tf.constant([
+            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
+             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
+            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
+             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
+
+        loss = GradientMeanSquaredError(reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        result = self.evaluate(loss(targets, logits))
+        self.assertAlmostEqual(result, 0.32215714, places=7)
+
+    def test_value(self):
         targets = np.array([
             [1, 2, 0, 0, 0, 0, 0, 0, 0],
             [0, 3, 4, 5, 6, 0, 0, 0, 0],
@@ -59,7 +93,7 @@ class TestGradientMeanSquaredError(keras_parameterized.TestCase):
         result = np.sum(self.evaluate(result) * trim[None, ...]).item()
         self.assertAlmostEqual(result, 1.664048, places=5)  # same for reduce_sum
 
-    def test_weight_4d(self):
+    def test_weight(self):
         logits = tf.constant([
             [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
              [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
@@ -76,18 +110,33 @@ class TestGradientMeanSquaredError(keras_parameterized.TestCase):
 
         loss = GradientMeanSquaredError(reduction=Reduction.SUM)
 
-        result = self.evaluate(loss(targets, logits)).item()
+        result = self.evaluate(loss(targets, logits))
         self.assertAlmostEqual(result, 8.369308471679688, places=5)
 
-        result = self.evaluate(loss(targets, logits, weights)).item()
+        result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
+        self.assertAlmostEqual(result, 3.211904, places=6)
+
+        result = self.evaluate(loss(targets, logits, weights))
         self.assertAlmostEqual(result, 1.8362021446228027, places=6)
 
-    def test_keras_model_compile(self):
-        model = models.Sequential([
-            layers.Input(shape=(100,)),
-            layers.Dense(5)]
-        )
-        model.compile(loss='SegMe>gradient_mean_squared_error')
+        result = self.evaluate(loss(targets, logits, weights * 2.))
+        self.assertAlmostEqual(result, 1.8362021446228027 * 2., places=6)
+
+    def test_batch(self):
+        probs = np.random.rand(2, 224, 224, 1).astype('float32')
+        targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype('int32')
+
+        loss = GradientMeanSquaredError(reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        result0 = self.evaluate(loss(targets, probs))
+        result1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
+
+        self.assertAlmostEqual(result0, result1, places=6)
+
+    def test_model(self):
+        model = models.Sequential([layers.Dense(1, activation='sigmoid')])
+        model.compile(loss='SegMe>GradientMeanSquaredError', run_eagerly=testing_utils.should_run_eagerly())
+        model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
+        models.Sequential.from_config(model.get_config())
 
 
 if __name__ == '__main__':

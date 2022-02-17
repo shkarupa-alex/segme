@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models
+from keras import keras_parameterized, layers, models, testing_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..balanced_sigmoid import BalancedSigmoidCrossEntropy
 from ..balanced_sigmoid import balanced_sigmoid_cross_entropy
@@ -15,23 +15,50 @@ def _to_logit(prob):
 @keras_parameterized.run_all_keras_modes
 class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
     def test_config(self):
-        bce_obj = BalancedSigmoidCrossEntropy(
+        loss = BalancedSigmoidCrossEntropy(
             reduction=Reduction.NONE,
             name='loss1'
         )
-        self.assertEqual(bce_obj.name, 'loss1')
-        self.assertEqual(bce_obj.reduction, Reduction.NONE)
+        self.assertEqual(loss.name, 'loss1')
+        self.assertEqual(loss.reduction, Reduction.NONE)
 
     def test_zeros(self):
-        probs = tf.constant([[0.0], [0.0], [0.0]], 'float32')
-        targets = tf.constant([[0], [0], [0]], 'int32')
+        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
+        targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=probs, from_logits=False)
-        result = self.evaluate(result).tolist()
+        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
+        result = self.evaluate(result).mean(axis=(1, 2))
 
-        self.assertAllClose(result, [0.0, 0.0, 0.0])
+        self.assertAllClose(result, [0.], atol=1e-4)
 
-    def test_value_4d(self):
+    def test_ones(self):
+        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
+        targets = tf.ones((1, 16, 16, 1), 'int32')
+
+        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
+        result = self.evaluate(result).mean(axis=(1, 2))
+
+        self.assertAllClose(result, [0.], atol=1e-4)
+
+    def test_false(self):
+        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
+        targets = tf.ones((1, 16, 16, 1), 'int32')
+
+        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
+        result = self.evaluate(result).mean(axis=(1, 2))
+
+        self.assertAllClose(result, [0.], atol=1e-4)
+
+    def test_true(self):
+        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
+        targets = tf.zeros((1, 16, 16, 1), 'int32')
+
+        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
+        result = self.evaluate(result).mean(axis=(1, 2))
+
+        self.assertAllClose(result, [0.], atol=1e-4)
+
+    def test_value(self):
         logits = tf.constant([
             [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
              [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
@@ -46,10 +73,10 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
         loss = BalancedSigmoidCrossEntropy(from_logits=True, reduction=Reduction.SUM)
-        result = self.evaluate(loss(targets, logits)).item()
+        result = self.evaluate(loss(targets, logits))
         self.assertAlmostEqual(result, 30.057157516479492, places=7)
 
-    def test_weight_4d(self):
+    def test_weight(self):
         logits = tf.constant([
             [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
              [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
@@ -66,36 +93,33 @@ class TestBalancedSigmoidCrossEntropy(keras_parameterized.TestCase):
 
         loss = BalancedSigmoidCrossEntropy(from_logits=True, reduction=Reduction.SUM)
 
-        result = self.evaluate(loss(targets, logits)).item()
+        result = self.evaluate(loss(targets, logits))
         self.assertAlmostEqual(result, 30.057157516479492, places=7)
 
-        result = self.evaluate(loss(targets, logits, weights)).item()
+        result = self.evaluate(loss(targets, logits, weights * 2.))
+        self.assertAlmostEqual(result, 17.437793731689453 * 2., places=6)
+
+        result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
+        self.assertAlmostEqual(result, 14.8091955, places=7)  # Depends on spatial size
+
+        result = self.evaluate(loss(targets, logits, weights))
         self.assertAlmostEqual(result, 17.437793731689453, places=7)
 
-    def test_logits(self):
-        logits = tf.constant([[_to_logit(0.97)], [_to_logit(0.45)], [_to_logit(0.03)]], 'float32')
-        targets = tf.constant([[1], [1], [0]], 'int32')
+    def test_batch(self):
+        probs = np.random.rand(2, 224, 224, 1).astype('float32')
+        targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype('int32')
 
-        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
-        result = self.evaluate(result).tolist()
+        loss = BalancedSigmoidCrossEntropy(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        result0 = self.evaluate(loss(targets, probs))
+        result1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
-        self.assertAllClose(result, [0.01015307, 0.26616925, 0.02030611])
+        self.assertAlmostEqual(result0, result1, places=6)
 
-    def test_probs(self):
-        probs = tf.constant([[0.97], [0.45], [0.03]], 'float32')
-        targets = tf.constant([[1], [1], [0]], 'int32')
-
-        result = balanced_sigmoid_cross_entropy(y_true=targets, y_pred=probs, from_logits=False)
-        result = self.evaluate(result).tolist()
-
-        self.assertAllClose(result, [0.01015307, 0.26616925, 0.02030611])
-
-    def test_keras_model_compile(self):
-        model = models.Sequential([
-            layers.Input(shape=(100,)),
-            layers.Dense(5, activation='sigmoid')]
-        )
-        model.compile(loss='SegMe>balanced_sigmoid_cross_entropy')
+    def test_model(self):
+        model = models.Sequential([layers.Dense(1, activation='sigmoid')])
+        model.compile(loss='SegMe>BalancedSigmoidCrossEntropy', run_eagerly=testing_utils.should_run_eagerly())
+        model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
+        models.Sequential.from_config(model.get_config())
 
 
 if __name__ == '__main__':

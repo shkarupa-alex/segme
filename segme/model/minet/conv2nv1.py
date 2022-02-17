@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvNormRelu, resize_by_sample
+from ...common import ConvNormRelu, SameConv, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>MINet')
@@ -34,40 +34,40 @@ class Conv2nV1(layers.Layer):
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
 
         # stage 0
-        self.cbr_hh0 = ConvNormRelu(min_channels, 3, padding='same')
-        self.cbr_ll0 = ConvNormRelu(min_channels, 3, padding='same')
+        self.cbr_hh0 = ConvNormRelu(min_channels, 3)
+        self.cbr_ll0 = ConvNormRelu(min_channels, 3)
 
         # stage 1
-        self.conv_hh1 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_hl1 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_lh1 = layers.Conv2D(min_channels, 3, padding='same')
-        self.conv_ll1 = layers.Conv2D(min_channels, 3, padding='same')
+        self.conv_hh1 = SameConv(min_channels, 3)
+        self.conv_hl1 = SameConv(min_channels, 3)
+        self.conv_lh1 = SameConv(min_channels, 3)
+        self.conv_ll1 = SameConv(min_channels, 3)
         self.bn_l1 = layers.BatchNormalization()
         self.bn_h1 = layers.BatchNormalization()
 
         if self.main == 0:
             # stage 2
-            self.conv_hh2 = layers.Conv2D(min_channels, 3, padding='same')
-            self.conv_lh2 = layers.Conv2D(min_channels, 3, padding='same')
+            self.conv_hh2 = SameConv(min_channels, 3)
+            self.conv_lh2 = SameConv(min_channels, 3)
             self.bn_h2 = layers.BatchNormalization()
 
             # stage 3
-            self.conv_hh3 = layers.Conv2D(self.filters, 3, padding='same')
+            self.conv_hh3 = SameConv(self.filters, 3)
             self.bn_h3 = layers.BatchNormalization()
 
-            self.identity = layers.Conv2D(self.filters, 1, padding='same')
+            self.identity = SameConv(self.filters, 1)
 
         elif self.main == 1:
             # stage 2
-            self.conv_hl2 = layers.Conv2D(min_channels, 3, padding='same')
-            self.conv_ll2 = layers.Conv2D(min_channels, 3, padding='same')
+            self.conv_hl2 = SameConv(min_channels, 3)
+            self.conv_ll2 = SameConv(min_channels, 3)
             self.bn_l2 = layers.BatchNormalization()
 
             # stage 3
-            self.conv_ll3 = layers.Conv2D(self.filters, 3, padding='same')
+            self.conv_ll3 = SameConv(self.filters, 3)
             self.bn_l3 = layers.BatchNormalization()
 
-            self.identity = layers.Conv2D(self.filters, 1, padding='same')
+            self.identity = SameConv(self.filters, 1)
 
         super().build(input_shape)
 
@@ -83,25 +83,25 @@ class Conv2nV1(layers.Layer):
         h2l = self.conv_hl1(self.pool(h))
         l2l = self.conv_ll1(l)
         l2h = self.conv_lh1(resize_by_sample([l, h2h], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
-        h = self.relu(self.bn_h1(layers.add([h2h, l2h])))
-        l = self.relu(self.bn_l1(layers.add([l2l, h2l])))
+        h = self.relu(self.bn_h1(h2h + l2h))
+        l = self.relu(self.bn_l1(l2l + h2l))
 
         if self.main == 0:
             # stage 2
             h2h = self.conv_hh2(h)
             l2h = self.conv_lh2(resize_by_sample([l, h2h], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
-            h_fuse = self.relu(self.bn_h2(layers.add([h2h, l2h])))
+            h_fuse = self.relu(self.bn_h2(h2h + l2h))
 
             # stage 3
-            out = layers.add([self.bn_h3(self.conv_hh3(h_fuse)), self.identity(inputs_h)])
+            out = self.bn_h3(self.conv_hh3(h_fuse)) + self.identity(inputs_h)
         else:  # self.main == 1
             # stage 2
             h2l = self.conv_hl2(self.pool(h))
             l2l = self.conv_ll2(l)
-            l_fuse = self.relu(self.bn_l2(layers.add([h2l, l2l])))
+            l_fuse = self.relu(self.bn_l2(h2l + l2l))
 
             # stage 3
-            out = layers.add([self.bn_l3(self.conv_ll3(l_fuse)), self.identity(inputs_l)])
+            out = self.bn_l3(self.conv_ll3(l_fuse)) + self.identity(inputs_l)
 
         return self.relu(out)
 

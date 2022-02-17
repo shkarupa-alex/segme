@@ -45,7 +45,7 @@ class TestConn(keras_parameterized.TestCase):
 
         # originally 7.3960791, but due to same size of some components and different algorithms
         # tf and matlab Connected Component choose different main object at this particular image
-        self.assertAlmostEqual(result, 0.007499468, places=9)
+        self.assertAlmostEqual(result, 0.007499468, places=8)
 
     def test_unweighted(self):
         pred = (self.SNAKE * 1.9921875) ** 2 / 3.97
@@ -54,7 +54,7 @@ class TestConn(keras_parameterized.TestCase):
         metric.update_state(self.SNAKE[None, ..., None], pred[None, ..., None])
         result = self.evaluate(metric.result())
 
-        self.assertAlmostEqual(result, 0.007499468, places=9)
+        self.assertAlmostEqual(result, 0.007499468, places=8)
 
     def test_batch(self):
         trim0 = np.where(cv2.dilate(self.SNAKE, np.ones((2, 2), 'float32')) > 0, 1., 0.)

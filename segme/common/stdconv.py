@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras import layers
+from keras import backend, layers
 from keras.utils.generic_utils import register_keras_serializable
 
 
@@ -19,9 +19,6 @@ class StandardizedConv2D(layers.Conv2D):
     """
 
     def convolution_op(self, inputs, kernel):
-        if kernel.dtype != tf.dtypes.float32:
-            raise ValueError('Expection kernel dtype to be float32.')
-
         # Kernel has shape HWIO, normalize over HWI
         mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
 
@@ -29,3 +26,29 @@ class StandardizedConv2D(layers.Conv2D):
         kernel_ = (kernel - mean) / tf.sqrt(var + 1e-10)
 
         return super().convolution_op(inputs, kernel_)
+
+
+@register_keras_serializable(package='SegMe')
+class StandardizedDepthwiseConv2D(layers.DepthwiseConv2D):
+    """Implements the abs/1903.10520 technique for DepthwiseConv2D."""
+
+    def call(self, inputs):
+        kernel = self.depthwise_kernel
+
+        # Kernel has shape HWIO, normalize over HWI
+        mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
+
+        # Author code uses std + 1e-5
+        kernel_ = (kernel - mean) / tf.sqrt(var + 1e-10)
+
+        outputs = backend.depthwise_conv2d(
+            inputs, kernel_, strides=self.strides, padding=self.padding, dilation_rate=self.dilation_rate,
+            data_format=self.data_format)
+
+        if self.use_bias:
+            outputs = backend.bias_add(outputs, self.bias, data_format=self.data_format)
+
+        if self.activation is not None:
+            return self.activation(outputs)
+
+        return outputs

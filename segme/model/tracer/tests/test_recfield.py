@@ -1,17 +1,17 @@
 import tensorflow as tf
 from keras import keras_parameterized, testing_utils
-from ..psp import PSP
+from ..recfield import ReceptiveField
 
 
 @keras_parameterized.run_all_keras_modes
-class TestPSP(keras_parameterized.TestCase):
+class TestReceptiveField(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
-            PSP,
-            kwargs={'filters': 2, 'sizes': (1, 2, 3, 6)},
-            input_shape=[2, 18, 18, 3],
+            ReceptiveField,
+            kwargs={'filters': 7},
+            input_shape=(2, 32, 32, 16),
             input_dtype='float32',
-            expected_output_shape=[None, 18, 18, 2],
+            expected_output_shape=(None, 32, 32, 7),
             expected_output_dtype='float32'
         )
 

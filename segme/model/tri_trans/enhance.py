@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import AdaptiveMaxPooling
+from ...common import AdaptiveMaxPooling, SameConv
 
 
 @register_keras_serializable(package='SegMe>TriTrans')
@@ -30,15 +30,15 @@ class CAEnhance(layers.Layer):
 
         self.pool = AdaptiveMaxPooling(1)
 
-        self.conv1 = layers.Conv2D(channels1 // 8, 1, activation='relu', use_bias=False)
-        self.conv2 = layers.Conv2D(channels1, 1, activation='sigmoid', use_bias=False)
+        self.conv1 = SameConv(channels1 // 8, 1, activation='relu', use_bias=False)
+        self.conv2 = SameConv(channels1, 1, activation='sigmoid', use_bias=False)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         rgb, depth = inputs
 
-        outputs = layers.concatenate([rgb, depth], axis=-1)
+        outputs = tf.concat([rgb, depth], axis=-1)
         outputs = self.pool(outputs)
         outputs = self.conv1(outputs)
         outputs = self.conv2(outputs)
@@ -59,7 +59,7 @@ class SAEnhance(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.conv = layers.Conv2D(1, 7, padding='same', activation='sigmoid', use_bias=False)
+        self.conv = SameConv(1, 7, activation='sigmoid', use_bias=False)
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):

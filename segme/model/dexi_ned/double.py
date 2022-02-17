@@ -19,10 +19,8 @@ class DoubleConvBlock(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.features = Sequential([
-            ConvNormRelu(self.mid_features, 3, padding='same', strides=self.stride,
-                         kernel_regularizer=regularizers.l2(1e-3)),
-            ConvNormRelu(self._out_features, 3, padding='same', activation=self.activation,
-                         kernel_regularizer=regularizers.l2(1e-3)),
+            ConvNormRelu(self.mid_features, 3, strides=self.stride, kernel_regularizer=regularizers.l2(1e-3)),
+            ConvNormRelu(self._out_features, 3, activation=self.activation, kernel_regularizer=regularizers.l2(1e-3)),
         ])
 
         super().build(input_shape)

@@ -247,13 +247,14 @@ class UncertainPointsCoordsOnGrid(layers.Layer):
         flat_inputs = tf.reshape(uncert_map, [batch_size, -1])
         _, top_indices = tf.math.top_k(flat_inputs, k=sampled_size)
 
-        exp_indices = tf.expand_dims(tf.cast(top_indices, self.compute_dtype), axis=-1)
-        input_height = tf.cast(input_shape[1], self.compute_dtype)
-        input_width = tf.cast(input_shape[2], self.compute_dtype)
+        exp_indices = tf.expand_dims(tf.cast(top_indices, 'float32'), axis=-1)
+        input_height = tf.cast(input_shape[1], 'float32')
+        input_width = tf.cast(input_shape[2], 'float32')
         point_coords = tf.concat([
             0.5 / input_width + (exp_indices % input_width) / input_width,
             0.5 / input_height + (exp_indices // input_width) / input_height
         ], axis=-1)
+        point_coords = tf.cast(point_coords, self.compute_dtype)
 
         return top_indices, point_coords
 

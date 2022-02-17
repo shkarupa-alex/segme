@@ -1,7 +1,7 @@
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvNormRelu, resize_by_sample
+from ...common import ConvNormRelu, SameConv, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>MINet')
@@ -22,18 +22,18 @@ class SIM(layers.Layer):
         self.relu = layers.ReLU()
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
 
-        self.cbr_hh0 = ConvNormRelu(self.channels, 3, padding='same')
-        self.cbr_hl0 = ConvNormRelu(self.filters, 3, padding='same')
+        self.cbr_hh0 = ConvNormRelu(self.channels, 3)
+        self.cbr_hl0 = ConvNormRelu(self.filters, 3)
 
-        self.conv_hh1 = layers.Conv2D(self.channels, 3, padding='same')
-        self.conv_hl1 = layers.Conv2D(self.filters, 3, padding='same')
-        self.conv_lh1 = layers.Conv2D(self.channels, 3, padding='same')
-        self.conv_ll1 = layers.Conv2D(self.filters, 3, padding='same')
+        self.conv_hh1 = SameConv(self.channels, 3)
+        self.conv_hl1 = SameConv(self.filters, 3)
+        self.conv_lh1 = SameConv(self.channels, 3)
+        self.conv_ll1 = SameConv(self.filters, 3)
         self.bn_l1 = layers.BatchNormalization()
         self.bn_h1 = layers.BatchNormalization()
 
-        self.conv_hh2 = layers.Conv2D(self.channels, 3, padding='same')
-        self.conv_lh2 = layers.Conv2D(self.channels, 3, padding='same')
+        self.conv_hh2 = SameConv(self.channels, 3)
+        self.conv_lh2 = SameConv(self.channels, 3)
         self.bn_h2 = layers.BatchNormalization()
 
         super().build(input_shape)
@@ -48,13 +48,13 @@ class SIM(layers.Layer):
         h2l = self.conv_hl1(self.pool(h))
         l2l = self.conv_ll1(l)
         l2h = self.conv_lh1(resize_by_sample([l, inputs]))
-        h = self.relu(self.bn_h1(layers.add([h2h, l2h])))
-        l = self.relu(self.bn_l1(layers.add([l2l, h2l])))
+        h = self.relu(self.bn_h1(h2h + l2h))
+        l = self.relu(self.bn_l1(l2l + h2l))
 
         # last conv
         h2h = self.conv_hh2(h)
         l2h = self.conv_lh2(resize_by_sample([l, inputs]))
-        h = self.relu(self.bn_h2(layers.add([h2h, l2h])))
+        h = self.relu(self.bn_h2(h2h + l2h))
 
         return h
 

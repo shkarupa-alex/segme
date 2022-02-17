@@ -89,19 +89,19 @@ class U2Net(layers.Layer):
         hx6up = resize_by_sample([outputs6, outputs5])
 
         # -------------------- decoder --------------------
-        outputs5d = self.stage5d(layers.concatenate([hx6up, outputs5]))
+        outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
         outputs5dup = resize_by_sample([outputs5d, outputs4])
 
-        outputs4d = self.stage4d(layers.concatenate([outputs5dup, outputs4]))
+        outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
         outputs4dup = resize_by_sample([outputs4d, outputs3])
 
-        outputs3d = self.stage3d(layers.concatenate([outputs4dup, outputs3]))
+        outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
         outputs3dup = resize_by_sample([outputs3d, outputs2])
 
-        outputs2d = self.stage2d(layers.concatenate([outputs3dup, outputs2]))
+        outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
         outputs2dup = resize_by_sample([outputs2d, outputs1])
 
-        outputs1d = self.stage1d(layers.concatenate([outputs2dup, outputs1]))
+        outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
 
         # side output
         n1 = self.proj1(outputs1d)
@@ -121,7 +121,7 @@ class U2Net(layers.Layer):
         n6 = self.proj6(outputs6)
         n6 = resize_by_sample([n6, n1])
 
-        h = self.head(layers.concatenate([n1, n2, n3, n4, n5, n6]))
+        h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
         h1 = self.act(n1)
         h2 = self.act(n2)
         h3 = self.act(n3)
@@ -222,19 +222,19 @@ class U2NetP(layers.Layer):
         hx6up = resize_by_sample([outputs6, outputs5])
 
         # decoder
-        outputs5d = self.stage5d(layers.concatenate([hx6up, outputs5]))
+        outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
         outputs5dup = resize_by_sample([outputs5d, outputs4])
 
-        outputs4d = self.stage4d(layers.concatenate([outputs5dup, outputs4]))
+        outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
         outputs4dup = resize_by_sample([outputs4d, outputs3])
 
-        outputs3d = self.stage3d(layers.concatenate([outputs4dup, outputs3]))
+        outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
         outputs3dup = resize_by_sample([outputs3d, outputs2])
 
-        outputs2d = self.stage2d(layers.concatenate([outputs3dup, outputs2]))
+        outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
         outputs2dup = resize_by_sample([outputs2d, outputs1])
 
-        outputs1d = self.stage1d(layers.concatenate([outputs2dup, outputs1]))
+        outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
 
         # side output
         n1 = self.proj1(outputs1d)
@@ -254,7 +254,7 @@ class U2NetP(layers.Layer):
         n6 = self.proj6(outputs6)
         n6 = resize_by_sample([n6, n1])
 
-        h = self.head(layers.concatenate([n1, n2, n3, n4, n5, n6]))
+        h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
         h1 = self.act(n1)
         h2 = self.act(n2)
         h3 = self.act(n3)

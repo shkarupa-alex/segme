@@ -1,7 +1,8 @@
+import tensorflow as tf
 from keras import Sequential, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import resize_by_sample
+from ...common import ConvNormRelu, SameConv, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>CascadePSP')
@@ -16,20 +17,16 @@ class Upsample(layers.Layer):
         self.conv1 = Sequential([
             layers.BatchNormalization(),
             layers.ReLU(),
-            layers.Conv2D(self.filters, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU(),
-            layers.Conv2D(self.filters, 3, padding='same'),
+            ConvNormRelu(self.filters, 3),
+            SameConv(self.filters, 3),
         ])
         self.conv2 = Sequential([
             layers.BatchNormalization(),
             layers.ReLU(),
-            layers.Conv2D(self.filters, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU(),
-            layers.Conv2D(self.filters, 3, padding='same'),
+            ConvNormRelu(self.filters, 3),
+            SameConv(self.filters, 3),
         ])
-        self.shortcut = layers.Conv2D(self.filters, 1, padding='same')
+        self.shortcut = SameConv(self.filters, 1)
 
         super().build(input_shape)
 
@@ -37,11 +34,11 @@ class Upsample(layers.Layer):
         high, low = inputs
 
         high = resize_by_sample([high, low])
-        outputs = self.conv1(layers.concatenate([high, low]))
+        outputs = self.conv1(tf.concat([high, low], axis=-1))
         short = self.shortcut(high)
-        outputs = layers.add([outputs, short])
+        outputs = outputs + short
         delta = self.conv2(outputs)
-        outputs = layers.add([outputs, delta])
+        outputs = outputs + delta
 
         return outputs
 

@@ -70,7 +70,7 @@ class DexiNed(layers.Layer):
         # Block 2
         block2_xcp = self.block_2(conv1_2)
         maxpool2_1 = self.maxpool(block2_xcp)
-        add2_1 = layers.add([maxpool2_1, rconv1])
+        add2_1 = maxpool2_1 + rconv1
         rconv2 = self.side_2(add2_1)
         output2 = self.up_block_2(block2_xcp)
 
@@ -78,26 +78,26 @@ class DexiNed(layers.Layer):
         addb2_4b3 = self.pre_dense_3(maxpool2_1)
         block3_xcp = self.dblock_3([add2_1, addb2_4b3])
         maxpool3_1 = self.maxpool(block3_xcp)
-        add3_1 = layers.add([maxpool3_1, rconv2])
+        add3_1 = maxpool3_1 + rconv2
         rconv3 = self.side_3(add3_1)
         output3 = self.up_block_3(block3_xcp)
 
         # Block 4
         conv_b2b4 = self.pre_dense_2(maxpool2_1)
-        addb2b3 = layers.add([conv_b2b4, maxpool3_1])
+        addb2b3 = conv_b2b4 + maxpool3_1
         addb3_4b4 = self.pre_dense_4(addb2b3)
         block4_xcp = self.dblock_4([add3_1, addb3_4b4])
         maxpool4_1 = self.maxpool(block4_xcp)
-        add4_1 = layers.add([maxpool4_1, rconv3])
+        add4_1 = maxpool4_1 + rconv3
         rconv4 = self.side_4(add4_1)
         output4 = self.up_block_4(block4_xcp)
 
         # Block 5
         convb3_2ab4 = self.pre_dense_5_0(conv_b2b4)
-        addb2b5 = layers.add([convb3_2ab4, maxpool4_1])
+        addb2b5 = convb3_2ab4 + maxpool4_1
         addb2b5 = self.pre_dense_5(addb2b5)
         block5_xcp = self.dblock_5([add4_1, addb2b5])
-        add5_1 = layers.add([block5_xcp, rconv4])
+        add5_1 = block5_xcp + rconv4
         output5 = self.up_block_5(block5_xcp)
 
         # Block 6
@@ -108,7 +108,7 @@ class DexiNed(layers.Layer):
 
         # concatenate multiscale outputs
         scales = [output1, output2, output3, output4, output5, output6]
-        outputs = [self.head(layers.concatenate(scales))] + [self.act(s) for s in scales]
+        outputs = [self.head(tf.concat(scales, axis=-1))] + [self.act(s) for s in scales]
 
         return outputs
 
