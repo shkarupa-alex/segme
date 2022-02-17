@@ -1,52 +1,51 @@
 import tensorflow as tf
-from keras import backend, losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
+from .common_loss import validate_input, crossentropy, iou, mae
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
 @register_keras_serializable(package='SegMe')
-class BinaryAdaptivePixelIntensityLoss(WeightedLossFunctionWrapper):
+class AdaptivePixelIntensityLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'TRACER: Extreme Attention Guided Salient Object Tracing Network'
 
     Implements Equation (12) from https://arxiv.org/pdf/2112.07380.pdf
     """
 
-    def __init__(self, from_logits=False, reduction=Reduction.AUTO, name='binary_adaptive_pixel_intensity_loss'):
-        super().__init__(binary_adaptive_pixel_intensity_loss, reduction=reduction, name=name, from_logits=from_logits)
+    def __init__(self, from_logits=False, reduction=Reduction.AUTO, name='adaptive_pixel_intensity_loss'):
+        super().__init__(adaptive_pixel_intensity_loss, reduction=reduction, name=name, from_logits=from_logits)
 
 
-def binary_adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
-    y_pred = tf.convert_to_tensor(y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
+    y_true, y_pred, sample_weight = validate_input(
+        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
 
-    assert_true_rank = tf.assert_rank(y_true, 4)
-    assert_pred_rank = tf.assert_rank(y_pred, 4)
+    y_true_1h = tf.one_hot(y_true[..., 0], max(2, y_pred.shape[-1]), dtype=y_pred.dtype)
 
-    with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
+    min_shape = tf.reduce_min(tf.shape(y_true)[1:3])
+    assert_shape = tf.assert_greater(min_shape, 30)
+    with tf.control_dependencies([assert_shape]):
+        omega = sum([
+            tf.abs(tf.nn.avg_pool2d(y_true_1h, ksize=k, strides=1, padding='SAME') - y_true_1h)
+            for k in [3, 15, 31]
+        ]) * y_true_1h * .5 + 1.
+        omega = omega if sample_weight is None else omega * sample_weight
+        omega = tf.stop_gradient(omega)
 
-        if from_logits:
-            y_pred = tf.nn.sigmoid(y_pred)
+    sw = 1. if sample_weight is None else sample_weight
 
-        weight = [tf.abs(tf.nn.avg_pool2d(y_true, ksize=ksize, strides=1, padding='SAME') - y_true)
-                  for ksize in [3, 15, 31]]
-        omega = 1 + 0.5 * sum(weight) * y_true
+    ace = crossentropy(y_true, y_pred, omega, from_logits)
+    ace = tf.math.divide_no_nan(
+        tf.reduce_sum(ace, axis=[1, 2]),
+        tf.reduce_sum(tf.reduce_mean(omega + .5 * sw, axis=-1, keepdims=True), axis=[1, 2]))
 
-        bce = backend.binary_crossentropy(y_true, y_pred, from_logits=False)
-        bce = bce if sample_weight is None else bce * sample_weight
-        abce = tf.reduce_sum(omega * bce, axis=[1, 2]) / tf.reduce_sum(omega + 0.5, axis=[1, 2])
+    aiou = iou(y_true, y_pred, omega, from_logits=from_logits, from_1hot=False, square=False, smooth=1., dice=False)
 
-        intersection = y_pred * y_true * omega
-        intersection = intersection if sample_weight is None else intersection * sample_weight
-        intersection = tf.reduce_sum(intersection, axis=[1, 2])
-        union = (y_pred + y_true) * omega
-        union = union if sample_weight is None else union * sample_weight
-        union = tf.reduce_sum(union, axis=[1, 2])
-        aiou = 1. - (intersection + 1.) / (union - intersection + 1.)
+    amae = mae(y_true, y_pred, omega, from_logits=from_logits, from_1hot=False)
+    amae = tf.math.divide_no_nan(
+        tf.reduce_sum(amae, axis=[1, 2]),
+        tf.reduce_sum(tf.reduce_mean(omega - sw, axis=-1, keepdims=True), axis=[1, 2]))
 
-        mae = tf.abs(y_pred - y_true)
-        mae = mae if sample_weight is None else mae * sample_weight
-        amae = tf.reduce_sum(omega * mae, axis=[1, 2]) / tf.reduce_sum(omega - 1. + epsilon, axis=[1, 2])
+    loss = ace + aiou + amae
 
-        return tf.reduce_mean(abce + aiou + amae, axis=-1)
+    return tf.reduce_mean(loss, axis=-1)

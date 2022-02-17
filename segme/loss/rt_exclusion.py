@@ -1,6 +1,7 @@
 import tensorflow as tf
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
+from .common_loss import validate_input
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -48,49 +49,45 @@ def _exclusion_level(r_pred, t_pred, axis, sample_weight):
     axis_hwc = list(range(1, r_pred.shape.ndims))
     loss = (grad_rs ** 2) * (grad_ts ** 2)
     if grad_w is not None:
-        loss *= grad_w
+        loss *= (grad_w ** 4)
     loss = tf.reduce_mean(loss, axis=axis_hwc) ** 0.25
 
     return loss
 
 
-def _down_sample(reflections, transmissions, weights, level):
-    if 0 == level:
-        return reflections, transmissions, weights
+def _down_sample(reflections, transmissions, weights):
+    height_width = tf.shape(reflections)[1:3]
+    hpad, wpad = tf.unstack(height_width % 2)
+    paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
 
-    factor = 2 ** level
-    height, width = tf.unstack(tf.shape(reflections)[1:3])
-
-    hpad = (factor - height % factor) % factor
-    wpad = (factor - width % factor) % factor
-    pads = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
-    reflections = tf.pad(reflections, pads, 'REFLECT')
-    transmissions = tf.pad(transmissions, pads, 'REFLECT')
+    reflections = tf.pad(reflections, paddings, 'REFLECT')
+    transmissions = tf.pad(transmissions, paddings, 'REFLECT')
     if weights is not None:
-        weights = tf.pad(weights, pads, 'REFLECT')
+        weights = tf.pad(weights, paddings, 'REFLECT')
 
-    size = ((height + hpad) // factor, (width + wpad) // factor)
-    reflections = tf.image.resize(reflections, size)
-    transmissions = tf.image.resize(transmissions, size)
+    reflections = tf.nn.avg_pool(reflections, ksize=2, strides=2, padding='SAME')
+    transmissions = tf.nn.avg_pool(transmissions, ksize=2, strides=2, padding='SAME')
     if weights is not None:
-        weights = tf.image.resize(weights, size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        weights = tf.nn.avg_pool(weights, ksize=2, strides=2, padding='SAME')
+        weights = tf.stop_gradient(weights)
 
     return reflections, transmissions, weights
 
 
 def reflection_transmission_exclusion_loss(r_pred, t_pred, sample_weight, levels):
-    r_pred = tf.convert_to_tensor(r_pred)
-    t_pred = tf.cast(t_pred, dtype=r_pred.dtype)
+    r_pred, t_pred, sample_weight = validate_input(
+        r_pred, t_pred, sample_weight, dtype=None, rank=4, channel='same')
 
-    assert_r_rank = tf.assert_rank(r_pred, 4)
-    assert_t_rank = tf.assert_rank(t_pred, 4)
+    loss = []
+    for level in range(levels):
+        loss.append(_exclusion_level(r_pred, t_pred, axis=1, sample_weight=sample_weight))
+        loss.append(_exclusion_level(r_pred, t_pred, axis=2, sample_weight=sample_weight))
+        last_level = levels - 1 == level
+        if not last_level:
+            assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(r_pred)[1:3]), 2)
 
-    with tf.control_dependencies([assert_r_rank, assert_t_rank]):
-        loss = []
-        for level in range(levels):
-            r_pred_down, t_pred_down, sample_weight_down = _down_sample(r_pred, t_pred, sample_weight, level)
-            loss.append(_exclusion_level(r_pred_down, t_pred_down, axis=1, sample_weight=sample_weight_down))
-            loss.append(_exclusion_level(r_pred_down, t_pred_down, axis=2, sample_weight=sample_weight_down))
-        loss = sum(loss) / (2. * levels)
+            with tf.control_dependencies([assert_true_shape]):
+                r_pred, t_pred, sample_weight = _down_sample(r_pred, t_pred, sample_weight)
+    loss = sum(loss) / (2. * levels)
 
-        return loss
+    return loss

@@ -2,10 +2,11 @@ import tensorflow as tf
 from keras import backend, losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
+from .common_loss import validate_input, crossentropy, to_probs, to_1hot
 
 
 @register_keras_serializable(package='SegMe')
-class NormalizedFocalSigmoidCrossEntropy(losses.LossFunctionWrapper):
+class NormalizedFocalCrossEntropy(losses.LossFunctionWrapper):
     """ Proposed in: 'AdaptIS: Adaptive Instance Selection Network'
 
     Implements Equations (Appendix A) from https://arxiv.org/pdf/1909.07829v1.pdf
@@ -13,38 +14,26 @@ class NormalizedFocalSigmoidCrossEntropy(losses.LossFunctionWrapper):
     """
 
     def __init__(
-            self, from_logits=False, alpha=0.25, gamma=2, reduction=Reduction.AUTO,
-            name='normalized_focal_sigmoid_cross_entropy'):
+            self, from_logits=False, gamma=2, reduction=Reduction.AUTO,
+            name='normalized_focal_cross_entropy'):
         super().__init__(
-            normalized_focal_sigmoid_cross_entropy, reduction=reduction, name=name, from_logits=from_logits,
-            alpha=alpha, gamma=gamma)
+            normalized_focal_cross_entropy, reduction=reduction, name=name, from_logits=from_logits,
+            gamma=gamma)
 
 
-def normalized_focal_sigmoid_cross_entropy(y_true, y_pred, alpha, gamma, from_logits):
-    y_pred = tf.convert_to_tensor(y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+def normalized_focal_cross_entropy(y_true, y_pred, gamma, from_logits):
+    y_true, y_pred, sample_weight = validate_input(
+        y_true, y_pred, weight=None, dtype='int32', rank=None, channel='sparse')
+    y_prob = to_probs(y_pred, from_logits, force_sigmoid=False)
+    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob)
+    y_true_1h = tf.cast(y_true_1h, y_prob_1h.dtype)
 
-    assert_true_rank = tf.assert_greater(y_true.shape.ndims, 2)
-    assert_pred_rank = tf.assert_greater(y_pred.shape.ndims, 2)
+    pt = tf.reduce_max(y_true_1h * y_prob_1h, axis=-1, keepdims=True)
+    beta = (1. - pt) ** gamma
+    axis_hw = list(range(1, y_true_1h.shape.ndims - 1))
+    beta /= (tf.reduce_mean(beta, axis=axis_hw, keepdims=True) + backend.epsilon())
+    beta = tf.stop_gradient(beta)
 
-    with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
+    loss = crossentropy(y_true, y_pred, beta, from_logits)
 
-        ce = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
-        pred_prob = y_pred if not from_logits else tf.sigmoid(y_pred)
-
-        p_t = y_true * pred_prob + (1 - y_true) * (1. - pred_prob)
-
-        alpha = tf.convert_to_tensor(alpha, dtype=y_pred.dtype)
-        alpha_factor = y_true * alpha + (1 - y_true) * (1. - alpha)
-
-        gamma = tf.convert_to_tensor(gamma, dtype=y_pred.dtype)
-        modulating_factor = tf.pow(1.0 - p_t, gamma)
-
-        axis_hw = list(range(1, y_pred.shape.ndims - 1))
-        mod_mean = tf.reduce_mean(modulating_factor, axis=axis_hw, keepdims=True)
-        modulating_factor /= (mod_mean + epsilon)
-
-        total_factor = tf.stop_gradient(alpha_factor * modulating_factor)
-
-        return tf.reduce_sum(total_factor * ce, axis=-1)
+    return tf.reduce_mean(loss, axis=-1)

@@ -1,8 +1,7 @@
 import tensorflow as tf
-from tensorflow.python.framework.ops import EagerTensor
-from keras import backend
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
+from .common_loss import validate_input, to_probs, to_1hot
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -22,64 +21,36 @@ class RegionMutualInformationLoss(WeightedLossFunctionWrapper):
 
 
 def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, pool_stride, pool_way, from_logits):
+    y_true, y_pred, sample_weight = validate_input(
+        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
     if not 1 <= rmi_radius <= 10:
         raise ValueError('Unsupported RMI radius: {}'.format(rmi_radius))
     if pool_stride > 1 and pool_way not in {'maxpool', 'avgpool', 'resize'}:
         raise ValueError('Unsupported RMI pooling way: {}'.format(pool_way))
 
-    y_pred = tf.convert_to_tensor(y_pred)
+    # Decouple sample_weight to batch items weight and erase invalid pixels
+    if sample_weight is not None:
+        valid_mask = sample_weight > 0.
+        valid_weight = tf.cast(valid_mask, y_pred.dtype)
 
-    channels_pred = y_pred.shape[-1]
-    if channels_pred is None:
-        raise ValueError('Channel dimension of the predictions should be defined. Found `None`.')
+        axis_hw = list(range(1, sample_weight.shape.ndims - 1))
+        batch_weight = tf.math.divide_no_nan(
+            tf.reduce_sum(sample_weight, axis=axis_hw), tf.reduce_sum(valid_weight, axis=axis_hw))
 
-    assert_true_rank = tf.assert_rank(y_true, 4)
-    assert_pred_rank = tf.assert_rank(y_pred, 4)
+        y_true = tf.where(valid_mask, y_true, tf.zeros_like(y_true))
+        y_pred = tf.where(valid_mask, y_pred, tf.zeros_like(y_pred))
+    else:
+        batch_weight = None
 
-    with tf.control_dependencies([assert_true_rank, assert_pred_rank]):
-        epsilon = tf.convert_to_tensor(backend.epsilon(), dtype=y_pred.dtype)
+    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
+    y_true, y_pred = to_1hot(y_true, y_pred)
+    y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
-        # In multiclass case replace `softmax` activation with `sigmoid`.
-        if not from_logits and channels_pred > 1:
-            if hasattr(y_pred, '_keras_logits'):
-                y_pred = y_pred._keras_logits
-            elif not isinstance(y_pred, (EagerTensor, tf.Variable)) and 'Softmax' != y_pred.op.type:
-                # When softmax activation function is used for y_pred operation, we use logits from the softmax
-                # function directly to compute loss in order to prevent collapsing zero when training.
-                # See b/117284466
-                assert len(y_pred.op.inputs) == 1
-                y_pred = y_pred.op.inputs[0]
-            else:
-                raise ValueError('Unable to restore `softmax` logits.')
-            from_logits = True
+    # Get region mutual information
+    rmi_loss = _rmi_lower_bound(
+        y_true, y_pred, batch_weight=batch_weight, pool_stride=pool_stride, pool_way=pool_way, rmi_radius=rmi_radius)
 
-        if from_logits:
-            y_pred = tf.nn.sigmoid(y_pred)  # Use sigmoid instead of softmax
-
-        # Decouple sample_weight to batch items weight and erase invalid pixels
-        if sample_weight is not None:
-            axis_hw = list(range(1, sample_weight.shape.ndims - 1))
-            batch_weight = tf.reduce_mean(sample_weight, axis=axis_hw)
-            valid_pixels = sample_weight > 0.
-
-            y_true = tf.where(valid_pixels, y_true, tf.zeros_like(y_true))
-            y_pred = tf.where(valid_pixels, y_pred, tf.zeros_like(y_pred) + epsilon)
-        else:
-            batch_weight = None
-
-        # Label mask -- [N, H, W, 1]
-        num_classes = tf.shape(y_pred)[-1]
-        y_true_onehot = tf.one_hot(tf.squeeze(y_true, axis=-1), depth=num_classes)
-        y_true_onehot = tf.cast(y_true_onehot, dtype=y_pred.dtype)
-
-        # Get region mutual information
-        y_true_onehot = tf.stop_gradient(y_true_onehot)
-
-        rmi_loss = _rmi_lower_bound(
-            y_true_onehot, y_pred, batch_weight=batch_weight, pool_stride=pool_stride, pool_way=pool_way,
-            rmi_radius=rmi_radius)
-
-        return rmi_loss
+    return rmi_loss
 
 
 def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_radius):
@@ -141,8 +112,10 @@ def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_ra
     if batch_weight is not None:
         rmi_loss *= batch_weight
 
-    # Mean over batch samples, sum over classes.
-    rmi_loss = tf.reduce_sum(tf.reduce_mean(rmi_loss, axis=0) / float(square_radius))
+    # In source: mean over batch samples, sum over classes.
+    # Disable mean to match batch shape
+    # rmi_loss = tf.reduce_mean(rmi_loss, axis=0)
+    rmi_loss = tf.reduce_sum(rmi_loss / float(square_radius), axis=-1)
 
     return rmi_loss
 
