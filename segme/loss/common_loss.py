@@ -110,12 +110,11 @@ def to_1hot(y_true, y_pred):
     return y_true, y_pred
 
 
-def mae(y_true, y_pred, sample_weight, from_logits, from_1hot=False):
+def mae(y_true, y_pred, sample_weight, from_logits):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='same' if from_1hot else 'sparse')
+        y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='sparse')
     y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-    if not from_1hot:
-        y_true, y_pred = to_1hot(y_true, y_pred)
+    y_true, y_pred = to_1hot(y_true, y_pred)
     y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
     loss = tf.abs(y_pred - y_true)
@@ -149,31 +148,34 @@ def crossentropy(y_true, y_pred, sample_weight, from_logits):
     return loss
 
 
-def iou(y_true, y_pred, sample_weight, from_logits, from_1hot=False, square=False, smooth=1., dice=False):
+def iou(y_true, y_pred, sample_weight, from_logits, square=False, smooth=1., dice=False):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='same' if from_1hot else 'sparse')
+        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
     y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-    if not from_1hot:
-        y_true, y_pred = to_1hot(y_true, y_pred)
+    y_true, y_pred = to_1hot(y_true, y_pred)
     y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
     intersection = y_pred * y_true
-    if sample_weight is not None:
-        intersection *= sample_weight
-    intersection = tf.reduce_sum(intersection, axis=[1, 2])
+    # if sample_weight is not None:
+    #     intersection *= sample_weight
+    # intersection = tf.reduce_sum(intersection, axis=[1, 2])
 
     if square:
-        union = y_pred ** 2 + y_true ** 2
+        union = y_pred ** 2 + y_true
     else:
         union = y_pred + y_true
-    if sample_weight is not None:
-        union *= sample_weight
-    union = tf.reduce_sum(union, axis=[1, 2])
+    # if sample_weight is not None:
+    #     union *= sample_weight
+    # union = tf.reduce_sum(union, axis=[1, 2])
 
-    epsilon = smooth + backend.epsilon()
+    size = tf.reduce_prod(tf.cast(tf.shape(y_true)[1:3], y_pred.dtype))
+    epsilon = smooth / size + backend.epsilon()
     if dice:
         loss = 1. - (2. * intersection + epsilon) / (union + epsilon)
     else:
         loss = 1. - (intersection + epsilon) / (union - intersection + epsilon)
+
+    if sample_weight is not None:
+        loss *= sample_weight
 
     return tf.reduce_mean(loss, axis=-1, keepdims=True)

@@ -28,6 +28,8 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
     if pool_stride > 1 and pool_way not in {'maxpool', 'avgpool', 'resize'}:
         raise ValueError('Unsupported RMI pooling way: {}'.format(pool_way))
 
+    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
+
     # Decouple sample_weight to batch items weight and erase invalid pixels
     if sample_weight is not None:
         valid_mask = sample_weight > 0.
@@ -37,12 +39,11 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
         batch_weight = tf.math.divide_no_nan(
             tf.reduce_sum(sample_weight, axis=axis_hw), tf.reduce_sum(valid_weight, axis=axis_hw))
 
-        y_true = tf.where(valid_mask, y_true, tf.zeros_like(y_true))
-        y_pred = tf.where(valid_mask, y_pred, tf.zeros_like(y_pred))
+        y_true *= tf.cast(valid_mask, y_true.dtype)
+        y_pred *= tf.cast(valid_mask, y_pred.dtype)
     else:
         batch_weight = None
 
-    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
     y_true, y_pred = to_1hot(y_true, y_pred)
     y_true = tf.cast(y_true, dtype=y_pred.dtype)
 

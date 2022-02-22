@@ -20,41 +20,37 @@ class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
         logits = tf.ones((1, 64, 64, 1), 'float32') * (-10)
         targets = tf.zeros((1, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.07843973])
+        self.assertAllClose(result, np.ones((1, 64, 64), 'float32') * 0.07843973, atol=1e-3)
 
     def test_ones(self):
         logits = tf.ones((1, 64, 64, 1), 'float32') * 10.
         targets = tf.ones((1, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.07846688], atol=1e-4)
+        self.assertAllClose(result, np.ones((1, 64, 64), 'float32') * 0.07846688, atol=1e-3)
 
     def test_false(self):
         logits = tf.ones((1, 64, 64, 1), 'float32') * (-10)
         targets = tf.ones((1, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [7.666415], atol=1e-3)
+        self.assertAllClose(result, np.ones((1, 64, 64), 'float32') * 11.999733, atol=1e-3)
 
     def test_true(self):
         logits = tf.ones((1, 64, 64, 1), 'float32') * 10.
         targets = tf.zeros((1, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [7.666401], atol=1e-3)
+        self.assertAllClose(result, np.ones((1, 64, 64), 'float32') * 11.999733, atol=1e-3)
 
     def test_multi(self):
         logits = tf.constant([
@@ -72,7 +68,7 @@ class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
 
         loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 11.909878, places=6)
+        self.assertAlmostEqual(result, 8.615936, places=6)
 
     def test_value(self):
         logits = tf.constant([
@@ -93,7 +89,7 @@ class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
 
         loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 5.196813, places=4)
+        self.assertAlmostEqual(result, 3.405938, places=4)
 
     def test_weight(self):
         logits = tf.constant([
@@ -115,16 +111,16 @@ class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
         loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 5.196813, places=6)
+        self.assertAlmostEqual(result, 3.405938, places=6)
 
         result = self.evaluate(loss(targets[:, :, :32, :], logits[:, :, :32, :], weights[:, :, :32, :]))
-        self.assertAlmostEqual(result, 5.8714404, places=6)
+        self.assertAlmostEqual(result, 3.6441526, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 5.6491375, places=6)
+        self.assertAlmostEqual(result, 1.8789346, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 5.6493487, places=6)
+        self.assertAlmostEqual(result, 1.8789346 * 2., places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

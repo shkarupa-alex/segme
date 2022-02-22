@@ -20,41 +20,37 @@ class TestPixelPositionAwareLoss(keras_parameterized.TestCase):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = pixel_position_aware_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, gamma=5, ksize=5)
+        result = pixel_position_aware_loss(y_true=targets, y_pred=logits, from_logits=True, gamma=5, ksize=5)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-2)
+        self.assertAllClose(result, np.zeros((1, 16, 16), 'float32'), atol=1e-2)
 
     def test_ones(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = pixel_position_aware_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, gamma=5, ksize=5)
+        result = pixel_position_aware_loss(y_true=targets, y_pred=logits, from_logits=True, gamma=5, ksize=5)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-2)
+        self.assertAllClose(result, np.zeros((1, 16, 16), 'float32'), atol=1e-2)
 
     def test_false(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = pixel_position_aware_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, gamma=5, ksize=5)
+        result = pixel_position_aware_loss(y_true=targets, y_pred=logits, from_logits=True, gamma=5, ksize=5)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [10.996132], atol=1e-2)
+        self.assertAllClose(result, np.ones((1, 16, 16), 'float32') * 10.996132, atol=1e-2)
 
     def test_true(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = pixel_position_aware_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, gamma=5, ksize=5)
+        result = pixel_position_aware_loss(y_true=targets, y_pred=logits, from_logits=True, gamma=5, ksize=5)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [10.996132], atol=1e-2)
+        self.assertAllClose(result, np.ones((1, 16, 16), 'float32') * 10.996132, atol=1e-2)
 
     def test_multi(self):
         logits = tf.constant([
@@ -70,7 +66,7 @@ class TestPixelPositionAwareLoss(keras_parameterized.TestCase):
 
         loss = PixelPositionAwareLoss(ksize=2, from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 9.276414, places=6)
+        self.assertAlmostEqual(result, 18.429708, places=6)
 
     def test_value(self):
         logits = tf.constant([
@@ -89,7 +85,7 @@ class TestPixelPositionAwareLoss(keras_parameterized.TestCase):
         loss = PixelPositionAwareLoss(ksize=2, from_logits=True, reduction=Reduction.SUM)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 5.802122, places=6)
+        self.assertAlmostEqual(result, 234.4585571, places=6)
 
     def test_weight(self):
         logits = tf.constant([
@@ -109,16 +105,16 @@ class TestPixelPositionAwareLoss(keras_parameterized.TestCase):
         loss = PixelPositionAwareLoss(ksize=2, from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 5.802122, places=6)
+        self.assertAlmostEqual(result, 234.4585571, places=5)
 
         result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
-        self.assertAlmostEqual(result, 5.5712337, places=6)
+        self.assertAlmostEqual(result, 111.3881912, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 6.1695123, places=7)
+        self.assertAlmostEqual(result, 134.3534545, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 6.2118454, places=6)
+        self.assertAlmostEqual(result, 134.3534545 * 2., places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

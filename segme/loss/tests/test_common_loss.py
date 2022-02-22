@@ -125,7 +125,7 @@ class TestMAE(keras_parameterized.TestCase):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
         self.assertAllClose(result, np.zeros_like(logits), atol=1e-4)
 
@@ -133,7 +133,7 @@ class TestMAE(keras_parameterized.TestCase):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
         self.assertAllClose(result, np.zeros_like(logits), atol=1e-4)
 
@@ -141,7 +141,7 @@ class TestMAE(keras_parameterized.TestCase):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
         self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
 
@@ -149,7 +149,7 @@ class TestMAE(keras_parameterized.TestCase):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
         self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
 
@@ -165,7 +165,7 @@ class TestMAE(keras_parameterized.TestCase):
               [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
         targets = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
         self.assertAlmostEqual(result.mean(), 0.5163353, places=7)
 
@@ -183,7 +183,7 @@ class TestMAE(keras_parameterized.TestCase):
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
         self.assertAlmostEqual(result.mean(), 0.40374124, places=6)
 
@@ -203,20 +203,19 @@ class TestMAE(keras_parameterized.TestCase):
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
         result = self.evaluate(mae(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False))
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True))
         self.assertAlmostEqual(result.mean(), 0.40374124, places=6)
 
         result = self.evaluate(mae(
-            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True,
-            from_1hot=False))
+            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True))
         self.assertAlmostEqual(result.mean(), 0.45837218, places=7)
 
         result = self.evaluate(mae(
-            y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True, from_1hot=False))
+            y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True))
         self.assertAlmostEqual(result.mean(), 0.22918609, places=7)
 
         result = self.evaluate(mae(
-            y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True, from_1hot=False))
+            y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True))
         self.assertAlmostEqual(result.mean(), 0.22918609 * 2., places=6)
 
 
@@ -323,33 +322,33 @@ class TestIOU(keras_parameterized.TestCase):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros((1, 1)), atol=1e-2)
+        self.assertAllClose(result, np.zeros_like(logits), atol=1e-2)
 
     def test_ones(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros((1, 1)), atol=1e-2)
+        self.assertAllClose(result, np.zeros_like(logits), atol=1e-2)
 
     def test_false(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones((1, 1)), atol=1e-2)
+        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
 
     def test_true(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones((1, 1)), atol=1e-2)
+        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
 
     def test_multi(self):
         logits = tf.constant([
@@ -363,9 +362,9 @@ class TestIOU(keras_parameterized.TestCase):
               [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
         targets = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
         result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.68037534, places=7)
+        self.assertAlmostEqual(result.mean(), 0.6096517, places=7)
 
     def test_value(self):
         logits = tf.constant([
@@ -381,9 +380,9 @@ class TestIOU(keras_parameterized.TestCase):
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
         result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.5906338, places=6)
+        self.assertAlmostEqual(result.mean(), 0.48672712, places=6)
 
     def test_weight(self):
         logits = tf.constant([
@@ -401,21 +400,20 @@ class TestIOU(keras_parameterized.TestCase):
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
         result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=False))
-        self.assertAlmostEqual(result.mean(), 0.5906338, places=6)
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False))
+        self.assertAlmostEqual(result.mean(), 0.48672712, places=6)
 
         result = self.evaluate(iou(
-            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True,
-            from_1hot=False, dice=False))
-        self.assertAlmostEqual(result.mean(), 0.57146204, places=7)
+            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True, dice=False))
+        self.assertAlmostEqual(result.mean(), 0.49471125, places=7)
 
         result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True, from_1hot=False, dice=False))
-        self.assertAlmostEqual(result.mean(), 0.57146204, places=7)
+            y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True, dice=False))
+        self.assertAlmostEqual(result.mean(), 0.27417138, places=7)
 
         result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True, from_1hot=False, dice=False))
-        self.assertAlmostEqual(result.mean(), 0.6238785, places=6)
+            y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True, dice=False))
+        self.assertAlmostEqual(result.mean(), 0.27417138 * 2., places=6)
 
 
 @keras_parameterized.run_all_keras_modes
@@ -424,33 +422,33 @@ class TestDice(keras_parameterized.TestCase):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10)
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=True)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros((1, 1)), atol=1e-2)
+        self.assertAllClose(result, np.zeros_like(logits), atol=1e-2)
 
     def test_ones(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=True)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros((1, 1)), atol=1e-2)
+        self.assertAllClose(result, np.zeros_like(logits), atol=1e-2)
 
     def test_false(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=True)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones((1, 1)), atol=1e-2)
+        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
 
     def test_true(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=True)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones((1, 1)), atol=1e-2)
+        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
 
     def test_multi(self):
         logits = tf.constant([
@@ -464,9 +462,9 @@ class TestDice(keras_parameterized.TestCase):
               [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
         targets = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=True)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.60682416, places=7)
+        self.assertAlmostEqual(result.mean(), 0.60636544, places=6)
 
     def test_value(self):
         logits = tf.constant([
@@ -482,9 +480,9 @@ class TestDice(keras_parameterized.TestCase):
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=True)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.4914376, places=6)
+        self.assertAlmostEqual(result.mean(), 0.46608606, places=6)
 
     def test_weight(self):
         logits = tf.constant([
@@ -502,21 +500,20 @@ class TestDice(keras_parameterized.TestCase):
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
         result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, from_1hot=False, dice=True))
-        self.assertAlmostEqual(result.mean(), 0.4914376, places=6)
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True))
+        self.assertAlmostEqual(result.mean(), 0.46608606, places=6)
 
         result = self.evaluate(iou(
-            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True,
-            from_1hot=False, dice=True))
-        self.assertAlmostEqual(result.mean(), 0.4764763, places=6)
+            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True, dice=True))
+        self.assertAlmostEqual(result.mean(), 0.4710906, places=6)
 
         result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True, from_1hot=False, dice=True))
-        self.assertAlmostEqual(result.mean(), 0.4764763, places=6)
+            y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True, dice=True))
+        self.assertAlmostEqual(result.mean(), 0.26115888, places=6)
 
         result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True, from_1hot=False, dice=True))
-        self.assertAlmostEqual(result.mean(), 0.5165676, places=6)
+            y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True, dice=True))
+        self.assertAlmostEqual(result.mean(), 0.26115888 * 2., places=6)
 
 
 if __name__ == '__main__':
