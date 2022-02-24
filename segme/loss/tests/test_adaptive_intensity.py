@@ -68,7 +68,7 @@ class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
 
         loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 8.615936, places=6)
+        self.assertAlmostEqual(result, 7.702078, places=6)
 
     def test_value(self):
         logits = tf.constant([
@@ -89,7 +89,7 @@ class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
 
         loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 3.405938, places=4)
+        self.assertAlmostEqual(result, 2.9660115, places=4)
 
     def test_weight(self):
         logits = tf.constant([
@@ -111,16 +111,16 @@ class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
         loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 3.405938, places=6)
+        self.assertAlmostEqual(result, 2.9660115, places=6)
 
         result = self.evaluate(loss(targets[:, :, :32, :], logits[:, :, :32, :], weights[:, :, :32, :]))
-        self.assertAlmostEqual(result, 3.6441526, places=6)
+        self.assertAlmostEqual(result, 3.1911263, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.8789346, places=6)
+        self.assertAlmostEqual(result, 1.63713, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 1.8789346 * 2., places=6)
+        self.assertAlmostEqual(result, 1.63713 * 2., places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
