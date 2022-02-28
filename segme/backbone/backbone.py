@@ -243,6 +243,19 @@ class Backbone(layers.Layer):
             None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
 
+        'van_tiny': (ext.VanTiny, (
+            None, None, 'norm1', 'norm2', 'norm3', 'norm4'
+        )),
+        'van_small': (ext.VanSmall, (
+            None, None, 'norm1', 'norm2', 'norm3', 'norm4'
+        )),
+        'van_base': (ext.VanBase, (
+            None, None, 'norm1', 'norm2', 'norm3', 'norm4'
+        )),
+        'van_large': (ext.VanLarge, (
+            None, None, 'norm1', 'norm2', 'norm3', 'norm4'
+        )),
+
         # ======================================================================
         #                   ported
         # ======================================================================

@@ -5,5 +5,6 @@ tensorflow_probability>=0.15.0
 keras>=2.8.0
 tfmiss>=0.16.0
 tfswin>=2.0.0
+tfvan>=1.0.0
 opencv-python>=4.5.5.62
 vit_keras>=0.1.0
