@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def augment_foreground(foreground, mix_prob=0.2, inv_prob=0.2, name=None):
+def augment_inverse(foreground, inv_prob=0.1, name=None):
     with tf.name_scope(name or 'augment_foreground'):
         foreground = tf.convert_to_tensor(foreground, 'uint8')
 
@@ -14,29 +14,11 @@ def augment_foreground(foreground, mix_prob=0.2, inv_prob=0.2, name=None):
         if 'uint8' != foreground.dtype:
             raise ValueError('Expecting `foreground` dtype to be `uint8`.')
 
-        def _mix_transform(foreground_):
-            batch = tf.shape(foreground_)[0]
-            color = tf.random.uniform([batch, 1, 1, 3], 0., 1.)
-            weight = tf.random.uniform([batch, 1, 1, 1], 0., 1.)
-
-            foreground_ = tf.cast(foreground_, 'float32') / 255.
-            foreground_ = foreground_ * weight + color * (1. - weight)
-            foreground_ = tf.cast(tf.round(foreground_ * 255.), 'uint8')
-
-            return foreground_
-
         def _ivn_transform(foreground_):
             return 255 - foreground_
 
-        mix_apply, inv_apply = tf.unstack(tf.random.uniform([2], 0., 1.))
-        foreground = tf.cond(
-            tf.less(mix_apply, mix_prob),
-            lambda: _mix_transform(foreground),
-            lambda: foreground)
-        foreground = tf.cond(
-            tf.less(inv_apply, inv_prob),
-            lambda: _ivn_transform(foreground),
-            lambda: foreground)
+        inv_apply = tf.random.uniform([], 0., 1.) < inv_prob
+        foreground = tf.cond(inv_apply, lambda: _ivn_transform(foreground), lambda: foreground)
 
         return foreground
 

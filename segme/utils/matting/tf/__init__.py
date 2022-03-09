@@ -1,4 +1,4 @@
-from .aug import augment_foreground, augment_alpha, augment_trimap
+from .aug import augment_inverse, augment_alpha, augment_trimap
 from .compose import compose_two
 from .fg import solve_fg
 from .fgbg import solve_fgbg
