@@ -44,8 +44,8 @@ class TestSsimLevel(keras_parameterized.TestCase):
         # expected = self.evaluate(expected)
         # 0.5326015949249268 when compensation = 1
 
-        kernel = _ssim_kernel(size=11, sigma=1.5, channels=2, dtype='float32')
-        result, _ = _ssim_level(y_true, y_pred, max_val=1.0, kernel=kernel, k1=0.01, k2=0.03)
+        kernels = _ssim_kernel(size=11, sigma=1.5, channels=2, dtype='float32')
+        result, _ = _ssim_level(y_true, y_pred, max_val=1.0, kernels=kernels, k1=0.01, k2=0.03)
         result = tf.reduce_mean(result)
         result = self.evaluate(result)
 
@@ -252,7 +252,7 @@ class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
         result = loss(targets, probs)
         result = self.evaluate(result)
 
-        self.assertAlmostEqual(result, 0.8302181363105774, places=6)  # 0.8249481320381165 when compensation = 1
+        self.assertAlmostEqual(result, 0.8302058, places=6)  # 0.8249481320381165 when compensation = 1
 
     def test_weight(self):
         logits = tf.constant([
@@ -274,16 +274,16 @@ class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
         loss = StructuralSimilarityLoss(reduction=Reduction.SUM, factors=(0.5,), size=2)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 0.88420564, places=6)
+        self.assertAlmostEqual(result, 0.885136, places=6)
 
         result = self.evaluate(loss(targets[:, :, :32, :], logits[:, :, :32, :]))
-        self.assertAlmostEqual(result, 0.9242637, places=7)  # Depends on spatial size
+        self.assertAlmostEqual(result, 0.92526346, places=7)  # Depends on spatial size
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.2454007, places=6)
+        self.assertAlmostEqual(result, 1.2461021, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.9328354, places=6)
+        self.assertAlmostEqual(result, 0.9338272, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
