@@ -224,6 +224,27 @@ class Backbone(layers.Layer):
         # ======================================================================
         #                   external
         # ======================================================================
+        'rep_l_k_net_31_b_224_k1': (ext.RepLKNet31B224K1, (
+            None, 'stem/2/bn', 'transitions/0/0/bn',
+            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
+        )),
+        'rep_l_k_net_31_b_224_k21': (ext.RepLKNet31B224K21, (
+            None, 'stem/2/bn', 'transitions/0/0/bn',
+            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
+        )),
+        'rep_l_k_net_31_b_384_k1': (ext.RepLKNet31B384K1, (
+            None, 'stem/2/bn', 'transitions/0/0/bn',
+            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
+        )),
+        'rep_l_k_net_31_l_384_k1': (ext.RepLKNet31L384K1, (
+            None, 'stem/2/bn', 'transitions/0/0/bn',
+            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
+        )),
+        'rep_l_k_net_31_l_384_k21': (ext.RepLKNet31L384K21, (
+            None, 'stem/2/bn', 'transitions/0/0/bn',
+            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
+        )),
+
         'swin_tiny_224': (ext.SwinTransformerTiny224, (
             None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
