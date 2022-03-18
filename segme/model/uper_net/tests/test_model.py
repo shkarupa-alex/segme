@@ -22,7 +22,7 @@ class TestUPerNet(keras_parameterized.TestCase):
         testing_utils.layer_test(
             UPerNet,
             kwargs={'classes': 1, 'bone_arch': 'swin_tiny_224', 'bone_init': 'imagenet', 'bone_train': False,
-                    'dropout': 0., 'dec_filters': 8, 'psp_sizes': (1, 2, 3, 6), 'aux_filters': 4},
+                    'dropout': 0., 'dec_filters': 8, 'psp_sizes': (1, 2, 3, 6)},
             input_shape=(2, 240, 240, 3),
             input_dtype='uint8',
             expected_output_shape=(None, 240, 240, 1),
@@ -30,14 +30,14 @@ class TestUPerNet(keras_parameterized.TestCase):
         )
 
         mixed_precision.set_global_policy('mixed_float16')
-        layer_multi_io_test(
+        testing_utils.layer_test(
             UPerNet,
-            kwargs={'classes': 4, 'bone_arch': 'swin_tiny_224', 'bone_init': 'imagenet', 'bone_train': True,
-                    'dropout': 0.1, 'dec_filters': 8, 'psp_sizes': (1, 2, 3, 6), 'aux_filters': 4},
-            input_shapes=[(2, 240, 240, 3)],
-            input_dtypes=['uint8'],
-            expected_output_shapes=[(None, 240, 240, 4), (None, 240, 240, 4)],
-            expected_output_dtypes=['float32'] * 2
+            kwargs={'classes': 1, 'bone_arch': 'swin_tiny_224', 'bone_init': 'imagenet', 'bone_train': False,
+                    'dropout': 0., 'dec_filters': 8, 'psp_sizes': (1, 2, 3, 6)},
+            input_shape=(2, 240, 240, 3),
+            input_dtype='uint8',
+            expected_output_shape=(None, 240, 240, 1),
+            expected_output_dtype='float32'
         )
 
     def test_model(self):

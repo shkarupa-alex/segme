@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import Sequential, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import AdaptiveAveragePooling, ConvNormRelu, PyramidPooling, SameConv, resize_by_sample
+from ...common import ConvNormRelu, PyramidPooling, SameConv, resize_by_sample
 
 
 @register_keras_serializable(package='SegMe>FBAMatting')
