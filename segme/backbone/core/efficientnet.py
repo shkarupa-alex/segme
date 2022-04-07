@@ -1,4 +1,4 @@
-from keras.applications import efficientnet
+from keras.applications import efficientnet, efficientnet_v2
 from functools import partial
 from ..utils import wrap_bone
 
@@ -41,3 +41,19 @@ EfficientNetB7 = partial(
     wrap_bone,
     efficientnet.EfficientNetB7,
     efficientnet.preprocess_input)
+
+EfficientNetV2S = partial(
+    wrap_bone,
+    efficientnet_v2.EfficientNetV2S,
+    None)
+
+EfficientNetV2M = partial(
+    wrap_bone,
+    efficientnet_v2.EfficientNetV2M,
+    None)
+
+EfficientNetV2L = partial(
+    wrap_bone,
+    efficientnet_v2.EfficientNetV2L,
+    None)
+

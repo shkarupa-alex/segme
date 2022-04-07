@@ -107,6 +107,19 @@ class Backbone(layers.Layer):
             'block3g_activation', 'block5j_activation', 'block7d_activation'
         )),
 
+        'efficientnet_v2_s': (core.EfficientNetV2S, (
+            None, 'block1b_add', 'block2d_add', 'block3d_add', 'block5i_add',
+            'top_activation'
+        )),
+        'efficientnet_v2_m': (core.EfficientNetV2M, (
+            None, 'block1c_add', 'block2e_add', 'block3e_add', 'block5n_add',
+            'top_activation'
+        )),
+        'efficientnet_v2_l': (core.EfficientNetV2L, (
+            None, 'block1d_add', 'block2g_add', 'block3g_add', 'block5s_add',
+            'top_activation'
+        )),
+
         # Inception
         'inception_v3': (core.InceptionV3, (
             # None, 'activation_2', 'activation_4', 'mixed2', 'mixed7',
@@ -224,23 +237,31 @@ class Backbone(layers.Layer):
         # ======================================================================
         #                   external
         # ======================================================================
-        'rep_l_k_net_31_b_224_k1': (ext.RepLKNet31B224K1, (
+        'replknet_b_224_1k': (ext.RepLKNetB224In1k, (
             None, 'stem/2/bn', 'transitions/0/0/bn',
             'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
         )),
-        'rep_l_k_net_31_b_224_k21': (ext.RepLKNet31B224K21, (
+        'replknet_b_224_21k': (ext.RepLKNetB224In21k, (
             None, 'stem/2/bn', 'transitions/0/0/bn',
             'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
         )),
-        'rep_l_k_net_31_b_384_k1': (ext.RepLKNet31B384K1, (
+        'replknet_b_384_1k': (ext.RepLKNetB384In1k, (
             None, 'stem/2/bn', 'transitions/0/0/bn',
             'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
         )),
-        'rep_l_k_net_31_l_384_k1': (ext.RepLKNet31L384K1, (
+        'replknet_l_384_1k': (ext.RepLKNetL384In1k, (
             None, 'stem/2/bn', 'transitions/0/0/bn',
             'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
         )),
-        'rep_l_k_net_31_l_384_k21': (ext.RepLKNet31L384K21, (
+        'replknet_l_384_21k': (ext.RepLKNetL384In21k, (
+            None, 'stem/2/bn', 'transitions/0/0/bn',
+            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
+        )),
+        'replknet_xl_320_1k': (ext.RepLKNetXL320In1k, (
+            None, 'stem/2/bn', 'transitions/0/0/bn',
+            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
+        )),
+        'replknet_xl_320_21k': (ext.RepLKNetXL320In21k, (
             None, 'stem/2/bn', 'transitions/0/0/bn',
             'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
         )),

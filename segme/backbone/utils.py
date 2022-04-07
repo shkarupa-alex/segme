@@ -47,7 +47,10 @@ def get_layer(model, name_idx):
 def wrap_bone(model, prepr, channels, feats, init):
     input_shape = (None, None, channels)
     input_image = Input(name='image', shape=input_shape, dtype=tf.uint8)
-    input_prep = Lambda(lambda img: prepr(tf.cast(img, tf.float32)), name='preprocess')(input_image)
+    if prepr is not None:
+        input_prep = Lambda(lambda img: prepr(tf.cast(img, tf.float32)), name='preprocess')(input_image)
+    else:
+        input_prep = input_image
 
     base_model = model(input_tensor=input_prep, include_top=False, weights=init)
 

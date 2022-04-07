@@ -1,15 +1,17 @@
-import tensorflow as tf
 import tfreplknet
 from functools import partial
-from keras import layers, models
 from ..utils import wrap_bone
 
-RepLKNet31B224K1 = partial(wrap_bone, tfreplknet.RepLKNet31B224K1, tfreplknet.preprocess_input)
+RepLKNetB224In1k = partial(wrap_bone, tfreplknet.RepLKNetB224In1k, tfreplknet.preprocess_input_bl)
 
-RepLKNet31B224K21 = partial(wrap_bone, tfreplknet.RepLKNet31B224K21, tfreplknet.preprocess_input)
+RepLKNetB224In21k = partial(wrap_bone, tfreplknet.RepLKNetB224In21k, tfreplknet.preprocess_input_bl)
 
-RepLKNet31B384K1 = partial(wrap_bone, tfreplknet.RepLKNet31B384K1, tfreplknet.preprocess_input)
+RepLKNetB384In1k = partial(wrap_bone, tfreplknet.RepLKNetB384In1k, tfreplknet.preprocess_input_bl)
 
-RepLKNet31L384K1 = partial(wrap_bone, tfreplknet.RepLKNet31L384K1, tfreplknet.preprocess_input)
+RepLKNetL384In1k = partial(wrap_bone, tfreplknet.RepLKNetL384In1k, tfreplknet.preprocess_input_bl)
 
-RepLKNet31L384K21 = partial(wrap_bone, tfreplknet.RepLKNet31L384K21, tfreplknet.preprocess_input)
+RepLKNetL384In21k = partial(wrap_bone, tfreplknet.RepLKNetL384In21k, tfreplknet.preprocess_input_bl)
+
+RepLKNetXL320In1k = partial(wrap_bone, tfreplknet.RepLKNetXL320In1k, tfreplknet.preprocess_input_xl)
+
+RepLKNetXL320In21k = partial(wrap_bone, tfreplknet.RepLKNetXL320In21k, tfreplknet.preprocess_input_xl)

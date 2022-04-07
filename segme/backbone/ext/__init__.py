@@ -1,5 +1,6 @@
-from .replknet import RepLKNet31B224K1, RepLKNet31B224K21, RepLKNet31B384K1
-from .replknet import RepLKNet31L384K1, RepLKNet31L384K21
+from .replknet import RepLKNetB224In1k, RepLKNetB224In21k, RepLKNetB384In1k
+from .replknet import RepLKNetL384In1k, RepLKNetL384In21k
+from .replknet import RepLKNetXL320In1k, RepLKNetXL320In21k
 from .swin import SwinTransformerTiny224, SwinTransformerSmall224
 from .swin import SwinTransformerBase224, SwinTransformerBase384
 from .swin import SwinTransformerLarge224, SwinTransformerLarge384
