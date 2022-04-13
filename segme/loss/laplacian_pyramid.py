@@ -92,7 +92,7 @@ def _weight_pyramid(inputs, levels):
     for level in range(levels):
         current = _pad_odd(current)
         pyramid.append(current)
-        current = -tf.nn.avg_pool2d(-current, ksize=2, strides=2, padding='VALID')
+        current = -tf.nn.max_pool2d(-current, ksize=2, strides=2, padding='VALID')  # min pooling
 
     # Disabled: low-frequency residual
     # pyramid.append(current)
