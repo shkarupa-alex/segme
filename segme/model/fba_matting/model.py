@@ -44,6 +44,7 @@ class FBAMatting(layers.Layer):
             tf.cast(twomap, 'float32') / 255.  # scaled twomap
         ])
 
+        # TODO: cleanup by trimap?
         alpha, foreground, background = self.fusion([imscal, alfgbg])
 
         return alfgbg, alpha, foreground, background
