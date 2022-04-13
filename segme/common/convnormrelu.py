@@ -8,7 +8,7 @@ from .sameconv import SameConv, SameStandardizedConv, SameDepthwiseConv, SameSta
 @register_keras_serializable(package='SegMe')
 class ConvNormRelu(layers.Layer):
     def __init__(self, filters, kernel_size, strides=(1, 1), data_format=None, dilation_rate=(1, 1), groups=1,
-                 activation=None, kernel_initializer='glorot_uniform', bias_initializer='zeros',
+                 activation='relu', kernel_initializer='glorot_uniform', bias_initializer='zeros',
                  kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None,
                  bias_constraint=None, standardized=False, bn_fused=True, gn_groups=32, **kwargs):
         super().__init__(activity_regularizer=activity_regularizer, **kwargs)
