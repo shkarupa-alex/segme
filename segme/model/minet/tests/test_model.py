@@ -1,14 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
 from ..model import build_minet, MINet
 
 
-@keras_parameterized.run_all_keras_modes
-class TestMINet(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestMINet(test_combinations.TestCase):
     def setUp(self):
         super(TestMINet, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -18,7 +18,7 @@ class TestMINet(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             MINet,
             kwargs={'classes': 3, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False},
             input_shape=[2, 62, 62, 3],
@@ -28,7 +28,7 @@ class TestMINet(keras_parameterized.TestCase):
         )
 
         mixed_precision.set_global_policy('mixed_float16')
-        testing_utils.layer_test(
+        test_utils.layer_test(
             MINet,
             kwargs={'classes': 1, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False},
             input_shape=[2, 64, 64, 3],
@@ -47,7 +47,7 @@ class TestMINet(keras_parameterized.TestCase):
         )
         model.compile(
             optimizer='sgd', loss='binary_crossentropy',
-            run_eagerly=testing_utils.should_run_eagerly())
+            run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 224, 224, 3)).astype(np.uint8),
             np.random.randint(0, num_classes, (2, 224, 224)),
