@@ -107,3 +107,4 @@ ENV/
 *.pyc
 *.swp
 *.whl
+workon/

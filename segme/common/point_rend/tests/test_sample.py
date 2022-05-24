@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from ..sample import ClassificationUncertainty, classification_uncertainty
 from ..sample import PointSample, point_sample
@@ -9,8 +9,8 @@ from ..sample import UncertainPointsCoordsOnGrid, uncertain_points_coords_on_gri
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestClassificationUncertainty(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestClassificationUncertainty(test_combinations.TestCase):
     def setUp(self):
         super(TestClassificationUncertainty, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -20,7 +20,7 @@ class TestClassificationUncertainty(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             ClassificationUncertainty,
             kwargs={},
             input_shape=[2, 16, 16, 10],
@@ -28,7 +28,7 @@ class TestClassificationUncertainty(keras_parameterized.TestCase):
             expected_output_shape=[None, 16, 16],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             ClassificationUncertainty,
             kwargs={'from_logits': True},
             input_shape=[2, 16, 16, 10],
@@ -36,7 +36,7 @@ class TestClassificationUncertainty(keras_parameterized.TestCase):
             expected_output_shape=[None, 16, 16],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             ClassificationUncertainty,
             kwargs={'from_logits': True},
             input_shape=[2, 16, 16, 1],
@@ -46,7 +46,7 @@ class TestClassificationUncertainty(keras_parameterized.TestCase):
         )
 
         mixed_precision.set_global_policy('mixed_float16')
-        testing_utils.layer_test(
+        test_utils.layer_test(
             ClassificationUncertainty,
             kwargs={},
             input_shape=[2, 16, 16, 10],
@@ -54,7 +54,7 @@ class TestClassificationUncertainty(keras_parameterized.TestCase):
             expected_output_shape=[None, 16, 16],
             expected_output_dtype='float16'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             ClassificationUncertainty,
             kwargs={},
             input_shape=[2, 16, 16, 10],
@@ -115,8 +115,8 @@ class TestClassificationUncertainty(keras_parameterized.TestCase):
         self.assertAllClose(expected, result)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestPointSample(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestPointSample(test_combinations.TestCase):
     features = [  # 2 x 3 x 8 x 2
         [[[0.5803560530488882, 0.9758733582668992], [0.3060797016509539, 0.8958330296139824],
           [0.04392514449205642, 0.6417255796191343], [0.05154120577339916, 0.5912343257885164],
@@ -328,8 +328,8 @@ class TestPointSample(keras_parameterized.TestCase):
         self.assertAllClose(self.nearest_corner_align, result)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestUncertainPointsWithRandomness(test_combinations.TestCase):
     def setUp(self):
         super(TestUncertainPointsWithRandomness, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -339,7 +339,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             UncertainPointsWithRandomness,
             kwargs={'points': 0.05, 'align_corners': False, 'oversample': 3, 'importance': 0.75},
             input_shape=[2, 16, 16, 10],
@@ -347,7 +347,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
             expected_output_shape=[None, None, 2],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             UncertainPointsWithRandomness,
             kwargs={'points': 1.0, 'align_corners': True, 'oversample': 3, 'importance': 0.75},
             input_shape=[2, 16, 16, 10],
@@ -357,7 +357,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
         )
 
         mixed_precision.set_global_policy('mixed_float16')
-        testing_utils.layer_test(
+        test_utils.layer_test(
             UncertainPointsWithRandomness,
             kwargs={'points': 0.05, 'align_corners': False, 'oversample': 3, 'importance': 0.75},
             input_shape=[2, 16, 16, 10],
@@ -365,7 +365,7 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
             expected_output_shape=[None, None, 2],
             expected_output_dtype='float16'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             UncertainPointsWithRandomness,
             kwargs={'points': 0.05, 'align_corners': True, 'oversample': 3, 'importance': 0.75},
             input_shape=[2, 16, 16, 10],
@@ -380,8 +380,8 @@ class TestUncertainPointsWithRandomness(keras_parameterized.TestCase):
             points=0.03, align_corners=False, oversample=3, importance=0.75)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestUncertainPointsCoordsOnGrid(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestUncertainPointsCoordsOnGrid(test_combinations.TestCase):
     def setUp(self):
         super(TestUncertainPointsCoordsOnGrid, self).setUp()
         self.default_policy = mixed_precision.global_policy()

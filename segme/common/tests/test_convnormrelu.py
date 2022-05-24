@@ -1,12 +1,12 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from ..convnormrelu import ConvNormRelu, DepthwiseConvNormRelu
 
 
-@keras_parameterized.run_all_keras_modes
-class TestConvNormRelu(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestConvNormRelu(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             ConvNormRelu,
             kwargs={'filters': 4, 'kernel_size': 3, 'strides': 2},
             input_shape=[2, 16, 16, 3],
@@ -14,7 +14,7 @@ class TestConvNormRelu(keras_parameterized.TestCase):
             expected_output_shape=[None, 8, 8, 4],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             ConvNormRelu,
             kwargs={'filters': 64, 'kernel_size': 2, 'dilation_rate': 2, 'standardized': True},
             input_shape=[2, 17, 17, 3],
@@ -24,10 +24,10 @@ class TestConvNormRelu(keras_parameterized.TestCase):
         )
 
 
-@keras_parameterized.run_all_keras_modes
-class TestDepthwiseConvNormRelu(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestDepthwiseConvNormRelu(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             DepthwiseConvNormRelu,
             kwargs={'kernel_size': 3, 'strides': 2},
             input_shape=[2, 16, 16, 3],
@@ -35,7 +35,7 @@ class TestDepthwiseConvNormRelu(keras_parameterized.TestCase):
             expected_output_shape=[None, 8, 8, 3],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             DepthwiseConvNormRelu,
             kwargs={'kernel_size': 2, 'dilation_rate': 2, 'standardized': True},
             input_shape=[2, 17, 17, 64],

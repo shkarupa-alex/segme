@@ -1,13 +1,13 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from ..aspp import AtrousSeparableConv, AtrousSpatialPyramidPooling
 
 
-@keras_parameterized.run_all_keras_modes
-class TestAtrousSeparableConv(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestAtrousSeparableConv(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AtrousSeparableConv,
             kwargs={'filters': 10, 'kernel_size': 3, 'dilation_rate': 1, 'activation': 'relu', 'standardized': False},
             input_shape=[2, 16, 16, 3],
@@ -15,7 +15,7 @@ class TestAtrousSeparableConv(keras_parameterized.TestCase):
             expected_output_shape=[None, 16, 16, 10],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AtrousSeparableConv,
             kwargs={'filters': 64, 'kernel_size': 3, 'dilation_rate': 4, 'activation': 'leaky_relu',
                     'standardized': True},
@@ -26,8 +26,8 @@ class TestAtrousSeparableConv(keras_parameterized.TestCase):
         )
 
 
-@keras_parameterized.run_all_keras_modes
-class TestAtrousSpatialPyramidPooling(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestAtrousSpatialPyramidPooling(test_combinations.TestCase):
     def setUp(self):
         super(TestAtrousSpatialPyramidPooling, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -37,7 +37,7 @@ class TestAtrousSpatialPyramidPooling(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AtrousSpatialPyramidPooling,
             kwargs={'filters': 10, 'stride': 8, 'activation': 'relu', 'standardized': False},
             input_shape=[2, 16, 16, 3],
@@ -45,7 +45,7 @@ class TestAtrousSpatialPyramidPooling(keras_parameterized.TestCase):
             expected_output_shape=[None, 16, 16, 10],
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AtrousSpatialPyramidPooling,
             kwargs={'filters': 64, 'stride': 16, 'activation': 'leaky_relu', 'standardized': True},
             input_shape=[2, 16, 16, 32],
@@ -55,7 +55,7 @@ class TestAtrousSpatialPyramidPooling(keras_parameterized.TestCase):
         )
 
         mixed_precision.set_global_policy('mixed_float16')
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AtrousSpatialPyramidPooling,
             kwargs={'filters': 64, 'stride': 32, 'activation': 'leaky_relu', 'standardized': True},
             input_shape=[2, 16, 16, 32],

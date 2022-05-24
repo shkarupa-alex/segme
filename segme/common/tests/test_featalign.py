@@ -1,13 +1,13 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from ..featalign import FeatureSelection, FeatureAlignment
 from ...testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestFeatureSelection(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestFeatureSelection(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             FeatureSelection,
             kwargs={'filters': 4},
             input_shape=[2, 16, 16, 3],
@@ -17,8 +17,8 @@ class TestFeatureSelection(keras_parameterized.TestCase):
         )
 
 
-@keras_parameterized.run_all_keras_modes
-class TestFeatureAlignment(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestFeatureAlignment(test_combinations.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             FeatureAlignment,

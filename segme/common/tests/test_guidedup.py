@@ -2,15 +2,15 @@ import cv2
 import numpy as np
 import os
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from ..guidedup import BoxFilter, GuidedFilter, ConvGuidedFilter
 from ...testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestBoxFilter(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestBoxFilter(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             BoxFilter,
             kwargs={'radius': 3},
             input_shape=[2, 8, 9, 1],
@@ -51,8 +51,8 @@ class TestBoxFilter(keras_parameterized.TestCase):
         self.assertAlmostEqual(result[..., 2].std(), 2206.4, places=1)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestGuidedFilter(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestGuidedFilter(test_combinations.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             GuidedFilter,
@@ -101,8 +101,8 @@ class TestGuidedFilter(keras_parameterized.TestCase):
     #     self.assertLess(np.abs(result - expected).max(), 0.209)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestConvGuidedFilter(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestConvGuidedFilter(test_combinations.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             ConvGuidedFilter,
