@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
@@ -8,8 +8,8 @@ from ..base import DeepLabV3PlusBase
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestDeepLabV3PlusBase(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestDeepLabV3PlusBase(test_combinations.TestCase):
     def setUp(self):
         super(TestDeepLabV3PlusBase, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -20,7 +20,7 @@ class TestDeepLabV3PlusBase(keras_parameterized.TestCase):
 
     def test_layer(self):
         # TODO: wait for issue with Sequential model restoring
-        #  will be resolved to migrate back on testing_utils.layer_test
+        #  will be resolved to migrate back on test_utils.layer_test
         layer_multi_io_test(
             DeepLabV3PlusBase,
             kwargs={

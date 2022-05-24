@@ -1,11 +1,11 @@
 import tensorflow as tf
-from keras import keras_parameterized
+from keras.testing_infra import test_combinations
 from ..resnet import ResNet50
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestResNet50(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestResNet50(test_combinations.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             ResNet50,
