@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from keras import layers, keras_parameterized
+from keras import layers
+from keras.testing_infra import test_combinations
 from keras.utils.generic_utils import custom_object_scope
 from ..testing_utils import layer_multi_io_test
 
@@ -17,8 +18,8 @@ class OneToManyLayer(layers.Dense):
         return result, result
 
 
-@keras_parameterized.run_all_keras_modes
-class LayerMultiIOTestTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class LayerMultiIOTestTest(test_combinations.TestCase):
     def test_one_to_one(self):
         layer_multi_io_test(
             layers.Dense,

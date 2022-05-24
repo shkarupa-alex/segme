@@ -1,13 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..adaptive_intensity import AdaptivePixelIntensityLoss
 from ..adaptive_intensity import adaptive_pixel_intensity_loss
 
 
-@keras_parameterized.run_all_keras_modes
-class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
     def test_config(self):
         loss = AdaptivePixelIntensityLoss(
             reduction=Reduction.NONE,
@@ -111,16 +112,16 @@ class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
         loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 2.9660115, places=6)
+        self.assertAlmostEqual(result, 2.9660106, places=6)
 
         result = self.evaluate(loss(targets[:, :, :32, :], logits[:, :, :32, :], weights[:, :, :32, :]))
-        self.assertAlmostEqual(result, 3.1911263, places=6)
+        self.assertAlmostEqual(result, 3.1911244, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.63713, places=6)
+        self.assertAlmostEqual(result, 1.6371291, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 1.63713 * 2., places=6)
+        self.assertAlmostEqual(result, 1.6371291 * 2., places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
@@ -134,7 +135,7 @@ class TestAdaptivePixelIntensityLoss(keras_parameterized.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
-        model.compile(loss='SegMe>AdaptivePixelIntensityLoss', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='SegMe>AdaptivePixelIntensityLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 64, 64, 1)), np.zeros((2, 64, 64, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

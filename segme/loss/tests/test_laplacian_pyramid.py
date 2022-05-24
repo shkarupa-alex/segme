@@ -1,13 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..laplacian_pyramid import LaplacianPyramidLoss
 from ..laplacian_pyramid import _gauss_kernel, laplacian_pyramid_loss
 
 
-@keras_parameterized.run_all_keras_modes
-class TestGaussKernel(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestGaussKernel(test_combinations.TestCase):
     def test_value(self):
         # Differs from https://gist.github.com/MarcoForte/a07c40a2b721739bb5c5987671aa5270#file-laplacian_loss-py-L7
         # expected = np.array(
@@ -22,8 +23,8 @@ class TestGaussKernel(keras_parameterized.TestCase):
         self.assertTrue(np.all(expected == result))
 
 
-@keras_parameterized.run_all_keras_modes
-class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestLaplacianPyramidLoss(test_combinations.TestCase):
     def test_config(self):
         loss = LaplacianPyramidLoss(
             reduction=Reduction.NONE,
@@ -269,7 +270,7 @@ class TestLaplacianPyramidLoss(keras_parameterized.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(3, activation='sigmoid')])
-        model.compile(loss='SegMe>LaplacianPyramidLoss', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='SegMe>LaplacianPyramidLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 224, 224, 5)), np.zeros((2, 224, 224, 3), 'int32'))
         models.Sequential.from_config(model.get_config())
 

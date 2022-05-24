@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..region_mutual import RegionMutualInformationLoss
 from ..region_mutual import region_mutual_information_loss
@@ -8,8 +9,8 @@ from ..region_mutual import _map_get_pairs
 from ..region_mutual import _rmi_lower_bound
 
 
-@keras_parameterized.run_all_keras_modes
-class TestMapGetPairs(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestMapGetPairs(test_combinations.TestCase):
     def test_value(self):
         source_target = np.array([
             [[[1.0, 0.0], [0.0, 0.0], [1.0, 0.0], [1.0, 1.0]], [[1.0, 1.0], [0.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
@@ -33,8 +34,8 @@ class TestMapGetPairs(keras_parameterized.TestCase):
         self.assertAllClose(expected_output, result[1])
 
 
-@keras_parameterized.run_all_keras_modes
-class TestRmiLowerBound(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestRmiLowerBound(test_combinations.TestCase):
     labels3 = np.array([  # (2, 15, 17, 3)
         [[[0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0],
           [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 1.0],
@@ -657,8 +658,8 @@ class TestRmiLowerBound(keras_parameterized.TestCase):
         self.assertAlmostEqual(np.mean(result).item(), -10.84033489227295, places=3)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestRegionMutualInformationLoss(test_combinations.TestCase):
     def test_config(self):
         loss = RegionMutualInformationLoss(
             reduction=Reduction.NONE,
@@ -831,7 +832,7 @@ class TestRegionMutualInformationLoss(keras_parameterized.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
-        model.compile(loss='SegMe>RegionMutualInformationLoss', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='SegMe>RegionMutualInformationLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

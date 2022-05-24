@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized
+from keras.testing_infra import test_combinations
 from ..common_loss import validate_input, to_logits, to_probs, to_1hot, mae, crossentropy, iou
 
 
-@keras_parameterized.run_all_keras_modes
-class TestUtils(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestUtils(test_combinations.TestCase):
     def test_validate_input(self):
         targets = (np.random.uniform(size=(2, 4, 4, 1)) > .5).astype('int32')
         probs = np.random.uniform(size=(2, 4, 4, 1))
@@ -119,8 +119,8 @@ class TestUtils(keras_parameterized.TestCase):
             to_1hot(targets1, np.ones((2, 4, 4, 1), 'float32') * 2.)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestMAE(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestMAE(test_combinations.TestCase):
     def test_zeros(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.zeros((1, 16, 16, 1), 'int32')
@@ -219,8 +219,8 @@ class TestMAE(keras_parameterized.TestCase):
         self.assertAlmostEqual(result.mean(), 0.22918609 * 2., places=6)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestCrossentropy(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestCrossentropy(test_combinations.TestCase):
     def test_zeros(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.zeros((1, 16, 16, 1), 'int32')
@@ -316,8 +316,8 @@ class TestCrossentropy(keras_parameterized.TestCase):
         self.assertAlmostEqual(result.mean(), 0.9255747 * 2., places=6)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestIOU(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestIOU(test_combinations.TestCase):
     def test_zeros(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
         targets = tf.zeros((1, 16, 16, 1), 'int32')
@@ -416,8 +416,8 @@ class TestIOU(keras_parameterized.TestCase):
         self.assertAlmostEqual(result.mean(), 0.27417138 * 2., places=6)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestDice(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestDice(test_combinations.TestCase):
     def test_zeros(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10)
         targets = tf.zeros((1, 16, 16, 1), 'int32')

@@ -1,13 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..laplace_edge import LaplaceEdgeCrossEntropy
 from ..laplace_edge import laplace_edge_cross_entropy
 
 
-@keras_parameterized.run_all_keras_modes
-class TestLaplaceEdgeCrossEntropy(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
     def test_config(self):
         loss = LaplaceEdgeCrossEntropy(
             reduction=Reduction.NONE,
@@ -129,7 +130,7 @@ class TestLaplaceEdgeCrossEntropy(keras_parameterized.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
-        model.compile(loss='SegMe>LaplaceEdgeCrossEntropy', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='SegMe>LaplaceEdgeCrossEntropy', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

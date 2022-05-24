@@ -1,13 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..sobel_edge import SobelEdgeLoss
 from ..sobel_edge import sobel_edge_loss
 
 
-@keras_parameterized.run_all_keras_modes
-class TestSobelEdgeLoss(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestSobelEdgeLoss(test_combinations.TestCase):
     def test_config(self):
         loss = SobelEdgeLoss(
             reduction=Reduction.NONE,
@@ -104,16 +105,16 @@ class TestSobelEdgeLoss(keras_parameterized.TestCase):
         loss = SobelEdgeLoss(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 8.972583, places=6)
+        self.assertAlmostEqual(result, 8.972582, places=6)
 
         result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
-        self.assertAlmostEqual(result, 5.9351344, places=7)
+        self.assertAlmostEqual(result, 5.9351344, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
         self.assertAlmostEqual(result, 4.690285, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 4.690285 * 2., places=6)
+        self.assertAlmostEqual(result, 4.6902845 * 2., places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
@@ -127,7 +128,7 @@ class TestSobelEdgeLoss(keras_parameterized.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
-        model.compile(loss='SegMe>SobelEdgeLoss', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='SegMe>SobelEdgeLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

@@ -1,12 +1,12 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized
+from keras.testing_infra import test_combinations
 from ..conn import Conn
 
 
-@keras_parameterized.run_all_keras_modes
-class TestConn(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestConn(test_combinations.TestCase):
     SNAKE = np.array([
         [1, 2, 0, 0, 0, 0, 0, 0, 0],
         [0, 3, 4, 5, 6, 0, 0, 0, 0],
