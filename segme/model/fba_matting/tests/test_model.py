@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
@@ -8,8 +8,8 @@ from ..model import FBAMatting, build_fba_matting
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestFBAMatting(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestFBAMatting(test_combinations.TestCase):
     def setUp(self):
         super(TestFBAMatting, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -42,7 +42,7 @@ class TestFBAMatting(keras_parameterized.TestCase):
         model = build_fba_matting()
         model.compile(
             optimizer='sgd', loss=['mse', None, None, None],
-            run_eagerly=testing_utils.should_run_eagerly())
+            run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             [
                 np.random.random((2, 240, 240, 3)).astype(np.uint8),

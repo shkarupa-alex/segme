@@ -1,13 +1,13 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from ..twomap import Twomap
 
 
-@keras_parameterized.run_all_keras_modes
-class TestTwomap(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestTwomap(test_combinations.TestCase):
     def test_layer(self):
-        result = testing_utils.layer_test(
+        result = test_utils.layer_test(
             Twomap,
             kwargs={},
             input_shape=[2, 64, 64, 1],
