@@ -2,7 +2,6 @@ import tensorflow as tf
 from keras import layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from tfswin.norm import LayerNorm
 from .decoder import Decoder
 from .head import Head
 from ...backbone import Backbone
