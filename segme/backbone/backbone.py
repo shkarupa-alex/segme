@@ -213,13 +213,48 @@ class Backbone(layers.Layer):
             None, 'conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu',
             'conv4_block6_1_relu', 'post_relu'
         )),
-        'resnet101v2': (core.ResNet101V2, (
+        'resnet_101_v2': (core.ResNet101V2, (
             None, 'conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu',
             'conv4_block23_1_relu', 'post_relu'
         )),
-        'resnet52v2': (core.ResNet152V2, (
+        'resnet_152_v2': (core.ResNet152V2, (
             None, 'conv1_conv', 'conv2_block3_1_relu', 'conv3_block8_1_relu',
             'conv4_block36_1_relu', 'post_relu'
+        )),
+        'resnetrs_50': (core.ResNetRS50, (
+            # None, 'stem_1_stem_act_3', 'BlockGroup2__block_2__output_act', 'BlockGroup3__block_3__output_act',
+            # 'BlockGroup4__block_5__output_act', 'BlockGroup5__block_2__output_act'
+            None, 12, 63, 127, 221, 270
+        )),
+        'resnetrs_101': (core.ResNetRS101, (
+            # None, 'stem_1_stem_act_3', 'BlockGroup2__block_2__output_act', 'BlockGroup3__block_3__output_act',
+            # 'BlockGroup4__block_22__output_act', 'BlockGroup5__block_2__output_act'
+            None, 12, 63, 127, 476, 525
+        )),
+        'resnetrs_152': (core.ResNetRS152, (
+            # None, 'stem_1_stem_act_3', 'BlockGroup2__block_2__output_act', 'BlockGroup3__block_7__output_act',
+            # 'BlockGroup4__block_35__output_act', 'BlockGroup5__block_2__output_act'
+            None, 12, 63, 187, 731, 780
+        )),
+        'resnetrs_200': (core.ResNetRS200, (
+            # None, 'stem_1_stem_act_3', 'BlockGroup2__block_2__output_act', 'BlockGroup3__block_23__output_act',
+            # 'BlockGroup4__block_35__output_act', 'BlockGroup5__block_2__output_act'
+            None, 12, 66, 454, 1034, 1086
+        )),
+        'resnetrs_270': (core.ResNetRS270, (
+            # None, 'stem_1_stem_act_3', 'BlockGroup2__block_3__output_act', 'BlockGroup3__block_28__output_act',
+            # 'BlockGroup4__block_52__output_act', 'BlockGroup5__block_3__output_act'
+            None, 12, 82, 550, 1402, 1470
+        )),
+        'resnetrs_350': (core.ResNetRS350, (
+            # None, 'stem_1_stem_act_3', 'BlockGroup2__block_3__output_act', 'BlockGroup3__block_35__output_act',
+            # 'BlockGroup4__block_71__output_act', 'BlockGroup5__block_3__output_act'
+            None, 12, 82, 662, 1818, 1886
+        )),
+        'resnetrs_420': (core.ResNetRS420, (
+            # None, 'stem_1_stem_act_3', 'BlockGroup2__block_3__output_act', 'BlockGroup3__block_43__output_act',
+            # 'BlockGroup4__block_86__output_act', 'BlockGroup5__block_3__output_act'
+            None, 12, 82, 790, 2186, 2254
         )),
 
         # VGG
@@ -237,35 +272,6 @@ class Backbone(layers.Layer):
         # ======================================================================
         #                   external
         # ======================================================================
-        'replknet_b_224_1k': (ext.RepLKNetB224In1k, (
-            None, 'stem/2/bn', 'transitions/0/0/bn',
-            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
-        )),
-        'replknet_b_224_21k': (ext.RepLKNetB224In21k, (
-            None, 'stem/2/bn', 'transitions/0/0/bn',
-            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
-        )),
-        'replknet_b_384_1k': (ext.RepLKNetB384In1k, (
-            None, 'stem/2/bn', 'transitions/0/0/bn',
-            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
-        )),
-        'replknet_l_384_1k': (ext.RepLKNetL384In1k, (
-            None, 'stem/2/bn', 'transitions/0/0/bn',
-            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
-        )),
-        'replknet_l_384_21k': (ext.RepLKNetL384In21k, (
-            None, 'stem/2/bn', 'transitions/0/0/bn',
-            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
-        )),
-        'replknet_xl_320_1k': (ext.RepLKNetXL320In1k, (
-            None, 'stem/2/bn', 'transitions/0/0/bn',
-            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
-        )),
-        'replknet_xl_320_21k': (ext.RepLKNetXL320In21k, (
-            None, 'stem/2/bn', 'transitions/0/0/bn',
-            'transitions/1/0/bn', 'transitions/2/0/bn', 'norm'
-        )),
-
         'swin_tiny_224': (ext.SwinTransformerTiny224, (
             None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
@@ -285,17 +291,23 @@ class Backbone(layers.Layer):
             None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
 
-        'van_tiny': (ext.VanTiny, (
-            None, None, 'norm1', 'norm2', 'norm3', 'norm4'
+        'swin2_tiny_256': (ext.SwinTransformerV2Tiny256, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
-        'van_small': (ext.VanSmall, (
-            None, None, 'norm1', 'norm2', 'norm3', 'norm4'
+        'swin2_small_256': (ext.SwinTransformerV2Small256, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
-        'van_base': (ext.VanBase, (
-            None, None, 'norm1', 'norm2', 'norm3', 'norm4'
+        'swin2_base_256': (ext.SwinTransformerV2Base256, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
-        'van_large': (ext.VanLarge, (
-            None, None, 'norm1', 'norm2', 'norm3', 'norm4'
+        'swin2_base_384': (ext.SwinTransformerV2Base384, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
+        )),
+        'swin2_large_256': (ext.SwinTransformerV2Large256, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
+        )),
+        'swin2_large_384': (ext.SwinTransformerV2Large384, (
+            None, None, 'layers.0', 'layers.1', 'layers.2', 'layers.3'
         )),
 
         # ======================================================================
@@ -424,8 +436,7 @@ class Backbone(layers.Layer):
                 bad_scales = [self.scales[sc] for sc in bad_idx]
                 raise ValueError('Some scales are unavailable: {}'.format(bad_scales))
 
-        self.bone = bone_model(channel_size, use_feats, self.init)
-        self.bone.trainable = self.trainable
+        self.bone = bone_model(channel_size, use_feats, self.init, self.trainable)
 
         super().build(input_shape)
 
