@@ -28,8 +28,7 @@ class ResizeBySample(layers.Layer):
             resized = tf.round(resized)
         resized = tf.cast(resized, targets.dtype)
 
-        new_shape = targets.shape[0], samples.shape[1], samples.shape[2], targets.shape[3]
-        resized.set_shape(new_shape)
+        resized.set_shape(self.compute_output_shape((targets.shape, samples.shape)))
 
         return resized
 

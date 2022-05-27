@@ -1,13 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..general_dice import GeneralizedDiceLoss
 from ..general_dice import generalized_dice_loss
 
 
-@keras_parameterized.run_all_keras_modes
-class TestGeneralizedDiceLoss(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestGeneralizedDiceLoss(test_combinations.TestCase):
     def test_config(self):
         loss = GeneralizedDiceLoss(
             reduction=Reduction.NONE,
@@ -20,37 +21,37 @@ class TestGeneralizedDiceLoss(keras_parameterized.TestCase):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10)
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = generalized_dice_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = generalized_dice_loss(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-2)
+        self.assertAllClose(result, np.zeros((1, 16, 16), 'float32'), atol=1e-2)
 
     def test_ones(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = generalized_dice_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = generalized_dice_loss(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-2)
+        self.assertAllClose(result, np.zeros((1, 16, 16), 'float32'), atol=1e-2)
 
     def test_false(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10)
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = generalized_dice_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = generalized_dice_loss(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [.5], atol=1e-2)
+        self.assertAllClose(result, np.ones((1, 16, 16), 'float32') * 0.5, atol=1e-2)
 
     def test_true(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = generalized_dice_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = generalized_dice_loss(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [.5], atol=1e-2)
+        self.assertAllClose(result, np.ones((1, 16, 16), 'float32') * 0.5, atol=1e-2)
 
     def test_multi(self):
         logits = tf.constant([
@@ -66,7 +67,7 @@ class TestGeneralizedDiceLoss(keras_parameterized.TestCase):
 
         loss = GeneralizedDiceLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 0.4051671, places=7)
+        self.assertAlmostEqual(result, 0.22872382, places=7)
 
     def test_value(self):
         logits = tf.constant([
@@ -84,7 +85,7 @@ class TestGeneralizedDiceLoss(keras_parameterized.TestCase):
 
         loss = GeneralizedDiceLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 0.09271848, places=6)
+        self.assertAlmostEqual(result, 0.008657444, places=6)
 
     def test_weight(self):
         logits = tf.constant([
@@ -104,16 +105,16 @@ class TestGeneralizedDiceLoss(keras_parameterized.TestCase):
         loss = GeneralizedDiceLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 0.09271848, places=6)
+        self.assertAlmostEqual(result, 0.008657444, places=6)
 
         result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
-        self.assertAlmostEqual(result, 0.16597192, places=7)
+        self.assertAlmostEqual(result, 0.034422513, places=7)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.05663365, places=7)
+        self.assertAlmostEqual(result, 0.004688425, places=7)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.10281545, places=6)
+        self.assertAlmostEqual(result, 0.004688425 * 2., places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
@@ -127,7 +128,7 @@ class TestGeneralizedDiceLoss(keras_parameterized.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
-        model.compile(loss='SegMe>GeneralizedDiceLoss', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='SegMe>GeneralizedDiceLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

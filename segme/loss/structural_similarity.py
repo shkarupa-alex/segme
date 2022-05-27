@@ -1,8 +1,10 @@
+import numpy as np
 import tensorflow as tf
 from keras import backend
-from tensorflow.python.ops.image_ops_impl import _fspecial_gauss, _ssim_helper
+from scipy.special import softmax as np_softmax
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
+from tensorflow.python.ops.image_ops_impl import _ssim_helper
 from .common_loss import validate_input
 from .weighted_wrapper import WeightedLossFunctionWrapper
 
@@ -22,14 +24,19 @@ class StructuralSimilarityLoss(WeightedLossFunctionWrapper):
             sigma=sigma, k1=k1, k2=k2)
 
 
-def _ssim_level(y_true, y_pred, max_val, kernel, k1, k2):
+def _ssim_level(y_true, y_pred, max_val, kernels, k1, k2):
     # The correct compensation factor is `1.0 - tf.reduce_sum(tf.square(kernel))`,
     # but MATLAB implementation of MS-SSIM uses just 1.0
-    compensation = 1.0 - tf.reduce_sum(tf.square(kernel))
+    compensation = 1.0 - tf.reduce_sum(tf.square(kernels[0] * kernels[1]))
+
+    def _reducer(x):
+        x = tf.nn.depthwise_conv2d(x, kernels[0], strides=[1, 1, 1, 1], padding='VALID')
+        x = tf.nn.depthwise_conv2d(x, kernels[1], strides=[1, 1, 1, 1], padding='VALID')
+
+        return x
 
     luminance, contrast_structure = _ssim_helper(
-        y_true, y_pred, lambda x: tf.nn.depthwise_conv2d(x, kernel, strides=[1, 1, 1, 1], padding='VALID'),
-        max_val, compensation, k1, k2)
+        y_true, y_pred, _reducer, max_val, compensation, k1, k2)
 
     similarity = luminance * contrast_structure
 
@@ -45,14 +52,15 @@ def _pad_odd(inputs):
     return padded
 
 
-def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernel, k1, k2):
+def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernels, k1, k2):
     pyramid = []
     for i, f in enumerate(factors):
         similarity, contrast_structure = _ssim_level(
-            y_true, y_pred, max_val=max_val, kernel=kernel, k1=k1, k2=k2)
+            y_true, y_pred, max_val=max_val, kernels=kernels, k1=k1, k2=k2)
         if sample_weight is not None:
+            ksize = (kernels[0].shape[0], kernels[1].shape[1])
             sample_weight = -tf.nn.max_pool2d(  # min pooling
-                -sample_weight, ksize=kernel.shape[:2], strides=1, padding='VALID')
+                -sample_weight, ksize=ksize, strides=1, padding='VALID')
             sample_weight = tf.stop_gradient(sample_weight)
         last_level = len(factors) - 1 == i
 
@@ -81,23 +89,46 @@ def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernel, k1, k
     return tf.reduce_mean(pyramid, [-1])
 
 
-def _ssim_kernel(size, sigma, channels, dtype):
-    kernel = _fspecial_gauss(size, sigma)
-    kernel = tf.tile(kernel, multiples=[1, 1, channels, 1])
-    kernel = tf.cast(kernel, dtype)
+def _separated_fspecial_gauss(size, sigma):
+    coords = np.arange(size, dtype='float32')
+    coords -= (size - 1) / 2.
 
-    return kernel
+    g = coords ** 2
+    g *= -0.5 / (sigma ** 2)
+
+    g = g.reshape((1, -1)) + g.reshape((-1, 1))
+    g = g.reshape((1, -1))  # For tf.nn.softmax().
+    g = np_softmax(g, axis=-1)
+
+    g = g.reshape((size, size))
+    u, e, v = np.linalg.svd(g)
+    assert 1 == np.sum(e > 1e-5)
+
+    e0 = np.sqrt(e[0])
+    v0 = u[:, :1] * e0
+    h0 = v[:1, :] * e0
+    assert np.abs(g - h0 * v0).max() < 1e-5, np.abs(g - h0 * v0).max()
+
+    return v0.reshape((size, 1, 1, 1)), h0.reshape((1, size, 1, 1))
+
+
+def _ssim_kernel(size, sigma, channels, dtype):
+    kernel0, kernel1 = _separated_fspecial_gauss(size, sigma)
+    kernel0 = tf.tile(tf.cast(kernel0, dtype), multiples=[1, 1, channels, 1])
+    kernel1 = tf.tile(tf.cast(kernel1, dtype), multiples=[1, 1, channels, 1])
+
+    return kernel0, kernel1
 
 
 def structural_similarity_loss(y_true, y_pred, sample_weight, max_val, factors, size, sigma, k1, k2):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=4, channel='same')
 
-    kernel = _ssim_kernel(size, sigma, y_pred.shape[-1], y_pred.dtype)
+    kernels = _ssim_kernel(size, sigma, y_pred.shape[-1], y_pred.dtype)
 
     max_delta = tf.reduce_max(y_true) - tf.reduce_min(y_true)
     assert_true_delta = tf.assert_less(max_delta, max_val + backend.epsilon())
     with tf.control_dependencies([assert_true_delta]):
-        loss = 1. - _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernel, k1, k2)
+        loss = 1. - _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernels, k1, k2)
 
     return loss

@@ -1,12 +1,12 @@
 import tensorflow as tf
-from keras import keras_parameterized
+from keras.testing_infra import test_combinations
 from keras.mixed_precision import policy as mixed_precision
 from ..decoder import Decoder
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestDecoder(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestDecoder(test_combinations.TestCase):
     def setUp(self):
         super(TestDecoder, self).setUp()
         self.default_policy = mixed_precision.global_policy()

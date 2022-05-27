@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from keras.metrics import SumOverBatchSize, metrics_utils
-from keras.utils import losses_utils
+from keras.metrics import SumOverBatchSize
+from keras.utils import losses_utils, metrics_utils
 from keras.utils.generic_utils import register_keras_serializable
 
 

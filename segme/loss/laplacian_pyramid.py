@@ -55,14 +55,13 @@ def _gauss_downsample(inputs, kernel):
 
 
 def _gauss_upsample(inputs, kernel):
-    shape = tf.shape(inputs)
-    batch, height, width, channel = tf.unstack(shape)
+    channels = inputs.shape[-1]
+    if channels is None:
+        raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-    upsampled = tf.concat([inputs, tf.zeros_like(inputs)], axis=-1)
-    upsampled = tf.reshape(upsampled, [batch * height, width * 2 * channel])
-
-    upsampled = tf.concat([upsampled, tf.zeros_like(upsampled)], axis=-1)
-    upsampled = tf.reshape(upsampled, [batch, height * 2, width * 2, channel])
+    paddings = ((0, 0), (0, 0), (0, 0), (0, channels * 3))
+    upsampled = tf.pad(inputs, paddings)
+    upsampled = tf.nn.depth_to_space(upsampled, 2)
 
     return _gauss_filter(upsampled, (kernel[0] * 2., kernel[1] * 2.))
 
@@ -93,7 +92,7 @@ def _weight_pyramid(inputs, levels):
     for level in range(levels):
         current = _pad_odd(current)
         pyramid.append(current)
-        current = -tf.nn.avg_pool2d(-current, ksize=2, strides=2, padding='VALID')
+        current = -tf.nn.max_pool2d(-current, ksize=2, strides=2, padding='VALID')  # min pooling
 
     # Disabled: low-frequency residual
     # pyramid.append(current)

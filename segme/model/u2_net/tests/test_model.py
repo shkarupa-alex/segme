@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
@@ -8,8 +8,8 @@ from ..model import U2Net, U2NetP, build_u2_net, build_u2_netp
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestU2Net(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestU2Net(test_combinations.TestCase):
     def setUp(self):
         super(TestU2Net, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -63,7 +63,7 @@ class TestU2Net(keras_parameterized.TestCase):
         model = build_u2_net(classes=num_classes)
         model.compile(
             optimizer='sgd', loss='sparse_categorical_crossentropy',
-            run_eagerly=testing_utils.should_run_eagerly())
+            run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 224, 224, 3)).astype(np.uint8),
             np.random.randint(0, num_classes, (2, 224, 224)),
@@ -83,7 +83,7 @@ class TestU2Net(keras_parameterized.TestCase):
         model = build_u2_netp(classes=num_classes)
         model.compile(
             optimizer='sgd', loss='binary_crossentropy',
-            run_eagerly=testing_utils.should_run_eagerly())
+            run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 224, 224, 3)).astype(np.uint8),
             np.random.randint(0, num_classes, (2, 224, 224)),

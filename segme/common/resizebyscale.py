@@ -14,9 +14,6 @@ class ResizeByScale(layers.Layer):
         self.method = method
         self.antialias = antialias
 
-    def _scale(self, value):
-        return None if value is None else int(round(value * self.scale))
-
     def call(self, inputs, **kwargs):
         if 1 == self.scale:
             return inputs
@@ -29,8 +26,7 @@ class ResizeByScale(layers.Layer):
             resized = tf.round(resized)
         resized = tf.cast(resized, inputs.dtype)
 
-        new_shape = inputs.shape[0], self._scale(inputs.shape[1]), self._scale(inputs.shape[2]), inputs.shape[3]
-        resized.set_shape(new_shape)
+        resized.set_shape(self.compute_output_shape(inputs.shape))
 
         return resized
 
@@ -39,7 +35,10 @@ class ResizeByScale(layers.Layer):
         if 1 == self.scale:
             return input_shape
 
-        return input_shape[0], self._scale(input_shape[1]), self._scale(input_shape[2]), input_shape[3]
+        def _scale(value):
+            return None if value is None else int(round(value * self.scale))
+
+        return input_shape[0], _scale(input_shape[1]), _scale(input_shape[2]), input_shape[3]
 
     def compute_output_signature(self, input_signature):
         output_signature = super().compute_output_signature(input_signature)

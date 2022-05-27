@@ -78,6 +78,7 @@ def total_loss(afb_true, afb_pred, sample_weight, stage=0):
     if 2 == stage:
         return _l1_a + _lc_a + _lg_a + _llap_a + 0.25 * (_l1_f + _l1_b + _lc_fb + _llap_f + _llap_b)
 
+    # TODO: only in unknown?
     _lexcl_fb = lexcl_fb(f_pred, b_pred, sample_weight=None)
 
     if 1 == stage:

@@ -1,12 +1,12 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from ..rsu6 import RSU6
 
 
-@keras_parameterized.run_all_keras_modes
-class TestRSU7(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestRSU7(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             RSU6,
             kwargs={'mid_features': 5, 'out_features': 4},
             input_shape=[2, 16, 16, 3],

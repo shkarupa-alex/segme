@@ -1,12 +1,12 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from ..stdconv import StandardizedConv2D, StandardizedDepthwiseConv2D
 
 
-@keras_parameterized.run_all_keras_modes
-class TestStandardizedConv2D(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestStandardizedConv2D(test_combinations.TestCase):
     def setUp(self):
         super(TestStandardizedConv2D, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -16,7 +16,7 @@ class TestStandardizedConv2D(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             StandardizedConv2D,
             kwargs={'filters': 4, 'kernel_size': 1, 'strides': 1, 'padding': 'valid'},
             input_shape=[2, 16, 16, 8],
@@ -26,7 +26,7 @@ class TestStandardizedConv2D(keras_parameterized.TestCase):
         )
 
         mixed_precision.set_global_policy('mixed_float16')
-        result = testing_utils.layer_test(
+        result = test_utils.layer_test(
             StandardizedConv2D,
             kwargs={'filters': 4, 'kernel_size': 3, 'strides': 2, 'padding': 'same'},
             input_shape=[2, 16, 16, 8],
@@ -37,8 +37,8 @@ class TestStandardizedConv2D(keras_parameterized.TestCase):
         self.assertTrue(np.all(np.isfinite(result)))
 
 
-@keras_parameterized.run_all_keras_modes
-class TestStandardizedDepthwiseConv2D(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestStandardizedDepthwiseConv2D(test_combinations.TestCase):
     def setUp(self):
         super(TestStandardizedDepthwiseConv2D, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -48,7 +48,7 @@ class TestStandardizedDepthwiseConv2D(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             StandardizedDepthwiseConv2D,
             kwargs={'kernel_size': 1, 'strides': 1, 'padding': 'valid'},
             input_shape=[2, 16, 16, 8],
@@ -58,7 +58,7 @@ class TestStandardizedDepthwiseConv2D(keras_parameterized.TestCase):
         )
 
         mixed_precision.set_global_policy('mixed_float16')
-        result = testing_utils.layer_test(
+        result = test_utils.layer_test(
             StandardizedDepthwiseConv2D,
             kwargs={'kernel_size': 3, 'strides': 2, 'padding': 'same'},
             input_shape=[2, 16, 16, 8],

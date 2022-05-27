@@ -1,5 +1,6 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils, layers
+from keras import layers
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from keras.utils.generic_utils import custom_object_scope
 from ..hmsattn import HierarchicalMultiScaleAttention
@@ -22,8 +23,8 @@ class LogitsWithGuidance(layers.Layer):
         return outputs, features
 
 
-@keras_parameterized.run_all_keras_modes
-class TestHierarchicalMultiScaleAttention(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestHierarchicalMultiScaleAttention(test_combinations.TestCase):
     def setUp(self):
         super(TestHierarchicalMultiScaleAttention, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -34,7 +35,7 @@ class TestHierarchicalMultiScaleAttention(keras_parameterized.TestCase):
 
     def test_layer(self):
         with custom_object_scope({'LogitsWithGuidance': LogitsWithGuidance}):
-            testing_utils.layer_test(
+            test_utils.layer_test(
                 HierarchicalMultiScaleAttention,
                 kwargs={'layer': LogitsWithGuidance(), 'scales': ((0.5,), (0.25, 0.5, 2.0)),
                         'filters': 256, 'dropout': 0.},
@@ -45,7 +46,7 @@ class TestHierarchicalMultiScaleAttention(keras_parameterized.TestCase):
             )
 
             mixed_precision.set_global_policy('mixed_float16')
-            testing_utils.layer_test(
+            test_utils.layer_test(
                 HierarchicalMultiScaleAttention,
                 kwargs={'layer': LogitsWithGuidance(), 'scales': ((0.5,), (0.5, 2.0)),
                         'filters': 256, 'dropout': 0.},

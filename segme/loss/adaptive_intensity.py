@@ -1,12 +1,12 @@
 import tensorflow as tf
+from keras import losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from .common_loss import validate_input, crossentropy, iou, mae
-from .weighted_wrapper import WeightedLossFunctionWrapper
 
 
 @register_keras_serializable(package='SegMe')
-class AdaptivePixelIntensityLoss(WeightedLossFunctionWrapper):
+class AdaptivePixelIntensityLoss(losses.LossFunctionWrapper):
     """ Proposed in: 'TRACER: Extreme Attention Guided Salient Object Tracing Network'
 
     Implements Equation (12) from https://arxiv.org/pdf/2112.07380.pdf
@@ -16,9 +16,9 @@ class AdaptivePixelIntensityLoss(WeightedLossFunctionWrapper):
         super().__init__(adaptive_pixel_intensity_loss, reduction=reduction, name=name, from_logits=from_logits)
 
 
-def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
+def adaptive_pixel_intensity_loss(y_true, y_pred, from_logits):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
+        y_true, y_pred, weight=None, dtype='int32', rank=4, channel='sparse')
 
     y_true_1h = tf.one_hot(y_true[..., 0], max(2, y_pred.shape[-1]), dtype=y_pred.dtype)
 
@@ -29,22 +29,16 @@ def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
             tf.abs(tf.nn.avg_pool2d(y_true_1h, ksize=k, strides=1, padding='SAME') - y_true_1h)
             for k in [3, 15, 31]
         ]) * y_true_1h * .5 + 1.
+        omega = tf.math.divide_no_nan(omega, tf.reduce_mean(omega, axis=[1, 2], keepdims=True))
         omega = omega if sample_weight is None else omega * sample_weight
         omega = tf.stop_gradient(omega)
 
-    sw = 1. if sample_weight is None else sample_weight
+    weight = omega if sample_weight is None else omega * sample_weight
 
-    ace = crossentropy(y_true, y_pred, omega, from_logits)
-    ace = tf.math.divide_no_nan(
-        tf.reduce_sum(ace, axis=[1, 2]),
-        tf.reduce_sum(tf.reduce_mean(omega + .5 * sw, axis=-1, keepdims=True), axis=[1, 2]))
-
-    aiou = iou(y_true, y_pred, omega, from_logits=from_logits, from_1hot=False, square=False, smooth=1., dice=False)
-
-    amae = mae(y_true, y_pred, omega, from_logits=from_logits, from_1hot=False)
-    amae = tf.math.divide_no_nan(
-        tf.reduce_sum(amae, axis=[1, 2]),
-        tf.reduce_sum(tf.reduce_mean(omega - sw, axis=-1, keepdims=True), axis=[1, 2]))
+    # Skipped omega normalization from original paper
+    ace = crossentropy(y_true, y_pred, weight, from_logits)
+    aiou = iou(y_true, y_pred, weight, from_logits=from_logits, square=False, smooth=1., dice=False)
+    amae = mae(y_true, y_pred, weight, from_logits=from_logits)
 
     loss = ace + aiou + amae
 

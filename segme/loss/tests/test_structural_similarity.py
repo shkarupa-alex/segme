@@ -1,13 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..structural_similarity import StructuralSimilarityLoss
 from ..structural_similarity import _ssim_kernel, _ssim_level, structural_similarity_loss
 
 
-@keras_parameterized.run_all_keras_modes
-class TestSsimLevel(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestSsimLevel(test_combinations.TestCase):
     def test_value(self):
         y_true = np.array([
             0., 0., 0.01, 0.03, 0.09, 0.04, 0.1, 0.18, 0.11, 0.27, 0.2, 0.29, 0.2, 0.36, 0.38, 0.43, 0.47, 0.44, 0.57,
@@ -44,16 +45,16 @@ class TestSsimLevel(keras_parameterized.TestCase):
         # expected = self.evaluate(expected)
         # 0.5326015949249268 when compensation = 1
 
-        kernel = _ssim_kernel(size=11, sigma=1.5, channels=2, dtype='float32')
-        result, _ = _ssim_level(y_true, y_pred, max_val=1.0, kernel=kernel, k1=0.01, k2=0.03)
+        kernels = _ssim_kernel(size=11, sigma=1.5, channels=2, dtype='float32')
+        result, _ = _ssim_level(y_true, y_pred, max_val=1.0, kernels=kernels, k1=0.01, k2=0.03)
         result = tf.reduce_mean(result)
         result = self.evaluate(result)
 
         self.assertAlmostEqual(0.5322474241256714, result, places=6)
 
 
-@keras_parameterized.run_all_keras_modes
-class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestStructuralSimilarityLoss(test_combinations.TestCase):
     def test_config(self):
         loss = StructuralSimilarityLoss(
             reduction=Reduction.NONE,
@@ -252,7 +253,7 @@ class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
         result = loss(targets, probs)
         result = self.evaluate(result)
 
-        self.assertAlmostEqual(result, 0.8302181363105774, places=6)  # 0.8249481320381165 when compensation = 1
+        self.assertAlmostEqual(result, 0.8302058, places=6)  # 0.8249481320381165 when compensation = 1
 
     def test_weight(self):
         logits = tf.constant([
@@ -274,16 +275,16 @@ class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
         loss = StructuralSimilarityLoss(reduction=Reduction.SUM, factors=(0.5,), size=2)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 0.88420564, places=6)
+        self.assertAlmostEqual(result, 0.885136, places=6)
 
         result = self.evaluate(loss(targets[:, :, :32, :], logits[:, :, :32, :]))
-        self.assertAlmostEqual(result, 0.9242637, places=7)  # Depends on spatial size
+        self.assertAlmostEqual(result, 0.92526346, places=7)  # Depends on spatial size
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.2454007, places=6)
+        self.assertAlmostEqual(result, 1.2461021, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.9328354, places=6)
+        self.assertAlmostEqual(result, 0.9338272, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
@@ -297,7 +298,7 @@ class TestStructuralSimilarityLoss(keras_parameterized.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
-        model.compile(loss='SegMe>StructuralSimilarityLoss', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='SegMe>StructuralSimilarityLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 224, 224, 1)), np.zeros((2, 224, 224, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

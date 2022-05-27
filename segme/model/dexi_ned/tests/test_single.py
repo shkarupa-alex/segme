@@ -1,12 +1,12 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from ..single import SingleConvBlock
 
 
-@keras_parameterized.run_all_keras_modes
-class TestSingleConvBlock(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestSingleConvBlock(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             SingleConvBlock,
             kwargs={'out_features': 10},
             input_shape=[2, 16, 16, 3],

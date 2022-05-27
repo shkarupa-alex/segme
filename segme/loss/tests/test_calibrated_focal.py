@@ -1,13 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..calibrated_focal import CalibratedFocalCrossEntropy
 from ..calibrated_focal import calibrated_focal_cross_entropy
 
 
-@keras_parameterized.run_all_keras_modes
-class TestCalibratedFocalCrossEntropy(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
     def test_config(self):
         loss = CalibratedFocalCrossEntropy(
             reduction=Reduction.NONE,
@@ -100,13 +101,13 @@ class TestCalibratedFocalCrossEntropy(keras_parameterized.TestCase):
         loss = CalibratedFocalCrossEntropy(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 11.196222, places=6)
+        self.assertAlmostEqual(result, 11.196221, places=6)
 
         result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
-        self.assertAlmostEqual(result, 6.499654, places=6)
+        self.assertAlmostEqual(result, 6.4996533, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 6.499654, places=5)
+        self.assertAlmostEqual(result, 6.4996533, places=5)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
         self.assertAlmostEqual(result, 6.499654 * 2., places=5)
@@ -123,7 +124,7 @@ class TestCalibratedFocalCrossEntropy(keras_parameterized.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
-        model.compile(loss='SegMe>CalibratedFocalCrossEntropy', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='SegMe>CalibratedFocalCrossEntropy', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

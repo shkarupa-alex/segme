@@ -1,12 +1,12 @@
 import tensorflow as tf
-from keras import keras_parameterized
+from keras.testing_infra import test_combinations
 from keras.mixed_precision import policy as mixed_precision
 from ..head import PointHead
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestPointHead(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestPointHead(test_combinations.TestCase):
     def setUp(self):
         super(TestPointHead, self).setUp()
         self.default_policy = mixed_precision.global_policy()

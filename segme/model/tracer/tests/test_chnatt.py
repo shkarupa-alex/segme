@@ -1,11 +1,11 @@
 import tensorflow as tf
-from keras import keras_parameterized
+from keras.testing_infra import test_combinations
 from ..chnatt import ChannelAttention
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestChannelAttention(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestChannelAttention(test_combinations.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             ChannelAttention,

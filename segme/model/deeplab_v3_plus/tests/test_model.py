@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
@@ -8,8 +8,8 @@ from ..model import DeepLabV3Plus, build_deeplab_v3_plus
 from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestDeepLabV3Plus(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestDeepLabV3Plus(test_combinations.TestCase):
     def setUp(self):
         super(TestDeepLabV3Plus, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -20,7 +20,7 @@ class TestDeepLabV3Plus(keras_parameterized.TestCase):
 
     def test_layer(self):
         # TODO: wait for issue with Sequential model restoring
-        #  will be resolved to migrate back on testing_utils.layer_test
+        #  will be resolved to migrate back on test_utils.layer_test
         layer_multi_io_test(
             DeepLabV3Plus,
             kwargs={
@@ -58,7 +58,7 @@ class TestDeepLabV3Plus(keras_parameterized.TestCase):
         )
         model.compile(
             optimizer='sgd', loss='sparse_categorical_crossentropy',
-            run_eagerly=testing_utils.should_run_eagerly())
+            run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 224, 224, 3)).astype(np.uint8),
             np.random.randint(0, num_classes, (2, 224, 224)),

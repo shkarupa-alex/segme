@@ -2,6 +2,7 @@ from .adppool import AdaptiveAveragePooling, AdaptiveMaxPooling
 from .aspp import AtrousSeparableConv, AtrousSpatialPyramidPooling
 from .convnormrelu import ConvNormRelu, DepthwiseConvNormRelu
 from .featalign import FeatureAlignment
+from .guidedup import GuidedFilter, ConvGuidedFilter
 from .head import HeadProjection, HeadActivation, ClassificationHead
 from .hmsattn import HierarchicalMultiScaleAttention
 from .point_rend import PointRend, PointLoss

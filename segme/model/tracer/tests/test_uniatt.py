@@ -1,12 +1,12 @@
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from ..uniatt import UnionAttention
 
 
-@keras_parameterized.run_all_keras_modes
-class TestUnionAttention(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestUnionAttention(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             UnionAttention,
             kwargs={'confidence': 0.1},
             input_shape=(2, 32, 32, 16),

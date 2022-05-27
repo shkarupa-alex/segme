@@ -1,13 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, layers, models, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from ..boundary_categorical import BoundaryCategoricalLoss
 from ..boundary_categorical import boundary_categorical_loss
 
 
-@keras_parameterized.run_all_keras_modes
-class TestBoundaryCategoricalLoss(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestBoundaryCategoricalLoss(test_combinations.TestCase):
     def test_config(self):
         loss = BoundaryCategoricalLoss(
             reduction=Reduction.NONE,
@@ -84,7 +85,7 @@ class TestBoundaryCategoricalLoss(keras_parameterized.TestCase):
 
         loss = BoundaryCategoricalLoss(from_logits=True, reduction=Reduction.SUM)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 5.899469375610352, places=6)
+        self.assertAlmostEqual(result, 5.8994684, places=6)
 
     def test_weight(self):
         logits = tf.constant([
@@ -104,10 +105,10 @@ class TestBoundaryCategoricalLoss(keras_parameterized.TestCase):
         loss = BoundaryCategoricalLoss(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 5.899469375610352, places=6)
+        self.assertAlmostEqual(result, 5.8994684, places=6)
 
         result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
-        self.assertAlmostEqual(result, 3.6856074, places=7)
+        self.assertAlmostEqual(result, 3.685607, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
         self.assertAlmostEqual(result, 3.4788036346435547, places=6)
@@ -127,7 +128,7 @@ class TestBoundaryCategoricalLoss(keras_parameterized.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
-        model.compile(loss='SegMe>BoundaryCategoricalLoss', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='SegMe>BoundaryCategoricalLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

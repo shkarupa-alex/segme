@@ -2,14 +2,14 @@ import cv2
 import numpy as np
 import os
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from ..distance import Distance
 from .test_twomap import _twomap
 
 
-@keras_parameterized.run_all_keras_modes
-class TestDistance(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestDistance(test_combinations.TestCase):
     def setUp(self):
         super(TestDistance, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -20,7 +20,7 @@ class TestDistance(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        result = testing_utils.layer_test(
+        result = test_utils.layer_test(
             Distance,
             kwargs={},
             input_shape=[2, 64, 64, 1],
