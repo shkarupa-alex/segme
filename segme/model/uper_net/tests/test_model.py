@@ -1,15 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
 from ..model import UPerNet, build_uper_net
-from ....testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class TestUPerNet(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class TestUPerNet(test_combinations.TestCase):
     def setUp(self):
         super(TestUPerNet, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -19,7 +18,7 @@ class TestUPerNet(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             UPerNet,
             kwargs={'classes': 1, 'bone_arch': 'swin_tiny_224', 'bone_init': 'imagenet', 'bone_train': False,
                     'dropout': 0., 'dec_filters': 8, 'psp_sizes': (1, 2, 3, 6)},
@@ -30,7 +29,7 @@ class TestUPerNet(keras_parameterized.TestCase):
         )
 
         mixed_precision.set_global_policy('mixed_float16')
-        testing_utils.layer_test(
+        test_utils.layer_test(
             UPerNet,
             kwargs={'classes': 1, 'bone_arch': 'swin_tiny_224', 'bone_init': 'imagenet', 'bone_train': False,
                     'dropout': 0., 'dec_filters': 8, 'psp_sizes': (1, 2, 3, 6)},
@@ -42,7 +41,7 @@ class TestUPerNet(keras_parameterized.TestCase):
 
     def test_model(self):
         model = build_uper_net(classes=2, bone_arch='swin_tiny_224', bone_init='imagenet', bone_train=False)
-        model.compile(optimizer='sgd', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='sgd', loss='mse', run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 240, 240, 3)).astype(np.uint8),
             np.random.random((2, 240, 240, 2)).astype(np.float32),

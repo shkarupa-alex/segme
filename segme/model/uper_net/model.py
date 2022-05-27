@@ -28,8 +28,6 @@ class UPerNet(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=[4, 8, 16, 32])
-        if self.bone_arch.startswith('swin_'):
-            self.norm = [LayerNorm() for _ in range(4)]
         self.decode = Decoder(self.dec_filters, self.psp_sizes)
         self.head = Head(self.classes, self.dropout)
 
@@ -37,9 +35,6 @@ class UPerNet(layers.Layer):
 
     def call(self, inputs, **kwargs):
         feats = self.bone(inputs)
-        if self.bone_arch.startswith('swin_'):
-            feats = [norm(feat) for norm, feat in zip(self.norm, feats)]
-
         outputs = self.decode(feats)
         outputs = self.head([outputs, inputs])
 

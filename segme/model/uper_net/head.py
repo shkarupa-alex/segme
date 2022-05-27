@@ -3,6 +3,9 @@ from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from ...common import HeadProjection, HeadActivation, resize_by_sample
+from ...common.guidedup import GuidedFilter, ConvGuidedFilter
+
+WITH_GF = 2
 
 
 @register_keras_serializable(package='SegMe>UPerNet')
@@ -19,6 +22,11 @@ class Head(layers.Layer):
         self.proj = HeadProjection(self.classes, 1)
         self.act = HeadActivation(self.classes)
 
+        if 1 == WITH_GF:
+            self.gf = GuidedFilter()
+        elif 2 == WITH_GF:
+            self.gf = ConvGuidedFilter()
+
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
@@ -26,7 +34,14 @@ class Head(layers.Layer):
 
         outputs = self.drop(predictions)
         outputs = self.proj(outputs)
-        outputs = resize_by_sample([outputs, images])
+
+        if 1 == WITH_GF:
+            outputs = self.gf([images, outputs])
+        elif 2 == WITH_GF:
+            outputs = self.gf([images, outputs])
+        else:
+            outputs = resize_by_sample([outputs, images])
+
         outputs = self.act(outputs)
 
         return outputs
