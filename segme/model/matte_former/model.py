@@ -28,14 +28,14 @@ class MatteFormer(layers.Layer):
         features = self.encoder(inputs)
         outputs = self.decoder(features)
 
-        return outputs
+        return outputs[:1] + outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
         output_shape = self.encoder.compute_output_shape(input_shape)
         output_shape = self.decoder.compute_output_shape(output_shape)
 
-        return output_shape
+        return output_shape[:1] + output_shape
 
     def compute_output_signature(self, input_signature):
         outptut_signature = super().compute_output_signature(input_signature)

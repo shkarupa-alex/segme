@@ -24,8 +24,8 @@ class TestMatteFormer(test_combinations.TestCase):
             kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2)},
             input_shapes=[(2, 512, 512, 3), (2, 512, 512, 1)],
             input_dtypes=['uint8'] * 2,
-            expected_output_shapes=[(None, 512, 512, 1), (None, 512, 512, 1), (None, 512, 512, 1)],
-            expected_output_dtypes=['float32'] * 3
+            expected_output_shapes=[(None, 512, 512, 1)] * 4,
+            expected_output_dtypes=['float32'] * 4
         )
 
         mixed_precision.set_global_policy('mixed_float16')
@@ -34,35 +34,36 @@ class TestMatteFormer(test_combinations.TestCase):
             kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2)},
             input_shapes=[(2, 256, 256, 3), (2, 256, 256, 1)],
             input_dtypes=['uint8'] * 2,
-            expected_output_shapes=[(None, 256, 256, 1), (None, 256, 256, 1), (None, 256, 256, 1)],
-            expected_output_dtypes=['float32'] * 3
+            expected_output_shapes=[(None, 256, 256, 1)] * 4,
+            expected_output_dtypes=['float32'] * 4
         )
 
-    # def test_model(self):
-    #     model = build_matte_former()
-    #     model.compile(
-    #         optimizer='sgd', loss='mse',
-    #         run_eagerly=test_utils.should_run_eagerly())
-    #     model.fit(
-    #         [
-    #             np.random.random((2, 256, 256, 3)).astype(np.uint8),
-    #             np.random.random((2, 256, 256, 1)).astype(np.uint8)
-    #         ],
-    #         [
-    #             np.random.random((2, 256, 256, 1)).astype(np.float32),
-    #             np.random.random((2, 256, 256, 1)).astype(np.float32),
-    #             np.random.random((2, 256, 256, 1)).astype(np.float32)
-    #         ],
-    #         epochs=1, batch_size=10)
-    #
-    #     # test config
-    #     model.get_config()
-    #
-    #     # check whether the model variables are present
-    #     # in the trackable list of objects
-    #     checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
-    #     for v in model.variables:
-    #         self.assertIn(v, checkpointed_objects)
+    def test_model(self):
+        model = build_matte_former()
+        model.compile(
+            optimizer='sgd', loss='mse',
+            run_eagerly=test_utils.should_run_eagerly())
+        model.fit(
+            [
+                np.random.random((2, 256, 256, 3)).astype(np.uint8),
+                np.random.random((2, 256, 256, 1)).astype(np.uint8)
+            ],
+            [
+                np.random.random((2, 256, 256, 1)).astype(np.float32),
+                np.random.random((2, 256, 256, 1)).astype(np.float32),
+                np.random.random((2, 256, 256, 1)).astype(np.float32),
+                np.random.random((2, 256, 256, 1)).astype(np.float32)
+            ],
+            epochs=1, batch_size=10)
+
+        # test config
+        model.get_config()
+
+        # check whether the model variables are present
+        # in the trackable list of objects
+        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
+        for v in model.variables:
+            self.assertIn(v, checkpointed_objects)
 
 
 if __name__ == '__main__':
