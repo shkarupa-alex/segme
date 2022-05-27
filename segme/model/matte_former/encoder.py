@@ -61,11 +61,12 @@ class Encoder(layers.Layer):
         images = tf.cast(images, self.compute_dtype)
         images = imagenet_utils.preprocess_input(images, mode='torch')
 
-        frgmap, bgrmap = trimaps < 85, trimaps > 170
-        trimaps = tf.concat([frgmap, ~(frgmap | bgrmap), bgrmap], axis=-1)
-        trimaps = tf.cast(trimaps, self.compute_dtype)
-        # TODO: for v2
-        # trimaps = (trimaps - .5) / .5
+        # TODO: normalize trimaps in same way as image [-2., 2.] in v2 ?
+        trimaps = tf.one_hot(trimaps[..., 0] // 86, 3, dtype=self.compute_dtype)
+
+        # frgmap, bgrmap = trimaps < 85, trimaps > 170
+        # trimaps = tf.concat([frgmap, ~(frgmap | bgrmap), bgrmap], axis=-1)
+        # trimaps = tf.cast(trimaps, self.compute_dtype)
 
         outputs = tf.concat([images, trimaps], axis=-1)
         features = [self.shortcuts[0](outputs)]
@@ -80,7 +81,15 @@ class Encoder(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        output_shape = self.backbone.compute_output_shape(input_shape[0][:-1] + (6,))
+        combined_shape = input_shape[0][:-1] + (6,)
 
-        return [self.shortcuts[0].compute_output_shape(input_shape[0]),
-                self.up2.compute_output_shape(output_shape[0])] + output_shape[1:]
+        output_shape = [self.shortcuts[0].compute_output_shape(combined_shape)]
+
+        backbone_shape = self.backbone.compute_output_shape(combined_shape)
+        output_shape.append(self.shortcuts[1].compute_output_shape(
+            self.up2.compute_output_shape(backbone_shape[0])))
+
+        for bone, short in zip(backbone_shape[1:], self.shortcuts[2:]):
+            output_shape.append(short.compute_output_shape(bone))
+
+        return output_shape
