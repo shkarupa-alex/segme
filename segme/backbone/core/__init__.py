@@ -7,4 +7,5 @@ from .inception import InceptionV3, InceptionResNetV2, Xception
 from .mobilenet import MobileNet, MobileNetV2, MobileNetV3Small, MobileNetV3Large
 from .resnet import ResNet50, ResNet101, ResNet152
 from .resnet import ResNet50V2, ResNet101V2, ResNet152V2
+from .resnet import ResNetRS50, ResNetRS101, ResNetRS152, ResNetRS200, ResNetRS270, ResNetRS350, ResNetRS420
 from .vgg import VGG16, VGG19
