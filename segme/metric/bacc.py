@@ -63,7 +63,7 @@ def boundary_weight(y_true, radius, sample_weight):
     kernel = tf.convert_to_tensor(kernel, 'int32')
     kernel = tf.tile(kernel, (1, 1, y_true.shape[-1]))
 
-    background = tf.cast(y_true == 0, 'int32')
+    background = tf.cast(y_true != 0, 'int32')
 
     def _cond(i, e, d):
         return i < radius
