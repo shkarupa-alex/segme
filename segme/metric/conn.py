@@ -12,6 +12,7 @@ class Conn(SumOverBatchSize):
         """Creates a `ConnectivityError` instance for matting task (by default downscales input by 255).
 
         Args:
+            step: (Optional) float percents for threshold step estimating
             name: (Optional) string name of the metric instance.
             dtype: (Optional) data type of the metric result.
         """
