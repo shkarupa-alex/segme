@@ -50,7 +50,10 @@ def llap_b(b_true, b_pred, sample_weight):
 def total_loss(afb_true, afb_pred, sample_weight, stage=0):
     a_true, f_true, b_true = afb_true[..., 0:1], afb_true[..., 1:4], afb_true[..., 4:7]
     a_pred, f_pred, b_pred = afb_pred[..., 0:1], afb_pred[..., 1:4], afb_pred[..., 4:7]
-    a_weight, f_weight, b_weight = sample_weight[..., 0:1], sample_weight[..., 1:2], sample_weight[..., 2:3]
+
+    a_weight, f_weight, b_weight = None, None, None
+    if sample_weight is not None:
+        a_weight, f_weight, b_weight = sample_weight[..., 0:1], sample_weight[..., 1:2], sample_weight[..., 2:3]
 
     _l1_a = l1_a(a_true, a_pred, sample_weight=a_weight)
     _l1_f = l1_f(f_true, f_pred, sample_weight=f_weight)
@@ -91,5 +94,5 @@ def total_loss(afb_true, afb_pred, sample_weight, stage=0):
     return _l1_a + _lc_a + _lg_a + _llap_a + 0.25 * (_l1_f + _l1_b + _lc_fb + _lexcl_fb + _llap_f + _llap_b)
 
 
-def fba_matting_loss(stage=0):
-    return WeightedLossFunctionWrapper(total_loss, stage=stage)
+def fba_matting_losses(stage=0):
+    return [WeightedLossFunctionWrapper(total_loss, stage=stage)] + [None] * 3

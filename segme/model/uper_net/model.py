@@ -5,7 +5,6 @@ from keras.utils.tf_utils import shape_type_conversion
 from .decoder import Decoder
 from .head import Head
 from ...backbone import Backbone
-from ...common import ConvNormRelu
 
 
 @register_keras_serializable(package='SegMe>UPerNet')

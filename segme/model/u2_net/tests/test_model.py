@@ -62,7 +62,7 @@ class TestU2Net(test_combinations.TestCase):
         num_classes = 2
         model = build_u2_net(classes=num_classes)
         model.compile(
-            optimizer='sgd', loss='sparse_categorical_crossentropy',
+            optimizer='sgd', loss='binary_crossentropy',
             run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 224, 224, 3)).astype(np.uint8),

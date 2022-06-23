@@ -5,6 +5,7 @@ from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
 from ..model import build_minet, MINet
+from ..loss import minet_loss
 
 
 @test_combinations.run_all_keras_modes
@@ -46,11 +47,11 @@ class TestMINet(test_combinations.TestCase):
             bone_train=False
         )
         model.compile(
-            optimizer='sgd', loss='binary_crossentropy',
+            optimizer='sgd', loss=minet_loss(),
             run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 224, 224, 3)).astype(np.uint8),
-            np.random.randint(0, num_classes, (2, 224, 224)),
+            np.random.randint(0, num_classes, (2, 224, 224, 1)),
             epochs=1, batch_size=1)
 
         # test config

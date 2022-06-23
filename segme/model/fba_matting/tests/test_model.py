@@ -5,6 +5,7 @@ from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
 from ..model import FBAMatting, build_fba_matting
+from ..loss import fba_matting_losses
 from ....testing_utils import layer_multi_io_test
 
 
@@ -41,7 +42,7 @@ class TestFBAMatting(test_combinations.TestCase):
     def test_model(self):
         model = build_fba_matting()
         model.compile(
-            optimizer='sgd', loss=['mse', None, None, None],
+            optimizer='sgd', loss=fba_matting_losses(),
             run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             [

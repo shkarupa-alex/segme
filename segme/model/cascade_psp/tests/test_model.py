@@ -5,6 +5,7 @@ from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
 from ..model import CascadePSP, build_cascade_psp
+from ..loss import cascade_psp_losses
 from ....testing_utils import layer_multi_io_test
 
 
@@ -42,7 +43,7 @@ class TestCascadePSP(test_combinations.TestCase):
         num_classes = 1
         model = build_cascade_psp(psp_sizes=(1, 2, 3, 6))
         model.compile(
-            optimizer='sgd', loss='binary_crossentropy',
+            optimizer='sgd', loss=cascade_psp_losses(),
             run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             [
@@ -50,7 +51,7 @@ class TestCascadePSP(test_combinations.TestCase):
                 np.random.random((2, 224, 224, 1)).astype(np.uint8),
                 np.random.random((2, 224, 224, 1)).astype(np.uint8),
             ],
-            np.random.randint(0, num_classes, (2, 224, 224)),
+            np.random.randint(0, num_classes, (2, 224, 224, 1)),
             epochs=1, batch_size=10)
 
         # test config

@@ -30,7 +30,7 @@ class Decoder(layers.Layer):
         self.conv_up4 = Sequential([
             SameConv(32, 3, activation='leaky_relu'),
             SameConv(16, 3, activation='leaky_relu'),
-            SameConv(7, 1, dtype='float32')
+            SameConv(7, 1)
         ])
 
         super().build(input_shape)
@@ -53,11 +53,14 @@ class Decoder(layers.Layer):
         outputs = resize_by_sample([outputs, imscal])
         outputs = tf.concat([outputs, imscal, imnorm, twomap], axis=-1)
         outputs = self.conv_up4(outputs)
+        outputs = tf.cast(outputs, 'float32')
 
-        alpha = tf.clip_by_value(outputs[..., :1], 0., 1.)
-        fgbg = tf.nn.sigmoid(outputs[..., 1:])
+        # TODO: original implementation
+        # alpha = tf.clip_by_value(outputs[..., :1], 0., 1.)
+        # fgbg = tf.nn.sigmoid(outputs[..., 1:])
+        # alfgbg = tf.concat([alpha, fgbg], axis=-1)
 
-        alfgbg = tf.concat([alpha, fgbg], axis=-1)
+        alfgbg = tf.nn.sigmoid(outputs)
 
         return alfgbg
 
