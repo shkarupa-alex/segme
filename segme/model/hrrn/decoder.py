@@ -30,16 +30,15 @@ class Decoder(layers.Layer):
     def build(self, input_shape):
         filters = [shape[-1] for shape in input_shape[:-1]]
 
+        self.layer16 = self._make_layer(filters[4], 3)
+        self.layer8 = self._make_layer(filters[3], 6)
+        self.layer4 = self._make_layer(filters[2], 4)
+        self.layer2 = self._make_layer(filters[1], 3)
         self.layer1 = models.Sequential([
             SpectralNormalization(layers.Conv2DTranspose(filters[0], 4, strides=2, padding='same', use_bias=False)),
             layers.BatchNormalization(),
             layers.Activation('leaky_relu')
         ])
-
-        self.layer2 = self._make_layer(filters[1], 3)
-        self.layer4 = self._make_layer(filters[2], 6)
-        self.layer8 = self._make_layer(filters[3], 4)
-        self.layer16 = self._make_layer(filters[4], 3)
 
         super().build(input_shape)
 
@@ -98,6 +97,7 @@ class Bottleneck(layers.Layer):
             # Second conv layer
             SpectralNormalization(
                 layers.Conv2D(self.channels, 3, padding='same', use_bias=False) if 1 == self.strides
+                # TODO: try bilinear
                 else layers.Conv2DTranspose(self.channels, 4, strides=2, padding='same', use_bias=False)),
             layers.BatchNormalization(momentum=self.bn_momentum, epsilon=self.bn_epsilon),
             layers.Activation(self.activation),
