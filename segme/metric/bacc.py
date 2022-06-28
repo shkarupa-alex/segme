@@ -6,7 +6,7 @@ from keras.utils.generic_utils import register_keras_serializable
 
 @register_keras_serializable(package='SegMe')
 class BinaryBoundaryAccuracy(BinaryAccuracy):
-    def __init__(self, radius=1, name='BinaryAccuracy', dtype=None):
+    def __init__(self, radius=1, threshold=0.5, name='binary_boundary_accuracy', dtype=None):
         """Creates an `Accuracy` metric instance estimated only in `radius` pixels from boundary.
 
         Args:
@@ -14,7 +14,7 @@ class BinaryBoundaryAccuracy(BinaryAccuracy):
             name: (Optional) string name of the metric instance.
             dtype: (Optional) data type of the metric result.
         """
-        super().__init__(name, dtype=dtype)
+        super().__init__(name, threshold=threshold, dtype=dtype)
         self.radius = radius
 
     def update_state(self, y_true, y_pred, sample_weight=None):
