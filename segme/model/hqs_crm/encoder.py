@@ -3,7 +3,6 @@ from keras import layers, models
 from keras.applications import resnet_rs
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from tensorflow_addons.layers import SpectralNormalization  # Required to initialize custom layer
 from ...backbone.utils import patch_config
 
 

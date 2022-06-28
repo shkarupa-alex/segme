@@ -4,6 +4,7 @@ from keras.applications import resnet_rs
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tensorflow_addons.layers import SpectralNormalization  # Required to initialize custom layer
+from ...backbone.utils import patch_config
 
 
 @register_keras_serializable(package='SegMe>HRRN')
@@ -43,16 +44,9 @@ class Encoder(layers.Layer):
 
     def _extend_config(self, config):
         # Patch input shape
-        config = self._patch_config(config, 0, 'batch_input_shape', lambda old: old[:-1] + (6,))
-        config = self._patch_config(config, 2, 'mean', lambda old: old + [0.782468, 0.071937, 0.145596])
-        config = self._patch_config(config, 2, 'variance', lambda old: old + [0.199430, 0.076148, 0.155288])
-
-        # # Restore default BatchNormalization parameters
-        # for i, layer in enumerate(config['layers']):
-        #     if 'BatchNormalization' != layer['class_name']:
-        #         continue
-        #
-        #     config['layers'][i]['config']['momentum'] = 0.99
+        config = patch_config(config, [0], 'batch_input_shape', lambda old: old[:-1] + (6,))
+        config = patch_config(config, [2], 'mean', lambda old: old + [0.782468, 0.071937, 0.145596])
+        config = patch_config(config, [2], 'variance', lambda old: old + [0.199430, 0.076148, 0.155288])
 
         # Apply SpectralNormalization to all Conv2D layers
         for i, layer in enumerate(config['layers']):
@@ -72,39 +66,7 @@ class Encoder(layers.Layer):
             }
             config['layers'][i]['config']['layer']['config']['name'] += '_wrapped'
 
-        # config = self._patch_config(config, 'conv4_block1_0_conv', 'strides', lambda _: (1, 1))
-        # config = self._patch_config(config, 'conv4_block1_1_conv', 'strides', lambda _: (1, 1))
-        #
-        # config = self._patch_config(config, 'conv4_block2_2_conv', 'dilation_rate', lambda _: (2, 2))
-        # config = self._patch_config(config, 'conv4_block3_2_conv', 'dilation_rate', lambda _: (2, 2))
-        # config = self._patch_config(config, 'conv4_block4_2_conv', 'dilation_rate', lambda _: (2, 2))
-        # config = self._patch_config(config, 'conv4_block5_2_conv', 'dilation_rate', lambda _: (2, 2))
-        # config = self._patch_config(config, 'conv4_block6_2_conv', 'dilation_rate', lambda _: (2, 2))
-        #
-        # config = self._patch_config(config, 'conv5_block1_0_conv', 'strides', lambda _: (1, 1))
-        # config = self._patch_config(config, 'conv5_block1_1_conv', 'strides', lambda _: (1, 1))
-        #
-        # config = self._patch_config(config, 'conv5_block2_2_conv', 'dilation_rate', lambda _: (4, 4))
-        # config = self._patch_config(config, 'conv5_block3_2_conv', 'dilation_rate', lambda _: (4, 4))
-
         return config
-
-    def _patch_config(self, config, layer, param, patch):
-        for i in range(len(config['layers'])):
-            if isinstance(layer, int):
-                if i != layer:
-                    continue
-            elif config['layers'][i]['name'] != layer:
-                continue
-
-            if param not in config['layers'][i]['config']:
-                raise ValueError('Parameter {} does not exist in layer {}'.format(layer, param))
-
-            config['layers'][i]['config'][param] = patch(config['layers'][i]['config'][param])
-
-            return config
-
-        raise ValueError('Layer {} not found'.format(layer))
 
     def _extend_weights(self, base_weights, ext_weights):
         weights = []
