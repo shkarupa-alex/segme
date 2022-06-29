@@ -11,6 +11,8 @@ from .general_dice import GeneralizedDiceLoss
 from .general_dice import generalized_dice_loss
 from .grad_mse import GradientMeanSquaredError
 from .grad_mse import gradient_mean_squared_error
+from .hard_grad import HardGradientMeanAbsoluteError
+from .hard_grad import hard_gradient_mean_absolute_error
 from .laplace_edge import LaplaceEdgeCrossEntropy
 from .laplace_edge import laplace_edge_cross_entropy
 from .laplacian_pyramid import LaplacianPyramidLoss
