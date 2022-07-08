@@ -14,8 +14,7 @@ class HqsCrm(layers.Layer):
         self.input_spec = [
             layers.InputSpec(ndim=4, axes={-1: 3}, dtype='uint8'),  # image
             layers.InputSpec(ndim=4, axes={-1: 1}, dtype='uint8'),  # mask
-            layers.InputSpec(ndim=4, axes={-1: 2}, dtype='float32'),  # coord
-            layers.InputSpec(ndim=4, axes={-1: 2}, dtype='float32')  # cell
+            layers.InputSpec(ndim=4, axes={-1: 2}, dtype='float32')  # coord
         ]
 
         self.aspp_filters = aspp_filters
@@ -31,7 +30,10 @@ class HqsCrm(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, training=None, **kwargs):
-        images, masks, coords, cells = inputs
+        images, masks, coords = inputs
+
+        cells = tf.cast(tf.shape(masks)[1:3], self.compute_dtype)
+        cells = tf.ones_like(coords) * (2. / cells)
 
         feats2, feats4, feats32 = self.encoder([images, masks])
         logits = self.decoder([feats2, feats4, feats32, coords, cells])
@@ -41,7 +43,7 @@ class HqsCrm(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[0][:-1] + (1,)
+        return input_shape[2][:-1] + (1,)
 
     def compute_output_signature(self, input_signature):
         outptut_signature = super().compute_output_signature(input_signature)
@@ -63,8 +65,7 @@ def build_hqs_crm(aspp_filters=(64, 64, 128), aspp_drop=0.5, mlp_units=(32, 32, 
     inputs = [
         layers.Input(name='image', shape=[None, None, 3], dtype='uint8'),
         layers.Input(name='mask', shape=[None, None, 1], dtype='uint8'),
-        layers.Input(name='coord', shape=[None, None, 2], dtype='float32'),
-        layers.Input(name='cell', shape=[None, None, 2], dtype='float32'),
+        layers.Input(name='coord', shape=[None, None, 2], dtype='float32')
     ]
     outputs = HqsCrm(aspp_filters, aspp_drop, mlp_units)(inputs)
     model = models.Model(inputs=inputs, outputs=outputs, name='hqs_crm')

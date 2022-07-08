@@ -61,7 +61,7 @@ class Decoder(layers.Layer):
 
         preds, areas = [], []
         for vxvy in itertools.product([-1., 1.], [-1., 1.]):
-            coords_ = coords + vxvy * rxry + epsilon
+            coords_ = coords + (vxvy * rxry + epsilon)
             coords_ = tf.clip_by_value(coords_, -1 + epsilon, -epsilon + 1)
             coords_ = tf.reverse(coords_, axis=[-1])
 

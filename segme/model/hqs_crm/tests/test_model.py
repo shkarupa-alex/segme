@@ -23,8 +23,8 @@ class TestHqsCrm(test_combinations.TestCase):
     #     layer_multi_io_test(
     #         HqsCrm,
     #         kwargs={'aspp_filters': (64, 64, 128), 'aspp_drop': 0.5, 'mlp_units': (32, 32, 32, 32)},
-    #         input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 224, 224, 2), (2, 224, 224, 2)],
-    #         input_dtypes=['uint8'] * 2 + ['float32'] * 2,
+    #         input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 224, 224, 2)],
+    #         input_dtypes=['uint8'] * 2 + ['float32'],
     #         expected_output_shapes=[(None, 224, 224, 1)],
     #         expected_output_dtypes=['float32']
     #     )
@@ -33,9 +33,9 @@ class TestHqsCrm(test_combinations.TestCase):
     #     layer_multi_io_test(
     #         HqsCrm,
     #         kwargs={'aspp_filters': (64, 64, 128), 'aspp_drop': 0.5, 'mlp_units': (32, 32, 32, 32)},
-    #         input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 224, 224, 2), (2, 224, 224, 2)],
-    #         input_dtypes=['uint8'] * 2 + ['float32'] * 2,
-    #         expected_output_shapes=[(None, 224, 224, 1)],
+    #         input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 128, 128, 2)],
+    #         input_dtypes=['uint8'] * 2 + ['float32'],
+    #         expected_output_shapes=[(None, 128, 128, 1)],
     #         expected_output_dtypes=['float32']
     #     )
 
@@ -49,8 +49,7 @@ class TestHqsCrm(test_combinations.TestCase):
             [
                 np.random.random((2, 224, 224, 3)).astype(np.uint8),
                 np.random.random((2, 224, 224, 1)).astype(np.uint8),
-                np.random.random((2, 224, 224, 2)).astype(np.float32),
-                np.random.random((2, 224, 224, 2)).astype(np.float32),
+                np.random.random((2, 224, 224, 2)).astype(np.float32)
             ],
             np.random.randint(0, num_classes, (2, 224, 224, 1)),
             epochs=1, batch_size=10)
