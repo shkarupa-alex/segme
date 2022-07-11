@@ -5,6 +5,7 @@ from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
 from ..model import MatteFormer, build_matte_former
+from ..loss import matte_former_losses
 from ....testing_utils import layer_multi_io_test
 
 
@@ -41,7 +42,7 @@ class TestMatteFormer(test_combinations.TestCase):
     def test_model(self):
         model = build_matte_former()
         model.compile(
-            optimizer='sgd', loss='mse',
+            optimizer='sgd', loss=matte_former_losses(),
             run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             [
@@ -50,9 +51,9 @@ class TestMatteFormer(test_combinations.TestCase):
             ],
             [
                 np.random.random((2, 256, 256, 1)).astype(np.float32),
-                np.random.random((2, 256, 256, 1)).astype(np.float32),
-                np.random.random((2, 256, 256, 1)).astype(np.float32),
-                np.random.random((2, 256, 256, 1)).astype(np.float32)
+                np.random.random((2, 256, 256, 7)).astype(np.float32),
+                np.random.random((2, 256, 256, 7)).astype(np.float32),
+                np.random.random((2, 256, 256, 7)).astype(np.float32)
             ],
             epochs=1, batch_size=10)
 

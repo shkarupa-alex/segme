@@ -35,15 +35,15 @@ class Decoder(layers.Layer):
             layers.Activation('tanh', dtype='float32')
         ])
 
-        self.layer1 = models.Sequential([
+        self.layer16 = models.Sequential([
             Block(self.filters[0], 1 if i > 0 else 2) for i in range(self.depths[0])])
-        self.layer2 = models.Sequential([
+        self.layer8 = models.Sequential([
             Block(self.filters[1], 1 if i > 0 else 2) for i in range(self.depths[1])])
-        self.layer3 = models.Sequential([
-            Block(self.filters[2], 1 if i > 0 else 2) for i in range(self.depths[2])])
         self.layer4 = models.Sequential([
+            Block(self.filters[2], 1 if i > 0 else 2) for i in range(self.depths[2])])
+        self.layer2 = models.Sequential([
             Block(self.filters[3], 1 if i > 0 else 2) for i in range(self.depths[3])])
-        self.layer5 = models.Sequential([
+        self.layer1 = models.Sequential([
             addon_layers.SpectralNormalization(
                 layers.Conv2DTranspose(32, 4, strides=2, padding='same', use_bias=False)),
             layers.BatchNormalization(),
@@ -55,15 +55,15 @@ class Decoder(layers.Layer):
     def call(self, inputs, **kwargs):
         feats1, feats2, feats4, feats8, feats16, feats32 = inputs
 
-        outputs = self.layer1(feats32) + feats16
-        outputs = self.layer2(outputs) + feats8
+        outputs = self.layer16(feats32) + feats16
+        outputs = self.layer8(outputs) + feats8
         outputs8 = self.refine8(outputs)
 
-        outputs = self.layer3(outputs) + feats4
+        outputs = self.layer4(outputs) + feats4
         outputs4 = self.refine4(outputs)
 
-        outputs = self.layer4(outputs) + feats2
-        outputs = self.layer5(outputs) + feats1
+        outputs = self.layer2(outputs) + feats2
+        outputs = self.layer1(outputs) + feats1
         outputs1 = self.refine1(outputs)
 
         outputs1 = outputs1 / 2. + .5

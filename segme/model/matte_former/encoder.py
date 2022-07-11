@@ -37,6 +37,7 @@ class Encoder(layers.Layer):
         ext_weights = []
         for base_weight, ext_weight in zip(base_model.get_weights(), ext_model.get_weights()):
             if base_weight.shape != ext_weight.shape:
+                # Single case: patch embedding
                 ext_weight[:, :, :3, :] = base_weight
             ext_weights.append(ext_weight)
         ext_model.set_weights(ext_weights)
@@ -61,12 +62,9 @@ class Encoder(layers.Layer):
         images = tf.cast(images, self.compute_dtype)
         images = imagenet_utils.preprocess_input(images, mode='torch')
 
-        # TODO: normalize trimaps in same way as image [-2., 2.] in v2 ?
         trimaps = tf.one_hot(trimaps[..., 0] // 86, 3, dtype=self.compute_dtype)
-
-        # frgmap, bgrmap = trimaps < 85, trimaps > 170
-        # trimaps = tf.concat([frgmap, ~(frgmap | bgrmap), bgrmap], axis=-1)
-        # trimaps = tf.cast(trimaps, self.compute_dtype)
+        trimaps = tf.nn.bias_add(trimaps, tf.cast([-0.090, -0.860, -0.050], self.compute_dtype))
+        trimaps /= tf.cast([0.286, 0.347, 0.217], self.compute_dtype)
 
         outputs = tf.concat([images, trimaps], axis=-1)
         features = [self.shortcuts[0](outputs)]
@@ -74,7 +72,7 @@ class Encoder(layers.Layer):
         outputs = self.backbone(outputs)
         features.append(self.shortcuts[1](self.up2(outputs[0])))
 
-        for out, short in zip(outputs[1:], self.shortcuts[2:]):
+        for short, out in zip(self.shortcuts[2:], outputs[1:]):
             features.append(short(out))
 
         return features
