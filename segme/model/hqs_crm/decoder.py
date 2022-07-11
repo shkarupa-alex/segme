@@ -50,8 +50,6 @@ class Decoder(layers.Layer):
         aspp = self.fuse(aspp)
         aspp = self.drop(aspp)
 
-        epsilon = tf.cast(backend.epsilon(), self.compute_dtype)
-
         batch, height, width, _ = tf.unstack(tf.shape(aspp))
         size = tf.cast([height, width], self.compute_dtype)
         rxry = 1. / size
@@ -61,8 +59,8 @@ class Decoder(layers.Layer):
 
         preds, areas = [], []
         for vxvy in itertools.product([-1., 1.], [-1., 1.]):
-            coords_ = coords + (vxvy * rxry + epsilon)
-            coords_ = tf.clip_by_value(coords_, -1 + epsilon, -epsilon + 1)
+            coords_ = coords + (vxvy * rxry + backend.epsilon())
+            coords_ = tf.clip_by_value(coords_, -1 + backend.epsilon(), -backend.epsilon() + 1)
             coords_ = tf.reverse(coords_, axis=[-1])
 
             feat_samp = self.sample([aspp, coords_])
@@ -71,10 +69,11 @@ class Decoder(layers.Layer):
 
             pred = tf.concat([feat_samp, rel_coords, coords, rel_cells], axis=-1)
             pred = self.mlp(pred)
-            preds.append(pred)
+            preds.append(tf.cast(pred, 'float32'))
 
-            area = tf.reduce_prod(rel_coords, axis=-1, keepdims=True)
-            areas.insert(0, tf.abs(area) + epsilon)
+            area = tf.cast(rel_coords, 'float32')
+            area = tf.reduce_prod(area, axis=-1, keepdims=True)
+            areas.insert(0, tf.abs(area) + backend.epsilon())
 
         outputs = [pred * area for pred, area in zip(preds, areas)]
         outputs = tf.math.add_n(outputs) / tf.math.add_n(areas)
@@ -84,6 +83,11 @@ class Decoder(layers.Layer):
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[3][:-1] + (1,)
+
+    def compute_output_signature(self, input_signature):
+        outptut_signature = super().compute_output_signature(input_signature)
+
+        return tf.TensorSpec(dtype='float32', shape=outptut_signature.shape)
 
     def get_config(self):
         config = super().get_config()

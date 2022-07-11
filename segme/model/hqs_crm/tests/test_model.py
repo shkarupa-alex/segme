@@ -19,25 +19,25 @@ class TestHqsCrm(test_combinations.TestCase):
         super(TestHqsCrm, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
-    # def test_layer(self):
-    #     layer_multi_io_test(
-    #         HqsCrm,
-    #         kwargs={'aspp_filters': (64, 64, 128), 'aspp_drop': 0.5, 'mlp_units': (32, 32, 32, 32)},
-    #         input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 224, 224, 2)],
-    #         input_dtypes=['uint8'] * 2 + ['float32'],
-    #         expected_output_shapes=[(None, 224, 224, 1)],
-    #         expected_output_dtypes=['float32']
-    #     )
-    #
-    #     mixed_precision.set_global_policy('mixed_float16')
-    #     layer_multi_io_test(
-    #         HqsCrm,
-    #         kwargs={'aspp_filters': (64, 64, 128), 'aspp_drop': 0.5, 'mlp_units': (32, 32, 32, 32)},
-    #         input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 128, 128, 2)],
-    #         input_dtypes=['uint8'] * 2 + ['float32'],
-    #         expected_output_shapes=[(None, 128, 128, 1)],
-    #         expected_output_dtypes=['float32']
-    #     )
+    def test_layer(self):
+        layer_multi_io_test(
+            HqsCrm,
+            kwargs={'aspp_filters': (64, 64, 128), 'aspp_drop': 0.5, 'mlp_units': (32, 32, 32, 32)},
+            input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 224, 224, 2)],
+            input_dtypes=['uint8'] * 2 + ['float32'],
+            expected_output_shapes=[(None, 224, 224, 1)],
+            expected_output_dtypes=['float32']
+        )
+
+        mixed_precision.set_global_policy('mixed_float16')
+        layer_multi_io_test(
+            HqsCrm,
+            kwargs={'aspp_filters': (64, 64, 128), 'aspp_drop': 0.5, 'mlp_units': (32, 32, 32, 32)},
+            input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 128, 128, 2)],
+            input_dtypes=['uint8'] * 2 + ['float32'],
+            expected_output_shapes=[(None, 128, 128, 1)],
+            expected_output_dtypes=['float32']
+        )
 
     def test_model(self):
         num_classes = 1
