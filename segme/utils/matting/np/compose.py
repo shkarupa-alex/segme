@@ -55,7 +55,8 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
         alpha1 = alpha1[top_:bottom_, left_:right_]
 
     # Resize background to be compatible with foreground
-    alpha1 = cv2.resize(alpha1, alpha0.shape[1::-1], interpolation=cv2.INTER_AREA)
+    interpolation = cv2.INTER_AREA if min(alpha1.shape[:2]) > min(alpha0.shape[:2]) else cv2.INTER_LANCZOS4
+    alpha1 = cv2.resize(alpha1, alpha0.shape[1::-1], interpolation=interpolation)
 
     # Combine fgs and alphas
     # For description see https://github.com/Yaoyi-Li/GCA-Matting/issues/12
@@ -68,7 +69,18 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
     if (alpha == 0.).all() or (alpha == 1.).all():
         raise AssertionError('Composition failed')
 
-    fg1 = cv2.resize(fg1, alpha0.shape[1::-1], interpolation=cv2.INTER_AREA)
+    if (alpha == alpha0).all():
+        raise AssertionError('First image fully overflows second one')
+
+    fg1 = cv2.resize(fg1, alpha0.shape[1::-1], interpolation=interpolation)
+    if solve:
+        fg0 = solve_fg(
+            np.round(fg0 * 255.).astype('uint8'),
+            np.round(alpha0 * 255.).astype('uint8')).astype('float32') / 255.
+
+        fg1 = solve_fg(
+            np.round(fg1 * 255.).astype('uint8'),
+            np.round(alpha1 * 255.).astype('uint8')).astype('float32') / 255.
 
     # The overlap of two 50% transparency should be 25%
     fg = (fg0 * alpha0 + fg1 * delta) / (alpha + np.finfo(alpha.dtype).eps)
