@@ -34,9 +34,6 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
     if 'uint8' != fg1.dtype or 'uint8' != alpha1.dtype:
         raise ValueError('Expecting `fg_` and `alpha_` dtype to be `uint8`.')
 
-    fg0, alpha0 = fg0.astype('float32') / 255., alpha0.astype('float32') / 255.
-    fg1, alpha1 = fg1.astype('float32') / 255., alpha1.astype('float32') / 255.
-
     if crop:  # Crop meaningful parts
         mask = alpha0 > 0
         hindex = mask.any(1).nonzero()[0]
@@ -57,6 +54,10 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
     # Resize background to be compatible with foreground
     interpolation = cv2.INTER_AREA if min(alpha1.shape[:2]) > min(alpha0.shape[:2]) else cv2.INTER_LANCZOS4
     alpha1 = cv2.resize(alpha1, alpha0.shape[1::-1], interpolation=interpolation)
+
+    # Switch to float after resizing to beat overflow
+    fg0, alpha0 = fg0.astype('float32') / 255., alpha0.astype('float32') / 255.
+    fg1, alpha1 = fg1.astype('float32') / 255., alpha1.astype('float32') / 255.
 
     # Combine fgs and alphas
     # For description see https://github.com/Yaoyi-Li/GCA-Matting/issues/12
