@@ -11,7 +11,7 @@ def total_loss(afb_true, a_pred, sample_weight=None):
     c_pred = a_pred * f_true + (1. - a_pred) * b_true
 
     l1 = MeanAbsoluteError()(a_true, a_pred, sample_weight=sample_weight)
-    lap = LaplacianPyramidLoss(sigma=1.06)(a_true, a_pred, sample_weight=sample_weight)
+    lap = LaplacianPyramidLoss(sigma=1.070482)(a_true, a_pred, sample_weight=sample_weight)
     comp = MeanAbsoluteError()(c_true, c_pred, sample_weight=sample_weight)
 
     return l1 * 2. + lap + comp

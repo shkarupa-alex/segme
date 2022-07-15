@@ -22,7 +22,7 @@ class TestMatteFormer(test_combinations.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             MatteFormer,
-            kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2)},
+            kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2), 'radius':(30, 15)},
             input_shapes=[(2, 512, 512, 3), (2, 512, 512, 1)],
             input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 512, 512, 1)] * 4,
@@ -32,7 +32,7 @@ class TestMatteFormer(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             MatteFormer,
-            kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2)},
+            kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2), 'radius':(30, 15)},
             input_shapes=[(2, 256, 256, 3), (2, 256, 256, 1)],
             input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 256, 256, 1)] * 4,
