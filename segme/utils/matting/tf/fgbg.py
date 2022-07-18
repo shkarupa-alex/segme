@@ -52,7 +52,10 @@ def _solve_fgbg_level(level, image, fg, bg, alpha, height, width, levels, small_
     fg = tf.image.resize(fg, [height_, width_])
     bg = tf.image.resize(bg, [height_, width_])
 
-    steps = tf.cond((height_ <= small_size) & (width_ <= small_size), lambda: small_steps, lambda: big_steps)
+    steps = tf.cond(
+        (height_ <= small_size) & (width_ <= small_size),
+        lambda: tf.identity(small_steps),
+        lambda: tf.identity(big_steps))
 
     shapes = [[]] + [[None, None, None, 3]] * 3 + [[None, None, None, 1]] + [[]] * 2
     shapes = list(map(tf.TensorShape, shapes))

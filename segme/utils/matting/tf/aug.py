@@ -1,30 +1,28 @@
 import tensorflow as tf
 
 
-def augment_inverse(foreground, inv_prob=0.1, name=None):
-    with tf.name_scope(name or 'augment_foreground'):
-        foreground = tf.convert_to_tensor(foreground, 'uint8')
+def augment_inverse(image, prob=0.05, seed=None):
+    with tf.name_scope('augment_foreground'):
+        image = tf.convert_to_tensor(image, 'uint8')
 
-        if 4 != foreground.shape.rank:
+        if 4 != image.shape.rank:
             raise ValueError('Expecting `alpha` rank to be 4.')
 
-        if 3 != foreground.shape[-1]:
+        if 3 != image.shape[-1]:
             raise ValueError('Expecting `foreground` channels size to be 3.')
 
-        if 'uint8' != foreground.dtype:
+        if 'uint8' != image.dtype:
             raise ValueError('Expecting `foreground` dtype to be `uint8`.')
 
-        def _ivn_transform(foreground_):
-            return 255 - foreground_
+        batch = tf.shape(image)[0]
+        apply = tf.random.uniform([batch, 1, 1, 1], 0., 1., seed=seed)
+        apply = tf.cast(apply < prob, image.dtype)
 
-        inv_apply = tf.random.uniform([], 0., 1.) < inv_prob
-        foreground = tf.cond(inv_apply, lambda: _ivn_transform(foreground), lambda: foreground)
-
-        return foreground
+        return (255 - image) * apply + image * (1 - apply)
 
 
-def augment_alpha(alpha, prob=0.1, low=0.5, high=1.5, name=None):
-    with tf.name_scope(name or 'augment_alpha'):
+def augment_alpha(alpha, prob=0.3, seed=None):
+    with tf.name_scope('augment_alpha'):
         alpha = tf.convert_to_tensor(alpha, 'uint8')
 
         if 4 != alpha.shape.rank:
@@ -36,25 +34,26 @@ def augment_alpha(alpha, prob=0.1, low=0.5, high=1.5, name=None):
         if 'uint8' != alpha.dtype:
             raise ValueError('Expecting `alpha` dtype to be `uint8`.')
 
-        def _transform(alpha_, rate_):
-            alpha_ = tf.cast(alpha_, 'float32') / 255.
-            alpha_ = alpha_ ** (rate_ * (high - low) + low)  # ^ [low; high]
-            alpha_ = tf.clip_by_value(alpha_, 0., 1.)
-            alpha_ = tf.cast(tf.round(alpha_ * 255.), 'uint8')
+        batch = tf.shape(alpha)[0]
+        apply, gamma_switch, gamma, alpha_switch = tf.split(
+            tf.random.uniform([batch, 1, 1, 4], 0., 1., seed=seed), 4, axis=-1)
 
-            return alpha_
+        apply = tf.cast(apply < prob, alpha.dtype)
 
-        apply, rate = tf.unstack(tf.random.uniform([2], 0., 1.))
-        alpha = tf.cond(
-            tf.less(apply, prob),
-            lambda: _transform(alpha, rate),
-            lambda: alpha)
+        gamma_switch = tf.cast(gamma_switch > 0.5, gamma_switch.dtype)
+        gamma = (gamma / 2 + 0.5) * gamma_switch + (gamma + 1.) * (1 - gamma_switch)
 
-        return alpha
+        orig_dtype = alpha.dtype
+        alpha_ = alpha if orig_dtype in {tf.float16, tf.float32} else tf.image.convert_image_dtype(alpha, 'float32')
+
+        alpha_switch = tf.cast(alpha_switch > 0.5, alpha_switch.dtype)
+        alpha_ = tf.pow(alpha_, gamma) * alpha_switch + (1 - tf.pow(1 - alpha_, gamma)) * (1 - alpha_switch)
+
+        return tf.image.convert_image_dtype(alpha_, orig_dtype, saturate=True) * apply + alpha * (1 - apply)
 
 
-def augment_trimap(trimap, prob=0.1, name=None):
-    with tf.name_scope(name or 'augment_trimap'):
+def augment_trimap(trimap, prob=0.1, seed=None):
+    with tf.name_scope('augment_trimap'):
         trimap = tf.convert_to_tensor(trimap, 'uint8')
 
         if 4 != trimap.shape.rank:
@@ -66,13 +65,11 @@ def augment_trimap(trimap, prob=0.1, name=None):
         if 'uint8' != trimap.dtype:
             raise ValueError('Expecting `trimap` dtype to be `uint8`.')
 
+        batch = tf.shape(trimap)[0]
+        apply = tf.random.uniform([batch, 1, 1, 1], 0., 1., seed=seed)
+        apply = tf.cast(apply < prob, trimap.dtype)
+
         fg = tf.convert_to_tensor(255, 'uint8')
         un = tf.convert_to_tensor(128, 'uint8')
 
-        apply = tf.random.uniform((), 0., 1.)
-        trimap = tf.cond(
-            apply < prob,
-            lambda: tf.where(tf.equal(trimap, fg), un, trimap),
-            lambda: trimap)
-
-        return trimap
+        return tf.where(tf.equal(trimap, fg), un, trimap) * apply + trimap * (1 - apply)
