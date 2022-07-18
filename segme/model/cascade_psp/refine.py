@@ -10,11 +10,11 @@ class Refiner:
         self.model = KerasLayer(hub_uri)
 
         self.image = tf.Variable(
-            shape=(1, None, None, 3), dtype='uint8', initial_value=np.zeros((1, 0, 0, 3)).astype(np.uint8))
+            shape=(1, None, None, 3), dtype='uint8', initial_value=np.zeros((1, 0, 0, 3)).astype('uint8'))
         self.mask = tf.Variable(
-            shape=(1, None, None, 1), dtype='uint8', initial_value=np.zeros((1, 0, 0, 1)).astype(np.uint8))
+            shape=(1, None, None, 1), dtype='uint8', initial_value=np.zeros((1, 0, 0, 1)).astype('uint8'))
         self.prev = tf.Variable(
-            shape=(1, None, None, 1), dtype='uint8', initial_value=np.zeros((1, 0, 0, 1)).astype(np.uint8))
+            shape=(1, None, None, 1), dtype='uint8', initial_value=np.zeros((1, 0, 0, 1)).astype('uint8'))
 
     def __call__(self, image, mask, fast=False, max_size=960, up_scale=1):
         fine, coarse = self._global_step(image, mask, max_size)
@@ -153,7 +153,7 @@ class Refiner:
         if prev is not None and prev.dtype != 'uint8':
             raise ValueError('Wrong prev dtype')
         if prev is not None and set(np.unique(prev)) - {0, 255}:
-            raise ValueError('Wrong mask values')
+            raise ValueError('Wrong prev values')
 
         height, width = image.shape[:2]
         h_pad = (24 - height % 24) % 24
@@ -163,7 +163,7 @@ class Refiner:
         _mask = np.pad(mask, ((0, h_pad), (0, w_pad)))
         _prev = _mask if prev is None else np.pad(prev, ((0, h_pad), (0, w_pad)))
 
-        self.image.assign(_image[None, ...])
+        self.image.assign(_image[None])
         self.mask.assign(_mask[None, ..., None])
         self.prev.assign(_prev[None, ..., None])
 
