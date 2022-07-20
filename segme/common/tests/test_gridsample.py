@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
-from ..gridsample import GridSample, grid_sample
+from ..gridsample import grid_sample
 from ...testing_utils import layer_multi_io_test
 
 
@@ -44,93 +44,14 @@ class TestGridSample(test_combinations.TestCase):
         [[[1.0, 1.0], [1.0, -1.0]], [[-1.0, 1.0], [-1.0, -1.0]]]
     ]
 
-    def setUp(self):
-        super(TestGridSample, self).setUp()
-        self.default_policy = mixed_precision.global_policy()
-
-    def tearDown(self):
-        super(TestGridSample, self).tearDown()
-        mixed_precision.set_global_policy(self.default_policy)
-
-    def test_layer(self):
-        layer_multi_io_test(
-            GridSample,
-            kwargs={'mode': 'bilinear', 'align_corners': False},
-            input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 4, 5, 2)],
-            input_dtypes=['float32', 'float32'],
-            expected_output_shapes=[(None, 4, 5, 10)],
-            expected_output_dtypes=['float32']
-        )
-        layer_multi_io_test(
-            GridSample,
-            kwargs={'mode': 'nearest', 'align_corners': True},
-            input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 4, 5, 2)],
-            input_dtypes=['float32', 'float32'],
-            expected_output_shapes=[(None, 4, 5, 10)],
-            expected_output_dtypes=['float32']
-        )
-        layer_multi_io_test(
-            GridSample,
-            kwargs={'mode': 'bilinear', 'align_corners': False},
-            input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 4, 5, 2)],
-            input_dtypes=['int32', 'float32'],
-            expected_output_shapes=[(None, 4, 5, 10)],
-            expected_output_dtypes=['int32']
-        )
-        layer_multi_io_test(
-            GridSample,
-            kwargs={'mode': 'nearest', 'align_corners': True},
-            input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 4, 5, 2)],
-            input_dtypes=['int32', 'float32'],
-            expected_output_shapes=[(None, 4, 5, 10)],
-            expected_output_dtypes=['int32']
-        )
-
-        mixed_precision.set_global_policy('mixed_float16')
-        layer_multi_io_test(
-            GridSample,
-            kwargs={'mode': 'bilinear', 'align_corners': False},
-            input_datas=[
-                np.random.rand(2, 16, 16, 10).astype(np.float16),
-                np.random.rand(2, 4, 5, 2).astype(np.float16)],
-            input_dtypes=['float16', 'float16'],
-            expected_output_shapes=[(None, 4, 5, 10)],
-            expected_output_dtypes=['float16']
-        )
-        layer_multi_io_test(
-            GridSample,
-            kwargs={'mode': 'bilinear', 'align_corners': True},
-            input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 4, 5, 2)],
-            input_dtypes=['float32', 'float16'],
-            expected_output_shapes=[(None, 4, 5, 10)],
-            expected_output_dtypes=['float32']
-        )
-        layer_multi_io_test(
-            GridSample,
-            kwargs={'mode': 'bilinear', 'align_corners': False},
-            input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 4, 5, 2)],
-            input_dtypes=['int32', 'float16'],
-            expected_output_shapes=[(None, 4, 5, 10)],
-            expected_output_dtypes=['int32']
-        )
-        layer_multi_io_test(
-            GridSample,
-            kwargs={'mode': 'bilinear', 'align_corners': True},
-            input_datas=[np.random.rand(2, 16, 16, 10), np.random.rand(2, 4, 5, 2)],
-            input_dtypes=['int32', 'float32'],
-            expected_output_shapes=[(None, 4, 5, 10)],
-            expected_output_dtypes=['int32']
-        )
-
     def test_values_bilinear_random(self):
         expected = [
             [[[0.4946522116661072, 0.4969025254249573], [0.5992345809936523, 0.38736796379089355]],
              [[0.02763419784605503, 0.3467414975166321], [0.8144252896308899, 0.8391402959823608]]],
             [[[0.6845056414604187, 0.12966862320899963], [0.5646132230758667, 0.40902620553970337]],
              [[0.1310044378042221, 0.3320242762565613], [0.3559671640396118, 0.4282688796520233]]]]
-        result = grid_sample([
-            np.array(self.features, 'float32'),
-            np.array(self.grid_random, 'float32')], align_corners=False)
+        result = grid_sample(
+            np.array(self.features, 'float32'), np.array(self.grid_random, 'float32'), align_corners=False)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
 
@@ -140,9 +61,8 @@ class TestGridSample(test_combinations.TestCase):
              [[0.026439279317855835, 0.24564866721630096], [0.12307910621166229, 0.05914410948753357]]],
             [[[0.01776115782558918, 0.056393008679151535], [0.13448593020439148, 0.015676435083150864]],
              [[0.16188979148864746, 0.12015028297901154], [0.08675897121429443, 0.0418398417532444]]]]
-        result = grid_sample([
-            np.array(self.features, 'float32'),
-            np.array(self.grid_corner, 'float32')], align_corners=False)
+        result = grid_sample(
+            np.array(self.features, 'float32'), np.array(self.grid_corner, 'float32'), align_corners=False)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
 
@@ -152,9 +72,9 @@ class TestGridSample(test_combinations.TestCase):
              [[0.05154120549559593, 0.5912343263626099], [0.8239820003509521, 0.8828994035720825]]],
             [[[0.7110949158668518, 0.13519690930843353], [0.3620241582393646, 0.062319450080394745]],
              [[0.09822063893079758, 0.4689144492149353], [0.7903688549995422, 0.8681517839431763]]]]
-        result = grid_sample([
-            np.array(self.features, 'float32'),
-            np.array(self.grid_random, 'float32')], mode='nearest', align_corners=False)
+        result = grid_sample(
+            np.array(self.features, 'float32'), np.array(self.grid_random, 'float32'), mode='nearest',
+            align_corners=False)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
 
@@ -164,9 +84,9 @@ class TestGridSample(test_combinations.TestCase):
              [[0.0, 0.0], [0.0, 0.0]]],
             [[[0.0, 0.0], [0.0, 0.0]],
              [[0.6475591659545898, 0.48060113191604614], [0.34703588485717773, 0.1673593670129776]]]]
-        result = grid_sample([
-            np.array(self.features, 'float32'),
-            np.array(self.grid_corner, 'float32')], mode='nearest', align_corners=False)
+        result = grid_sample(
+            np.array(self.features, 'float32'), np.array(self.grid_corner, 'float32'), mode='nearest',
+            align_corners=False)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
 
@@ -176,9 +96,8 @@ class TestGridSample(test_combinations.TestCase):
              [[0.07661650329828262, 0.5985114574432373], [0.8033915162086487, 0.5599108934402466]]],
             [[[0.6085014343261719, 0.29785940051078796], [0.6163655519485474, 0.3217147886753082]],
              [[0.2241607904434204, 0.37310990691185], [0.6748148798942566, 0.7561057806015015]]]]
-        result = grid_sample([
-            np.array(self.features, 'float32'),
-            np.array(self.grid_random, 'float32')], align_corners=True)
+        result = grid_sample(
+            np.array(self.features, 'float32'), np.array(self.grid_random, 'float32'), align_corners=True)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
 
@@ -188,9 +107,8 @@ class TestGridSample(test_combinations.TestCase):
              [[0.10575711727142334, 0.9825946688652039], [0.49231642484664917, 0.23657643795013428]]],
             [[[0.07104463130235672, 0.22557203471660614], [0.5379437208175659, 0.06270574033260345]],
              [[0.6475591659545898, 0.48060113191604614], [0.34703588485717773, 0.1673593670129776]]]]
-        result = grid_sample([
-            np.array(self.features, 'float32'),
-            np.array(self.grid_corner, 'float32')], align_corners=True)
+        result = grid_sample(
+            np.array(self.features, 'float32'), np.array(self.grid_corner, 'float32'), align_corners=True)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
 
@@ -200,9 +118,9 @@ class TestGridSample(test_combinations.TestCase):
              [[0.05154120549559593, 0.5912343263626099], [0.8239820003509521, 0.8828994035720825]]],
             [[[0.7110949158668518, 0.13519690930843353], [0.8022331595420837, 0.4018300771713257]],
              [[0.09822063893079758, 0.4689144492149353], [0.7903688549995422, 0.8681517839431763]]]]
-        result = grid_sample([
-            np.array(self.features, 'float32'),
-            np.array(self.grid_random, 'float32')], mode='nearest', align_corners=True)
+        result = grid_sample(
+            np.array(self.features, 'float32'), np.array(self.grid_random, 'float32'), mode='nearest',
+            align_corners=True)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
 
@@ -212,9 +130,9 @@ class TestGridSample(test_combinations.TestCase):
              [[0.10575711727142334, 0.9825946688652039], [0.49231642484664917, 0.23657643795013428]]],
             [[[0.07104463130235672, 0.22557203471660614], [0.5379437208175659, 0.06270574033260345]],
              [[0.6475591659545898, 0.48060113191604614], [0.34703588485717773, 0.1673593670129776]]]]
-        result = grid_sample([
-            np.array(self.features, 'float32'),
-            np.array(self.grid_corner, 'float32')], mode='nearest', align_corners=True)
+        result = grid_sample(
+            np.array(self.features, 'float32'), np.array(self.grid_corner, 'float32'), mode='nearest',
+            align_corners=True)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
 

@@ -31,6 +31,7 @@ class HqsCrm(layers.Layer):
 
     def call(self, inputs, training=None, **kwargs):
         images, masks, coords = inputs
+        coords = tf.cast(coords, self.compute_dtype)
 
         feats2, feats4, feats32 = self.encoder([images, masks])
         logits = self.decoder([feats2, feats4, feats32, coords])

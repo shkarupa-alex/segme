@@ -32,7 +32,7 @@ class TestMakeCoords(tf.test.TestCase):
         result = make_coords(3, 5, 6, dtype='float16')
         result = self.evaluate(result)
 
-        self.assertAllClose(expected, result)
+        self.assertAllClose(expected, result, rtol=3e-3)
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -79,7 +79,7 @@ class TestQueryFeatures(tf.test.TestCase):
             features, coords, tf.identity, cells=None, feat_unfold=False, local_ensemble=False, dtype='float16')
         result = self.evaluate(result)
 
-        self.assertAllClose(expected, result)
+        self.assertAllClose(expected, result, rtol=2e-2)
         self.assertDTypeEqual(result, np.float32)
 
     def test_cell(self):

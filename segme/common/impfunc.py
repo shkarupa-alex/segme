@@ -1,7 +1,7 @@
 import itertools
 import tensorflow as tf
 from keras import backend
-from .gridsample import GridSample
+from .gridsample import grid_sample
 
 
 def make_coords(batch, height, width, dtype=None):
@@ -25,6 +25,9 @@ def query_features(features, coords, imnet, cells=None, feat_unfold=True, local_
     if dtype is None:
         dtype = backend.floatx()
 
+    features = tf.cast(features, dtype)
+    coords = tf.cast(coords, dtype)
+
     cell_decode = cells is not None
     batch, height, width, _ = tf.unstack(tf.shape(features))
 
@@ -37,8 +40,6 @@ def query_features(features, coords, imnet, cells=None, feat_unfold=True, local_
     else:
         vxvy = [(0, 0)]
         epsilon = 0.
-
-    grid_sampler = GridSample(mode='nearest', align_corners=False)
 
     h_w = tf.cast([height, width], dtype)
     rx_ry = 1. / h_w
@@ -54,8 +55,8 @@ def query_features(features, coords, imnet, cells=None, feat_unfold=True, local_
         coords_ = tf.clip_by_value(coords_, -1 + 1e-6, 1 - 1e-6)
         coords_ = tf.reverse(coords_, axis=[-1])
 
-        q_feats = grid_sampler([features, coords_])
-        q_coords = grid_sampler([feat_coords, coords_])
+        q_feats = grid_sample(features, coords_, mode='nearest', align_corners=False)
+        q_coords = grid_sample(feat_coords, coords_, mode='nearest', align_corners=False)
         rel_coords = (coords - q_coords) * h_w
 
         queries = [q_feats, rel_coords]
