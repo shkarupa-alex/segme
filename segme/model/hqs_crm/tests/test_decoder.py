@@ -10,8 +10,8 @@ class TestDecoder(test_combinations.TestCase):
         layer_multi_io_test(
             Decoder,
             kwargs={'aspp_filters': (64, 64, 128), 'aspp_drop': 0.5, 'mlp_units': (32, 32, 32, 32)},
-            input_shapes=[(3, 128, 128, 64), (3, 64, 64, 256), (3, 32, 32, 2048), (3, 96, 96, 2), (3, 96, 96, 2)],
-            input_dtypes=['float32'] * 5,
+            input_shapes=[(3, 128, 128, 64), (3, 64, 64, 256), (3, 32, 32, 2048), (3, 96, 96, 2)],
+            input_dtypes=['float32'] * 4,
             expected_output_shapes=[(None, 96, 96, 1)],
             expected_output_dtypes=['float32']
         )

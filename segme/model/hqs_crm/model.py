@@ -32,11 +32,8 @@ class HqsCrm(layers.Layer):
     def call(self, inputs, training=None, **kwargs):
         images, masks, coords = inputs
 
-        cells = tf.cast(tf.shape(masks)[1:3], self.compute_dtype)
-        cells = tf.ones_like(coords) * (2. / cells)
-
         feats2, feats4, feats32 = self.encoder([images, masks])
-        logits = self.decoder([feats2, feats4, feats32, coords, cells])
+        logits = self.decoder([feats2, feats4, feats32, coords])
         outputs = self.act(logits)
 
         return outputs
