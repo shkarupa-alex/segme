@@ -6,6 +6,7 @@ from .gridsample import GridSample, grid_sample
 from .guidedup import GuidedFilter, ConvGuidedFilter
 from .head import HeadProjection, HeadActivation, ClassificationHead
 from .hmsattn import HierarchicalMultiScaleAttention
+from .impfunc import make_coords, query_features
 from .point_rend import PointRend, PointLoss
 from .ppm import PyramidPooling
 from .sameconv import SameConv, SameStandardizedConv, SameDepthwiseConv, SameStandardizedDepthwiseConv
