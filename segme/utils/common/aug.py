@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def augment_onthefly(image, masks, hflip_prob=0.5, vflip_prob=0.3, rotate_prob=0.4, brightness_prob=0.2,
+def augment_onthefly(image, masks, hflip_prob=0.5, vflip_prob=0.3, rotate_prob=0.3, brightness_prob=0.2,
                      brightness_delta=0.2, contrast_prob=0.2, contrast_lower=0.8, contrast_upper=0.99, hue_prob=0.2,
                      hue_delta=0.2, saturation_prob=0.2, saturation_lower=0.7, saturation_upper=0.99, mix_prob=0.3,
                      mix_max=0.3, shuffle_prob=0.2, name=None):
