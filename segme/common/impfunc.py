@@ -67,19 +67,15 @@ def query_features(features, coords, imnet, cells=None, feat_unfold=True, local_
         pred = imnet(queries)
         preds.append(tf.cast(pred, 'float32'))
 
-        area = tf.cast(rel_coords, 'float32')
-        area = tf.reduce_prod(area, axis=-1, keepdims=True)
-        areas.insert(0, tf.abs(area) + 1e-9)
-
-    outputs = [pred * area for pred, area in zip(preds, areas)]
+        if local_ensemble:
+            area = tf.cast(rel_coords, 'float32')
+            area = tf.reduce_prod(area, axis=-1, keepdims=True)
+            areas.insert(0, tf.abs(area) + 1e-9)
 
     if local_ensemble:
-        outputs = tf.math.add_n(outputs)
-        areas = tf.math.add_n(areas)
+        outputs = [pred * area for pred, area in zip(preds, areas)]
+        outputs = tf.math.add_n(outputs) / tf.math.add_n(areas)
     else:
-        outputs = outputs[0]
-        areas = areas[0]
-
-    outputs = outputs / areas
+        outputs = preds[0]
 
     return outputs
