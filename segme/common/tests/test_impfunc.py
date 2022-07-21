@@ -15,7 +15,7 @@ class TestMakeCoords(tf.test.TestCase):
             [[0.8, -0.833333], [0.8, -0.5], [0.8, -0.166667], [0.8, 0.166667], [0.8, 0.5], [0.8, 0.833333]]
         ], 'float32')[None].repeat(3, axis=0)
 
-        result = make_coords(3, 5, 6)
+        result = make_coords(np.zeros([3, 5, 6, 1]))
         result = self.evaluate(result)
 
         self.assertAllClose(expected, result)
@@ -29,7 +29,7 @@ class TestMakeCoords(tf.test.TestCase):
             [[0.8, -0.833333], [0.8, -0.5], [0.8, -0.166667], [0.8, 0.166667], [0.8, 0.5], [0.8, 0.833333]]
         ], 'float16')[None].repeat(3, axis=0)
 
-        result = make_coords(3, 5, 6, dtype='float16')
+        result = make_coords(np.zeros([3, 5, 6, 1]), dtype='float16')
         result = self.evaluate(result)
 
         self.assertAllClose(expected, result, rtol=3e-3)
@@ -39,7 +39,7 @@ class TestMakeCoords(tf.test.TestCase):
 class TestQueryFeatures(tf.test.TestCase):
     def test_simple(self):
         features = np.arange(15).reshape([1, 3, 5, 1]).transpose(3, 2, 1, 0).astype('float32')
-        coords = make_coords(1, 6, 4)
+        coords = make_coords(np.zeros([1, 6, 4, 1]))
         expected = np.array([[
             [[0., -0.16666651, -0.24999994], [5., -0.16666651, -0.75], [5., -0.16666651, 0.75],
              [10., -0.16666651, 0.24999994]],
@@ -61,7 +61,7 @@ class TestQueryFeatures(tf.test.TestCase):
 
     def test_fp16(self):
         features = np.arange(15).reshape([1, 3, 5, 1]).transpose(3, 2, 1, 0).astype('float32')
-        coords = make_coords(1, 6, 4)
+        coords = make_coords(np.zeros([1, 6, 4, 1]))
         expected = np.array([[
             [[0., -0.16666651, -0.24999994], [5., -0.16666651, -0.75], [5., -0.16666651, 0.75],
              [10., -0.16666651, 0.24999994]],
@@ -84,7 +84,7 @@ class TestQueryFeatures(tf.test.TestCase):
 
     def test_cell(self):
         features = np.arange(15).reshape([1, 3, 5, 1]).transpose(3, 2, 1, 0).astype('float32')
-        coords = make_coords(1, 6, 4)
+        coords = make_coords(np.zeros([1, 6, 4, 1]))
         cells = np.ones((1, 6, 4, 2)) * 2 / np.array([6, 4])
         expected = np.array([[
             [[0., -0.16666651, -0.24999994, 1.6666667, 1.5], [5., -0.16666651, -0.75, 1.6666667, 1.5],
@@ -107,7 +107,7 @@ class TestQueryFeatures(tf.test.TestCase):
 
     def test_unfold(self):
         features = np.arange(15).reshape([1, 3, 5, 1]).transpose(3, 2, 1, 0).astype('float32')
-        coords = make_coords(1, 6, 4)
+        coords = make_coords(np.zeros([1, 6, 4, 1]))
         expected = np.array([[
             [[0., 0., 0., 0., 0., 5., 0., 1., 6., -0.16666651, -0.24999994],
              [0., 0., 0., 0., 5., 10., 1., 6., 11., -0.16666651, -0.75],
@@ -141,7 +141,7 @@ class TestQueryFeatures(tf.test.TestCase):
 
     def test_local(self):
         features = np.arange(15).reshape([1, 3, 5, 1]).transpose(3, 2, 1, 0).astype('float32')
-        coords = make_coords(1, 6, 4)
+        coords = make_coords(np.zeros([1, 6, 4, 1]))
         expected = np.array([[
             [[0.0000000e+00, -1.6666651e-01, -2.4999994e-01], [3.1250000e+00, -1.6666651e-01, 0.0000000e+00],
              [6.8750000e+00, -1.6666651e-01, 0.0000000e+00], [1.0000000e+01, -1.6666651e-01, 2.4999994e-01]],
@@ -163,7 +163,7 @@ class TestQueryFeatures(tf.test.TestCase):
 
     def test_complex(self):
         features = np.arange(60).reshape([2, 3, 5, 2]).transpose(3, 2, 1, 0).astype('float32')
-        coords = make_coords(2, 6, 4)
+        coords = make_coords(np.zeros([2, 6, 4, 1]))
         cells = np.ones((2, 6, 4, 2)) * 2 / np.array([6, 4])
         expected = np.array([
             [[[0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+01, 0.0000000e+00,

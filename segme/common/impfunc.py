@@ -4,7 +4,10 @@ from keras import backend
 from .gridsample import grid_sample
 
 
-def make_coords(batch, height, width, dtype=None):
+def make_coords(inputs, dtype=None):
+    inputs = tf.convert_to_tensor(inputs, dtype=dtype)
+    batch, height, width, _ = tf.unstack(tf.shape(inputs))
+
     if dtype is None:
         dtype = backend.floatx()
 
@@ -18,10 +21,16 @@ def make_coords(batch, height, width, dtype=None):
     join = tf.stack(mesh, axis=-1)
     outputs = tf.tile(join[None], [batch, 1, 1, 1])
 
+    outputs.set_shape(inputs.shape[:-1] + [2])
+
     return outputs
 
 
 def query_features(features, coords, imnet, cells=None, feat_unfold=True, local_ensemble=True, dtype=None):
+    """
+    Proposed in "Learning Continuous Image Representation with Local Implicit Image Function"
+    https://arxiv.org/pdf/2012.09161.pdf
+    """
     if dtype is None:
         dtype = backend.floatx()
 
@@ -29,7 +38,6 @@ def query_features(features, coords, imnet, cells=None, feat_unfold=True, local_
     coords = tf.cast(coords, dtype)
 
     cell_decode = cells is not None
-    batch, height, width, _ = tf.unstack(tf.shape(features))
 
     if feat_unfold:
         features = tf.image.extract_patches(features, [1, 3, 3, 1], [1, 1, 1, 1], [1, 1, 1, 1], padding='SAME')
@@ -41,10 +49,10 @@ def query_features(features, coords, imnet, cells=None, feat_unfold=True, local_
         vxvy = [(0, 0)]
         epsilon = 0.
 
-    h_w = tf.cast([height, width], dtype)
+    h_w = tf.cast(tf.shape(features)[1:3], dtype)
     rx_ry = 1. / h_w
 
-    feat_coords = make_coords(batch, height, width, dtype)
+    feat_coords = make_coords(features, dtype)
 
     if cell_decode:
         rel_cells = cells * h_w
