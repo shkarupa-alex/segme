@@ -7,16 +7,22 @@ from tensorflow_hub import KerasLayer
 
 class Refiner:
     def __init__(self, hub_uri):
-        self.model = KerasLayer(hub_uri)
+        self.model = KerasLayer(hub_uri, trainable=False)
 
         self.image = tf.Variable(
-            shape=(1, None, None, 3), dtype='uint8', initial_value=np.zeros((1, 0, 0, 3)).astype('uint8'))
+            trainable=False, shape=(1, None, None, 3), dtype='uint8',
+            initial_value=np.zeros((1, 0, 0, 3)).astype('uint8'))
         self.mask = tf.Variable(
-            shape=(1, None, None, 1), dtype='uint8', initial_value=np.zeros((1, 0, 0, 1)).astype('uint8'))
+            trainable=False, shape=(1, None, None, 1), dtype='uint8',
+            initial_value=np.zeros((1, 0, 0, 1)).astype('uint8'))
         self.prev = tf.Variable(
-            shape=(1, None, None, 1), dtype='uint8', initial_value=np.zeros((1, 0, 0, 1)).astype('uint8'))
+            trainable=False, shape=(1, None, None, 1), dtype='uint8',
+            initial_value=np.zeros((1, 0, 0, 1)).astype('uint8'))
 
-    def __call__(self, image, mask, fast=False, max_size=960, up_scale=1):
+    def __call__(self, image, mask, fast=None, max_size=960, up_scale=1):
+        if fast is None:
+            fast = max(image.shape[:2]) * up_scale <= max_size
+
         fine, coarse = self._global_step(image, mask, max_size)
         if fast:
             return fine
@@ -169,8 +175,8 @@ class Refiner:
 
         fine, coarse = self.model([self.image, self.mask, self.prev])
         fine, coarse = fine[0, :height, :width, 0], coarse[0, :height, :width, 0]
-        fine = np.round(fine * 255).astype(np.uint8)
-        coarse = np.round(coarse * 255).astype(np.uint8)
+        fine = np.round(fine.numpy() * 255).astype(np.uint8)
+        coarse = np.round(coarse.numpy() * 255).astype(np.uint8)
 
         return fine, coarse
 
