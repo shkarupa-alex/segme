@@ -5,7 +5,7 @@ from keras.utils import losses_utils, metrics_utils
 from keras.utils.generic_utils import register_keras_serializable
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Metric>Matting')
 class Grad(SumOverBatchSize):
     def __init__(self, sigma=1.4, name='grad', dtype=None):
         """Creates a `GradientError` instance for matting task (by default downscales input by 255).

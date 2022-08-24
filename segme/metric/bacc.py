@@ -4,7 +4,7 @@ from keras.metrics import BinaryAccuracy, SparseCategoricalAccuracy
 from keras.utils.generic_utils import register_keras_serializable
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Metric')
 class BinaryBoundaryAccuracy(BinaryAccuracy):
     def __init__(self, radius=1, threshold=0.5, name='binary_boundary_accuracy', dtype=None):
         """Creates an `Accuracy` metric instance estimated only in `radius` pixels from boundary.
@@ -29,7 +29,7 @@ class BinaryBoundaryAccuracy(BinaryAccuracy):
         return config
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Metric')
 class SparseCategoricalBoundaryAccuracy(SparseCategoricalAccuracy):
     def __init__(self, radius=1, name='sparse_categorical_boundary_accuracy', dtype=None):
         """Creates a `SparseCategoricalAccuracy` metric instance estimated only in `radius` pixels from boundary.
