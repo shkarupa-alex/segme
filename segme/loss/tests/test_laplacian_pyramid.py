@@ -3,8 +3,8 @@ import tensorflow as tf
 from keras import layers, models
 from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..laplacian_pyramid import LaplacianPyramidLoss
-from ..laplacian_pyramid import _gauss_kernel, laplacian_pyramid_loss
+from segme.loss.laplacian_pyramid import LaplacianPyramidLoss
+from segme.loss.laplacian_pyramid import _gauss_kernel, laplacian_pyramid_loss
 
 
 @test_combinations.run_all_keras_modes
@@ -37,7 +37,8 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         probs = tf.zeros((1, 16, 16, 1), 'float32')
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0)
+        result = laplacian_pyramid_loss(
+            y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0, residual=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.], atol=1e-4)
@@ -46,7 +47,8 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         probs = tf.ones((1, 16, 16, 1), 'float32')
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0)
+        result = laplacian_pyramid_loss(
+            y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0, residual=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.], atol=1e-4)
@@ -55,19 +57,21 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         probs = tf.zeros((1, 16, 16, 1), 'float32')
         targets = tf.ones((1, 16, 16, 1), 'int32')
 
-        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0)
+        result = laplacian_pyramid_loss(
+            y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0, residual=False)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.35693446], atol=1e-4)
+        self.assertAllClose(result, [0.5715827], atol=1e-4)
 
     def test_true(self):
         probs = tf.ones((1, 16, 16, 1), 'float32')
         targets = tf.zeros((1, 16, 16, 1), 'int32')
 
-        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0)
+        result = laplacian_pyramid_loss(
+            y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0, residual=False)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.35693446], atol=1e-4)
+        self.assertAllClose(result, [0.5715827], atol=1e-4)
 
     def test_even(self):
         probs = tf.constant([[
@@ -89,7 +93,8 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
             [[0], [0], [0], [0], [0], [0], [0]],
         ]], 'int32')
 
-        result = laplacian_pyramid_loss(y_true=targets, y_pred=probs, sample_weight=None, levels=1, size=5, sigma=2.0)
+        result = laplacian_pyramid_loss(
+            y_true=targets, y_pred=probs, sample_weight=None, levels=1, size=5, sigma=2.0, residual=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.0])
@@ -114,7 +119,7 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 2.0541933, places=6)
+        self.assertAlmostEqual(result, 2.1272023, places=6)
 
     def test_value(self):
         probs = tf.constant([
@@ -222,10 +227,12 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
 
         loss = LaplacianPyramidLoss(levels=4, size=5, sigma=1.056, reduction=Reduction.SUM)
         result = self.evaluate(loss(targets, probs))
-
+        self.assertAlmostEqual(result, 7.5099545, places=5)  # without residual
         # self.assertAlmostEqual(result, 6.944647789001465, places=6) # FBA (without residual)
-        # self.assertAlmostEqual(result, 7.640613555908203, places=6)  # with residual
-        self.assertAlmostEqual(result, 6.970603942871094, places=5)  # without residual
+
+        loss = LaplacianPyramidLoss(levels=4, size=5, sigma=1.056, residual=True, reduction=Reduction.SUM)
+        result = self.evaluate(loss(targets, probs))
+        self.assertAlmostEqual(result, 9.234282, places=6)  # with residual
 
     def test_weight(self):
         logits = tf.constant([
@@ -247,16 +254,16 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=2)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 2.27636, places=6)
+        self.assertAlmostEqual(result, 2.941966, places=6)
 
         result = self.evaluate(loss(targets[:, :, :32, :], logits[:, :, :32, :]))
-        self.assertAlmostEqual(result, 1.8797371, places=7)
+        self.assertAlmostEqual(result, 3.0307264, places=7)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.0742356, places=5)
+        self.assertAlmostEqual(result, 1.4132111, places=5)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 1.0742356 * 2., places=6)
+        self.assertAlmostEqual(result, 1.4132111 * 2., places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 128, 128, 3).astype('float32')
@@ -270,7 +277,7 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(3, activation='sigmoid')])
-        model.compile(loss='SegMe>LaplacianPyramidLoss', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>LaplacianPyramidLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 224, 224, 5)), np.zeros((2, 224, 224, 3), 'int32'))
         models.Sequential.from_config(model.get_config())
 

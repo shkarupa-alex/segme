@@ -4,8 +4,8 @@ import tensorflow as tf
 from keras import layers, models
 from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..hard_grad import HardGradientMeanAbsoluteError
-from ..hard_grad import hard_gradient_mean_absolute_error
+from segme.loss.hard_grad import HardGradientMeanAbsoluteError
+from segme.loss.hard_grad import hard_gradient_mean_absolute_error
 
 
 @test_combinations.run_all_keras_modes
@@ -136,7 +136,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
-        model.compile(loss='SegMe>HardGradientMeanAbsoluteError', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>HardGradientMeanAbsoluteError', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

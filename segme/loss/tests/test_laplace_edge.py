@@ -3,8 +3,8 @@ import tensorflow as tf
 from keras import layers, models
 from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..laplace_edge import LaplaceEdgeCrossEntropy
-from ..laplace_edge import laplace_edge_cross_entropy
+from segme.loss.laplace_edge import LaplaceEdgeCrossEntropy
+from segme.loss.laplace_edge import laplace_edge_cross_entropy
 
 
 @test_combinations.run_all_keras_modes
@@ -24,7 +24,7 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         result = laplace_edge_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result).mean(axis=(1, 2))
 
-        self.assertAllClose(result, [0.0068], atol=1e-4)
+        self.assertAllClose(result, [0.0], atol=1e-4)
 
     def test_ones(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
@@ -33,7 +33,7 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         result = laplace_edge_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result).mean(axis=(1, 2))
 
-        self.assertAllClose(result, [0.0068], atol=1e-4)
+        self.assertAllClose(result, [0.0], atol=1e-4)
 
     def test_false(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
@@ -42,7 +42,7 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         result = laplace_edge_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result).mean(axis=(1, 2))
 
-        self.assertAllClose(result, [0.0068], atol=1e-4)
+        self.assertAllClose(result, [0.0], atol=1e-4)
 
     def test_true(self):
         logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
@@ -51,7 +51,7 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         result = laplace_edge_cross_entropy(y_true=targets, y_pred=logits, from_logits=True)
         result = self.evaluate(result).mean(axis=(1, 2))
 
-        self.assertAllClose(result, [0.0068], atol=1e-4)
+        self.assertAllClose(result, [0.0], atol=1e-4)
 
     def test_multi(self):
         logits = tf.constant([
@@ -67,7 +67,7 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
 
         loss = LaplaceEdgeCrossEntropy(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 2.028544, places=6)
+        self.assertAlmostEqual(result, 3.2714696, places=6)
 
     def test_value(self):
         logits = tf.constant([[
@@ -84,9 +84,9 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         result = self.evaluate(result)
 
         self.assertAllClose(result, [[
-            [9.35797056e-04, 3.11893113e-02, 9.35797056e-04],
-            [3.11893113e-02, 1.00000015e-07, 3.11893113e-02],
-            [9.35797056e-04, 3.11893113e-02, 9.35797056e-04]
+            [0.519321, 7.7488985, 0.26918977],
+            [7.7936735, 0.80785525, 0.28852564],
+            [7.8201056, 0.49073592, 0.6128013],
         ]])
 
     def test_weight(self):
@@ -107,16 +107,16 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         loss = LaplaceEdgeCrossEntropy(from_logits=True, reduction=Reduction.SUM)
 
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 0.5065162, places=3)
+        self.assertAlmostEqual(result, 132.3564, places=3)
 
         result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
-        self.assertAlmostEqual(result, 0.25700086, places=7)
+        self.assertAlmostEqual(result, 58.438976, places=5)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.2532581, places=3)
+        self.assertAlmostEqual(result, 59.222725, places=5)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.2532581 * 2., places=6)
+        self.assertAlmostEqual(result, 59.222725 * 2, places=4)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
@@ -126,11 +126,11 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         result0 = self.evaluate(loss(targets, probs))
         result1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
-        self.assertAlmostEqual(result0, result1, places=6)
+        self.assertAlmostEqual(result0, result1, places=5)
 
     def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
-        model.compile(loss='SegMe>LaplaceEdgeCrossEntropy', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>LaplaceEdgeCrossEntropy', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

@@ -3,10 +3,10 @@ from keras import losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow_addons.image import euclidean_dist_transform
-from .common_loss import validate_input, to_probs, to_1hot
+from segme.loss.common_loss import validate_input, to_probs, to_1hot
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class BoundaryCategoricalLoss(losses.LossFunctionWrapper):
     """ Proposed in: 'Boundary loss for highly unbalanced segmentation'
 

@@ -3,8 +3,8 @@ import tensorflow as tf
 from keras import layers, models
 from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..balanced_sigmoid import BalancedSigmoidCrossEntropy
-from ..balanced_sigmoid import balanced_sigmoid_cross_entropy
+from segme.loss.balanced_sigmoid import BalancedSigmoidCrossEntropy
+from segme.loss.balanced_sigmoid import balanced_sigmoid_cross_entropy
 
 
 def _to_logit(prob):
@@ -118,7 +118,7 @@ class TestBalancedSigmoidCrossEntropy(test_combinations.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
-        model.compile(loss='SegMe>BalancedSigmoidCrossEntropy', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>BalancedSigmoidCrossEntropy', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

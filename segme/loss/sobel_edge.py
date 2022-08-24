@@ -3,10 +3,10 @@ import tensorflow as tf
 from keras import backend, losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from .common_loss import validate_input, to_probs, to_1hot
+from segme.loss.common_loss import validate_input, to_probs, to_1hot
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class SobelEdgeLoss(losses.LossFunctionWrapper):
     """ Proposed in: 'CascadePSP: Toward Class-Agnostic and Very High-Resolution
     Segmentation via Global and Local Refinement'
@@ -33,8 +33,9 @@ def sobel(probs):
     sobel_y = tf.cast(sobel_y, probs.dtype)
 
     pooled = tf.nn.avg_pool2d(probs, 3, strides=1, padding='SAME')
-    grad_x = tf.nn.depthwise_conv2d(pooled, sobel_x, strides=[1] * 4, padding='SAME')
-    grad_y = tf.nn.depthwise_conv2d(pooled, sobel_y, strides=[1] * 4, padding='SAME')
+    padded = tf.pad(pooled, [(0, 0), (1, 1), (1, 1), (0, 0)], mode='SYMMETRIC')
+    grad_x = tf.nn.depthwise_conv2d(padded, sobel_x, strides=[1] * 4, padding='VALID')
+    grad_y = tf.nn.depthwise_conv2d(padded, sobel_y, strides=[1] * 4, padding='VALID')
 
     edge = tf.sqrt(grad_x ** 2 + grad_y ** 2 + backend.epsilon())
 

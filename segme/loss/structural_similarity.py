@@ -5,11 +5,11 @@ from scipy.special import softmax as np_softmax
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.ops.image_ops_impl import _ssim_helper
-from .common_loss import validate_input
-from .weighted_wrapper import WeightedLossFunctionWrapper
+from segme.loss.common_loss import validate_input
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class StructuralSimilarityLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'Optimizing the Latent Space of Generative Networks'
 

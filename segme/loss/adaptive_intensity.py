@@ -2,10 +2,10 @@ import tensorflow as tf
 from keras import losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from .common_loss import validate_input, crossentropy, iou, mae
+from segme.loss.common_loss import validate_input, crossentropy, iou, mae
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class AdaptivePixelIntensityLoss(losses.LossFunctionWrapper):
     """ Proposed in: 'TRACER: Extreme Attention Guided Salient Object Tracing Network'
 

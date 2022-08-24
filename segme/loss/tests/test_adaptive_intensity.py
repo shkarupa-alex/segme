@@ -3,8 +3,8 @@ import tensorflow as tf
 from keras import layers, models
 from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..adaptive_intensity import AdaptivePixelIntensityLoss
-from ..adaptive_intensity import adaptive_pixel_intensity_loss
+from segme.loss.adaptive_intensity import AdaptivePixelIntensityLoss
+from segme.loss.adaptive_intensity import adaptive_pixel_intensity_loss
 
 
 @test_combinations.run_all_keras_modes
@@ -135,7 +135,7 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
-        model.compile(loss='SegMe>AdaptivePixelIntensityLoss', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>AdaptivePixelIntensityLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 64, 64, 1)), np.zeros((2, 64, 64, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

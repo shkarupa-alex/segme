@@ -3,8 +3,8 @@ import tensorflow as tf
 from keras import layers, models
 from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..structural_similarity import StructuralSimilarityLoss
-from ..structural_similarity import _ssim_kernel, _ssim_level, structural_similarity_loss
+from segme.loss.structural_similarity import StructuralSimilarityLoss
+from segme.loss.structural_similarity import _ssim_kernel, _ssim_level, structural_similarity_loss
 
 
 @test_combinations.run_all_keras_modes
@@ -298,7 +298,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
-        model.compile(loss='SegMe>StructuralSimilarityLoss', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>StructuralSimilarityLoss', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 224, 224, 1)), np.zeros((2, 224, 224, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 
