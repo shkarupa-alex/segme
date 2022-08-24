@@ -3,8 +3,8 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from ..fgbg import solve_fgbg
-from ...np.fgbg import solve_fgbg as solve_fgbg_np
+from segme.utils.matting.tf.fgbg import solve_fgbg
+from segme.utils.matting.np.fgbg import solve_fgbg as solve_fgbg_np
 
 
 @test_util.run_all_in_graph_and_eager_modes

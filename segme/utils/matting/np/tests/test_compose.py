@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from ..compose import compose_two
+from segme.utils.matting.np.compose import compose_two
 
 
 class TestComposeTwo(unittest.TestCase):

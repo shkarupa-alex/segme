@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from ..compose import compose_two
-from ...np.compose import compose_two as compose_two_np
+from segme.utils.matting.tf.compose import compose_two
+from segme.utils.matting.np.compose import compose_two as compose_two_np
 
 
 @test_util.run_all_in_graph_and_eager_modes

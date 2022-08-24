@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from ..trimap import alpha_trimap
-from ...np.trimap import alpha_trimap as alpha_trimap_np
+from segme.utils.matting.tf.trimap import alpha_trimap
+from segme.utils.matting.np.trimap import alpha_trimap as alpha_trimap_np
 
 
 @test_util.run_all_in_graph_and_eager_modes

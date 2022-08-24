@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from .fg import solve_fg
+from segme.utils.matting.np.fg import solve_fg
 
 
 def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):

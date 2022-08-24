@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from ..aug import augment_inverse, augment_alpha, augment_trimap
+from segme.utils.matting.tf.aug import augment_inverse, augment_alpha, augment_trimap
 
 
 @test_util.run_all_in_graph_and_eager_modes

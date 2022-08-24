@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import os
 import unittest
-from ..fg import solve_fg
+from segme.utils.matting.np.fg import solve_fg
 
 
 class TestSolveFg(unittest.TestCase):

@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from ..aug import stateless_random_rotate_90, random_color_mix, random_channel_shuffle, augment_onthefly
+from segme.utils.common.aug import stateless_random_rotate_90, random_color_mix, random_channel_shuffle, \
+    augment_onthefly
 
 
 @test_util.run_all_in_graph_and_eager_modes
