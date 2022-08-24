@@ -2,13 +2,12 @@ from keras import backend, layers, models
 from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .convnormrelu import ConvNormRelu
-from .resizebysample import resize_by_sample
-from .resizebyscale import resize_by_scale
-from .sameconv import SameConv
+from segme.common.convnormact import ConvNormAct
+from segme.common.intersmooth import SmoothInterpolation
+from segme.policy import respol
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Common')
 class HierarchicalMultiScaleAttention(layers.Wrapper):
     """ Proposed in: https://arxiv.org/abs/2005.10821
 
@@ -16,13 +15,12 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
       layer: The `Layer` instance to be wrapped.
     """
 
-    def __init__(self, layer, scales=((0.5,), (0.25, 0.5, 2.0)), filters=256, dropout=0., standardized=False, **kwargs):
+    def __init__(self, layer, scales=((0.5,), (0.25, 0.5, 2.0)), filters=256, dropout=0., **kwargs):
         super().__init__(layer, **kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
+        self.input_spec = layers.InputSpec(ndim=4, dtype=self.compute_dtype)
         self.scales = scales
         self.filters = filters
         self.dropout = dropout
-        self.standardized = standardized
 
         if 2 != len(scales) or not all([isinstance(s, (list, tuple)) for s in scales]):
             raise ValueError('Expecting `scales` to be a train/eval pair of scale lists/tuples.')
@@ -35,11 +33,15 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
 
     def build(self, input_shape=None):
         self.attention = models.Sequential([
-            ConvNormRelu(self.filters, 3, standardized=self.standardized),
-            ConvNormRelu(self.filters, 3, standardized=self.standardized),
+            ConvNormAct(self.filters, 3),
+            ConvNormAct(self.filters, 3),
             layers.Dropout(self.dropout),
-            SameConv(1, kernel_size=1, use_bias=False, activation='sigmoid')
+            layers.Conv2D(1, 1, activation='sigmoid', use_bias=False)
         ])
+
+        self.intbyscale = {scale: SmoothInterpolation(scale, resize_type=respol.default_policy().name)
+                           for scale in set(self.train_scales + self.eval_scales)}
+        self.intbysample = SmoothInterpolation(None, resize_type=respol.default_policy().name)
 
         super().build(input_shape)
 
@@ -57,10 +59,10 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
     def _branch(self, inputs, scales):
         outputs = None
 
-        for scale in scales:
-            _inputs = resize_by_scale(inputs, scale=scale)
+        for scale in scales:  # TODO: check order
+            _inputs = self.intbyscale[scale](inputs)  # TODO: bicubic? +antialiasing?
             _outputs, _features = self.layer.call(_inputs)
-            _outputs = resize_by_sample([_outputs, _inputs])
+            _outputs = self.intbysample([_outputs, _inputs])
 
             if outputs is None:
                 # store largest
@@ -68,17 +70,17 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
                 continue
 
             _attention = self.attention(_features)
-            _attention = resize_by_sample([_attention, _inputs])
+            _attention = self.intbysample([_attention, _inputs])
 
             if scale >= 1.0:
                 # downscale previous
-                outputs = resize_by_sample([outputs, _outputs])
+                outputs = self.intbysample([outputs, _outputs])
                 outputs = _attention * _outputs + (1. - _attention) * outputs
             else:
                 # upscale current
                 _outputs = _attention * _outputs
-                _outputs = resize_by_sample([_outputs, outputs])
-                _attention = resize_by_sample([_attention, outputs])
+                _outputs = self.intbysample([_outputs, outputs])
+                _attention = self.intbysample([_attention, outputs])
 
                 outputs = _outputs + (1 - _attention) * outputs
 
@@ -93,8 +95,7 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
         config.update({
             'scales': self.scales,
             'filters': self.filters,
-            'dropout': self.dropout,
-            'standardized': self.standardized
+            'dropout': self.dropout
         })
 
         return config

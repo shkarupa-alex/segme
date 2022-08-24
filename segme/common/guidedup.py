@@ -1,13 +1,14 @@
 import tensorflow as tf
-from keras import activations, layers, models
+from keras import layers
 from keras.applications.imagenet_utils import preprocess_input
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .convnormrelu import ConvNormRelu
-from .resizebysample import resize_by_sample
+from segme.common.convnormact import ConvNormAct, Conv
+from segme.common.intersmooth import SmoothInterpolation
+from segme.common.sequent import Sequential
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Common')
 class BoxFilter(layers.Layer):
     def __init__(self, radius, **kwargs):
         super().__init__(**kwargs)
@@ -44,24 +45,21 @@ class BoxFilter(layers.Layer):
         return config
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Common')
 class GuidedFilter(layers.Layer):
     """ Proposed in: https://arxiv.org/abs/1803.05619 """
-    def __init__(self, radius=4, filters=64, kernel_size=1, normalize=False, activation='relu', epsilon=1e-8,
-                 standardized=False, **kwargs):
+
+    def __init__(self, radius=4, filters=64, kernel_size=1, norm_type=None, epsilon=1e-8, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             layers.InputSpec(ndim=4, dtype='uint8'),  # image
-            layers.InputSpec(ndim=4)  # target
-        ]
+            layers.InputSpec(ndim=4)]  # target
 
         self.radius = radius
         self.filters = filters
         self.kernel_size = kernel_size
-        self.normalize = normalize
-        self.activation = activations.get(activation)
+        self.norm_type = norm_type
         self.epsilon = epsilon
-        self.standardized = standardized
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -73,12 +71,10 @@ class GuidedFilter(layers.Layer):
             layers.InputSpec(ndim=4, axes={-1: channels[1]})
         ]
 
-        self.guide = models.Sequential([
-            ConvNormRelu(self.filters, self.kernel_size, activation=self.activation, standardized=self.standardized)
-            if self.normalize else
-            layers.Conv2D(self.filters, self.kernel_size, padding='same', activation=self.activation),
-
-            layers.Conv2D(channels[1], self.kernel_size, padding='same')
+        self.intbysample = SmoothInterpolation(None)
+        self.guide = Sequential([
+            ConvNormAct(self.filters, self.kernel_size, norm_type=self.norm_type),
+            Conv(channels[1], self.kernel_size)
         ])
         self.box = BoxFilter(self.radius)
 
@@ -86,7 +82,7 @@ class GuidedFilter(layers.Layer):
 
     def call(self, inputs, **kwargs):
         images, targets = inputs
-        targets = resize_by_sample([targets, images])
+        targets = self.intbysample([targets, images])
 
         normals = preprocess_input(tf.cast(images, self.compute_dtype), mode='tf')
         guides = self.guide(normals)
@@ -119,21 +115,19 @@ class GuidedFilter(layers.Layer):
         config.update({
             'radius': self.radius,
             'filters': self.filters,
-            'normalize': self.normalize,
+            'norm_type': self.norm_type,
             'kernel_size': self.kernel_size,
-            'activation': activations.serialize(self.activation),
-            'epsilon': self.epsilon,
-            'standardized': self.standardized
+            'epsilon': self.epsilon
         })
 
         return config
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Common')
 class ConvGuidedFilter(layers.Layer):
     """ Proposed in: https://arxiv.org/abs/1803.05619 """
-    def __init__(self, radius=1, filters=32, kernel_size=3, normalize=True, activation='leaky_relu', standardized=False,
-                 **kwargs):
+
+    def __init__(self, radius=1, filters=32, kernel_size=3, norm_type=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             layers.InputSpec(ndim=4, dtype='uint8'),  # image high
@@ -143,9 +137,7 @@ class ConvGuidedFilter(layers.Layer):
         self.radius = radius
         self.filters = filters
         self.kernel_size = kernel_size
-        self.normalize = normalize
-        self.activation = activations.get(activation)
-        self.standardized = standardized
+        self.norm_type = norm_type
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -154,22 +146,22 @@ class ConvGuidedFilter(layers.Layer):
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
         self.input_spec = [
             layers.InputSpec(ndim=4, dtype='uint8', axes={-1: channels[0]}),
-            layers.InputSpec(ndim=4, axes={-1: channels[1]})
-        ]
+            layers.InputSpec(ndim=4, axes={-1: channels[1]})]
 
-        self.guide = models.Sequential([
-            ConvNormRelu(self.filters, self.kernel_size, activation=self.activation, standardized=self.standardized)
-            if self.normalize else
-            layers.Conv2D(self.filters, self.kernel_size, padding='same', activation=self.activation),
+        self.intnorm = SmoothInterpolation(None)
+        self.intscale = SmoothInterpolation(None)
+        self.intbias = SmoothInterpolation(None)
 
-            layers.Conv2D(channels[1], self.kernel_size, padding='same')
+        self.guide = Sequential([
+            ConvNormAct(self.filters, self.kernel_size, norm_type=self.norm_type),
+            Conv(channels[1], self.kernel_size)
         ])
-        self.box = layers.DepthwiseConv2D(
-            3, padding='same', dilation_rate=self.radius, use_bias=False, kernel_initializer='ones')
-        self.conva = models.Sequential([
-            ConvNormRelu(self.filters, 1, activation=self.activation, standardized=self.standardized),
-            ConvNormRelu(self.filters, 1, activation=self.activation, standardized=self.standardized),
-            layers.Conv2D(channels[1], 1, use_bias=False)
+        self.box = Conv(
+            None, 3, conv_kwargs={'dilation_rate': self.radius, 'use_bias': False, 'kernel_initializer': 'ones'})
+        self.conva = Sequential([
+            ConvNormAct(self.filters, 1),
+            ConvNormAct(self.filters, 1),
+            Conv(channels[1], 1, conv_kwargs={'use_bias': False})
         ])
 
         super().build(input_shape)
@@ -178,7 +170,7 @@ class ConvGuidedFilter(layers.Layer):
         images_high, targets_low = inputs
 
         normals_high = preprocess_input(tf.cast(images_high, self.compute_dtype), mode='tf')
-        normals_low = resize_by_sample([normals_high, targets_low])
+        normals_low = self.intnorm([normals_high, targets_low])
 
         guides_high = self.guide(normals_high)
         guides_low = self.guide(normals_low)
@@ -195,8 +187,8 @@ class ConvGuidedFilter(layers.Layer):
         scale = self.conva(tf.concat([covariance, variance], axis=-1))
         bias = targets_mean - scale * guides_mean
 
-        scale_mean = resize_by_sample([scale, images_high])
-        bias_mean = resize_by_sample([bias, images_high])
+        scale_mean = self.intscale([scale, images_high])
+        bias_mean = self.intbias([bias, images_high])
 
         outputs = scale_mean * guides_high + bias_mean
 
@@ -212,9 +204,7 @@ class ConvGuidedFilter(layers.Layer):
             'radius': self.radius,
             'filters': self.filters,
             'kernel_size': self.kernel_size,
-            'normalize': self.normalize,
-            'activation': activations.serialize(self.activation),
-            'standardized': self.standardized
+            'norm_type': self.norm_type
         })
 
         return config

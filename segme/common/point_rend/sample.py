@@ -2,12 +2,13 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
+from segme.common.head import ClassificationActivation
+from segme.common.impfunc import grid_sample
 
 
-@register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>Common>PointRend')
 class ClassificationUncertainty(layers.Layer):
     def __init__(self, from_logits=True, **kwargs):
-        kwargs['autocast'] = False
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(min_ndim=2)
         self.from_logits = from_logits
@@ -20,12 +21,14 @@ class ClassificationUncertainty(layers.Layer):
 
         self.input_spec = layers.InputSpec(min_ndim=2, axes={-1: self.channels})
 
+        if self.from_logits:
+            self.class_act = ClassificationActivation(dtype=self.compute_dtype)
+
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         if self.from_logits:
-            activation = tf.nn.softmax if self.channels > 1 else tf.nn.sigmoid
-            inputs = activation(inputs)
+            inputs = self.class_act(inputs)
 
         if 1 == self.channels:
             inputs = layers.concatenate([1. - inputs, inputs])
@@ -39,11 +42,6 @@ class ClassificationUncertainty(layers.Layer):
     def compute_output_shape(self, input_shape):
         return input_shape[:-1]
 
-    def compute_output_signature(self, input_signature):
-        output_signature = super().compute_output_signature(input_signature)
-
-        return tf.TensorSpec(dtype=input_signature.dtype, shape=output_signature.shape)
-
     def get_config(self):
         config = super().get_config()
         config.update({'from_logits': self.from_logits})
@@ -51,11 +49,7 @@ class ClassificationUncertainty(layers.Layer):
         return config
 
 
-def classification_uncertainty(inputs, **kwargs):
-    return ClassificationUncertainty(**kwargs)(inputs)
-
-
-@register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>Common>PointRend')
 class PointSample(layers.Layer):
     def __init__(self, align_corners, mode='bilinear', **kwargs):
         kwargs['autocast'] = False
@@ -73,59 +67,10 @@ class PointSample(layers.Layer):
     def call(self, inputs, **kwargs):
         features, grid = inputs
 
-        assertions = [
-            tf.debugging.assert_greater_equal(
-                tf.reduce_min(grid), tf.cast(0.0, grid.dtype), message='Grid values should be in range [0; 1]'),
-            tf.debugging.assert_less_equal(
-                tf.reduce_max(grid), tf.cast(1.0, grid.dtype), message='Grid values should be in range [0; 1]')
-        ]
-        with tf.control_dependencies(assertions):
-            features_shape, grid_shape = tf.shape(features), tf.shape(grid)
-            safe_features = tf.pad(features, [[0, 0], [1, 1], [1, 1], [0, 0]])
-            safe_features = tf.cast(safe_features, grid.dtype)
-            grid = tf.reverse(grid, axis=[-1])
-            size = tf.cast(features_shape[1:3], grid.dtype)
+        outputs = grid_sample(
+            features, grid[:, None] * 2. - 1., mode=self.mode, align_corners=self.align_corners)[:, 0]
 
-            if self.align_corners:
-                grid = grid * (size - 1)
-            else:
-                grid = (2.0 * grid * size - 1) / 2
-
-            batch_size, point_size = grid_shape[0], grid_shape[1]
-            batch_idx = tf.reshape(tf.range(0, batch_size), (batch_size, 1, 1))
-            coord_batches = tf.tile(batch_idx, (1, point_size, 1))
-            coord_bounds = features_shape[1:3] + 1
-
-            def _lookup(coords):
-                coords = tf.clip_by_value(tf.cast(coords, 'int32') + 1, 0, coord_bounds)
-                indices = tf.concat([coord_batches, coords], axis=-1)
-                return tf.gather_nd(safe_features, indices)
-
-            if 'bilinear' == self.mode:
-                grid_nw = tf.math.floor(grid)
-                grid_ne = grid_nw + [1, 0]
-                grid_sw = grid_nw + [0, 1]
-                grid_se = grid_nw + [1, 1]
-
-                nw = tf.math.reduce_prod(grid_se - grid, axis=-1, keepdims=True)
-                ne = tf.math.reduce_prod((grid_sw - grid) * [1, -1], axis=-1, keepdims=True)
-                sw = tf.math.reduce_prod((grid_ne - grid) * [-1, 1], axis=-1, keepdims=True)
-                se = tf.math.reduce_prod(grid - grid_nw, axis=-1, keepdims=True)
-
-                result = tf.add_n([
-                    _lookup(grid_nw) * nw,
-                    _lookup(grid_ne) * ne,
-                    _lookup(grid_sw) * sw,
-                    _lookup(grid_se) * se])
-
-            else:  # 'nearest' == self.mode
-                result = _lookup(tf.math.round(grid))
-
-            features_dtype = tf.dtypes.as_dtype(features.dtype)
-            if features_dtype.is_integer:
-                result = tf.round(result)
-
-            return tf.cast(result, features.dtype)
+        return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -147,11 +92,7 @@ class PointSample(layers.Layer):
         return config
 
 
-def point_sample(inputs, **kwargs):
-    return PointSample(**kwargs)(inputs)
-
-
-@register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>Common>PointRend')
 class UncertainPointsWithRandomness(layers.Layer):
     def __init__(self, points, align_corners, oversample, importance, **kwargs):
         kwargs['autocast'] = False
@@ -170,6 +111,13 @@ class UncertainPointsWithRandomness(layers.Layer):
         self.oversample = float(oversample)
         self.importance = float(importance)
 
+    @shape_type_conversion
+    def build(self, input_shape):
+        self.class_uncert = ClassificationUncertainty()
+        self.point_sample = PointSample(align_corners=self.align_corners)
+
+        super().build(input_shape)
+
     def call(self, inputs, **kwargs):
         input_shape = tf.shape(inputs)
         batch_size = input_shape[0]
@@ -177,7 +125,7 @@ class UncertainPointsWithRandomness(layers.Layer):
 
         sampled_size = tf.cast(total_points * self.oversample, 'int32')
         point_coords = tf.random.uniform((batch_size, sampled_size, 2), dtype=self.compute_dtype)
-        point_logits = point_sample([inputs, point_coords], align_corners=self.align_corners)
+        point_logits = self.point_sample([inputs, point_coords])
 
         # It is crucial to calculate uncertainty based on the sampled prediction value for the points.
         # Calculating uncertainties of the coarse predictions first and sampling them for points leads
@@ -187,7 +135,7 @@ class UncertainPointsWithRandomness(layers.Layer):
         # However, if we calculate uncertainties for the coarse predictions first,
         # both will have -1 uncertainty, and the sampled point will get -1 uncertainty.
 
-        point_uncerts = classification_uncertainty(point_logits)
+        point_uncerts = self.class_uncert(point_logits)
         uncertain_size = tf.cast(total_points * self.importance, 'int32')
         random_size = tf.maximum(0, tf.cast(total_points, 'int32') - uncertain_size)
 
@@ -221,11 +169,7 @@ class UncertainPointsWithRandomness(layers.Layer):
         return config
 
 
-def uncertain_points_with_randomness(inputs, **kwargs):
-    return UncertainPointsWithRandomness(**kwargs)(inputs)
-
-
-@register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>Common>PointRend')
 class UncertainPointsCoordsOnGrid(layers.Layer):
     def __init__(self, points, **kwargs):
         kwargs['autocast'] = False
@@ -237,24 +181,30 @@ class UncertainPointsCoordsOnGrid(layers.Layer):
 
         self.points = float(points)
 
-    def call(self, inputs, **kwargs):
-        input_shape = tf.shape(inputs)
-        batch_size = input_shape[0]
+    @shape_type_conversion
+    def build(self, input_shape):
+        self.class_uncert = ClassificationUncertainty()
 
-        total_points = tf.cast(input_shape[1] * input_shape[2], 'float32') * self.points
+        super().build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        batch, height, width, _ = tf.unstack(tf.shape(inputs))
+
+        total_points = tf.cast(height * width, 'float32') * self.points
         sampled_size = tf.cast(total_points, 'int32')
-        uncert_map = classification_uncertainty(inputs)
-        flat_inputs = tf.reshape(uncert_map, [batch_size, -1])
+
+        height = tf.cast(height, self.compute_dtype)
+        width = tf.cast(width, self.compute_dtype)
+
+        uncert_map = self.class_uncert(inputs)
+        flat_inputs = tf.reshape(uncert_map, [batch, -1])
         _, top_indices = tf.math.top_k(flat_inputs, k=sampled_size)
 
-        exp_indices = tf.expand_dims(tf.cast(top_indices, 'float32'), axis=-1)
-        input_height = tf.cast(input_shape[1], 'float32')
-        input_width = tf.cast(input_shape[2], 'float32')
+        exp_indices = tf.cast(top_indices, self.compute_dtype)[..., None]
         point_coords = tf.concat([
-            0.5 / input_width + (exp_indices % input_width) / input_width,
-            0.5 / input_height + (exp_indices // input_width) / input_height
+            0.5 / width + (exp_indices % width) / width,
+            0.5 / height + (exp_indices // width) / height
         ], axis=-1)
-        point_coords = tf.cast(point_coords, self.compute_dtype)
 
         return top_indices, point_coords
 
@@ -277,7 +227,3 @@ class UncertainPointsCoordsOnGrid(layers.Layer):
         config.update({'points': self.points})
 
         return config
-
-
-def uncertain_points_coords_on_grid(inputs, **kwargs):
-    return UncertainPointsCoordsOnGrid(**kwargs)(inputs)

@@ -3,8 +3,8 @@ import tensorflow as tf
 from keras.testing_infra import test_combinations
 from keras.mixed_precision import policy as mixed_precision
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..loss import PointLoss
-from ....testing_utils import layer_multi_io_test
+from segme.common.point_rend.loss import PointLoss
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes
@@ -47,6 +47,7 @@ class TestPointLoss(test_combinations.TestCase):
         )
         self.assertTrue(np.all(outputs >= 0.))
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         outputs = layer_multi_io_test(
             PointLoss,

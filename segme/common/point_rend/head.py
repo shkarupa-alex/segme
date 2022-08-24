@@ -3,7 +3,7 @@ from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 
 
-@register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>Common>PointRend')
 class PointHead(layers.Layer):
     def __init__(self, classes, units, fines, residual=False, **kwargs):
         super().__init__(**kwargs)
@@ -23,8 +23,8 @@ class PointHead(layers.Layer):
         # Official implementation initializes with
         # nn.init.kaiming_normal_(..., mode='fan_out', nonlinearity='relu')
         # https://github.com/facebookresearch/detectron2/blob/master/projects/PointRend/point_rend/point_head.py#L137
-        weight_init = initializers.he_normal()
-        layers_kwargs = {'padding': 'same', 'activation': 'relu', 'kernel_initializer': weight_init}
+
+        layers_kwargs = {'activation': 'relu', 'kernel_initializer': 'he_normal'}
         self.layers = [layers.Conv1D(u, 1, **layers_kwargs) for u in self.units]
 
         proj_init = initializers.random_normal(stddev=0.001)

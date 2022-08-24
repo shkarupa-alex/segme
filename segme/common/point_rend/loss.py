@@ -3,10 +3,10 @@ from keras import layers, losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from keras.utils.tf_utils import shape_type_conversion
-from .sample import point_sample
+from segme.common.point_rend.sample import PointSample
 
 
-@register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>Common>PointRend')
 class PointLoss(layers.Layer):
     def __init__(self, classes, weighted=False, reduction=Reduction.AUTO, **kwargs):
         kwargs['autocast'] = False
@@ -14,7 +14,7 @@ class PointLoss(layers.Layer):
         self.input_spec = [
             layers.InputSpec(ndim=3, axes={-1: classes}),  # point logits
             layers.InputSpec(ndim=3, axes={-1: 2}),  # point coords
-            layers.InputSpec(ndim=4, axes={-1: 1})  # labels
+            layers.InputSpec(ndim=4, axes={-1: 1}, dtype='int32')  # labels
         ]
         if weighted:
             self.input_spec.append(layers.InputSpec(ndim=4, axes={-1: 1}))  # weights
@@ -25,6 +25,10 @@ class PointLoss(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
+        if self.weighted:
+            self.weight_sample = PointSample(align_corners=False, mode='nearest')
+        self.label_sample = PointSample(align_corners=False, mode='nearest')
+
         loss_class = losses.BinaryCrossentropy if 1 == self.classes else losses.SparseCategoricalCrossentropy
         self.loss_inst = loss_class(reduction=self.reduction, from_logits=True)
 
@@ -33,12 +37,12 @@ class PointLoss(layers.Layer):
     def call(self, inputs, **kwargs):
         if self.weighted:
             logits, coords, labels, weights = inputs
-            point_weights = point_sample([weights, coords], align_corners=True, mode='nearest')
+            point_weights = self.weight_sample([weights, coords])
         else:
             logits, coords, labels = inputs
             point_weights = None
 
-        point_labels = point_sample([labels, coords], align_corners=True, mode='nearest')
+        point_labels = self.label_sample([labels, coords])
         loss = self.loss_inst(point_labels, tf.cast(logits, 'float32'), sample_weight=point_weights)
 
         return loss

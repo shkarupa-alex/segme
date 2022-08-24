@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
 import tensorflow as tf
 from keras import layers
 from keras.utils.control_flow_util import smart_cond
@@ -23,7 +22,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from keras.utils.conv_utils import normalize_tuple
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Common')
 class AdaptivePooling(layers.Layer):
     # TODO: wait for https://github.com/tensorflow/addons/pull/2322
 
@@ -116,13 +115,13 @@ class AdaptivePooling(layers.Layer):
         return config
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Common')
 class AdaptiveAveragePooling(AdaptivePooling):
     def __init__(self, output_size, **kwargs):
         super().__init__(reduce_function=tf.reduce_mean, output_size=output_size, **kwargs)
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Common')
 class AdaptiveMaxPooling(AdaptivePooling):
     def __init__(self, output_size, **kwargs):
         super().__init__(reduce_function=tf.reduce_max, output_size=output_size, **kwargs)

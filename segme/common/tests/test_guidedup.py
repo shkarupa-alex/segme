@@ -2,13 +2,22 @@ import cv2
 import numpy as np
 import os
 import tensorflow as tf
+from keras.mixed_precision import policy as mixed_precision
 from keras.testing_infra import test_combinations, test_utils
-from ..guidedup import BoxFilter, GuidedFilter, ConvGuidedFilter
-from ...testing_utils import layer_multi_io_test
+from segme.common.guidedup import BoxFilter, GuidedFilter, ConvGuidedFilter
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes
 class TestBoxFilter(test_combinations.TestCase):
+    def setUp(self):
+        super(TestBoxFilter, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestBoxFilter, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
     def test_layer(self):
         test_utils.layer_test(
             BoxFilter,
@@ -17,6 +26,17 @@ class TestBoxFilter(test_combinations.TestCase):
             input_dtype='float32',
             expected_output_shape=[None, 8, 9, 1],
             expected_output_dtype='float32'
+        )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        test_utils.layer_test(
+            BoxFilter,
+            kwargs={'radius': 3},
+            input_shape=[2, 8, 9, 1],
+            input_dtype='float16',
+            expected_output_shape=[None, 8, 9, 1],
+            expected_output_dtype='float16'
         )
 
     def test_value(self):
@@ -53,11 +73,18 @@ class TestBoxFilter(test_combinations.TestCase):
 
 @test_combinations.run_all_keras_modes
 class TestGuidedFilter(test_combinations.TestCase):
+    def setUp(self):
+        super(TestGuidedFilter, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestGuidedFilter, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
     def test_layer(self):
         layer_multi_io_test(
             GuidedFilter,
-            kwargs={'radius': 3, 'filters': 16, 'kernel_size': 3, 'normalize': False, 'activation': 'relu',
-                    'epsilon': 1e-8, 'standardized': False},
+            kwargs={'radius': 3, 'filters': 16, 'kernel_size': 3, 'norm_type': True, 'epsilon': 1e-8},
             input_shapes=[(2, 8, 9, 1), (2, 8, 9, 1)],
             input_dtypes=['uint8', 'float32'],
             expected_output_shapes=[(None, 8, 9, 1)],
@@ -65,21 +92,22 @@ class TestGuidedFilter(test_combinations.TestCase):
         )
         layer_multi_io_test(
             GuidedFilter,
-            kwargs={'radius': 3, 'filters': 64, 'kernel_size': 1, 'normalize': True, 'activation': 'relu',
-                    'epsilon': 1e-8, 'standardized': True},
+            kwargs={'radius': 3, 'filters': 64, 'kernel_size': 1, 'norm_type': False, 'epsilon': 1e-8},
             input_shapes=[(2, 8, 9, 3), (2, 8, 9, 1)],
             input_dtypes=['uint8', 'float32'],
             expected_output_shapes=[(None, 8, 9, 1)],
             expected_output_dtypes=['float32']
         )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             GuidedFilter,
-            kwargs={'radius': 3, 'filters': 8, 'kernel_size': 1, 'normalize': True, 'activation': 'leaky_relu',
-                    'epsilon': 1e-2, 'standardized': False},
+            kwargs={'radius': 3, 'filters': 8, 'kernel_size': 1, 'norm_type': True, 'epsilon': 1e-2},
             input_shapes=[(2, 16, 18, 1), (2, 8, 9, 3)],
-            input_dtypes=['uint8', 'float32'],
+            input_dtypes=['uint8', 'float16'],
             expected_output_shapes=[(None, 16, 18, 3)],
-            expected_output_dtypes=['float32']
+            expected_output_dtypes=['float16']
         )
 
     # Original test for GuidedFilter without internal image-to-guidance projection
@@ -103,11 +131,18 @@ class TestGuidedFilter(test_combinations.TestCase):
 
 @test_combinations.run_all_keras_modes
 class TestConvGuidedFilter(test_combinations.TestCase):
+    def setUp(self):
+        super(TestConvGuidedFilter, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestConvGuidedFilter, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
     def test_layer(self):
         layer_multi_io_test(
             ConvGuidedFilter,
-            kwargs={'radius': 1, 'filters': 16, 'kernel_size': 3, 'normalize': True, 'activation': 'leaky_relu',
-                    'standardized': False},
+            kwargs={'radius': 1, 'filters': 16, 'kernel_size': 3, 'norm_type': True},
             input_shapes=[(2, 16, 18, 1), (2, 8, 9, 1)],
             input_dtypes=['uint8', 'float32'],
             expected_output_shapes=[(None, 16, 18, 1)],
@@ -115,21 +150,22 @@ class TestConvGuidedFilter(test_combinations.TestCase):
         )
         layer_multi_io_test(
             ConvGuidedFilter,
-            kwargs={'radius': 2, 'filters': 64, 'kernel_size': 1, 'normalize': False, 'activation': 'relu',
-                    'standardized': False},
-            input_shapes=[(2, 24, 27, 3), (2, 8, 9, 1)],
-            input_dtypes=['uint8', 'float32'],
-            expected_output_shapes=[(None, 24, 27, 1)],
-            expected_output_dtypes=['float32']
-        )
-        layer_multi_io_test(
-            ConvGuidedFilter,
-            kwargs={'radius': 3, 'filters': 64, 'kernel_size': 3, 'normalize': True, 'activation': 'leaky_relu',
-                    'standardized': True},
+            kwargs={'radius': 3, 'filters': 64, 'kernel_size': 3, 'norm_type': None},
             input_shapes=[(2, 16, 18, 1), (2, 8, 9, 3)],
             input_dtypes=['uint8', 'float32'],
             expected_output_shapes=[(None, 16, 18, 3)],
             expected_output_dtypes=['float32']
+        )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        layer_multi_io_test(
+            ConvGuidedFilter,
+            kwargs={'radius': 3, 'filters': 64, 'kernel_size': 3, 'norm_type': True},
+            input_shapes=[(2, 16, 18, 1), (2, 8, 9, 3)],
+            input_dtypes=['uint8', 'float16'],
+            expected_output_shapes=[(None, 16, 18, 3)],
+            expected_output_dtypes=['float16']
         )
 
 

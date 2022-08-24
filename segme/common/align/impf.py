@@ -3,11 +3,11 @@ import tensorflow as tf
 from keras import layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .impfunc import make_coords, query_features
-from .convnormrelu import ConvNormRelu
+from segme.common.impfunc import make_coords, query_features
+from segme.common.convnormact import ConvNormAct
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Common>Align>LIIF')
 class ImplicitFeatureAlignment(layers.Layer):
     """
     Proposed in "Learning Implicit Feature Alignment Function for Semantic Segmentation"
@@ -27,7 +27,7 @@ class ImplicitFeatureAlignment(layers.Layer):
         self.input_spec = [layers.InputSpec(ndim=4, axes={-1: c}) for c in self.channels]
 
         self.posemb = [SpatialEncoding() for _ in input_shape]
-        self.imnet = models.Sequential([ConvNormRelu(self.filters * 2, 1), ConvNormRelu(self.filters, 1)])
+        self.imnet = models.Sequential([ConvNormAct(self.filters * 2, 1), ConvNormAct(self.filters, 1)])
 
         super().build(input_shape)
 
@@ -37,13 +37,8 @@ class ImplicitFeatureAlignment(layers.Layer):
         contexts = []
         for i, feat in enumerate(inputs):
             columns = query_features(
-                feat, coords, tf.identity, cells=None, feat_unfold=False, local_ensemble=False,
-                dtype=self.compute_dtype)
-            columns = tf.cast(columns, self.compute_dtype)
-            q_feats, rel_coords = tf.split(columns, [self.channels[i], 2], axis=-1)
-            rel_coords = self.posemb[i](rel_coords)
-            contexts.append(q_feats)
-            contexts.append(rel_coords)
+                feat, coords, tf.identity, posnet=self.posemb[i], cells=None, feat_unfold=False, local_ensemble=False)
+            contexts.append(columns)
         contexts = tf.concat(contexts, axis=-1)
 
         outputs = self.imnet(contexts)
@@ -61,8 +56,13 @@ class ImplicitFeatureAlignment(layers.Layer):
         return config
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Common>Align>LIIF')
 class SpatialEncoding(layers.Layer):
+    """
+    Proposed in "Learning Implicit Feature Alignment Function for Semantic Segmentation"
+    https://arxiv.org/pdf/2206.08655.pdf
+    """
+
     def __init__(self, units=24, sigma=6, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
@@ -94,8 +94,8 @@ class SpatialEncoding(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs = tf.matmul(inputs, self.embedding)
-        outputs = tf.concat([inputs, tf.sin(outputs), tf.cos(outputs)], axis=-1)
+        embeddings = tf.matmul(inputs, self.embedding)
+        outputs = tf.concat([inputs, tf.sin(embeddings), tf.cos(embeddings)], axis=-1)
 
         return outputs
 
