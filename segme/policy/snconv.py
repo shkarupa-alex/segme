@@ -35,10 +35,8 @@ class SpectralConv2D(layers.Conv2D):
         super().build(input_shape)
 
     def normalize_call(self, inputs):
-        kernel, u = self.kernel, self.u
-        if self.dtype != self.compute_dtype:
-            kernel = tf.cast(kernel, self.dtype)
-            u = tf.cast(u, self.dtype)
+        kernel = tf.cast(self.kernel, self.dtype)
+        u = tf.cast(self.u, self.dtype)
 
         w = tf.reshape(kernel, [-1, self.filters])
 
@@ -107,10 +105,8 @@ class SpectralDepthwiseConv2D(layers.DepthwiseConv2D):
         super().build(input_shape)
 
     def normalize_call(self, inputs):
-        kernel, u = self.depthwise_kernel, self.u
-        if self.dtype != self.compute_dtype:
-            kernel = tf.cast(kernel, self.dtype)
-            u = tf.cast(u, self.dtype)
+        kernel = tf.cast(self.depthwise_kernel, self.dtype)
+        u = tf.cast(self.u, self.dtype)
 
         w = tf.reshape(kernel, [-1, self.depth_multiplier])
 

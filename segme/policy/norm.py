@@ -30,16 +30,9 @@ class LayerNormalization(layers.LayerNormalization):
             warnings.warn(f'Layer {self.name} will use an inefficient implementation.')
 
     def call(self, inputs, *args, **kwargs):
-        cast_input = inputs.dtype != tf.dtypes.float32
-
-        outputs = inputs
-        if cast_input:
-            outputs = tf.cast(inputs, 'float32')
-
+        outputs = tf.cast(inputs, 'float32')
         outputs = super().call(outputs)
-
-        if cast_input:
-            outputs = tf.saturate_cast(outputs, inputs.dtype)
+        outputs = tf.saturate_cast(outputs, inputs.dtype)
 
         return outputs
 
@@ -75,16 +68,9 @@ class GroupNormalization(add_layers.GroupNormalization):
         super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
-        cast_input = inputs.dtype != tf.dtypes.float32
-
-        outputs = inputs
-        if cast_input:
-            outputs = tf.cast(inputs, 'float32')
-
+        outputs = tf.cast(inputs, 'float32')
         outputs = super().call(outputs)
-
-        if cast_input:
-            outputs = tf.saturate_cast(outputs, inputs.dtype)
+        outputs = tf.saturate_cast(outputs, inputs.dtype)
 
         return outputs
 
@@ -114,16 +100,9 @@ class FilterResponseNormalization(add_layers.FilterResponseNormalization):
                          learned_epsilon_constraint=learned_epsilon_constraint, dtype=dtype, **kwargs)
 
     def call(self, inputs, *args, **kwargs):
-        cast_input = inputs.dtype != tf.dtypes.float32
-
-        outputs = inputs
-        if cast_input:
-            outputs = tf.cast(inputs, 'float32')
-
+        outputs = tf.cast(inputs, 'float32')
         outputs = super().call(outputs)
-
-        if cast_input:
-            outputs = tf.saturate_cast(outputs, inputs.dtype)
+        outputs = tf.saturate_cast(outputs, inputs.dtype)
 
         return outputs
 

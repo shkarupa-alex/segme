@@ -23,9 +23,7 @@ class StandardizedConv2D(layers.Conv2D):
     #     return super().convolution_op(inputs, kernel_)
 
     def normalize_call(self, inputs):
-        kernel = self.kernel
-        if self.dtype != self.compute_dtype:
-            kernel = tf.cast(kernel, self.dtype)
+        kernel = tf.cast(self.kernel, self.dtype)
 
         # Kernel has shape HWIO, normalize over HWI
         mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
@@ -56,9 +54,7 @@ class StandardizedDepthwiseConv2D(layers.DepthwiseConv2D):
     """Implements https://arxiv.org/abs/1903.10520"""
 
     def normalize_call(self, inputs):
-        kernel = self.depthwise_kernel
-        if self.dtype != self.compute_dtype:
-            kernel = tf.cast(kernel, self.dtype)
+        kernel = tf.cast(self.depthwise_kernel, self.dtype)
 
         # Kernel has shape HWIO, normalize over HWI
         mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
