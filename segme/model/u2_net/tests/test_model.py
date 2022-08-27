@@ -4,8 +4,8 @@ from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
-from ..model import U2Net, U2NetP, build_u2_net, build_u2_netp
-from ....testing_utils import layer_multi_io_test
+from segme.model.u2_net.model import U2Net, U2NetP, build_u2_net, build_u2_netp
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes

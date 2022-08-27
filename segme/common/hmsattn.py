@@ -39,9 +39,9 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
             layers.Conv2D(1, 1, activation='sigmoid', use_bias=False)
         ])
 
-        self.intbyscale = {scale: SmoothInterpolation(scale, resize_type=respol.default_policy().name)
+        self.intbyscale = {scale: SmoothInterpolation(scale, policy=respol.default_policy())
                            for scale in set(self.train_scales + self.eval_scales)}
-        self.intbysample = SmoothInterpolation(None, resize_type=respol.default_policy().name)
+        self.intbysample = SmoothInterpolation(None, policy=respol.default_policy())
 
         super().build(input_shape)
 
