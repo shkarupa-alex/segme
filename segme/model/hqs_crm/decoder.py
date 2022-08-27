@@ -49,7 +49,8 @@ class Decoder(layers.Layer):
 
         # Original implementation uses cells, but this is meaningless due to input/output scale is constant
         outputs = query_features(
-            aspp, coords, self.imnet, cells=None, feat_unfold=False, local_ensemble=True, dtype=self.compute_dtype)
+            aspp, coords, self.imnet, posnet=None, cells=None, feat_unfold=False, local_ensemble=True,
+            dtype=self.compute_dtype)
 
         return outputs
 

@@ -49,7 +49,7 @@ class BoxFilter(layers.Layer):
 class GuidedFilter(layers.Layer):
     """ Proposed in: https://arxiv.org/abs/1803.05619 """
 
-    def __init__(self, radius=4, filters=64, kernel_size=1, norm_type=None, epsilon=1e-8, **kwargs):
+    def __init__(self, radius=4, filters=64, kernel_size=1, epsilon=1e-8, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             layers.InputSpec(ndim=4, dtype='uint8'),  # image
@@ -58,7 +58,6 @@ class GuidedFilter(layers.Layer):
         self.radius = radius
         self.filters = filters
         self.kernel_size = kernel_size
-        self.norm_type = norm_type
         self.epsilon = epsilon
 
     @shape_type_conversion
@@ -73,7 +72,7 @@ class GuidedFilter(layers.Layer):
 
         self.intbysample = SmoothInterpolation(None)
         self.guide = Sequential([
-            ConvNormAct(self.filters, self.kernel_size, norm_type=self.norm_type),
+            ConvNormAct(self.filters, self.kernel_size),
             Conv(channels[1], self.kernel_size)
         ])
         self.box = BoxFilter(self.radius)
@@ -115,7 +114,6 @@ class GuidedFilter(layers.Layer):
         config.update({
             'radius': self.radius,
             'filters': self.filters,
-            'norm_type': self.norm_type,
             'kernel_size': self.kernel_size,
             'epsilon': self.epsilon
         })
@@ -127,7 +125,7 @@ class GuidedFilter(layers.Layer):
 class ConvGuidedFilter(layers.Layer):
     """ Proposed in: https://arxiv.org/abs/1803.05619 """
 
-    def __init__(self, radius=1, filters=32, kernel_size=3, norm_type=True, **kwargs):
+    def __init__(self, radius=1, filters=32, kernel_size=3, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             layers.InputSpec(ndim=4, dtype='uint8'),  # image high
@@ -137,7 +135,6 @@ class ConvGuidedFilter(layers.Layer):
         self.radius = radius
         self.filters = filters
         self.kernel_size = kernel_size
-        self.norm_type = norm_type
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -153,15 +150,14 @@ class ConvGuidedFilter(layers.Layer):
         self.intbias = SmoothInterpolation(None)
 
         self.guide = Sequential([
-            ConvNormAct(self.filters, self.kernel_size, norm_type=self.norm_type),
+            ConvNormAct(self.filters, self.kernel_size),
             Conv(channels[1], self.kernel_size)
         ])
-        self.box = Conv(
-            None, 3, conv_kwargs={'dilation_rate': self.radius, 'use_bias': False, 'kernel_initializer': 'ones'})
+        self.box = Conv(None, 3, dilation_rate=self.radius, use_bias=False, kernel_initializer= 'ones')
         self.conva = Sequential([
             ConvNormAct(self.filters, 1),
             ConvNormAct(self.filters, 1),
-            Conv(channels[1], 1, conv_kwargs={'use_bias': False})
+            Conv(channels[1], 1, use_bias=False)
         ])
 
         super().build(input_shape)
@@ -203,8 +199,7 @@ class ConvGuidedFilter(layers.Layer):
         config.update({
             'radius': self.radius,
             'filters': self.filters,
-            'kernel_size': self.kernel_size,
-            'norm_type': self.norm_type
+            'kernel_size': self.kernel_size
         })
 
         return config

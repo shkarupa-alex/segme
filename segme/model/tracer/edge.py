@@ -41,7 +41,7 @@ class FrequencyEdge(layers.Layer):
     def call(self, inputs, **kwargs):
         _, height, width, _ = tf.unstack(tf.cast(tf.shape(inputs), 'float32'))
 
-        inputs_ = self.nchw(inputs)
+        inputs_ = self.nchw(inputs)  # TODO: check
 
         rows = tf.range(height, dtype='float32')[:, None]
         cols = tf.range(width, dtype='float32')[None]

@@ -81,7 +81,7 @@ class FeatureSelection(layers.Layer):
             layers.GlobalAvgPool2D(keepdims=True),
             layers.Conv2D(channels, 1, activation='sigmoid', use_bias=False, kernel_initializer='he_uniform'),
         ])
-        self.conv = Conv(self.filters, 1, conv_kwargs={'use_bias': False, 'kernel_initializer': 'he_uniform'})
+        self.conv = Conv(self.filters, 1, use_bias=False, kernel_initializer='he_uniform')
 
         super().build(input_shape)
 

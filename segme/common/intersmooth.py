@@ -7,6 +7,7 @@ from segme.policy import respol
 @register_keras_serializable(package='SegMe>Common')
 class SmoothInterpolation(layers.Layer):
     def __init__(self, scale, resize_type=True, resize_kwargs=None, **kwargs):
+        # TODO: refactoring with policy
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4) if scale is not None else [
             layers.InputSpec(ndim=4), layers.InputSpec(ndim=4)]  # targets, samples

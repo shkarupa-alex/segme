@@ -8,15 +8,8 @@ from segme.policy.act import ACTIVATIONS, TLU
 
 class TestActivationsRegistry(unittest.TestCase):
     def test_filled(self):
-        self.assertEqual(
-            str(ACTIVATIONS),
-            'LayerRegistry ({'
-            '\'softmax\': <class \'keras.layers.activation.softmax.Softmax\'>, '
-            '\'sigmoid\': {\'class_name\': \'Activation\', \'config\': {\'activation\': \'sigmoid\'}}, '
-            '\'relu\': <class \'keras.layers.activation.relu.ReLU\'>, '
-            '\'leakyrelu\': <class \'keras.layers.activation.leaky_relu.LeakyReLU\'>, '
-            '\'gelu\': {\'class_name\': \'Activation\', \'config\': {\'activation\': \'gelu\'}}, '
-            '\'tlu\': <class \'segme.policy.act.TLU\'>})')
+        self.assertIn('relu', ACTIVATIONS)
+        self.assertIn('leakyrelu', ACTIVATIONS)
 
 
 @test_combinations.run_all_keras_modes

@@ -9,18 +9,8 @@ from segme.testing_utils import layer_multi_io_test
 
 class TestNormalizationsRegistry(unittest.TestCase):
     def test_filled(self):
-        self.assertEqual(
-            str(RESIZERS),
-            'LayerRegistry ({'
-            
-            '\'inter_linearcomp\': {\'class_name\': \'SegMe>Policy>Resize>BilinearInterpolation\', '
-            '\'config\': {\'compat\': True}}, '
-            
-            '\'inter_liif9\': {\'class_name\': \'SegMe>Policy>Resize>LIIFInterpolation\', '
-            '\'config\': {\'feat_unfold\': 3, \'local_ensemble\': False}}, '
-            
-            '\'inter_linear\': <class \'segme.policy.resize.BilinearInterpolation\'>, '
-            '\'inter_liif4\': <class \'segme.policy.resize.LIIFInterpolation\'>})')
+        self.assertIn('inter_linear', RESIZERS)
+        self.assertIn('inter_liif4', RESIZERS)
 
 
 @test_combinations.run_all_keras_modes

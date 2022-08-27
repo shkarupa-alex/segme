@@ -84,7 +84,7 @@ class SemiShift(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.coarse = Conv(self.embedding_size, 1)
-        self.fine = Conv(self.embedding_size, 1, conv_kwargs={'use_bias': False})
+        self.fine = Conv(self.embedding_size, 1, use_bias=False)
         self.content = Conv(self.filters, self.kernel_size)
 
         self.internear = NearestInterpolation()

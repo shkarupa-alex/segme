@@ -7,7 +7,7 @@ from segme.common.convnormact import ConvNormAct
 from segme.common.impfunc import make_coords, query_features
 from segme.common.internear import NearestInterpolation
 from segme.common.sequent import Sequential
-from segme.registry import LayerRegistry
+from segme.policy.registry import LayerRegistry
 
 RESIZERS = LayerRegistry()
 RESIZERS.register('inter_linearcomp')({

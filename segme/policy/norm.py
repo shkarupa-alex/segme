@@ -4,10 +4,13 @@ from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tensorflow_addons import layers as add_layers
-from segme.registry import LayerRegistry
+from segme.policy.registry import LayerRegistry
 
 NORMALIZATIONS = LayerRegistry()
 NORMALIZATIONS.register('bn')(layers.BatchNormalization)
+NORMALIZATIONS.register('brn')({'class_name': 'BatchNormalization', 'config': {
+    'renorm': True, 'renorm_clipping': {'rmax': 3, 'rmin': 0.3333, 'dmax': 5}, 'renorm_momentum': 0.99}})
+
 
 @NORMALIZATIONS.register('ln')
 @register_keras_serializable(package='SegMe>Policy>Normalization')

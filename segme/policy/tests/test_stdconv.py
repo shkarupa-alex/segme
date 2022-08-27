@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
-from segme.policy.stdconv import StandardizedConv2D, StandardizedDepthwiseConv2D
+from segme.policy.stdconv import StandardizedConv2D
 
 
 @test_combinations.run_all_keras_modes
@@ -60,39 +60,6 @@ class TestStandardizedConv2D(test_combinations.TestCase):
         result = layer(inputs)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
-
-
-@test_combinations.run_all_keras_modes
-class TestStandardizedDepthwiseConv2D(test_combinations.TestCase):
-    def setUp(self):
-        super(TestStandardizedDepthwiseConv2D, self).setUp()
-        self.default_policy = mixed_precision.global_policy()
-
-    def tearDown(self):
-        super(TestStandardizedDepthwiseConv2D, self).tearDown()
-        mixed_precision.set_global_policy(self.default_policy)
-
-    def test_layer(self):
-        test_utils.layer_test(
-            StandardizedDepthwiseConv2D,
-            kwargs={'kernel_size': 1, 'strides': 1, 'padding': 'valid'},
-            input_shape=[2, 16, 16, 8],
-            input_dtype='float32',
-            expected_output_shape=[None, 16, 16, 8],
-            expected_output_dtype='float32'
-        )
-
-    def test_fp16(self):
-        mixed_precision.set_global_policy('mixed_float16')
-        result = test_utils.layer_test(
-            StandardizedDepthwiseConv2D,
-            kwargs={'kernel_size': 3, 'strides': 2, 'padding': 'same'},
-            input_shape=[2, 16, 16, 8],
-            input_dtype='float16',
-            expected_output_shape=[None, 8, 8, 8],
-            expected_output_dtype='float16'
-        )
-        self.assertTrue(np.all(np.isfinite(result)))
 
 
 if __name__ == '__main__':

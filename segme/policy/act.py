@@ -2,11 +2,9 @@ import tensorflow as tf
 from keras import constraints, initializers, layers, regularizers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from segme.registry import LayerRegistry
+from segme.policy.registry import LayerRegistry
 
 ACTIVATIONS = LayerRegistry()
-ACTIVATIONS.register('softmax')(layers.Softmax)
-ACTIVATIONS.register('sigmoid')({'class_name': 'Activation', 'config': {'activation': 'sigmoid'}})
 ACTIVATIONS.register('relu')(layers.ReLU)
 ACTIVATIONS.register('leakyrelu')(layers.LeakyReLU)
 ACTIVATIONS.register('gelu')({'class_name': 'Activation', 'config': {'activation': 'gelu'}})

@@ -144,7 +144,7 @@ class Bottleneck(layers.Layer):
 
 @register_keras_serializable(package='SegMe>HRRN')
 class SqueezeExcitation(layers.Layer):
-    def __init__(self, ratio=1, **kwargs):
+    def __init__(self, ratio=1, **kwargs):  # TODO: ratio
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 

@@ -32,19 +32,20 @@ class AtrousSpatialPyramidPooling(layers.Layer):
 
         rate0, rate1, rate2 = self._stride_rates[self.stride]
         self.conv3r0 = Sequential([
-            ConvNormAct(None, 3, conv_kwargs={'dilation_rate': rate0, 'symmetric_pad': False}),
+            ConvNormAct(None, 3, dilation_rate=rate0),
             ConvNormAct(self.filters, 1)])
         self.conv3r1 = Sequential([
-            ConvNormAct(None, 3, conv_kwargs={'dilation_rate': rate1, 'symmetric_pad': False}),
+            ConvNormAct(None, 3, dilation_rate=rate1),
             ConvNormAct(self.filters, 1)])
         self.conv3r2 = Sequential([
-            ConvNormAct(None, 3, conv_kwargs={'dilation_rate': rate2, 'symmetric_pad': False}),
+            ConvNormAct(None, 3, dilation_rate=rate2),
             ConvNormAct(self.filters, 1)])
 
         self.pool = Sequential([
             layers.GlobalAveragePooling2D(keepdims=True),
             # TODO: wait for https://github.com/tensorflow/tensorflow/issues/48845
-            ConvNormAct(self.filters, 1, norm_kwargs={'fused': False})
+            # Or use fused=False with BatchNormalization
+            ConvNormAct(self.filters, 1)
         ])
         self.intnear = NearestInterpolation()
 

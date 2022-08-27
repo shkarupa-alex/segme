@@ -1,45 +1,47 @@
 import copy
-from keras import layers
+from keras import activations, constraints, initializers, layers, regularizers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.policy import cnapol
 
 
-@register_keras_serializable(package='SegMe>Common')
+@register_keras_serializable(package='SegMe>Common>ConvNormAct')
 class Conv(layers.Layer):
-    def __init__(self, filters, kernel_size, conv_type=True, conv_kwargs=None, **kwargs):
+    def __init__(self, filters, kernel_size, strides=(1, 1), data_format=None, dilation_rate=(1, 1), activation=None,
+                 use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None,
+                 bias_regularizer=None, kernel_constraint=None, bias_constraint=None,
+                 policy=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
         self.filters = filters
         self.kernel_size = kernel_size
-
-        self.conv_kwargs = conv_kwargs
-        if self.conv_kwargs and not isinstance(self.conv_kwargs, dict):
-            raise ValueError('Convolution kwargs must be a dict if provided')
-
-        policy = cnapol.global_policy()
-        self.conv_type = False
-        if kernel_size and isinstance(conv_type, str) and conv_type:
-            self.conv_type = conv_type
-        elif kernel_size and conv_type is True:
-            self.conv_type = policy.conv_type
-        elif kernel_size:
-            raise ValueError('Kernel size should be 0, None or False if convolution is omitted')
-        elif bool(conv_type):
-            raise ValueError('Unknown convolution type')
+        self.strides = strides
+        self.data_format = data_format
+        self.dilation_rate = dilation_rate
+        self.activation = activations.get(activation)
+        self.use_bias = use_bias
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
+        self.policy = cnapol.deserialize(policy or cnapol.global_policy())
 
     @shape_type_conversion
     def build(self, input_shape):
-        if not self.conv_type:
-            raise ValueError('Empty convolution layer can\'t be executed')
-
-        conv_kwargs = self.conv_kwargs or {}
+        conv_kwargs = {
+            'kernel_size': self.kernel_size, 'strides': self.strides, 'data_format': self.data_format,
+            'dilation_rate': self.dilation_rate, 'activation': self.activation, 'use_bias': self.use_bias,
+            'kernel_initializer': self.kernel_initializer, 'bias_initializer': self.bias_initializer,
+            'kernel_regularizer': self.kernel_regularizer, 'bias_regularizer': self.bias_regularizer,
+            'kernel_constraint': self.kernel_constraint, 'bias_constraint': self.bias_constraint,
+            'name': 'wrapped'}
         if self.filters:
-            self.conv = cnapol.SAMECONVS.new(self.conv_type, self.filters, self.kernel_size, **conv_kwargs)
+            self.conv = cnapol.SAMECONVS.new(self.policy.conv_type, filters=self.filters, **conv_kwargs)
         else:  # depthwise
-            self.conv = cnapol.SAMECONVS.new(f'dw{self.conv_type}', self.kernel_size, **conv_kwargs)
-
+            self.conv = cnapol.SAMECONVS.new('dwconv', **conv_kwargs)
         self.conv.build(input_shape)
 
         super().build(input_shape)
@@ -56,39 +58,39 @@ class Conv(layers.Layer):
         config.update({
             'filters': self.filters,
             'kernel_size': self.kernel_size,
-            'conv_type': self.conv_type,
-            'conv_kwargs': self.conv_kwargs
+            'strides': self.strides,
+            'data_format': self.data_format,
+            'dilation_rate': self.dilation_rate,
+            'activation': activations.serialize(self.activation),
+            'use_bias': self.use_bias,
+            'kernel_initializer': initializers.serialize(self.kernel_initializer),
+            'bias_initializer': initializers.serialize(self.bias_initializer),
+            'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+            'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+            'kernel_constraint': constraints.serialize(self.kernel_constraint),
+            'bias_constraint': constraints.serialize(self.bias_constraint),
+            'policy': cnapol.serialize(self.policy)
         })
 
         return config
 
 
-@register_keras_serializable(package='SegMe>Common')
+@register_keras_serializable(package='SegMe>Common>ConvNormAct')
 class Norm(layers.Layer):
-    def __init__(self, norm_type=True, norm_kwargs=None, **kwargs):
+    def __init__(self, epsilon=None, policy=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
-        self.norm_kwargs = norm_kwargs
-        if self.norm_kwargs and not isinstance(self.norm_kwargs, dict):
-            raise ValueError('Normalization kwargs must be a dict if provided')
-
-        policy = cnapol.global_policy()
-        self.norm_type = False
-        if isinstance(norm_type, str) and norm_type:
-            self.norm_type = norm_type
-        elif norm_type is True:
-            self.norm_type = policy.norm_type
-        elif bool(norm_type):
-            raise ValueError('Unknown normalization type')
+        self.epsilon = epsilon
+        self.policy = cnapol.deserialize(policy or cnapol.global_policy())
 
     @shape_type_conversion
     def build(self, input_shape):
-        if not self.norm_type:
-            raise ValueError('Empty normalization layer can\'t be executed')
+        norm_kwargs = {'name': 'wrapped'}
+        if self.epsilon:
+            norm_kwargs['epsilon'] = self.epsilon
 
-        norm_kwargs = self.norm_kwargs or {}
-        self.norm = cnapol.NORMALIZATIONS.new(self.norm_type, **norm_kwargs)
+        self.norm = cnapol.NORMALIZATIONS.new(self.policy.norm_type, **norm_kwargs)
         self.norm.build(input_shape)
 
         super().build(input_shape)
@@ -103,39 +105,24 @@ class Norm(layers.Layer):
     def get_config(self):
         config = super().get_config()
         config.update({
-            'norm_type': self.norm_type,
-            'norm_kwargs': self.norm_kwargs
+            'epsilon': self.epsilon,
+            'policy': cnapol.serialize(self.policy)
         })
 
         return config
 
 
-@register_keras_serializable(package='SegMe>Common')
+@register_keras_serializable(package='SegMe>Common>ConvNormAct')
 class Act(layers.Layer):
-    def __init__(self, act_type=True, act_kwargs=None, **kwargs):
+    def __init__(self, policy=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
-        self.act_kwargs = act_kwargs
-        if self.act_kwargs and not isinstance(self.act_kwargs, dict):
-            raise ValueError('Activation kwargs must be a dict if provided')
-
-        policy = cnapol.global_policy()
-        self.act_type = False
-        if isinstance(act_type, str) and act_type:
-            self.act_type = act_type
-        elif act_type is True:
-            self.act_type = policy.act_type
-        elif bool(act_type):
-            raise ValueError('Unknown activation type')
+        self.policy = cnapol.deserialize(policy or cnapol.global_policy())
 
     @shape_type_conversion
     def build(self, input_shape):
-        if not self.act_type:
-            raise ValueError('Empty activation layer can\'t be executed')
-
-        act_kwargs = self.act_kwargs or {}
-        self.act = cnapol.ACTIVATIONS.new(self.act_type, **act_kwargs)
+        self.act = cnapol.ACTIVATIONS.new(self.policy.act_type, name='wrapped')
         self.act.build(input_shape)
 
         super().build(input_shape)
@@ -149,76 +136,66 @@ class Act(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            'act_type': self.act_type,
-            'act_kwargs': self.act_kwargs
-        })
+        config.update({'policy': cnapol.serialize(self.policy)})
 
         return config
 
 
-@register_keras_serializable(package='SegMe>Common')
+@register_keras_serializable(package='SegMe>Common>ConvNormAct')
 class ConvNormAct(layers.Layer):
-    def __init__(self, filters, kernel_size, conv_type=True, conv_kwargs=None, norm_type=True, norm_kwargs=None,
-                 act_type=True, act_kwargs=None, cna_policy=None, **kwargs):
+    def __init__(self, filters, kernel_size, strides=(1, 1), data_format=None, dilation_rate=(1, 1), activation=None,
+                 use_bias=False, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None,
+                 bias_regularizer=None, kernel_constraint=None, bias_constraint=None, epsilon=None, policy=None,
+                 **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
         self.filters = filters
         self.kernel_size = kernel_size
-        self.conv_type = conv_type
-        self.conv_kwargs = conv_kwargs
-        self.norm_type = norm_type
-        self.norm_kwargs = norm_kwargs
-        self.act_type = act_type
-        self.act_kwargs = act_kwargs
-        self.cna_policy = cnapol.deserialize(cna_policy or cnapol.global_policy())
+        self.strides = strides
+        self.data_format = data_format
+        self.dilation_rate = dilation_rate
+        self.activation = activations.get(activation)
+        self.use_bias = use_bias
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
+        self.epsilon = epsilon
+        self.policy = cnapol.deserialize(policy or cnapol.global_policy())
 
     @shape_type_conversion
     def build(self, input_shape):
-        with cnapol.policy_scope(self.cna_policy):
-            self.norm = Norm(self.norm_type, self.norm_kwargs)
-            self.act = Act(self.act_type, self.act_kwargs)
-
-            conv_kwargs = copy.deepcopy(self.conv_kwargs or {})
-            if self.norm.norm_type:
-                conv_kwargs['use_bias'] = False
-            if 'relu' == self.act.act_type and not self.norm.norm_type:
-                conv_kwargs['kernel_initializer'] = 'he_normal'
-            self.conv = Conv(self.filters, self.kernel_size, self.conv_type, conv_kwargs)
-
-        if not self.conv.conv_type and not self.norm.norm_type and not self.act.act_type:
-            raise ValueError('All components of Conv-Norm-Act are empty')
-
+        self.conv = Conv(
+            filters=self.filters, kernel_size=self.kernel_size, strides=self.strides, data_format=self.data_format,
+            dilation_rate=self.dilation_rate, activation=self.activation, use_bias=self.use_bias,
+            kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer,
+            kernel_regularizer=self.kernel_regularizer, bias_regularizer=self.bias_regularizer,
+            kernel_constraint=self.kernel_constraint, bias_constraint=self.bias_constraint, policy=self.policy,
+            name='policy_conv')
+        self.norm = Norm(epsilon=self.epsilon, policy=self.policy, name='policy_norm')
+        self.act = Act(policy=self.policy, name='policy_act')
 
         current_shape = input_shape
-        if self.conv.conv_type:
-            self.conv.build(current_shape)
-            current_shape = self.conv.compute_output_shape(current_shape)
-        if self.norm.norm_type:
-            self.norm.build(current_shape)
-        if self.act.act_type:
-            self.act.build(current_shape)
+        self.conv.build(current_shape)
+
+        current_shape = self.conv.compute_output_shape(current_shape)
+        self.norm.build(current_shape)
+        self.act.build(current_shape)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs = inputs
-
-        if self.conv.conv_type:
-            outputs = self.conv(outputs)
-        if self.norm.norm_type:
-            outputs = self.norm(outputs)
-        if self.act.act_type:
-            outputs = self.act(outputs)
+        outputs = self.conv(inputs)
+        outputs = self.norm(outputs)
+        outputs = self.act(outputs)
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        if not self.conv.conv_type:
-            return input_shape
-
         return self.conv.compute_output_shape(input_shape)
 
     def get_config(self):
@@ -226,13 +203,19 @@ class ConvNormAct(layers.Layer):
         config.update({
             'filters': self.filters,
             'kernel_size': self.kernel_size,
-            'conv_type': self.conv_type,
-            'conv_kwargs': self.conv_kwargs,
-            'norm_type': self.norm_type,
-            'norm_kwargs': self.norm_kwargs,
-            'act_type': self.act_type,
-            'act_kwargs': self.act_kwargs,
-            'cna_policy': cnapol.serialize(self.cna_policy)
+            'strides': self.strides,
+            'data_format': self.data_format,
+            'dilation_rate': self.dilation_rate,
+            'activation': activations.serialize(self.activation),
+            'use_bias': self.use_bias,
+            'kernel_initializer': initializers.serialize(self.kernel_initializer),
+            'bias_initializer': initializers.serialize(self.bias_initializer),
+            'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+            'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+            'kernel_constraint': constraints.serialize(self.kernel_constraint),
+            'bias_constraint': constraints.serialize(self.bias_constraint),
+            'epsilon': self.epsilon,
+            'policy': cnapol.serialize(self.policy)
         })
 
         return config

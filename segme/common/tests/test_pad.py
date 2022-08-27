@@ -53,7 +53,7 @@ class TestSamePadding(test_combinations.TestCase):
     def test_layer(self):
         test_utils.layer_test(
             SamePadding,
-            kwargs={'kernel_size': 1, 'strides': 1, 'dilation_rate': 1, 'symmetric_pad': None},
+            kwargs={'kernel_size': 1, 'strides': 1, 'dilation_rate': 1, 'symmetric_pad': False},
             input_shape=[2, 4, 5, 3],
             input_dtype='float32',
             expected_output_shape=[None, 4, 5, 3],
@@ -61,7 +61,7 @@ class TestSamePadding(test_combinations.TestCase):
         )
         test_utils.layer_test(
             SamePadding,
-            kwargs={'kernel_size': 1, 'strides': 2, 'dilation_rate': 1, 'symmetric_pad': None},
+            kwargs={'kernel_size': 1, 'strides': 2, 'dilation_rate': 1, 'symmetric_pad': False},
             input_shape=[2, 4, 5, 3],
             input_dtype='float32',
             expected_output_shape=[None, 4, 5, 3],
@@ -69,7 +69,7 @@ class TestSamePadding(test_combinations.TestCase):
         )
         test_utils.layer_test(
             SamePadding,
-            kwargs={'kernel_size': 1, 'strides': 1, 'dilation_rate': 2, 'symmetric_pad': None},
+            kwargs={'kernel_size': 1, 'strides': 1, 'dilation_rate': 2, 'symmetric_pad': False},
             input_shape=[2, 4, 5, 3],
             input_dtype='float32',
             expected_output_shape=[None, 4, 5, 3],
@@ -83,9 +83,10 @@ class TestSamePadding(test_combinations.TestCase):
             expected_output_shape=[None, 4, 5, 3],
             expected_output_dtype='float32'
         )
+
         test_utils.layer_test(
             SamePadding,
-            kwargs={'kernel_size': 1, 'strides': 1, 'dilation_rate': 1, 'symmetric_pad': False},
+            kwargs={'kernel_size': 3, 'strides': 1, 'dilation_rate': 1, 'symmetric_pad': False},
             input_shape=[2, 4, 5, 3],
             input_dtype='float32',
             expected_output_shape=[None, 4, 5, 3],
@@ -94,16 +95,7 @@ class TestSamePadding(test_combinations.TestCase):
 
         test_utils.layer_test(
             SamePadding,
-            kwargs={'kernel_size': 3, 'strides': 1, 'dilation_rate': 1, 'symmetric_pad': None},
-            input_shape=[2, 4, 5, 3],
-            input_dtype='float32',
-            expected_output_shape=[None, 4, 5, 3],
-            expected_output_dtype='float32'
-        )
-
-        test_utils.layer_test(
-            SamePadding,
-            kwargs={'kernel_size': 3, 'strides': 2, 'dilation_rate': 1, 'symmetric_pad': None},
+            kwargs={'kernel_size': 3, 'strides': 2, 'dilation_rate': 1, 'symmetric_pad': False},
             input_shape=[2, 4, 5, 3],
             input_dtype='float32',
             expected_output_shape=[None, 6, 7, 3],
@@ -111,7 +103,7 @@ class TestSamePadding(test_combinations.TestCase):
         )
         test_utils.layer_test(
             SamePadding,
-            kwargs={'kernel_size': 3, 'strides': 1, 'dilation_rate': 2, 'symmetric_pad': None},
+            kwargs={'kernel_size': 3, 'strides': 1, 'dilation_rate': 2, 'symmetric_pad': False},
             input_shape=[2, 4, 5, 3],
             input_dtype='float32',
             expected_output_shape=[None, 8, 9, 3],
@@ -129,7 +121,7 @@ class TestSamePadding(test_combinations.TestCase):
     def test_fp16(self):
         test_utils.layer_test(
             SamePadding,
-            kwargs={'kernel_size': 1, 'strides': 1, 'dilation_rate': 1, 'symmetric_pad': None},
+            kwargs={'kernel_size': 1, 'strides': 1, 'dilation_rate': 1, 'symmetric_pad': False},
             input_shape=[2, 4, 5, 3],
             input_dtype='float32',
             expected_output_shape=[None, 4, 5, 3],
@@ -149,12 +141,8 @@ class TestSamePadding(test_combinations.TestCase):
         layer = SamePadding(kernel_size=3, strides=1, dilation_rate=5, symmetric_pad=False)
         layer(tf.zeros((1, 3, 4, 1)))
 
-        layer = SamePadding(kernel_size=3, strides=1, dilation_rate=5, symmetric_pad=None)
-        layer(tf.zeros((1, 3, 4, 1)))
-
-        layer = SamePadding(kernel_size=3, strides=1, dilation_rate=5, symmetric_pad=True)
-        with self.assertRaisesRegex(ValueError, 'Symmetric padding can lead to misbehavior'):
-            layer(tf.zeros((1, 3, 4, 1)))
+        with self.assertRaisesRegex(ValueError, 'Unable to use symmetric padding'):
+            layer = SamePadding(kernel_size=3, strides=1, dilation_rate=5, symmetric_pad=True)
 
 
 if __name__ == '__main__':

@@ -84,16 +84,8 @@ class TestGuidedFilter(test_combinations.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             GuidedFilter,
-            kwargs={'radius': 3, 'filters': 16, 'kernel_size': 3, 'norm_type': True, 'epsilon': 1e-8},
+            kwargs={'radius': 3, 'filters': 16, 'kernel_size': 3, 'epsilon': 1e-8},
             input_shapes=[(2, 8, 9, 1), (2, 8, 9, 1)],
-            input_dtypes=['uint8', 'float32'],
-            expected_output_shapes=[(None, 8, 9, 1)],
-            expected_output_dtypes=['float32']
-        )
-        layer_multi_io_test(
-            GuidedFilter,
-            kwargs={'radius': 3, 'filters': 64, 'kernel_size': 1, 'norm_type': False, 'epsilon': 1e-8},
-            input_shapes=[(2, 8, 9, 3), (2, 8, 9, 1)],
             input_dtypes=['uint8', 'float32'],
             expected_output_shapes=[(None, 8, 9, 1)],
             expected_output_dtypes=['float32']
@@ -103,7 +95,7 @@ class TestGuidedFilter(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             GuidedFilter,
-            kwargs={'radius': 3, 'filters': 8, 'kernel_size': 1, 'norm_type': True, 'epsilon': 1e-2},
+            kwargs={'radius': 3, 'filters': 8, 'kernel_size': 1, 'epsilon': 1e-2},
             input_shapes=[(2, 16, 18, 1), (2, 8, 9, 3)],
             input_dtypes=['uint8', 'float16'],
             expected_output_shapes=[(None, 16, 18, 3)],
@@ -142,18 +134,10 @@ class TestConvGuidedFilter(test_combinations.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             ConvGuidedFilter,
-            kwargs={'radius': 1, 'filters': 16, 'kernel_size': 3, 'norm_type': True},
+            kwargs={'radius': 1, 'filters': 16, 'kernel_size': 3},
             input_shapes=[(2, 16, 18, 1), (2, 8, 9, 1)],
             input_dtypes=['uint8', 'float32'],
             expected_output_shapes=[(None, 16, 18, 1)],
-            expected_output_dtypes=['float32']
-        )
-        layer_multi_io_test(
-            ConvGuidedFilter,
-            kwargs={'radius': 3, 'filters': 64, 'kernel_size': 3, 'norm_type': None},
-            input_shapes=[(2, 16, 18, 1), (2, 8, 9, 3)],
-            input_dtypes=['uint8', 'float32'],
-            expected_output_shapes=[(None, 16, 18, 3)],
             expected_output_dtypes=['float32']
         )
 
@@ -161,7 +145,7 @@ class TestConvGuidedFilter(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             ConvGuidedFilter,
-            kwargs={'radius': 3, 'filters': 64, 'kernel_size': 3, 'norm_type': True},
+            kwargs={'radius': 3, 'filters': 64, 'kernel_size': 3},
             input_shapes=[(2, 16, 18, 1), (2, 8, 9, 3)],
             input_dtypes=['uint8', 'float16'],
             expected_output_shapes=[(None, 16, 18, 3)],

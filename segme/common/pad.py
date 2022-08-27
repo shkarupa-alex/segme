@@ -37,7 +37,7 @@ class SymmetricPadding(layers.ZeroPadding2D):
 
 @register_keras_serializable(package='SegMe>Common')
 class SamePadding(layers.Layer):
-    def __init__(self, kernel_size, strides, dilation_rate, symmetric_pad=None, **kwargs):
+    def __init__(self, kernel_size, strides, dilation_rate, symmetric_pad=False, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -56,6 +56,9 @@ class SamePadding(layers.Layer):
             pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
             self._paddings = ((pad_h // 2, pad_h - pad_h // 2), (pad_w // 2, pad_w - pad_w // 2))
 
+            if self.symmetric_pad and max(self._paddings[0] + self._paddings[1]) > 1:
+                raise ValueError('Unable to use symmetric padding when paddings larger then 1')
+
         self.padding_used = False
 
     @property
@@ -67,18 +70,14 @@ class SamePadding(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         if self.apply_pad:
-            symmetric_pad = self.symmetric_pad is True or \
-                            self.symmetric_pad is None and 1 == max(self._paddings[0] + self._paddings[1])
-            if symmetric_pad:
-                self.pad = SymmetricPadding(self._paddings)
-            else:
-                self.pad = layers.ZeroPadding2D(self._paddings)
+            pad_cls = SymmetricPadding if self.symmetric_pad else layers.ZeroPadding2D
+            self.pad = pad_cls(self._paddings)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         if not self.padding_used:
-            warnings.warn('Padding layer called without reading padding mode property')
+            warnings.warn('SamePadding layer called without reading padding property')
 
         if not self.apply_pad:
             return inputs

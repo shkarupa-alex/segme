@@ -8,13 +8,8 @@ from segme.policy.norm import NORMALIZATIONS, LayerNormalization, GroupNormaliza
 
 class TestNormalizationsRegistry(unittest.TestCase):
     def test_filled(self):
-        self.assertEqual(
-            str(NORMALIZATIONS),
-            'LayerRegistry ({'
-            '\'bn\': <class \'keras.layers.normalization.batch_normalization.BatchNormalization\'>, '
-            '\'ln\': <class \'segme.policy.norm.LayerNormalization\'>, '
-            '\'gn\': <class \'segme.policy.norm.GroupNormalization\'>, '
-            '\'frn\': <class \'segme.policy.norm.FilterResponseNormalization\'>})')
+        self.assertIn('bn', NORMALIZATIONS)
+        self.assertIn('gn', NORMALIZATIONS)
 
 
 @test_combinations.run_all_keras_modes
