@@ -3,27 +3,24 @@ from keras import layers, models
 from keras.applications.imagenet_utils import preprocess_input
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .decoder import Decoder
-from .fusion import Fusion
-from .encoder import Encoder
+from segme.model.fba_matting.decoder import Decoder
+from segme.model.fba_matting.fusion import Fusion
+from segme.model.fba_matting.encoder import Encoder
 
 
-@register_keras_serializable(package='SegMe>FBAMatting')
+@register_keras_serializable(package='SegMe>Model>FBAMatting')
 class FBAMatting(layers.Layer):
-    def __init__(self, bone_arch, bone_init, pool_scales, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             layers.InputSpec(ndim=4, axes={-1: 3}, dtype='uint8'),  # image
             layers.InputSpec(ndim=4, axes={-1: 2}, dtype='uint8'),  # twomap
             layers.InputSpec(ndim=4, axes={-1: 6}, dtype='uint8'),  # distance
         ]
-        self.pool_scales = pool_scales
-        self.bone_arch = bone_arch
-        self.bone_init = bone_init
 
     def build(self, input_shape):
-        self.encoder = Encoder(self.bone_arch, self.bone_init)
-        self.decoder = Decoder(self.pool_scales)
+        self.encoder = Encoder()
+        self.decoder = Decoder()
         self.fusion = Fusion(dtype='float32')
 
         super().build(input_shape)
@@ -36,15 +33,15 @@ class FBAMatting(layers.Layer):
         feats2, feats4, feats32 = self.encoder(featraw)
 
         imft32 = tf.cast(image, 'float32')
-        imscal = imft32 / 255.  # Same scale as twomap, alpha, foreground and background
+        imscal = imft32 / 255.
+        imnorm = preprocess_input(imft32, mode='torch')
         alfgbg = self.decoder([
             feats2, feats4, feats32,
             imscal,  # scaled image
-            preprocess_input(imft32, mode='torch'),  # normalized image
+            imnorm,  # normalized image
             tf.cast(twomap, 'float32') / 255.  # scaled twomap
         ])
 
-        # TODO: cleanup by trimap?
         alpha, foreground, background = self.fusion([imscal, alfgbg])
 
         return alfgbg, alpha, foreground, background
@@ -60,24 +57,16 @@ class FBAMatting(layers.Layer):
 
         return [tf.TensorSpec(dtype='float32', shape=os.shape) for os in outptut_signature]
 
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            'bone_arch': self.bone_arch,
-            'bone_init': self.bone_init,
-            'pool_scales': self.pool_scales,
-        })
-
         return config
 
 
-def build_fba_matting(bone_arch='bit_m_r50x1_stride_8', bone_init='imagenet', psp_sizes=(1, 2, 3, 6)):
+def build_fba_matting():
     inputs = [
         layers.Input(name='image', shape=[None, None, 3], dtype='uint8'),
         layers.Input(name='twomap', shape=[None, None, 2], dtype='uint8'),
         layers.Input(name='distance', shape=[None, None, 6], dtype='uint8'),
     ]
-    outputs = FBAMatting(bone_arch, bone_init, psp_sizes)(inputs)
+    outputs = FBAMatting()(inputs)
     model = models.Model(inputs=inputs, outputs=outputs, name='fba_matting')
 
     return model

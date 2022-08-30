@@ -5,7 +5,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from tensorflow_addons.image import euclidean_dist_transform
 
 
-@register_keras_serializable(package='SegMe>FBAMatting')
+@register_keras_serializable(package='SegMe>Model>FBAMatting')
 class Distance(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -34,6 +34,6 @@ def distance_transform(trimap, length=320):
         ])
 
     clicks = tf.concat(clicks, axis=-1)
-    clicks = tf.cast(tf.round(clicks * 255.), dtype='uint8')
+    clicks = tf.saturate_cast(tf.round(clicks * 255.), dtype='uint8')
 
     return clicks
