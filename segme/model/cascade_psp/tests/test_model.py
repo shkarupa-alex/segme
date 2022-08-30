@@ -29,16 +29,16 @@ class TestCascadePSP(test_combinations.TestCase):
             expected_output_dtypes=['float32'] * 6
         )
 
-    # def test_fp16(self):
-    #     mixed_precision.set_global_policy('mixed_float16')
-    #     layer_multi_io_test(
-    #         CascadePSP,
-    #         kwargs={},
-    #         input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 224, 224, 1)],
-    #         input_dtypes=['uint8'] * 3,
-    #         expected_output_shapes=[(None, 224, 224, 1)] * 6,
-    #         expected_output_dtypes=['float32'] * 6
-    #     )
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        layer_multi_io_test(
+            CascadePSP,
+            kwargs={},
+            input_shapes=[(2, 224, 224, 3), (2, 224, 224, 1), (2, 224, 224, 1)],
+            input_dtypes=['uint8'] * 3,
+            expected_output_shapes=[(None, 224, 224, 1)] * 6,
+            expected_output_dtypes=['float32'] * 6
+        )
 
     def test_model(self):
         num_classes = 1
