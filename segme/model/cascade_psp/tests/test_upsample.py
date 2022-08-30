@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from ..upsample import Upsample
-from ....testing_utils import layer_multi_io_test
+from segme.model.cascade_psp.upsample import Upsample
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes

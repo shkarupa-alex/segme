@@ -1,11 +1,13 @@
 import tensorflow as tf
-from keras import Sequential, layers
+from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvNormRelu, SameConv, resize_by_sample
+from segme.common.convnormact import ConvNormAct, Conv, Norm, Act
+from segme.common.interrough import BilinearInterpolation
+from segme.common.sequent import Sequential
 
 
-@register_keras_serializable(package='SegMe>CascadePSP')
+@register_keras_serializable(package='SegMe>Model>CascadePSP')
 class Upsample(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
@@ -14,31 +16,30 @@ class Upsample(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
+        self.interpolate = BilinearInterpolation(None)
         self.conv1 = Sequential([
-            layers.BatchNormalization(),
-            layers.ReLU(),
-            ConvNormRelu(self.filters, 3),
-            SameConv(self.filters, 3),
+            Norm(),
+            Act(),
+            ConvNormAct(self.filters, 3),
+            Conv(self.filters, 3)
         ])
         self.conv2 = Sequential([
-            layers.BatchNormalization(),
-            layers.ReLU(),
-            ConvNormRelu(self.filters, 3),
-            SameConv(self.filters, 3),
+            Norm(),
+            Act(),
+            ConvNormAct(self.filters, 3),
+            Conv(self.filters, 3)
         ])
-        self.shortcut = SameConv(self.filters, 1)
+        self.shortcut = Conv(self.filters, 1)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         high, low = inputs
 
-        high = resize_by_sample([high, low])
+        high = self.interpolate([high, low])
         outputs = self.conv1(tf.concat([high, low], axis=-1))
-        short = self.shortcut(high)
-        outputs = outputs + short
-        delta = self.conv2(outputs)
-        outputs = outputs + delta
+        outputs += self.shortcut(high)
+        outputs += self.conv2(outputs)
 
         return outputs
 

@@ -1,5 +1,6 @@
 from keras.losses import MeanAbsoluteError, MeanSquaredError, BinaryCrossentropy
-from ...loss import SobelEdgeLoss, WeightedLossFunctionWrapper
+from segme.loss.sobel_edge import SobelEdgeLoss
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
 def _loss_224(y_true, y_pred, sample_weight=None):

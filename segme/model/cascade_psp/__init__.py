@@ -1,3 +1,2 @@
-from .model import build_cascade_psp
-from .loss import cascade_psp_losses
-from .refine import Refiner as CascadePspRefiner
+from segme.model.cascade_psp.model import build_cascade_psp
+from segme.model.cascade_psp.loss import cascade_psp_losses
