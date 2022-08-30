@@ -1,11 +1,11 @@
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .conv2nv1 import Conv2nV1
-from .conv3nv1 import Conv3nV1
+from segme.model.minet.conv2nv1 import Conv2nV1
+from segme.model.minet.conv3nv1 import Conv3nV1
 
 
-@register_keras_serializable(package='SegMe>MINet')
+@register_keras_serializable(package='SegMe>Model>MINet')
 class AIM(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)

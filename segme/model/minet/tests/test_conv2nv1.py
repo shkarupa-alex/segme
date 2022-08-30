@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from ..conv2nv1 import Conv2nV1
-from ....testing_utils import layer_multi_io_test
+from segme.model.minet.conv2nv1 import Conv2nV1
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes

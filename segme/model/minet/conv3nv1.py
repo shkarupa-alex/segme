@@ -2,10 +2,11 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvNormRelu, SameConv, resize_by_sample
+from segme.common.convnormact import ConvNormAct, Conv, Norm, Act
+from segme.common.interrough import NearestInterpolation
 
 
-@register_keras_serializable(package='SegMe>MINet')
+@register_keras_serializable(package='SegMe>Model>MINet')
 class Conv3nV1(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
@@ -28,37 +29,38 @@ class Conv3nV1(layers.Layer):
 
         min_channels = min(self.channels_h, self.channels_m, self.channels_l)
 
-        self.relu = layers.ReLU()
+        self.interpolate = NearestInterpolation(None)
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
+        self.act = Act()
 
         # stage 0
-        self.cbr_hh0 = ConvNormRelu(min_channels, 3)
-        self.cbr_mm0 = ConvNormRelu(min_channels, 3)
-        self.cbr_ll0 = ConvNormRelu(min_channels, 3)
+        self.cna_hh0 = ConvNormAct(min_channels, 3)
+        self.cna_mm0 = ConvNormAct(min_channels, 3)
+        self.cna_ll0 = ConvNormAct(min_channels, 3)
 
         # stage 1
-        self.conv_hh1 = SameConv(min_channels, 3)
-        self.conv_hm1 = SameConv(min_channels, 3)
-        self.conv_mh1 = SameConv(min_channels, 3)
-        self.conv_mm1 = SameConv(min_channels, 3)
-        self.conv_ml1 = SameConv(min_channels, 3)
-        self.conv_lm1 = SameConv(min_channels, 3)
-        self.conv_ll1 = SameConv(min_channels, 3)
-        self.bn_h1 = layers.BatchNormalization()
-        self.bn_m1 = layers.BatchNormalization()
-        self.bn_l1 = layers.BatchNormalization()
+        self.conv_hh1 = Conv(min_channels, 3)
+        self.conv_hm1 = Conv(min_channels, 3)
+        self.conv_mh1 = Conv(min_channels, 3)
+        self.conv_mm1 = Conv(min_channels, 3)
+        self.conv_ml1 = Conv(min_channels, 3)
+        self.conv_lm1 = Conv(min_channels, 3)
+        self.conv_ll1 = Conv(min_channels, 3)
+        self.norm_h1 = Norm()
+        self.norm_m1 = Norm()
+        self.norm_l1 = Norm()
 
         # stage 2
-        self.conv_hm2 = SameConv(min_channels, 3)
-        self.conv_lm2 = SameConv(min_channels, 3)
-        self.conv_mm2 = SameConv(min_channels, 3)
-        self.bn_m2 = layers.BatchNormalization()
+        self.conv_hm2 = Conv(min_channels, 3)
+        self.conv_lm2 = Conv(min_channels, 3)
+        self.conv_mm2 = Conv(min_channels, 3)
+        self.norm_m2 = Norm()
 
         # stage 3
-        self.conv_mm3 = SameConv(self.filters, 3)
-        self.bn_m3 = layers.BatchNormalization()
+        self.conv_mm3 = Conv(self.filters, 3)
+        self.norm_m3 = Norm()
 
-        self.identity = SameConv(self.filters, 1)
+        self.identity = Conv(self.filters, 1)
 
         super().build(input_shape)
 
@@ -66,35 +68,35 @@ class Conv3nV1(layers.Layer):
         inputs_h, inputs_m, inputs_l = inputs
 
         # stage 0
-        h = self.cbr_hh0(inputs_h)
-        m = self.cbr_mm0(inputs_m)
-        l = self.cbr_ll0(inputs_l)
+        h = self.cna_hh0(inputs_h)
+        m = self.cna_mm0(inputs_m)
+        l = self.cna_ll0(inputs_l)
 
         # stage 1
         h2h = self.conv_hh1(h)
-        m2h = self.conv_mh1(resize_by_sample([m, h2h], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
+        m2h = self.conv_mh1(self.interpolate([m, h2h]))
 
         h2m = self.conv_hm1(self.pool(h))
         m2m = self.conv_mm1(m)
-        l2m = self.conv_lm1(resize_by_sample([l, m2m], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
+        l2m = self.conv_lm1(self.interpolate([l, m2m]))
 
         m2l = self.conv_ml1(self.pool(m))
         l2l = self.conv_ll1(l)
 
-        h = self.relu(self.bn_h1(h2h + m2h))
-        m = self.relu(self.bn_m1(h2m + m2m + l2m))
-        l = self.relu(self.bn_l1(m2l + l2l))
+        h = self.act(self.norm_h1(h2h + m2h))
+        m = self.act(self.norm_m1(h2m + m2m + l2m))
+        l = self.act(self.norm_l1(m2l + l2l))
 
         # stage 2
         h2m = self.conv_hm2(self.pool(h))
         m2m = self.conv_mm2(m)
-        l2m = self.conv_lm2(resize_by_sample([l, m2m], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
-        m = self.relu(self.bn_m2(h2m + m2m + l2m))
+        l2m = self.conv_lm2(self.interpolate([l, m2m]))
+        m = self.act(self.norm_m2(h2m + m2m + l2m))
 
         # stage 3
-        out = self.bn_m3(self.conv_mm3(m)) + self.identity(inputs_m)
+        out = self.norm_m3(self.conv_mm3(m)) + self.identity(inputs_m)
 
-        return self.relu(out)
+        return self.act(out)
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):

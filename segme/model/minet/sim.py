@@ -1,10 +1,11 @@
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvNormRelu, SameConv, resize_by_sample
+from segme.common.convnormact import ConvNormAct, Conv, Norm, Act
+from segme.common.interrough import BilinearInterpolation
 
 
-@register_keras_serializable(package='SegMe>MINet')
+@register_keras_serializable(package='SegMe>Model>MINet')
 class SIM(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
@@ -19,42 +20,43 @@ class SIM(layers.Layer):
 
         self.input_spec = layers.InputSpec(ndim=4, axes={-1: self.channels})
 
-        self.relu = layers.ReLU()
+        self.interpolate = BilinearInterpolation(None)
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
+        self.act = Act()
 
-        self.cbr_hh0 = ConvNormRelu(self.channels, 3)
-        self.cbr_hl0 = ConvNormRelu(self.filters, 3)
+        self.cna_hh0 = ConvNormAct(self.channels, 3)
+        self.cna_hl0 = ConvNormAct(self.filters, 3)
 
-        self.conv_hh1 = SameConv(self.channels, 3)
-        self.conv_hl1 = SameConv(self.filters, 3)
-        self.conv_lh1 = SameConv(self.channels, 3)
-        self.conv_ll1 = SameConv(self.filters, 3)
-        self.bn_l1 = layers.BatchNormalization()
-        self.bn_h1 = layers.BatchNormalization()
+        self.conv_hh1 = Conv(self.channels, 3)
+        self.conv_hl1 = Conv(self.filters, 3)
+        self.conv_lh1 = Conv(self.channels, 3)
+        self.conv_ll1 = Conv(self.filters, 3)
+        self.norm_l1 = Norm()
+        self.norm_h1 = Norm()
 
-        self.conv_hh2 = SameConv(self.channels, 3)
-        self.conv_lh2 = SameConv(self.channels, 3)
-        self.bn_h2 = layers.BatchNormalization()
+        self.conv_hh2 = Conv(self.channels, 3)
+        self.conv_lh2 = Conv(self.channels, 3)
+        self.norm_h2 = Norm()
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         # first conv
-        h = self.cbr_hh0(inputs)
-        l = self.cbr_hl0(self.pool(inputs))
+        h = self.cna_hh0(inputs)
+        l = self.cna_hl0(self.pool(inputs))
 
         # mid conv
         h2h = self.conv_hh1(h)
         h2l = self.conv_hl1(self.pool(h))
         l2l = self.conv_ll1(l)
-        l2h = self.conv_lh1(resize_by_sample([l, inputs]))
-        h = self.relu(self.bn_h1(h2h + l2h))
-        l = self.relu(self.bn_l1(l2l + h2l))
+        l2h = self.conv_lh1(self.interpolate([l, inputs]))
+        h = self.act(self.norm_h1(h2h + l2h))
+        l = self.act(self.norm_l1(l2l + h2l))
 
         # last conv
         h2h = self.conv_hh2(h)
-        l2h = self.conv_lh2(resize_by_sample([l, inputs]))
-        h = self.relu(self.bn_h2(h2h + l2h))
+        l2h = self.conv_lh2(self.interpolate([l, inputs]))
+        h = self.act(self.norm_h2(h2h + l2h))
 
         return h
 
