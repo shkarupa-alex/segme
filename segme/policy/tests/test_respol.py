@@ -22,9 +22,9 @@ class TestResizePolicy(unittest.TestCase):
         self.assertIsInstance(global_policy(), ResizePolicy)
         self.assertEqual(global_policy().name, 'inter_linear')
 
-        set_global_policy('inter_liif4')
+        set_global_policy('inter_liif')
         self.assertIsInstance(global_policy(), ResizePolicy)
-        self.assertEqual(global_policy().name, 'inter_liif4')
+        self.assertEqual(global_policy().name, 'inter_liif')
 
         set_global_policy('inter_linear')
         self.assertIsInstance(global_policy(), ResizePolicy)
@@ -38,9 +38,9 @@ class TestResizePolicy(unittest.TestCase):
         self.assertIsInstance(global_policy(), ResizePolicy)
         self.assertEqual(global_policy().name, 'inter_linear')
 
-        with policy_scope('inter_liif4'):
+        with policy_scope('inter_liif'):
             self.assertIsInstance(global_policy(), ResizePolicy)
-            self.assertEqual(global_policy().name, 'inter_liif4')
+            self.assertEqual(global_policy().name, 'inter_liif')
 
         self.assertIsInstance(global_policy(), ResizePolicy)
         self.assertEqual(global_policy().name, 'inter_linear')

@@ -37,7 +37,7 @@ class TestSmoothInterpolation(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
-        with respol.policy_scope('inter_liif4'):
+        with respol.policy_scope('inter_liif'):
             layer_multi_io_test(
                 SmoothInterpolation,
                 kwargs={'scale': None},
@@ -74,7 +74,7 @@ class TestSmoothInterpolation(test_combinations.TestCase):
             expected_output_dtype='float16'
         )
 
-        with respol.policy_scope('inter_liif4'):
+        with respol.policy_scope('inter_liif'):
             layer_multi_io_test(
                 SmoothInterpolation,
                 kwargs={'scale': None},
@@ -100,7 +100,7 @@ class TestSmoothInterpolation(test_combinations.TestCase):
         self.assertEqual(res.resize.scale, 2)
 
     def test_policy_scope_memorize(self):
-        with respol.policy_scope('inter_liif4'):
+        with respol.policy_scope('inter_liif'):
             res = SmoothInterpolation(2)
         res.build([None, None, None, 3])
 
@@ -114,7 +114,7 @@ class TestSmoothInterpolation(test_combinations.TestCase):
 
     def test_policy_override_kwargs(self):
         with respol.policy_scope('inter_linear'):
-            res = SmoothInterpolation(2, policy='inter_liif4')
+            res = SmoothInterpolation(2, policy='inter_liif')
         res.build([None, None, None, 3])
 
         restored = SmoothInterpolation.from_config(res.get_config())

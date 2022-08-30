@@ -5,7 +5,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.common.adppool import AdaptiveAveragePooling
 from segme.common.convnormact import ConvNormAct
 from segme.common.sequent import Sequential
-from segme.common.internear import NearestInterpolation
+from segme.common.interrough import NearestInterpolation
 from segme.common.intersmooth import SmoothInterpolation
 
 

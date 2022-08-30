@@ -6,7 +6,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import Conv
 from segme.common.head import ClassificationActivation, ClassificationHead
 from segme.common.pad import SymmetricPadding
-from segme.common.intersmooth import SmoothInterpolation
+from segme.common.interrough import BilinearInterpolation
 from segme.common.sequent import Sequential
 from segme.model.u2_net.rsu7 import RSU7
 from segme.model.u2_net.rsu6 import RSU6
@@ -28,6 +28,7 @@ class U2Net(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.pool = layers.MaxPool2D(2, padding='same')
+        self.interpolate = BilinearInterpolation(None)
 
         self.stage1 = RSU7(32, 64)
         self.stage2 = RSU6(32, 128)
@@ -35,12 +36,6 @@ class U2Net(layers.Layer):
         self.stage4 = RSU4(128, 512)
         self.stage5 = RSU4F(256, 512)
         self.stage6 = RSU4F(256, 512)
-
-        self.stage6u = SmoothInterpolation(None)
-        self.stage5du = SmoothInterpolation(None)
-        self.stage4du = SmoothInterpolation(None)
-        self.stage3du = SmoothInterpolation(None)
-        self.stage2du = SmoothInterpolation(None)
 
         self.stage5d = RSU4F(256, 512)
         self.stage4d = RSU4(128, 256)
@@ -54,12 +49,6 @@ class U2Net(layers.Layer):
         self.proj4 = Conv(self.classes, 3)
         self.proj5 = Conv(self.classes, 3)
         self.proj6 = Conv(self.classes, 3)
-
-        self.proj2u = SmoothInterpolation(None)
-        self.proj3u = SmoothInterpolation(None)
-        self.proj4u = SmoothInterpolation(None)
-        self.proj5u = SmoothInterpolation(None)
-        self.proj6u = SmoothInterpolation(None)
 
         self.act = ClassificationActivation()
         self.head = ClassificationHead(self.classes)
@@ -85,20 +74,20 @@ class U2Net(layers.Layer):
         outputs = self.pool(outputs5)
 
         outputs6 = self.stage6(outputs)
-        hx6up = self.stage6u([outputs6, outputs5])
+        hx6up = self.interpolate([outputs6, outputs5])
 
         # decoder
         outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
-        outputs5dup = self.stage5du([outputs5d, outputs4])
+        outputs5dup = self.interpolate([outputs5d, outputs4])
 
         outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
-        outputs4dup = self.stage4du([outputs4d, outputs3])
+        outputs4dup = self.interpolate([outputs4d, outputs3])
 
         outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = self.stage3du([outputs3d, outputs2])
+        outputs3dup = self.interpolate([outputs3d, outputs2])
 
         outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = self.stage2du([outputs2d, outputs1])
+        outputs2dup = self.interpolate([outputs2d, outputs1])
 
         outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
 
@@ -106,19 +95,19 @@ class U2Net(layers.Layer):
         n1 = self.proj1(outputs1d)
 
         n2 = self.proj2(outputs2d)
-        n2 = self.proj2u([n2, n1])
+        n2 = self.interpolate([n2, n1])
 
         n3 = self.proj3(outputs3d)
-        n3 = self.proj3u([n3, n1])
+        n3 = self.interpolate([n3, n1])
 
         n4 = self.proj4(outputs4d)
-        n4 = self.proj4u([n4, n1])
+        n4 = self.interpolate([n4, n1])
 
         n5 = self.proj5(outputs5d)
-        n5 = self.proj5u([n5, n1])
+        n5 = self.interpolate([n5, n1])
 
         n6 = self.proj6(outputs6)
-        n6 = self.proj6u([n6, n1])
+        n6 = self.interpolate([n6, n1])
 
         h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
         h1 = self.act(n1)
@@ -156,6 +145,7 @@ class U2NetP(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.pool = layers.MaxPool2D(2, padding='same')
+        self.interpolate = BilinearInterpolation(None)
 
         self.stage1 = RSU7(16, 64)
         self.stage2 = RSU6(16, 64)
@@ -163,12 +153,6 @@ class U2NetP(layers.Layer):
         self.stage4 = RSU4(16, 64)
         self.stage5 = RSU4F(16, 64)
         self.stage6 = RSU4F(16, 64)
-
-        self.stage6u = SmoothInterpolation(None)
-        self.stage5du = SmoothInterpolation(None)
-        self.stage4du = SmoothInterpolation(None)
-        self.stage3du = SmoothInterpolation(None)
-        self.stage2du = SmoothInterpolation(None)
 
         self.stage5d = RSU4F(16, 64)
         self.stage4d = RSU4(16, 64)
@@ -182,12 +166,6 @@ class U2NetP(layers.Layer):
         self.proj4 = Conv(self.classes, 3)
         self.proj5 = Conv(self.classes, 3)
         self.proj6 = Conv(self.classes, 3)
-
-        self.proj2u = SmoothInterpolation(None)
-        self.proj3u = SmoothInterpolation(None)
-        self.proj4u = SmoothInterpolation(None)
-        self.proj5u = SmoothInterpolation(None)
-        self.proj6u = SmoothInterpolation(None)
 
         self.act = ClassificationActivation()
         self.head = ClassificationHead(self.classes)
@@ -213,20 +191,20 @@ class U2NetP(layers.Layer):
         outputs = self.pool(outputs5)
 
         outputs6 = self.stage6(outputs)
-        hx6up = self.stage6u([outputs6, outputs5])
+        hx6up = self.interpolate([outputs6, outputs5])
 
         # decoder
         outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
-        outputs5dup = self.stage5du([outputs5d, outputs4])
+        outputs5dup = self.interpolate([outputs5d, outputs4])
 
         outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
-        outputs4dup = self.stage4du([outputs4d, outputs3])
+        outputs4dup = self.interpolate([outputs4d, outputs3])
 
         outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = self.stage3du([outputs3d, outputs2])
+        outputs3dup = self.interpolate([outputs3d, outputs2])
 
         outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = self.stage2du([outputs2d, outputs1])
+        outputs2dup = self.interpolate([outputs2d, outputs1])
 
         outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
 
@@ -234,19 +212,19 @@ class U2NetP(layers.Layer):
         n1 = self.proj1(outputs1d)
 
         n2 = self.proj2(outputs2d)
-        n2 = self.proj2u([n2, n1])
+        n2 = self.interpolate([n2, n1])
 
         n3 = self.proj3(outputs3d)
-        n3 = self.proj3u([n3, n1])
+        n3 = self.interpolate([n3, n1])
 
         n4 = self.proj4(outputs4d)
-        n4 = self.proj4u([n4, n1])
+        n4 = self.interpolate([n4, n1])
 
         n5 = self.proj5(outputs5d)
-        n5 = self.proj5u([n5, n1])
+        n5 = self.interpolate([n5, n1])
 
         n6 = self.proj6(outputs6)
-        n6 = self.proj6u([n6, n1])
+        n6 = self.interpolate([n6, n1])
 
         h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
         h1 = self.act(n1)

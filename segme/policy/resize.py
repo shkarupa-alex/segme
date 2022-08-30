@@ -5,45 +5,15 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.common.align.impf import SpatialEncoding
 from segme.common.convnormact import ConvNormAct
 from segme.common.impfunc import make_coords, query_features
-from segme.common.internear import NearestInterpolation
+from segme.common.interrough import NearestInterpolation, BilinearInterpolation
 from segme.common.sequent import Sequential
 from segme.policy.registry import LayerRegistry
 
 RESIZERS = LayerRegistry()
-RESIZERS.register('inter_linearcomp')({
-    'class_name': 'SegMe>Policy>Resize>BilinearInterpolation', 'config': {'compat': True}})
-RESIZERS.register('inter_liif9')({
-    'class_name': 'SegMe>Policy>Resize>LIIFInterpolation', 'config': {'feat_unfold': 3, 'local_ensemble': False}})
+RESIZERS.register('inter_linear')(BilinearInterpolation)
 
 
-@RESIZERS.register('inter_linear')
-@register_keras_serializable(package='SegMe>Policy>Resize')
-class BilinearInterpolation(NearestInterpolation):
-    def __init__(self, scale=None, compat=False, **kwargs):
-        super().__init__(scale=scale, **kwargs)
-
-        self.compat = compat
-
-    def resize(self, inputs, size):
-        if self.compat:
-            outputs = tf.compat.v1.image.resize(
-                inputs, size, method=tf.compat.v1.image.ResizeMethod.BILINEAR, align_corners=True)
-        else:
-            outputs = tf.image.resize(inputs, size, method=tf.image.ResizeMethod.BILINEAR)
-
-        if inputs.dtype != outputs.dtype:
-            outputs = tf.saturate_cast(outputs, inputs.dtype)
-
-        return outputs
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({'compat': self.compat})
-
-        return config
-
-
-@RESIZERS.register('inter_liif4')
+@RESIZERS.register('inter_liif')
 @register_keras_serializable(package='SegMe>Policy>Resize')
 class LIIFInterpolation(NearestInterpolation):
     def __init__(self, scale=None, feat_unfold=False, local_ensemble=True, learn_positions=True, symmetric_pad=True,

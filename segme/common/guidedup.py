@@ -4,7 +4,7 @@ from keras.applications.imagenet_utils import preprocess_input
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct, Conv
-from segme.common.intersmooth import SmoothInterpolation
+from segme.common.interrough import BilinearInterpolation
 from segme.common.sequent import Sequential
 
 
@@ -70,7 +70,7 @@ class GuidedFilter(layers.Layer):
             layers.InputSpec(ndim=4, axes={-1: channels[1]})
         ]
 
-        self.intbysample = SmoothInterpolation(None)
+        self.intbysample = BilinearInterpolation(None)
         self.guide = Sequential([
             ConvNormAct(self.filters, self.kernel_size),
             Conv(channels[1], self.kernel_size)
@@ -145,15 +145,13 @@ class ConvGuidedFilter(layers.Layer):
             layers.InputSpec(ndim=4, dtype='uint8', axes={-1: channels[0]}),
             layers.InputSpec(ndim=4, axes={-1: channels[1]})]
 
-        self.intnorm = SmoothInterpolation(None)
-        self.intscale = SmoothInterpolation(None)
-        self.intbias = SmoothInterpolation(None)
+        self.interpolate = BilinearInterpolation(None)
 
         self.guide = Sequential([
             ConvNormAct(self.filters, self.kernel_size),
             Conv(channels[1], self.kernel_size)
         ])
-        self.box = Conv(None, 3, dilation_rate=self.radius, use_bias=False, kernel_initializer= 'ones')
+        self.box = Conv(None, 3, dilation_rate=self.radius, use_bias=False, kernel_initializer='ones')
         self.conva = Sequential([
             ConvNormAct(self.filters, 1),
             ConvNormAct(self.filters, 1),
@@ -166,7 +164,7 @@ class ConvGuidedFilter(layers.Layer):
         images_high, targets_low = inputs
 
         normals_high = preprocess_input(tf.cast(images_high, self.compute_dtype), mode='tf')
-        normals_low = self.intnorm([normals_high, targets_low])
+        normals_low = self.interpolate([normals_high, targets_low])
 
         guides_high = self.guide(normals_high)
         guides_low = self.guide(normals_low)
@@ -183,8 +181,8 @@ class ConvGuidedFilter(layers.Layer):
         scale = self.conva(tf.concat([covariance, variance], axis=-1))
         bias = targets_mean - scale * guides_mean
 
-        scale_mean = self.intscale([scale, images_high])
-        bias_mean = self.intbias([bias, images_high])
+        scale_mean = self.interpolate([scale, images_high])
+        bias_mean = self.interpolate([bias, images_high])
 
         outputs = scale_mean * guides_high + bias_mean
 

@@ -3,7 +3,7 @@ from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
-from segme.common.intersmooth import SmoothInterpolation
+from segme.common.interrough import BilinearInterpolation
 from segme.policy import respol
 
 
@@ -39,9 +39,9 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
             layers.Conv2D(1, 1, activation='sigmoid', use_bias=False)
         ])
 
-        self.intbyscale = {scale: SmoothInterpolation(scale, policy=respol.default_policy())
+        self.intbyscale = {scale: BilinearInterpolation(scale)
                            for scale in set(self.train_scales + self.eval_scales)}
-        self.intbysample = SmoothInterpolation(None, policy=respol.default_policy())
+        self.intbysample = BilinearInterpolation(None)
 
         super().build(input_shape)
 

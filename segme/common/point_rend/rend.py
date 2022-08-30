@@ -7,7 +7,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.common.point_rend.head import PointHead
 from segme.common.point_rend.sample import PointSample, UncertainPointsWithRandomness, UncertainPointsCoordsOnGrid
 from segme.common.head import ClassificationActivation
-from segme.common.intersmooth import SmoothInterpolation
+from segme.common.interrough import BilinearInterpolation
 
 
 @register_keras_serializable(package='SegMe>Common>PointRend')
@@ -40,8 +40,8 @@ class PointRend(layers.Layer):
         self.uncertain_grid = UncertainPointsCoordsOnGrid(points=self.points[1])
         self.point_sample = PointSample(align_corners=self.align_corners)
         self.point_head = PointHead(classes=self.classes, units=self.units, fines=self.fines, residual=self.residual)
-        self.int_bysample = SmoothInterpolation(None)
-        self.int_byscale = SmoothInterpolation(2)
+        self.int_bysample = BilinearInterpolation(None)
+        self.int_byscale = BilinearInterpolation(2)
         self.head_act = ClassificationActivation()
 
         super().build(input_shape)

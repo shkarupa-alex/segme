@@ -4,7 +4,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.policy import respol
 
 
-@register_keras_serializable(package='SegMe>Common')
+@register_keras_serializable(package='SegMe>Common>Interpolation')
 class SmoothInterpolation(layers.Layer):
     def __init__(self, scale, policy=None, **kwargs):
         super().__init__(**kwargs)

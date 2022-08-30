@@ -7,8 +7,7 @@ class ResizePolicy:
     """
     Some popular policies are:
     - inter_linear
-    - inter_liif4
-    - inter_liif9
+    - inter_liif
     """
 
     def __init__(self, name):

@@ -3,7 +3,7 @@ from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfmiss.keras.layers import DCNv2
 from segme.common.convnormact import Conv, Act
-from segme.common.intersmooth import SmoothInterpolation
+from segme.common.interrough import BilinearInterpolation
 
 
 @register_keras_serializable(package='SegMe>Common>Align>Deformable')
@@ -24,7 +24,7 @@ class DeformableFeatureAlignment(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.intbysample = SmoothInterpolation(None)
+        self.interpolate = BilinearInterpolation(None)
         self.select = FeatureSelection(self.filters)
         self.offset = layers.Conv2D(self.filters * 2, 1, use_bias=False, kernel_initializer='he_uniform')
         self.dcn = DCNv2(
@@ -35,7 +35,7 @@ class DeformableFeatureAlignment(layers.Layer):
 
     def call(self, inputs, **kwargs):
         fine, coarse = inputs
-        coarse = self.intbysample([coarse, fine])
+        coarse = self.interpolate([coarse, fine])
 
         fine_calibrated = self.select(fine)
 
