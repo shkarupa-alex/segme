@@ -2,12 +2,12 @@ import tensorflow as tf
 from keras import backend, layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .decoder import Decoder
-from .encoder import Encoder
-from ...common import HeadActivation
+from segme.model.hqs_crm.decoder import Decoder
+from segme.model.hqs_crm.encoder import Encoder
+from segme.common.head import ClassificationActivation
 
 
-@register_keras_serializable(package='SegMe>HqsCrm')
+@register_keras_serializable(package='SegMe>Model>HqsCrm')
 class HqsCrm(layers.Layer):
     def __init__(self, aspp_filters, aspp_drop, mlp_units, **kwargs):
         super().__init__(**kwargs)
@@ -25,7 +25,7 @@ class HqsCrm(layers.Layer):
     def build(self, input_shape):
         self.encoder = Encoder()
         self.decoder = Decoder(self.aspp_filters, self.aspp_drop, self.mlp_units)
-        self.act = HeadActivation(1)
+        self.act = ClassificationActivation()
 
         super().build(input_shape)
 
@@ -33,7 +33,8 @@ class HqsCrm(layers.Layer):
         images, masks, coords = inputs
         coords = tf.cast(coords, self.compute_dtype)
 
-        feats2, feats4, feats32 = self.encoder([images, masks])
+        imgsmasks = tf.concat([images, masks], axis=-1)
+        feats2, feats4, feats32 = self.encoder(imgsmasks)
         logits = self.decoder([feats2, feats4, feats32, coords])
         outputs = self.act(logits)
 

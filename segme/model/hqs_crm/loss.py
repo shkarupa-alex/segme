@@ -1,5 +1,5 @@
 from keras.losses import MeanAbsoluteError, MeanSquaredError, BinaryCrossentropy, LossFunctionWrapper
-from ...loss import SobelEdgeLoss
+from segme.loss.sobel_edge import SobelEdgeLoss
 
 
 def total_loss(y_true, y_pred, sample_weight=None):
