@@ -7,7 +7,7 @@ from segme.common.adppool import AdaptiveAveragePooling
 from segme.common.align.impf import SpatialEncoding
 from segme.common.align.fade import CarafeConvolution
 from segme.common.intersmooth import SmoothInterpolation
-from segme.common.convnormact import ConvNormAct, Conv, Act
+from segme.common.convnormact import ConvNormAct, ConvAct, Conv, Act
 from segme.common.sequent import Sequential
 
 
@@ -94,8 +94,7 @@ class SeFeatureSelection(layers.Layer):
 
         self.se = Sequential([
             layers.GlobalAvgPool2D(keepdims=True),
-            Conv(self.filters, 1, kernel_initializer='variance_scaling'),
-            Act(),
+            ConvAct(self.filters, 1, kernel_initializer='variance_scaling'),
             layers.Conv2D(self.channels, 1, activation='sigmoid', kernel_initializer='variance_scaling')])
 
         self.proj = Conv(self.filters, 1)

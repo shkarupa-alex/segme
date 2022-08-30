@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import initializers, layers
 from keras.mixed_precision import policy as mixed_precision
 from keras.testing_infra import test_combinations, test_utils
-from segme.common.convnormact import Conv, Norm, Act, ConvNormAct
+from segme.common.convnormact import Conv, Norm, Act, ConvAct, ConvNormAct
 from segme.policy import cnapol, sameconv, norm, act
 
 
@@ -276,6 +276,148 @@ class TestAct(test_combinations.TestCase):
         restored.build([None, None, None, 3])
 
         self.assertIsInstance(restored.act, layers.LeakyReLU)
+
+
+@test_combinations.run_all_keras_modes
+class TestConvAct(test_combinations.TestCase):
+    def setUp(self):
+        super(TestConvAct, self).setUp()
+        self.default_ConvAct = cnapol.global_policy()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestConvAct, self).tearDown()
+        cnapol.set_global_policy(self.default_ConvAct)
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            ConvAct,
+            kwargs={'filters': 4, 'kernel_size': 3},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            ConvAct,
+            kwargs={'filters': None, 'kernel_size': 3},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 3],
+            expected_output_dtype='float32'
+        )
+
+        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+            test_utils.layer_test(
+                ConvAct,
+                kwargs={'filters': 4, 'kernel_size': 3},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float32',
+                expected_output_shape=[None, 16, 16, 4],
+                expected_output_dtype='float32'
+            )
+            test_utils.layer_test(
+                ConvAct,
+                kwargs={'filters': None, 'kernel_size': 3},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float32',
+                expected_output_shape=[None, 16, 16, 3],
+                expected_output_dtype='float32'
+            )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        test_utils.layer_test(
+            ConvAct,
+            kwargs={'filters': 4, 'kernel_size': 3},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float16'
+        )
+        test_utils.layer_test(
+            ConvAct,
+            kwargs={'filters': None, 'kernel_size': 3},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 3],
+            expected_output_dtype='float16'
+        )
+
+        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+            test_utils.layer_test(
+                ConvAct,
+                kwargs={'filters': 4, 'kernel_size': 3},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float16',
+                expected_output_shape=[None, 16, 16, 4],
+                expected_output_dtype='float16'
+            )
+            test_utils.layer_test(
+                ConvAct,
+                kwargs={'filters': None, 'kernel_size': 3},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float16',
+                expected_output_shape=[None, 16, 16, 3],
+                expected_output_dtype='float16'
+            )
+
+    def test_conv_bn_relu(self):
+        cna = ConvAct(4, 3)
+        cna.build([None, None, None, 3])
+
+        self.assertIsInstance(cna.conv, Conv)
+        self.assertIsInstance(cna.conv.conv, sameconv.SameConv)
+        self.assertEqual(cna.conv.conv.filters, 4)
+        self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
+        self.assertIsInstance(cna.act, Act)
+        self.assertIsInstance(cna.act.act, layers.ReLU)
+
+    def test_dwconv_bn_relu(self):
+        cna = ConvAct(None, 3)
+        cna.build([None, None, None, 3])
+
+        self.assertIsInstance(cna.conv, Conv)
+        self.assertIsInstance(cna.conv.conv, sameconv.SameDepthwiseConv)
+        self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
+
+    def test_policy_scope_memorize(self):
+        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+            cna = ConvAct(4, 3)
+        cna.build([None, None, None, 3])
+
+        self.assertIsInstance(cna.policy, cnapol.ConvNormActPolicy)
+        self.assertEqual(cna.policy.name, 'stdconv-gn-leakyrelu')
+
+        self.assertIsInstance(cna.conv, Conv)
+        self.assertIsInstance(cna.conv.conv, sameconv.SameStandardizedConv)
+        self.assertEqual(cna.conv.conv.filters, 4)
+        self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
+        self.assertIsInstance(cna.act, Act)
+        self.assertIsInstance(cna.act.act, layers.LeakyReLU)
+
+        restored = ConvAct.from_config(cna.get_config())
+        restored.build([None, None, None, 3])
+        self.assertIsInstance(restored.conv, Conv)
+        self.assertIsInstance(restored.conv.conv, sameconv.SameStandardizedConv)
+        self.assertEqual(restored.conv.conv.filters, 4)
+        self.assertTupleEqual(restored.conv.conv.kernel_size, (3, 3))
+        self.assertIsInstance(restored.act, Act)
+        self.assertIsInstance(restored.act.act, layers.LeakyReLU)
+
+    def test_policy_override_kwargs(self):
+        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+            cna = ConvAct(4, 3, strides=2)
+        cna.build([None, None, None, 3])
+
+        restored = ConvAct.from_config(cna.get_config())
+        restored.build([None, None, None, 3])
+        self.assertIsInstance(restored.conv, Conv)
+        self.assertIsInstance(restored.conv.conv, sameconv.SameStandardizedConv)
+        self.assertTupleEqual(restored.conv.conv.strides, (2, 2))
+        self.assertIsInstance(restored.act, Act)
+        self.assertIsInstance(restored.act.act, layers.LeakyReLU)
 
 
 @test_combinations.run_all_keras_modes

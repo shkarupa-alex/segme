@@ -1,7 +1,7 @@
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from segme.common.convnormact import Conv, Act
+from segme.common.convnormact import ConvAct
 from segme.common.sequent import Sequential
 
 
@@ -22,8 +22,7 @@ class SE(layers.Layer):
         filters = max(1, int(channels * self.ratio))
         self.se = Sequential([
             layers.GlobalAvgPool2D(keepdims=True),
-            Conv(filters, 1, kernel_initializer='variance_scaling'),
-            Act(),
+            ConvAct(filters, 1, kernel_initializer='variance_scaling'),
             layers.Conv2D(channels, 1, activation='sigmoid', kernel_initializer='variance_scaling')
         ])
 
