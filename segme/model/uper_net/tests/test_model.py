@@ -4,7 +4,7 @@ from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
-from ..model import UPerNet, build_uper_net
+from segme.model.uper_net.model import UPerNet, build_uper_net
 
 
 @test_combinations.run_all_keras_modes
@@ -20,19 +20,18 @@ class TestUPerNet(test_combinations.TestCase):
     def test_layer(self):
         test_utils.layer_test(
             UPerNet,
-            kwargs={'classes': 1, 'bone_arch': 'swin_tiny_224', 'bone_init': 'imagenet', 'bone_train': False,
-                    'dropout': 0., 'dec_filters': 8, 'psp_sizes': (1, 2, 3, 6)},
+            kwargs={'classes': 1, 'dropout': 0., 'dec_filters': 8},
             input_shape=(2, 240, 240, 3),
             input_dtype='uint8',
             expected_output_shape=(None, 240, 240, 1),
             expected_output_dtype='float32'
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             UPerNet,
-            kwargs={'classes': 1, 'bone_arch': 'swin_tiny_224', 'bone_init': 'imagenet', 'bone_train': False,
-                    'dropout': 0., 'dec_filters': 8, 'psp_sizes': (1, 2, 3, 6)},
+            kwargs={'classes': 1, 'dropout': 0., 'dec_filters': 8},
             input_shape=(2, 240, 240, 3),
             input_dtype='uint8',
             expected_output_shape=(None, 240, 240, 1),
@@ -40,7 +39,7 @@ class TestUPerNet(test_combinations.TestCase):
         )
 
     def test_model(self):
-        model = build_uper_net(classes=2, bone_arch='swin_tiny_224', bone_init='imagenet', bone_train=False)
+        model = build_uper_net(classes=2)
         model.compile(optimizer='sgd', loss='mse', run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 240, 240, 3)).astype(np.uint8),
