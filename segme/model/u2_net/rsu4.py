@@ -18,7 +18,7 @@ class RSU4(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.pool = layers.MaxPool2D(2, padding='same')
-        self.interpolate = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(None)
 
         self.cbr0 = ConvNormAct(self.out_features, 3)
         self.cbr1 = ConvNormAct(self.mid_features, 3)
@@ -47,10 +47,10 @@ class RSU4(layers.Layer):
         outputs4 = self.cbr4(outputs3)
 
         outputs3d = self.cbr3d(tf.concat([outputs4, outputs3], axis=-1))
-        outputs3dup = self.interpolate([outputs3d, outputs2])
+        outputs3dup = self.resize([outputs3d, outputs2])
 
         outputs2d = self.cbr2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = self.interpolate([outputs2d, outputs1])
+        outputs2dup = self.resize([outputs2d, outputs1])
 
         outputs1d = self.cbr1d(tf.concat([outputs2dup, outputs1], axis=-1))
 

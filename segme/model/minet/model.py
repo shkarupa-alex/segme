@@ -35,7 +35,7 @@ class MINet(layers.Layer):
         self.upconv2 = ConvNormAct(32, 3)
         self.upconv1 = ConvNormAct(32, 3)
 
-        self.interpolate = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(None)
 
         self.head = ClassificationHead(self.classes)
 
@@ -48,19 +48,19 @@ class MINet(layers.Layer):
 
         out5 = self.upconv32(self.sim32(out5) + out5)
 
-        out4 = self.interpolate([out5, out4]) + out4
+        out4 = self.resize([out5, out4]) + out4
         out4 = self.upconv16(self.sim16(out4) + out4)
 
-        out3 = self.interpolate([out4, out3]) + out3
+        out3 = self.resize([out4, out3]) + out3
         out3 = self.upconv8(self.sim8(out3) + out3)
 
-        out2 = self.interpolate([out3, out2]) + out2
+        out2 = self.resize([out3, out2]) + out2
         out2 = self.upconv4(self.sim4(out2) + out2)
 
-        out1 = self.interpolate([out2, out1]) + out1
+        out1 = self.resize([out2, out1]) + out1
         out1 = self.upconv2(self.sim2(out1) + out1)
 
-        outputs = self.upconv1(self.interpolate([out1, inputs]))
+        outputs = self.upconv1(self.resize([out1, inputs]))
 
         return self.head(outputs)
 

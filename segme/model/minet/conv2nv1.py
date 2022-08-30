@@ -31,7 +31,7 @@ class Conv2nV1(layers.Layer):
 
         min_channels = min(self.channels_h, self.channels_l)
 
-        self.interpolate = NearestInterpolation(None)
+        self.resize = NearestInterpolation(None)
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
         self.act = Act()
 
@@ -84,14 +84,14 @@ class Conv2nV1(layers.Layer):
         h2h = self.conv_hh1(h)
         h2l = self.conv_hl1(self.pool(h))
         l2l = self.conv_ll1(l)
-        l2h = self.conv_lh1(self.interpolate([l, h2h]))
+        l2h = self.conv_lh1(self.resize([l, h2h]))
         h = self.act(self.norm_h1(h2h + l2h))
         l = self.act(self.norm_l1(l2l + h2l))
 
         if self.main == 0:
             # stage 2
             h2h = self.conv_hh2(h)
-            l2h = self.conv_lh2(self.interpolate([l, h2h]))
+            l2h = self.conv_lh2(self.resize([l, h2h]))
             h_fuse = self.act(self.norm_h2(h2h + l2h))
 
             # stage 3

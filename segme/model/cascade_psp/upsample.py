@@ -16,7 +16,7 @@ class Upsample(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.interpolate = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(None)
         self.conv1 = Sequential([
             Norm(),
             Act(),
@@ -36,7 +36,7 @@ class Upsample(layers.Layer):
     def call(self, inputs, **kwargs):
         high, low = inputs
 
-        high = self.interpolate([high, low])
+        high = self.resize([high, low])
         outputs = self.conv1(tf.concat([high, low], axis=-1))
         outputs += self.shortcut(high)
         outputs += self.conv2(outputs)

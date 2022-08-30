@@ -20,7 +20,7 @@ class Decoder(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.interpolate = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(None)
 
         self.aspp2 = ConvNormAct(self.aspp_filters[0], 1)
         self.aspp4 = ConvNormAct(self.aspp_filters[1], 1)
@@ -40,11 +40,11 @@ class Decoder(layers.Layer):
 
         aspp4 = self.aspp4(feats4)
         aspp4 = self.drop(aspp4)
-        aspp4 = self.interpolate([aspp4, aspp2])
+        aspp4 = self.resize([aspp4, aspp2])
 
         aspp32 = self.aspp32(feats32)
         aspp32 = self.drop(aspp32)
-        aspp32 = self.interpolate([aspp32, aspp2])
+        aspp32 = self.resize([aspp32, aspp2])
 
         aspp = tf.concat([aspp2, aspp4, aspp32], axis=-1)
         aspp = self.fuse(aspp)

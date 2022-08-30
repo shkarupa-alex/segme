@@ -29,7 +29,7 @@ class Conv3nV1(layers.Layer):
 
         min_channels = min(self.channels_h, self.channels_m, self.channels_l)
 
-        self.interpolate = NearestInterpolation(None)
+        self.resize = NearestInterpolation(None)
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
         self.act = Act()
 
@@ -74,11 +74,11 @@ class Conv3nV1(layers.Layer):
 
         # stage 1
         h2h = self.conv_hh1(h)
-        m2h = self.conv_mh1(self.interpolate([m, h2h]))
+        m2h = self.conv_mh1(self.resize([m, h2h]))
 
         h2m = self.conv_hm1(self.pool(h))
         m2m = self.conv_mm1(m)
-        l2m = self.conv_lm1(self.interpolate([l, m2m]))
+        l2m = self.conv_lm1(self.resize([l, m2m]))
 
         m2l = self.conv_ml1(self.pool(m))
         l2l = self.conv_ll1(l)
@@ -90,7 +90,7 @@ class Conv3nV1(layers.Layer):
         # stage 2
         h2m = self.conv_hm2(self.pool(h))
         m2m = self.conv_mm2(m)
-        l2m = self.conv_lm2(self.interpolate([l, m2m]))
+        l2m = self.conv_lm2(self.resize([l, m2m]))
         m = self.act(self.norm_m2(h2m + m2m + l2m))
 
         # stage 3

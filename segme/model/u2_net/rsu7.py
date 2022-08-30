@@ -18,7 +18,7 @@ class RSU7(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.pool = layers.MaxPool2D(2, padding='same')
-        self.interpolate = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(None)
 
         self.cbr0 = ConvNormAct(self.out_features, 3)
         self.cbr1 = ConvNormAct(self.mid_features, 3)
@@ -62,19 +62,19 @@ class RSU7(layers.Layer):
         outputs7 = self.cbr7(outputs6)
 
         outputs6d = self.cbr6d(tf.concat([outputs7, outputs6], axis=-1))
-        outputs6dup = self.interpolate([outputs6d, outputs5])
+        outputs6dup = self.resize([outputs6d, outputs5])
 
         outputs5d = self.cbr5d(tf.concat([outputs6dup, outputs5], axis=-1))
-        outputs5dup = self.interpolate([outputs5d, outputs4])
+        outputs5dup = self.resize([outputs5d, outputs4])
 
         outputs4d = self.cbr4d(tf.concat([outputs5dup, outputs4], axis=-1))
-        outputs4dup = self.interpolate([outputs4d, outputs3])
+        outputs4dup = self.resize([outputs4d, outputs3])
 
         outputs3d = self.cbr3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = self.interpolate([outputs3d, outputs2])
+        outputs3dup = self.resize([outputs3d, outputs2])
 
         outputs2d = self.cbr2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = self.interpolate([outputs2d, outputs1])
+        outputs2dup = self.resize([outputs2d, outputs1])
 
         outputs1d = self.cbr1d(tf.concat([outputs2dup, outputs1], axis=-1))
 

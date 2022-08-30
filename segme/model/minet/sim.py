@@ -20,7 +20,7 @@ class SIM(layers.Layer):
 
         self.input_spec = layers.InputSpec(ndim=4, axes={-1: self.channels})
 
-        self.interpolate = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(None)
         self.pool = layers.AveragePooling2D(2, strides=2, padding='same')
         self.act = Act()
 
@@ -49,13 +49,13 @@ class SIM(layers.Layer):
         h2h = self.conv_hh1(h)
         h2l = self.conv_hl1(self.pool(h))
         l2l = self.conv_ll1(l)
-        l2h = self.conv_lh1(self.interpolate([l, inputs]))
+        l2h = self.conv_lh1(self.resize([l, inputs]))
         h = self.act(self.norm_h1(h2h + l2h))
         l = self.act(self.norm_l1(l2l + h2l))
 
         # last conv
         h2h = self.conv_hh2(h)
-        l2h = self.conv_lh2(self.interpolate([l, inputs]))
+        l2h = self.conv_lh2(self.resize([l, inputs]))
         h = self.act(self.norm_h2(h2h + l2h))
 
         return h

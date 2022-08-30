@@ -28,7 +28,7 @@ class U2Net(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.pool = layers.MaxPool2D(2, padding='same')
-        self.interpolate = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(None)
 
         self.stage1 = RSU7(32, 64)
         self.stage2 = RSU6(32, 128)
@@ -74,20 +74,20 @@ class U2Net(layers.Layer):
         outputs = self.pool(outputs5)
 
         outputs6 = self.stage6(outputs)
-        hx6up = self.interpolate([outputs6, outputs5])
+        hx6up = self.resize([outputs6, outputs5])
 
         # decoder
         outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
-        outputs5dup = self.interpolate([outputs5d, outputs4])
+        outputs5dup = self.resize([outputs5d, outputs4])
 
         outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
-        outputs4dup = self.interpolate([outputs4d, outputs3])
+        outputs4dup = self.resize([outputs4d, outputs3])
 
         outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = self.interpolate([outputs3d, outputs2])
+        outputs3dup = self.resize([outputs3d, outputs2])
 
         outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = self.interpolate([outputs2d, outputs1])
+        outputs2dup = self.resize([outputs2d, outputs1])
 
         outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
 
@@ -95,19 +95,19 @@ class U2Net(layers.Layer):
         n1 = self.proj1(outputs1d)
 
         n2 = self.proj2(outputs2d)
-        n2 = self.interpolate([n2, n1])
+        n2 = self.resize([n2, n1])
 
         n3 = self.proj3(outputs3d)
-        n3 = self.interpolate([n3, n1])
+        n3 = self.resize([n3, n1])
 
         n4 = self.proj4(outputs4d)
-        n4 = self.interpolate([n4, n1])
+        n4 = self.resize([n4, n1])
 
         n5 = self.proj5(outputs5d)
-        n5 = self.interpolate([n5, n1])
+        n5 = self.resize([n5, n1])
 
         n6 = self.proj6(outputs6)
-        n6 = self.interpolate([n6, n1])
+        n6 = self.resize([n6, n1])
 
         h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
         h1 = self.act(n1)
@@ -145,7 +145,7 @@ class U2NetP(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.pool = layers.MaxPool2D(2, padding='same')
-        self.interpolate = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(None)
 
         self.stage1 = RSU7(16, 64)
         self.stage2 = RSU6(16, 64)
@@ -191,20 +191,20 @@ class U2NetP(layers.Layer):
         outputs = self.pool(outputs5)
 
         outputs6 = self.stage6(outputs)
-        hx6up = self.interpolate([outputs6, outputs5])
+        hx6up = self.resize([outputs6, outputs5])
 
         # decoder
         outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
-        outputs5dup = self.interpolate([outputs5d, outputs4])
+        outputs5dup = self.resize([outputs5d, outputs4])
 
         outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
-        outputs4dup = self.interpolate([outputs4d, outputs3])
+        outputs4dup = self.resize([outputs4d, outputs3])
 
         outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = self.interpolate([outputs3d, outputs2])
+        outputs3dup = self.resize([outputs3d, outputs2])
 
         outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = self.interpolate([outputs2d, outputs1])
+        outputs2dup = self.resize([outputs2d, outputs1])
 
         outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
 
@@ -212,19 +212,19 @@ class U2NetP(layers.Layer):
         n1 = self.proj1(outputs1d)
 
         n2 = self.proj2(outputs2d)
-        n2 = self.interpolate([n2, n1])
+        n2 = self.resize([n2, n1])
 
         n3 = self.proj3(outputs3d)
-        n3 = self.interpolate([n3, n1])
+        n3 = self.resize([n3, n1])
 
         n4 = self.proj4(outputs4d)
-        n4 = self.interpolate([n4, n1])
+        n4 = self.resize([n4, n1])
 
         n5 = self.proj5(outputs5d)
-        n5 = self.interpolate([n5, n1])
+        n5 = self.resize([n5, n1])
 
         n6 = self.proj6(outputs6)
-        n6 = self.interpolate([n6, n1])
+        n6 = self.resize([n6, n1])
 
         h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
         h1 = self.act(n1)

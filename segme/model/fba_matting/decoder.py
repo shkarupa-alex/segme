@@ -23,7 +23,7 @@ class Decoder(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.interpolate = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(None)
 
         self.ppm = PyramidPooling(256)
 
@@ -44,15 +44,15 @@ class Decoder(layers.Layer):
         outputs = self.ppm(feats32)
         outputs = self.conv_up1(outputs)
 
-        outputs = self.interpolate([outputs, feats4])
+        outputs = self.resize([outputs, feats4])
         outputs = tf.concat([outputs, feats4], axis=-1)
         outputs = self.conv_up2(outputs)
 
-        outputs = self.interpolate([outputs, feats2])
+        outputs = self.resize([outputs, feats2])
         outputs = tf.concat([outputs, feats2], axis=-1)
         outputs = self.conv_up3(outputs)
 
-        outputs = self.interpolate([outputs, imscal])
+        outputs = self.resize([outputs, imscal])
         outputs = tf.concat([outputs, imscal, imnorm, twomap], axis=-1)
         outputs = self.conv_up4(outputs)
 
