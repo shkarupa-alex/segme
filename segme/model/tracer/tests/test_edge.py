@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from ..edge import FrequencyEdge, extract_edges
-from ....testing_utils import layer_multi_io_test
+from segme.model.tracer.edge import FrequencyEdge, extract_edges
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes

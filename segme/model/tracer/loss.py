@@ -1,4 +1,4 @@
-from ...loss import AdaptivePixelIntensityLoss
+from segme.loss import AdaptivePixelIntensityLoss
 
 
 def tracer_losses():

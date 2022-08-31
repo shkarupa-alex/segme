@@ -2,19 +2,19 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import AtrousSeparableConv, ConvNormRelu
+from segme.common.convnormact import ConvNormAct
+from segme.common.sequent import Sequential
 
 
-@register_keras_serializable(package='SegMe>Tracer')
+@register_keras_serializable(package='SegMe>Model>Tracer')
 class ObjectAttention(layers.Layer):
-    def __init__(self, kernel_size, denoise, **kwargs):
+    def __init__(self, denoise, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             layers.InputSpec(ndim=4),  # encoder map
             layers.InputSpec(ndim=4, axes={-1: 1})  # decoder map
         ]
 
-        self.kernel_size = kernel_size
         self.denoise = denoise
 
     @shape_type_conversion
@@ -25,12 +25,12 @@ class ObjectAttention(layers.Layer):
         if not self.channels // 8:
             raise ValueError('Channel dimension should be greater then 8.')
 
-        self.conv_in = AtrousSeparableConv(self.channels // 2, self.kernel_size, activation='selu')
-        self.conv_mid0 = AtrousSeparableConv(self.channels // 8, 1, activation='selu')
-        self.conv_mid1 = AtrousSeparableConv(self.channels // 8, 3, activation='selu')
-        self.conv_mid2 = AtrousSeparableConv(self.channels // 8, 3, activation='selu', dilation_rate=3)
-        self.conv_mid3 = AtrousSeparableConv(self.channels // 8, 3, activation='selu', dilation_rate=5)
-        self.conv_out = ConvNormRelu(1, 1, activation='selu')
+        self.conv_in = Sequential([ConvNormAct(None, 3), ConvNormAct(self.channels // 2, 1)])
+        self.conv_mid0 = Sequential([ConvNormAct(None, 1), ConvNormAct(self.channels // 8, 1)])
+        self.conv_mid1 = Sequential([ConvNormAct(None, 3), ConvNormAct(self.channels // 8, 1)])
+        self.conv_mid2 = Sequential([ConvNormAct(None, 3, dilation_rate=3), ConvNormAct(self.channels // 8, 1)])
+        self.conv_mid3 = Sequential([ConvNormAct(None, 3, dilation_rate=5), ConvNormAct(self.channels // 8, 1)])
+        self.conv_out = ConvNormAct(1, 1)
 
         super().build(input_shape)
 
@@ -39,7 +39,7 @@ class ObjectAttention(layers.Layer):
 
         foregrounds = tf.nn.sigmoid(decoder_map)
         backgrounds = 1. - foregrounds
-        edges = tf.where(backgrounds < self.denoise, backgrounds, tf.zeros_like(backgrounds))
+        edges = backgrounds * tf.cast(backgrounds < self.denoise, self.compute_dtype)
 
         outputs = (foregrounds + edges) * encoder_map
 
@@ -49,7 +49,8 @@ class ObjectAttention(layers.Layer):
             axis=-1)
         outputs = self.conv_out(outputs)
 
-        outputs = tf.nn.relu(outputs) + decoder_map
+        outputs = tf.nn.relu(outputs)
+        outputs += decoder_map
 
         return outputs
 
@@ -59,9 +60,6 @@ class ObjectAttention(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            'kernel_size': self.kernel_size,
-            'denoise': self.denoise
-        })
+        config.update({'denoise': self.denoise})
 
         return config

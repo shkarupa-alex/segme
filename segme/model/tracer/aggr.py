@@ -2,11 +2,12 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .uniatt import UnionAttention
-from ...common import ConvNormRelu, ResizeByScale
+from segme.common.convnormact import ConvNormAct
+from segme.common.interrough import BilinearInterpolation
+from segme.model.tracer.uniatt import UnionAttention
 
 
-@register_keras_serializable(package='SegMe>Tracer')
+@register_keras_serializable(package='SegMe>Model>Tracer')
 class Aggregation(layers.Layer):
     def __init__(self, confidence, **kwargs):
         super().__init__(**kwargs)
@@ -20,14 +21,15 @@ class Aggregation(layers.Layer):
         if None in self.channels:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.upsample = ResizeByScale(2)
-        self.conv_upsample1 = ConvNormRelu(self.channels[1], 3, activation='selu')
-        self.conv_upsample2 = ConvNormRelu(self.channels[0], 3, activation='selu')
-        self.conv_upsample3 = ConvNormRelu(self.channels[0], 3, activation='selu')
-        self.conv_upsample4 = ConvNormRelu(self.channels[2], 3, activation='selu')
-        self.conv_upsample5 = ConvNormRelu(sum(self.channels[1:]), 3, activation='selu')
-        self.conv_concat2 = ConvNormRelu(sum(self.channels[1:]), 3, activation='selu')
-        self.conv_concat3 = ConvNormRelu(sum(self.channels), 3, activation='selu')
+        self.upsample2 = BilinearInterpolation(2)
+        self.upsample4 = BilinearInterpolation(4)
+        self.conv_upsample1 = ConvNormAct(self.channels[1], 3)
+        self.conv_upsample2 = ConvNormAct(self.channels[0], 3)
+        self.conv_upsample3 = ConvNormAct(self.channels[0], 3)
+        self.conv_upsample4 = ConvNormAct(self.channels[2], 3)
+        self.conv_upsample5 = ConvNormAct(sum(self.channels[1:]), 3)
+        self.conv_concat2 = ConvNormAct(sum(self.channels[1:]), 3)
+        self.conv_concat3 = ConvNormAct(sum(self.channels), 3)
 
         self.ua = UnionAttention(self.confidence)
 
@@ -36,17 +38,17 @@ class Aggregation(layers.Layer):
     def call(self, inputs, **kwargs):
         e2, e3, e4 = inputs
 
-        e4_2 = self.upsample(e4)
-        e4_4 = self.upsample(e4_2)
-        e3_2 = self.upsample(e3)
+        e3_x2 = self.upsample2(e3)
+        e4_x2 = self.upsample2(e4)
+        e4_x4 = self.upsample4(e4)
 
-        e3_1 = self.conv_upsample1(e4_2) * e3
-        e2_1 = self.conv_upsample2(e4_4) * self.conv_upsample3(e3_2) * e2
+        e3_1 = self.conv_upsample1(e4_x2) * e3
+        e2_1 = self.conv_upsample2(e4_x4) * self.conv_upsample3(e3_x2) * e2
 
-        e3_2 = tf.concat([e3_1, self.conv_upsample4(e4_2)], axis=-1)
+        e3_2 = tf.concat([e3_1, self.conv_upsample4(e4_x2)], axis=-1)
         e3_2 = self.conv_concat2(e3_2)
 
-        e2_2 = tf.concat([e2_1, self.conv_upsample5(self.upsample(e3_2))], axis=-1)
+        e2_2 = tf.concat([e2_1, self.conv_upsample5(self.upsample2(e3_2))], axis=-1)
         outputs = self.conv_concat3(e2_2)
 
         outputs = self.ua(outputs)

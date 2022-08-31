@@ -3,11 +3,11 @@ from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tensorflow_probability.python.stats import percentile
-from .chnatt import ChannelAttention
-from ...common import SameConv
+from segme.common.convnormact import Conv, Norm
+from segme.model.tracer.chnatt import ChannelAttention
 
 
-@register_keras_serializable(package='SegMe>Tracer')
+@register_keras_serializable(package='SegMe>Model>Tracer')
 class UnionAttention(layers.Layer):
     def __init__(self, confidence, **kwargs):
         super().__init__(**kwargs)
@@ -18,8 +18,8 @@ class UnionAttention(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.chatt = ChannelAttention(self.confidence)
-        self.bn = layers.BatchNormalization()
-        self.qkv = SameConv(3, 1, use_bias=False)
+        self.norm = Norm()
+        self.qkv = Conv(3, 1, use_bias=False)
 
         super().build(input_shape)
 
@@ -27,18 +27,14 @@ class UnionAttention(layers.Layer):
         batch, height, width, _ = tf.unstack(tf.shape(inputs))
 
         channel_outputs, channel_masks = self.chatt(inputs)
-        channel_outputs = self.bn(channel_outputs)
+        channel_outputs = self.norm(channel_outputs)
 
-        channel_masks = channel_masks[:, 0, 0]
         threshold = percentile(channel_masks, self.confidence * 100, axis=-1, keepdims=True, interpolation='linear')
-        channel_masks = tf.where(channel_masks > threshold, channel_masks, tf.zeros_like(channel_masks))
-        channel_masks = channel_masks[:, None, None]
-
+        channel_masks *= tf.cast(channel_masks > threshold, self.compute_dtype)
         channel_outputs *= channel_masks
 
         qkv = self.qkv(channel_outputs)
         q, k, v = tf.split(qkv, 3, axis=-1)
-
         q_ = tf.reshape(q, [batch, height * width, 1])
         k_ = tf.reshape(k, [batch, height * width, 1])
         v_ = tf.reshape(v, [batch, height * width, 1])

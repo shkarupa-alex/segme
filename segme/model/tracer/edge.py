@@ -2,11 +2,12 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .chnatt import ChannelAttention
-from ...common import AtrousSeparableConv, ConvNormRelu, ToChannelFirst, ToChannelLast
+from segme.common.convnormact import ConvNormAct
+from segme.common.sequent import Sequential
+from segme.model.tracer.chnatt import ChannelAttention
 
 
-@register_keras_serializable(package='SegMe>Tracer')
+@register_keras_serializable(package='SegMe>Model>Tracer')
 class FrequencyEdge(layers.Layer):
     def __init__(self, radius, confidence, **kwargs):
         super().__init__(**kwargs)
@@ -23,46 +24,45 @@ class FrequencyEdge(layers.Layer):
         if not self.channels // 4:
             raise ValueError('Channel dimension should be greater then 8.')
 
-        self.nchw = ToChannelFirst()
-        self.nhwc = ToChannelLast()
-
         self.chatt = ChannelAttention(self.confidence)
 
-        # DWS + DWConv
-        self.conv_in = AtrousSeparableConv(self.channels, 3, activation='selu')
-        self.conv_mid0 = AtrousSeparableConv(self.channels // 4, 1, activation='selu')
-        self.conv_mid1 = AtrousSeparableConv(self.channels // 4, 3, activation='selu')
-        self.conv_mid2 = AtrousSeparableConv(self.channels // 4, 3, activation='selu', dilation_rate=3)
-        self.conv_mid3 = AtrousSeparableConv(self.channels // 4, 3, activation='selu', dilation_rate=5)
-        self.conv_out = ConvNormRelu(1, 1, activation='selu')
+        self.conv_in = Sequential([ConvNormAct(None, 3), ConvNormAct(self.channels, 1)])
+        self.conv_mid0 = Sequential([ConvNormAct(None, 1), ConvNormAct(self.channels // 4, 1)])
+        self.conv_mid1 = Sequential([ConvNormAct(None, 3), ConvNormAct(self.channels // 4, 1)])
+        self.conv_mid2 = Sequential([ConvNormAct(None, 3, dilation_rate=3), ConvNormAct(self.channels // 4, 1)])
+        self.conv_mid3 = Sequential([ConvNormAct(None, 3, dilation_rate=5), ConvNormAct(self.channels // 4, 1)])
+        self.conv_out = ConvNormAct(1, 1)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        _, height, width, _ = tf.unstack(tf.cast(tf.shape(inputs), 'float32'))
-
-        inputs_ = self.nchw(inputs)  # TODO: check
+        height, width = tf.unstack(tf.shape(inputs)[1:3])
 
         rows = tf.range(height, dtype='float32')[:, None]
         cols = tf.range(width, dtype='float32')[None]
-        distance_ = tf.sqrt((rows - height / 2) ** 2 + (cols - height / 2) ** 2)
+        half = tf.cast(tf.minimum(height, width), 'float32') / 2.
+
+        distance_ = tf.sqrt((rows - half) ** 2 + (cols - half) ** 2)
         mask_ = tf.cast(distance_ >= self.radius, 'complex64')[None, None]
 
-        freq_ = tf.signal.fft2d(tf.cast(inputs_, 'complex64'))
+        inputs_ = tf.transpose(inputs, [0, 3, 1, 2])
+        inputs_ = tf.cast(inputs_, 'complex64')
+
+        freq_ = tf.signal.fft2d(inputs_)
         freq_ = tf.signal.fftshift(freq_)
         high_freq_ = freq_ * mask_
         high_freq_ = tf.signal.ifftshift(high_freq_)
         edges_ = tf.signal.ifft2d(high_freq_)
-        edges_ = tf.abs(edges_)
 
-        edges = self.nhwc(edges_)
+        edges_ = tf.cast(tf.abs(edges_), self.compute_dtype)
+        edges = tf.transpose(edges_, [0, 2, 3, 1])
+
         edges, _ = self.chatt(edges)
         edges = self.conv_in(edges)
-
         edges += tf.concat([
-            self.conv_mid0(edges), self.conv_mid1(edges), self.conv_mid2(edges), self.conv_mid3(edges)],
-            axis=-1)
-        edges = tf.nn.relu(self.conv_out(edges))
+            self.conv_mid0(edges), self.conv_mid1(edges), self.conv_mid2(edges), self.conv_mid3(edges)], axis=-1)
+        edges = self.conv_out(edges)
+        edges = tf.nn.relu(edges)
 
         outputs = inputs + edges
 

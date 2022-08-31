@@ -1,11 +1,12 @@
 import tensorflow as tf
-from keras import layers, models
+from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import SameConv
+from segme.common.convnormact import Conv, Norm
+from segme.common.sequent import Sequential
 
 
-@register_keras_serializable(package='SegMe>Tracer')
+@register_keras_serializable(package='SegMe>Model>Tracer')
 class ChannelAttention(layers.Layer):
     def __init__(self, confidence, **kwargs):
         super().__init__(**kwargs)
@@ -19,12 +20,12 @@ class ChannelAttention(layers.Layer):
         if self.channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.avg = models.Sequential([
+        self.avg = Sequential([
             layers.GlobalAvgPool2D(keepdims=True),
-            layers.BatchNormalization(),  # TODO: not fuse?
+            Norm(),
             layers.Dropout(self.confidence)])
-        self.qkv = SameConv(self.channels * 3, 1, use_bias=False)
-        self.proj = SameConv(self.channels, 1, use_bias=False, activation='sigmoid')
+        self.qkv = Conv(self.channels * 3, 1, use_bias=False)
+        self.proj = Conv(self.channels, 1, use_bias=False, activation='sigmoid')
 
         super().build(input_shape)
 
