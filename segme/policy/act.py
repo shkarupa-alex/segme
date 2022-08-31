@@ -8,6 +8,7 @@ ACTIVATIONS = LayerRegistry()
 ACTIVATIONS.register('relu')(layers.ReLU)
 ACTIVATIONS.register('leakyrelu')(layers.LeakyReLU)
 ACTIVATIONS.register('gelu')({'class_name': 'Activation', 'config': {'activation': 'gelu'}})
+ACTIVATIONS.register('selu')({'class_name': 'Activation', 'config': {'activation': 'selu'}})
 
 
 @ACTIVATIONS.register('tlu')
