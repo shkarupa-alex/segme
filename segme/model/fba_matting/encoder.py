@@ -18,8 +18,10 @@ class Encoder(layers.Layer):
         base_weights = base_model.get_weights()
 
         ext_config = patch_config(base_config, [0], 'batch_input_shape', lambda old: old[:-1] + (11,))
-        ext_config = patch_config(ext_config, [2], 'mean', lambda old: old + [0.408] * 8)
-        ext_config = patch_config(ext_config, [2], 'variance', lambda old: old + [0.492 ** 2] * 8)
+        ext_config = patch_config(ext_config, [2], 'mean', lambda old: old + [
+            0.187, 0.338, 0.207, 0.267, 0.338, 0.369, 0.448, 0.527])
+        ext_config = patch_config(ext_config, [2], 'variance', lambda old: old + [
+            0.389 ** 2, 0.473 ** 2, 0.397 ** 2, 0.416 ** 2, 0.428 ** 2, 0.473 ** 2, 0.468 ** 2, 0.453 ** 2])
         ext_model = models.Model.from_config(ext_config)
 
         ext_weights = []
