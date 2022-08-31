@@ -2,9 +2,9 @@ import tensorflow as tf
 from keras import backend, layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
+from segme.common.head import ClassificationActivation
 from segme.model.hqs_crm.decoder import Decoder
 from segme.model.hqs_crm.encoder import Encoder
-from segme.common.head import ClassificationActivation
 
 
 @register_keras_serializable(package='SegMe>Model>HqsCrm')

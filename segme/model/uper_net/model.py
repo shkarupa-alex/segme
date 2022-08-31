@@ -2,9 +2,9 @@ import tensorflow as tf
 from keras import layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
+from segme.common.backbone import Backbone
 from segme.model.uper_net.decoder import Decoder
 from segme.model.uper_net.head import Head
-from segme.common.backbone import Backbone
 
 
 @register_keras_serializable(package='SegMe>Model>UPerNet')
