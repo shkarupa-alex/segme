@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from ..head import Head
-from ....testing_utils import layer_multi_io_test
+from segme.model.uper_net.head import Head
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes

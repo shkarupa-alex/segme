@@ -2,32 +2,26 @@ import tensorflow as tf
 from keras import layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .decoder import Decoder
-from .head import Head
-from ...backbone import Backbone
-from ...common import ConvNormRelu
+from segme.common.backbone import Backbone
+from segme.model.uper_net.decoder import Decoder
+from segme.model.uper_net.head import Head
 
 
-@register_keras_serializable(package='SegMe>UPerNet')
+@register_keras_serializable(package='SegMe>Model>UPerNet')
 class UPerNet(layers.Layer):
     """ Reference: https://arxiv.org/pdf/1807.10221v1.pdf """
 
-    def __init__(
-            self, classes, bone_arch, bone_init, bone_train, dropout, dec_filters, psp_sizes, **kwargs):
+    def __init__(self, classes, dropout, dec_filters, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
         self.classes = classes
         self.dropout = dropout
-        self.bone_arch = bone_arch
-        self.bone_init = bone_init
-        self.bone_train = bone_train
         self.dec_filters = dec_filters
-        self.psp_sizes = psp_sizes
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=[4, 8, 16, 32])
-        self.decode = Decoder(self.dec_filters, self.psp_sizes)
+        self.bone = Backbone(scales=[4, 8, 16, 32])
+        self.decode = Decoder(self.dec_filters)
         self.head = Head(self.classes, self.dropout)
 
         super().build(input_shape)
@@ -52,23 +46,16 @@ class UPerNet(layers.Layer):
         config = super().get_config()
         config.update({
             'classes': self.classes,
-            'bone_arch': self.bone_arch,
-            'bone_init': self.bone_init,
-            'bone_train': self.bone_train,
             'dropout': self.dropout,
-            'dec_filters': self.dec_filters,
-            'psp_sizes': self.psp_sizes
+            'dec_filters': self.dec_filters
         })
 
         return config
 
 
-def build_uper_net(
-        classes, bone_arch, bone_init, bone_train, dropout=0.1, dec_filters=512, psp_sizes=(1, 2, 3, 6)):
+def build_uper_net(classes, dropout=0.1, dec_filters=512):
     inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
-    outputs = UPerNet(
-        classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, dropout=dropout,
-        dec_filters=dec_filters, psp_sizes=psp_sizes)(inputs)
+    outputs = UPerNet(classes, dropout=dropout, dec_filters=dec_filters)(inputs)
     model = models.Model(inputs=inputs, outputs=outputs, name='uper_net')
 
     return model

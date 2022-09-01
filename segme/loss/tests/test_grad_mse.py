@@ -4,8 +4,8 @@ import tensorflow as tf
 from keras import layers, models
 from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..grad_mse import GradientMeanSquaredError
-from ..grad_mse import gradient_mean_squared_error
+from segme.loss.grad_mse import GradientMeanSquaredError
+from segme.loss.grad_mse import gradient_mean_squared_error
 
 
 @test_combinations.run_all_keras_modes
@@ -135,7 +135,7 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
-        model.compile(loss='SegMe>GradientMeanSquaredError', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>GradientMeanSquaredError', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

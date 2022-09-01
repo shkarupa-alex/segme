@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
-from ..twomap import Twomap
+from segme.model.fba_matting.twomap import Twomap
 
 
 @test_combinations.run_all_keras_modes

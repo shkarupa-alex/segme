@@ -2,10 +2,10 @@ import tensorflow as tf
 from keras import losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from .common_loss import validate_input, iou
+from segme.loss.common_loss import validate_input, iou
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class GeneralizedDiceLoss(losses.LossFunctionWrapper):
     """ Proposed in: 'Generalised Dice overlap as a deep learning loss function for highly unbalanced segmentations'
 

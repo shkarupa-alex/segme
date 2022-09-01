@@ -4,14 +4,13 @@ from keras.utils.control_flow_util import smart_cond
 from keras.utils.conv_utils import normalize_tuple
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .head import PointHead
-from .sample import point_sample, uncertain_points_with_randomness, uncertain_points_coords_on_grid
-from ..head import HeadActivation
-from ..resizebysample import resize_by_sample
-from ..resizebyscale import resize_by_scale
+from segme.common.point_rend.head import PointHead
+from segme.common.point_rend.sample import PointSample, UncertainPointsWithRandomness, UncertainPointsCoordsOnGrid
+from segme.common.head import ClassificationActivation
+from segme.common.interrough import BilinearInterpolation
 
 
-@register_keras_serializable(package='SegMe>PointRend')
+@register_keras_serializable(package='SegMe>Common>PointRend')
 class PointRend(layers.Layer):
     def __init__(self, classes, units, points, oversample, importance, fines, residual, align_corners, **kwargs):
         super().__init__(**kwargs)
@@ -30,13 +29,20 @@ class PointRend(layers.Layer):
         self.oversample = oversample
         self.importance = importance
         self.residual = residual
-        self.fines = fines
+        self.fines = fines  # TODO: check if needed
         self.align_corners = align_corners
 
     @shape_type_conversion
     def build(self, input_shape):
+        self.uncertain_random = UncertainPointsWithRandomness(
+            points=self.points[0], align_corners=self.align_corners, oversample=self.oversample,
+            importance=self.importance)
+        self.uncertain_grid = UncertainPointsCoordsOnGrid(points=self.points[1])
+        self.point_sample = PointSample(align_corners=self.align_corners)
         self.point_head = PointHead(classes=self.classes, units=self.units, fines=self.fines, residual=self.residual)
-        self.head_act = HeadActivation(self.classes)
+        self.int_bysample = BilinearInterpolation(None, dtype='float32')
+        self.int_byscale = BilinearInterpolation(2)
+        self.head_act = ClassificationActivation()
 
         super().build(input_shape)
 
@@ -57,7 +63,7 @@ class PointRend(layers.Layer):
             predict_logits, point_logits, point_coords = smart_cond(
                 training, lambda: self._train(inputs), lambda: self._eval(inputs))
 
-            predict_logits = resize_by_sample([predict_logits, inputs[0]])
+            predict_logits = self.int_bysample([predict_logits, inputs[0]])
             predict_probs = self.head_act(predict_logits)
 
             return predict_probs, point_logits, point_coords
@@ -66,14 +72,12 @@ class PointRend(layers.Layer):
         input_images, coarse_features, *fine_features = inputs
         coarse_features = tf.cast(coarse_features, 'float32')
 
-        point_coords = uncertain_points_with_randomness(
-            coarse_features, points=self.points[0], align_corners=self.align_corners, oversample=self.oversample,
-            importance=self.importance)
+        point_coords = self.uncertain_random(coarse_features)
         point_coords = tf.stop_gradient(point_coords)
 
-        coarse_points = point_sample([coarse_features, point_coords], align_corners=self.align_corners)
-        fine_points = [point_sample([ff, point_coords], align_corners=self.align_corners) for ff in fine_features]
-        point_logits = self.point_head([coarse_points, *fine_points])
+        coarse_points = self.point_sample([coarse_features, point_coords])
+        fine_points = [self.point_sample([ff, point_coords]) for ff in fine_features]
+        point_logits = self.point_head([coarse_points] + fine_points)
 
         return coarse_features, point_logits, point_coords
 
@@ -103,12 +107,12 @@ class PointRend(layers.Layer):
         return predict_logits, point_logits, point_coords
 
     def _subdiv(self, iteration, coarse_features, fine_features, prev_logits, prev_coords):
-        coarse_features = resize_by_scale(coarse_features, scale=2)
+        coarse_features = self.int_byscale(coarse_features, scale=2)
 
-        point_indices, point_coords = uncertain_points_coords_on_grid(coarse_features, points=self.points[1])
+        point_indices, point_coords = self.uncertain_grid(coarse_features)
 
-        coarse_points = point_sample([coarse_features, point_coords], align_corners=self.align_corners)
-        fine_points = [point_sample([ff, point_coords], align_corners=self.align_corners) for ff in fine_features]
+        coarse_points = self.point_sample([coarse_features, point_coords])
+        fine_points = [self.point_sample([ff, point_coords]) for ff in fine_features]
         point_logits = self.point_head([coarse_points, *fine_points])
 
         logits_shape = tf.shape(coarse_features)

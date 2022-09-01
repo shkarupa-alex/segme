@@ -1,11 +1,10 @@
 import cv2
 import numpy as np
-import os
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
-from ..distance import Distance
-from .test_twomap import _twomap
+from segme.model.fba_matting.distance import Distance
+from segme.model.fba_matting.tests.test_twomap import _twomap
 
 
 @test_combinations.run_all_keras_modes
@@ -57,7 +56,6 @@ class TestDistance(test_combinations.TestCase):
         result = Distance()(trimap[None, ..., None])[0]
         result = self.evaluate(result)
 
-        # self.assertAllClose(expected, result) # differs since tensorflow-addons v0.13.0
         diff = np.sum(np.abs(result - expected) > 1e-6) / np.prod(result.shape)
         self.assertLess(diff, 0.03)
 
@@ -71,7 +69,6 @@ class TestDistance(test_combinations.TestCase):
             result = Distance()(trimap[None, ..., None])[0]
             result = self.evaluate(result)
 
-            # self.assertAllClose(expected, result) # differs since tensorflow-addons v0.13.0
             diff = np.sum(np.abs(result - expected) > 1e-6) / np.prod(result.shape)
             self.assertLess(diff, 0.01)
 

@@ -1,11 +1,11 @@
 import tensorflow as tf
 from keras.testing_infra import test_combinations
 from keras.mixed_precision import policy as mixed_precision
-from ..rend import PointRend
-from ....testing_utils import layer_multi_io_test
+from segme.common.point_rend.rend import PointRend
+from segme.testing_utils import layer_multi_io_test
 
 
-# @test_combinations.run_all_keras_modes
+@test_combinations.run_all_keras_modes
 class TestPointRend(test_combinations.TestCase):
     def setUp(self):
         super(TestPointRend, self).setUp()
@@ -27,6 +27,7 @@ class TestPointRend(test_combinations.TestCase):
             expected_output_dtypes=['float32', 'float32', 'float32']
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             PointRend,

@@ -3,19 +3,21 @@ import numpy as np
 import tensorflow as tf
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from .common_loss import validate_input
-from .weighted_wrapper import WeightedLossFunctionWrapper
+from segme.loss.common_loss import validate_input
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'Optimizing the Latent Space of Generative Networks'
 
     Implements Lap1 in https://arxiv.org/pdf/1707.05776.pdf
     """
 
-    def __init__(self, levels=5, size=5, sigma=None, reduction=Reduction.AUTO, name='laplacian_pyramid_loss'):
-        super().__init__(laplacian_pyramid_loss, reduction=reduction, name=name, levels=levels, size=size, sigma=sigma)
+    def __init__(self, levels=5, size=5, sigma=None, residual=False, reduction=Reduction.AUTO,
+                 name='laplacian_pyramid_loss'):
+        super().__init__(laplacian_pyramid_loss, reduction=reduction, name=name, levels=levels, size=size, sigma=sigma,
+                         residual=residual)
 
 
 def _pad_odd(inputs):
@@ -40,7 +42,7 @@ def _gauss_filter(inputs, kernel):
     paddings = [((k - 1) // 2, k // 2) for k in kernel_shape[::-1]]
     paddings = [(0, 0)] + paddings + [(0, 0)]
 
-    padded = tf.pad(inputs, paddings, 'REFLECT')
+    padded = tf.pad(inputs, paddings, 'SYMMETRIC')
     blurred = tf.nn.depthwise_conv2d(padded, kernel[0], strides=[1, 1, 1, 1], padding='VALID')
     blurred = tf.nn.depthwise_conv2d(blurred, kernel[1], strides=[1, 1, 1, 1], padding='VALID')
 
@@ -66,7 +68,7 @@ def _gauss_upsample(inputs, kernel):
     return _gauss_filter(upsampled, (kernel[0] * 2., kernel[1] * 2.))
 
 
-def _laplacian_pyramid(inputs, levels, kernel):
+def _laplacian_pyramid(inputs, levels, kernel, residual):
     # https://paperswithcode.com/method/laplacian-pyramid
     pyramid = []
 
@@ -78,13 +80,13 @@ def _laplacian_pyramid(inputs, levels, kernel):
         pyramid.append(current - upsampled)
         current = downsampled
 
-    # Disabled: low-frequency residual
-    # pyramid.append(current)
+    if residual:
+        pyramid.append(current)
 
     return pyramid
 
 
-def _weight_pyramid(inputs, levels):
+def _weight_pyramid(inputs, levels, residual):
     # https://gist.github.com/MarcoForte/a07c40a2b721739bb5c5987671aa5270
     pyramid = []
 
@@ -94,13 +96,13 @@ def _weight_pyramid(inputs, levels):
         pyramid.append(current)
         current = -tf.nn.max_pool2d(-current, ksize=2, strides=2, padding='VALID')  # min pooling
 
-    # Disabled: low-frequency residual
-    # pyramid.append(current)
+    if residual:
+        pyramid.append(current)
 
     return pyramid
 
 
-def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
+def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma, residual):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=4, channel='same')
 
@@ -110,13 +112,13 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma):
 
     assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(y_true)[1:3]), 2 ** levels)
     with tf.control_dependencies([assert_true_shape]):
-        pyr_pred = _laplacian_pyramid(y_pred, levels, kernel)
-        pyr_true = _laplacian_pyramid(y_true, levels, kernel)
+        pyr_pred = _laplacian_pyramid(y_pred, levels, kernel, residual)
+        pyr_true = _laplacian_pyramid(y_true, levels, kernel, residual)
         pyr_true = [tf.stop_gradient(pt) for pt in pyr_true]
 
     losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
     if sample_weight is not None:
-        weights = _weight_pyramid(sample_weight, levels)
+        weights = _weight_pyramid(sample_weight, levels, residual)
         weights = [tf.stop_gradient(pw) for pw in weights]
         losses = [ls * sw for ls, sw in zip(losses, weights)]
 

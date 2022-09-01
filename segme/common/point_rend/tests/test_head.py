@@ -1,8 +1,8 @@
 import tensorflow as tf
 from keras.testing_infra import test_combinations
 from keras.mixed_precision import policy as mixed_precision
-from ..head import PointHead
-from ....testing_utils import layer_multi_io_test
+from segme.common.point_rend.head import PointHead
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes
@@ -33,6 +33,7 @@ class TestPointHead(test_combinations.TestCase):
             expected_output_dtypes=['float32']
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             PointHead,

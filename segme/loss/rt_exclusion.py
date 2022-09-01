@@ -1,11 +1,11 @@
 import tensorflow as tf
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from .common_loss import validate_input
-from .weighted_wrapper import WeightedLossFunctionWrapper
+from segme.loss.common_loss import validate_input
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class ReflectionTransmissionExclusionLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'Single Image Reflection Removal with Perceptual Losses'
 

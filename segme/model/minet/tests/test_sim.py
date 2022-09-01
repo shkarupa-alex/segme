@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
-from ..sim import SIM
+from segme.model.minet.sim import SIM
 
 
 @test_combinations.run_all_keras_modes

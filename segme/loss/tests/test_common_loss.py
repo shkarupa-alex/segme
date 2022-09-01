@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from ..common_loss import validate_input, to_logits, to_probs, to_1hot, mae, crossentropy, iou
+from segme.loss.common_loss import validate_input, to_logits, to_probs, to_1hot, mae, crossentropy, iou
 
 
 @test_combinations.run_all_keras_modes

@@ -2,10 +2,11 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvNormRelu, resize_by_sample
+from segme.common.convnormact import ConvNormAct
+from segme.common.interrough import BilinearInterpolation
 
 
-@register_keras_serializable(package='SegMe>U2Net')
+@register_keras_serializable(package='SegMe>Model>U2Net')
 class RSU5(layers.Layer):
     def __init__(self, mid_features=12, out_features=3, **kwargs):
         super().__init__(**kwargs)
@@ -16,25 +17,20 @@ class RSU5(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.cbr0 = ConvNormRelu(self.out_features, 3)
+        self.pool = layers.MaxPool2D(2, padding='same')
+        self.resize = BilinearInterpolation(None)
 
-        self.cbr1 = ConvNormRelu(self.mid_features, 3)
-        self.pool1 = layers.MaxPool2D(2, padding='same')
+        self.cbr0 = ConvNormAct(self.out_features, 3)
+        self.cbr1 = ConvNormAct(self.mid_features, 3)
+        self.cbr2 = ConvNormAct(self.mid_features, 3)
+        self.cbr3 = ConvNormAct(self.mid_features, 3)
+        self.cbr4 = ConvNormAct(self.mid_features, 3)
+        self.cbr5 = ConvNormAct(self.mid_features, 3, dilation_rate=2)
 
-        self.cbr2 = ConvNormRelu(self.mid_features, 3)
-        self.pool2 = layers.MaxPool2D(2, padding='same')
-
-        self.cbr3 = ConvNormRelu(self.mid_features, 3)
-        self.pool3 = layers.MaxPool2D(2, padding='same')
-
-        self.cbr4 = ConvNormRelu(self.mid_features, 3)
-
-        self.cbr5 = ConvNormRelu(self.mid_features, 3, dilation_rate=2)
-
-        self.cbr4d = ConvNormRelu(self.mid_features, 3)
-        self.cbr3d = ConvNormRelu(self.mid_features, 3)
-        self.cbr2d = ConvNormRelu(self.mid_features, 3)
-        self.cbr1d = ConvNormRelu(self.out_features, 3)
+        self.cbr4d = ConvNormAct(self.mid_features, 3)
+        self.cbr3d = ConvNormAct(self.mid_features, 3)
+        self.cbr2d = ConvNormAct(self.mid_features, 3)
+        self.cbr1d = ConvNormAct(self.out_features, 3)
 
         super().build(input_shape)
 
@@ -43,26 +39,26 @@ class RSU5(layers.Layer):
         outputs0 = self.cbr0(outputs)
 
         outputs1 = self.cbr1(outputs0)
-        outputs = self.pool1(outputs1)
+        outputs = self.pool(outputs1)
 
         outputs2 = self.cbr2(outputs)
-        outputs = self.pool2(outputs2)
+        outputs = self.pool(outputs2)
 
         outputs3 = self.cbr3(outputs)
-        outputs = self.pool3(outputs3)
+        outputs = self.pool(outputs3)
 
         outputs4 = self.cbr4(outputs)
 
         outputs5 = self.cbr5(outputs4)
 
         outputs4d = self.cbr4d(tf.concat([outputs5, outputs4], axis=-1))
-        outputs4dup = resize_by_sample([outputs4d, outputs3])
+        outputs4dup = self.resize([outputs4d, outputs3])
 
         outputs3d = self.cbr3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = resize_by_sample([outputs3d, outputs2])
+        outputs3dup = self.resize([outputs3d, outputs2])
 
         outputs2d = self.cbr2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = resize_by_sample([outputs2d, outputs1])
+        outputs2dup = self.resize([outputs2d, outputs1])
 
         outputs1d = self.cbr1d(tf.concat([outputs2dup, outputs1], axis=-1))
 

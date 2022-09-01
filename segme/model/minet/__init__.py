@@ -1,2 +1,2 @@
-from .model import build_minet
-from .loss import minet_loss
+from segme.model.minet.model import build_minet
+from segme.model.minet.loss import minet_loss

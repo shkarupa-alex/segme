@@ -1,2 +1,1 @@
-from .model import build_u2_net, build_u2_netp
-from .loss import u2net_losses
+from segme.model.u2_net.model import build_u2_net, build_u2_netp

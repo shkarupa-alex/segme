@@ -6,12 +6,13 @@ from keras.utils.generic_utils import register_keras_serializable
 from tensorflow_addons.image import connected_components
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Metric>Matting')
 class Conn(SumOverBatchSize):
     def __init__(self, step=0.1, name='conn', dtype=None):
         """Creates a `ConnectivityError` instance for matting task (by default downscales input by 255).
 
         Args:
+            step: (Optional) float percents for threshold step estimating
             name: (Optional) string name of the metric instance.
             dtype: (Optional) data type of the metric result.
         """

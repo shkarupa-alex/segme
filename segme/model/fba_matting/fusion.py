@@ -4,7 +4,7 @@ from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 
 
-@register_keras_serializable(package='SegMe>FBAMatting')
+@register_keras_serializable(package='SegMe>Model>FBAMatting')
 class Fusion(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -16,10 +16,7 @@ class Fusion(layers.Layer):
 
     def call(self, inputs, **kwargs):
         image, alfgbg = inputs
-
-        alpha = alfgbg[..., 0:1]
-        foreground = alfgbg[..., 1:4]
-        background = alfgbg[..., 4:7]
+        alpha, foreground, background = tf.split(alfgbg, [1, 3, 3], axis=-1)
 
         alpha_sqr = alpha ** 2
         foreground = alpha * (image - background) + alpha_sqr * (background - foreground) + foreground

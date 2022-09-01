@@ -3,15 +3,19 @@ from keras import layers, models
 from keras.applications.imagenet_utils import preprocess_input
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .rsu7 import RSU7
-from .rsu6 import RSU6
-from .rsu5 import RSU5
-from .rsu4 import RSU4
-from .rsu4f import RSU4F
-from ...common import HeadProjection, HeadActivation, ClassificationHead, resize_by_sample
+from segme.common.convnormact import Conv
+from segme.common.head import ClassificationActivation, ClassificationHead
+from segme.common.pad import SymmetricPadding
+from segme.common.interrough import BilinearInterpolation
+from segme.common.sequent import Sequential
+from segme.model.u2_net.rsu7 import RSU7
+from segme.model.u2_net.rsu6 import RSU6
+from segme.model.u2_net.rsu5 import RSU5
+from segme.model.u2_net.rsu4 import RSU4
+from segme.model.u2_net.rsu4f import RSU4F
 
 
-@register_keras_serializable(package='SegMe>U2Net')
+@register_keras_serializable(package='SegMe>Model>U2Net')
 class U2Net(layers.Layer):
     """ Reference: https://arxiv.org/pdf/2005.09007.pdf """
 
@@ -23,83 +27,67 @@ class U2Net(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.prep = layers.Lambda(
-            lambda img: preprocess_input(tf.cast(img, tf.float32), 'channels_last', 'tf'), name='preprocess')
+        self.pool = layers.MaxPool2D(2, padding='same')
+        self.resize = BilinearInterpolation(None)
 
         self.stage1 = RSU7(32, 64)
-        self.pool12 = layers.MaxPool2D(2, padding='same')
-
         self.stage2 = RSU6(32, 128)
-        self.pool23 = layers.MaxPool2D(2, padding='same')
-
         self.stage3 = RSU5(64, 256)
-        self.pool34 = layers.MaxPool2D(2, padding='same')
-
         self.stage4 = RSU4(128, 512)
-        self.pool45 = layers.MaxPool2D(2, padding='same')
-
         self.stage5 = RSU4F(256, 512)
-        self.pool56 = layers.MaxPool2D(2, padding='same')
-
         self.stage6 = RSU4F(256, 512)
 
-        # decoder
         self.stage5d = RSU4F(256, 512)
         self.stage4d = RSU4(128, 256)
         self.stage3d = RSU5(64, 128)
         self.stage2d = RSU6(32, 64)
         self.stage1d = RSU7(16, 64)
 
-        self.proj1 = HeadProjection(self.classes, kernel_size=3)
-        self.proj2 = HeadProjection(self.classes, kernel_size=3)
-        self.proj3 = HeadProjection(self.classes, kernel_size=3)
-        self.proj4 = HeadProjection(self.classes, kernel_size=3)
-        self.proj5 = HeadProjection(self.classes, kernel_size=3)
-        self.proj6 = HeadProjection(self.classes, kernel_size=3)
-        self.act = HeadActivation(self.classes)
+        self.proj1 = Conv(self.classes, 3)
+        self.proj2 = Conv(self.classes, 3)
+        self.proj3 = Conv(self.classes, 3)
+        self.proj4 = Conv(self.classes, 3)
+        self.proj5 = Conv(self.classes, 3)
+        self.proj6 = Conv(self.classes, 3)
+
+        self.act = ClassificationActivation()
         self.head = ClassificationHead(self.classes)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs = self.prep(inputs)
+        outputs = preprocess_input(tf.cast(inputs, self.compute_dtype), mode='torch')
 
-        # stage 1
         outputs1 = self.stage1(outputs)
-        outputs = self.pool12(outputs1)
+        outputs = self.pool(outputs1)
 
-        # stage 2
         outputs2 = self.stage2(outputs)
-        outputs = self.pool23(outputs2)
+        outputs = self.pool(outputs2)
 
-        # stage 3
         outputs3 = self.stage3(outputs)
-        outputs = self.pool34(outputs3)
+        outputs = self.pool(outputs3)
 
-        # stage 4
         outputs4 = self.stage4(outputs)
-        outputs = self.pool45(outputs4)
+        outputs = self.pool(outputs4)
 
-        # stage 5
         outputs5 = self.stage5(outputs)
-        outputs = self.pool56(outputs5)
+        outputs = self.pool(outputs5)
 
-        # stage 6
         outputs6 = self.stage6(outputs)
-        hx6up = resize_by_sample([outputs6, outputs5])
+        hx6up = self.resize([outputs6, outputs5])
 
-        # -------------------- decoder --------------------
+        # decoder
         outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
-        outputs5dup = resize_by_sample([outputs5d, outputs4])
+        outputs5dup = self.resize([outputs5d, outputs4])
 
         outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
-        outputs4dup = resize_by_sample([outputs4d, outputs3])
+        outputs4dup = self.resize([outputs4d, outputs3])
 
         outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = resize_by_sample([outputs3d, outputs2])
+        outputs3dup = self.resize([outputs3d, outputs2])
 
         outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = resize_by_sample([outputs2d, outputs1])
+        outputs2dup = self.resize([outputs2d, outputs1])
 
         outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
 
@@ -107,19 +95,19 @@ class U2Net(layers.Layer):
         n1 = self.proj1(outputs1d)
 
         n2 = self.proj2(outputs2d)
-        n2 = resize_by_sample([n2, n1])
+        n2 = self.resize([n2, n1])
 
         n3 = self.proj3(outputs3d)
-        n3 = resize_by_sample([n3, n1])
+        n3 = self.resize([n3, n1])
 
         n4 = self.proj4(outputs4d)
-        n4 = resize_by_sample([n4, n1])
+        n4 = self.resize([n4, n1])
 
         n5 = self.proj5(outputs5d)
-        n5 = resize_by_sample([n5, n1])
+        n5 = self.resize([n5, n1])
 
         n6 = self.proj6(outputs6)
-        n6 = resize_by_sample([n6, n1])
+        n6 = self.resize([n6, n1])
 
         h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
         h1 = self.act(n1)
@@ -145,7 +133,7 @@ class U2Net(layers.Layer):
         return config
 
 
-@register_keras_serializable(package='SegMe>U2Net')
+@register_keras_serializable(package='SegMe>Model>U2Net')
 class U2NetP(layers.Layer):
     """ Reference: https://arxiv.org/pdf/2005.09007.pdf """
 
@@ -156,83 +144,67 @@ class U2NetP(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.prep = layers.Lambda(
-            lambda img: preprocess_input(tf.cast(img, tf.float32), 'channels_last', 'caffe'), name='preprocess')
+        self.pool = layers.MaxPool2D(2, padding='same')
+        self.resize = BilinearInterpolation(None)
 
         self.stage1 = RSU7(16, 64)
-        self.pool12 = layers.MaxPool2D(2, padding='same')
-
         self.stage2 = RSU6(16, 64)
-        self.pool23 = layers.MaxPool2D(2, padding='same')
-
         self.stage3 = RSU5(16, 64)
-        self.pool34 = layers.MaxPool2D(2, padding='same')
-
         self.stage4 = RSU4(16, 64)
-        self.pool45 = layers.MaxPool2D(2, padding='same')
-
         self.stage5 = RSU4F(16, 64)
-        self.pool56 = layers.MaxPool2D(2, padding='same')
-
         self.stage6 = RSU4F(16, 64)
 
-        # decoder
         self.stage5d = RSU4F(16, 64)
         self.stage4d = RSU4(16, 64)
         self.stage3d = RSU5(16, 64)
         self.stage2d = RSU6(16, 64)
         self.stage1d = RSU7(16, 64)
 
-        self.proj1 = HeadProjection(self.classes, kernel_size=3)
-        self.proj2 = HeadProjection(self.classes, kernel_size=3)
-        self.proj3 = HeadProjection(self.classes, kernel_size=3)
-        self.proj4 = HeadProjection(self.classes, kernel_size=3)
-        self.proj5 = HeadProjection(self.classes, kernel_size=3)
-        self.proj6 = HeadProjection(self.classes, kernel_size=3)
-        self.act = HeadActivation(self.classes)
+        self.proj1 = Conv(self.classes, 3)
+        self.proj2 = Conv(self.classes, 3)
+        self.proj3 = Conv(self.classes, 3)
+        self.proj4 = Conv(self.classes, 3)
+        self.proj5 = Conv(self.classes, 3)
+        self.proj6 = Conv(self.classes, 3)
+
+        self.act = ClassificationActivation()
         self.head = ClassificationHead(self.classes)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs = self.prep(inputs)
+        outputs = preprocess_input(tf.cast(inputs, self.compute_dtype), mode='torch')
 
-        # stage 1
         outputs1 = self.stage1(outputs)
-        outputs = self.pool12(outputs1)
+        outputs = self.pool(outputs1)
 
-        # stage 2
         outputs2 = self.stage2(outputs)
-        outputs = self.pool23(outputs2)
+        outputs = self.pool(outputs2)
 
-        # stage 3
         outputs3 = self.stage3(outputs)
-        outputs = self.pool34(outputs3)
+        outputs = self.pool(outputs3)
 
-        # stage 4
         outputs4 = self.stage4(outputs)
-        outputs = self.pool45(outputs4)
+        outputs = self.pool(outputs4)
 
-        # stage 5
         outputs5 = self.stage5(outputs)
-        outputs = self.pool56(outputs5)
+        outputs = self.pool(outputs5)
 
-        # stage 6
         outputs6 = self.stage6(outputs)
-        hx6up = resize_by_sample([outputs6, outputs5])
+        hx6up = self.resize([outputs6, outputs5])
 
         # decoder
         outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
-        outputs5dup = resize_by_sample([outputs5d, outputs4])
+        outputs5dup = self.resize([outputs5d, outputs4])
 
         outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
-        outputs4dup = resize_by_sample([outputs4d, outputs3])
+        outputs4dup = self.resize([outputs4d, outputs3])
 
         outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = resize_by_sample([outputs3d, outputs2])
+        outputs3dup = self.resize([outputs3d, outputs2])
 
         outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = resize_by_sample([outputs2d, outputs1])
+        outputs2dup = self.resize([outputs2d, outputs1])
 
         outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
 
@@ -240,19 +212,19 @@ class U2NetP(layers.Layer):
         n1 = self.proj1(outputs1d)
 
         n2 = self.proj2(outputs2d)
-        n2 = resize_by_sample([n2, n1])
+        n2 = self.resize([n2, n1])
 
         n3 = self.proj3(outputs3d)
-        n3 = resize_by_sample([n3, n1])
+        n3 = self.resize([n3, n1])
 
         n4 = self.proj4(outputs4d)
-        n4 = resize_by_sample([n4, n1])
+        n4 = self.resize([n4, n1])
 
         n5 = self.proj5(outputs5d)
-        n5 = resize_by_sample([n5, n1])
+        n5 = self.resize([n5, n1])
 
         n6 = self.proj6(outputs6)
-        n6 = resize_by_sample([n6, n1])
+        n6 = self.resize([n6, n1])
 
         h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
         h1 = self.act(n1)

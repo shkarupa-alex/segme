@@ -1,25 +1,24 @@
 from keras import layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .aim import AIM
-from .sim import SIM
-from ...backbone import Backbone
-from ...common import ConvNormRelu, ClassificationHead, resize_by_sample
+from segme.common.backbone import Backbone
+from segme.common.convnormact import ConvNormAct
+from segme.common.head import ClassificationHead
+from segme.common.interrough import BilinearInterpolation
+from segme.model.minet.aim import AIM
+from segme.model.minet.sim import SIM
 
 
-@register_keras_serializable(package='SegMe>MINet')
+@register_keras_serializable(package='SegMe>Model>MINet')
 class MINet(layers.Layer):
-    def __init__(self, classes, bone_arch, bone_init, bone_train, **kwargs):
+    def __init__(self, classes, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
         self.classes = classes
-        self.bone_arch = bone_arch
-        self.bone_init = bone_init
-        self.bone_train = bone_train
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.bone = Backbone(self.bone_arch, self.bone_init, self.bone_train, scales=[2, 4, 8, 16, 32])
+        self.bone = Backbone([2, 4, 8, 16, 32])
 
         self.trans = AIM(filters=(64, 64, 64, 64, 64))
 
@@ -29,12 +28,14 @@ class MINet(layers.Layer):
         self.sim4 = SIM(32)
         self.sim2 = SIM(32)
 
-        self.upconv32 = ConvNormRelu(64, 3)
-        self.upconv16 = ConvNormRelu(64, 3)
-        self.upconv8 = ConvNormRelu(64, 3)
-        self.upconv4 = ConvNormRelu(64, 3)
-        self.upconv2 = ConvNormRelu(32, 3)
-        self.upconv1 = ConvNormRelu(32, 3)
+        self.upconv32 = ConvNormAct(64, 3)
+        self.upconv16 = ConvNormAct(64, 3)
+        self.upconv8 = ConvNormAct(64, 3)
+        self.upconv4 = ConvNormAct(64, 3)
+        self.upconv2 = ConvNormAct(32, 3)
+        self.upconv1 = ConvNormAct(32, 3)
+
+        self.resize = BilinearInterpolation(None)
 
         self.head = ClassificationHead(self.classes)
 
@@ -47,19 +48,19 @@ class MINet(layers.Layer):
 
         out5 = self.upconv32(self.sim32(out5) + out5)
 
-        out4 = resize_by_sample([out5, out4]) + out4
+        out4 = self.resize([out5, out4]) + out4
         out4 = self.upconv16(self.sim16(out4) + out4)
 
-        out3 = resize_by_sample([out4, out3]) + out3
+        out3 = self.resize([out4, out3]) + out3
         out3 = self.upconv8(self.sim8(out3) + out3)
 
-        out2 = resize_by_sample([out3, out2]) + out2
+        out2 = self.resize([out3, out2]) + out2
         out2 = self.upconv4(self.sim4(out2) + out2)
 
-        out1 = resize_by_sample([out2, out1]) + out1
+        out1 = self.resize([out2, out1]) + out1
         out1 = self.upconv2(self.sim2(out1) + out1)
 
-        outputs = self.upconv1(resize_by_sample([out1, inputs]))
+        outputs = self.upconv1(self.resize([out1, inputs]))
 
         return self.head(outputs)
 
@@ -72,19 +73,14 @@ class MINet(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            'classes': self.classes,
-            'bone_arch': self.bone_arch,
-            'bone_init': self.bone_init,
-            'bone_train': self.bone_train
-        })
+        config.update({'classes': self.classes})
 
         return config
 
 
-def build_minet(classes, bone_arch='resnet_50', bone_init='imagenet', bone_train=False):
+def build_minet(classes):
     inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
-    outputs = MINet(classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train)(inputs)
+    outputs = MINet(classes)(inputs)
     model = models.Model(inputs=inputs, outputs=outputs, name='minet')
 
     return model

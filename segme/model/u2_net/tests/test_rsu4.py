@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
-from ..rsu4 import RSU4
+from segme.model.u2_net.rsu4 import RSU4
 
 
 @test_combinations.run_all_keras_modes

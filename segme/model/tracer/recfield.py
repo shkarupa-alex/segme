@@ -1,11 +1,12 @@
 import tensorflow as tf
-from keras import layers, models
+from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import ConvNormRelu
+from segme.common.convnormact import ConvNormAct
+from segme.common.sequent import Sequential
 
 
-@register_keras_serializable(package='SegMe>Tracer')
+@register_keras_serializable(package='SegMe>Model>Tracer')
 class ReceptiveField(layers.Layer):
     def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
@@ -19,27 +20,27 @@ class ReceptiveField(layers.Layer):
         if self.channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.branch0 = ConvNormRelu(self.filters, 1, activation='selu')
-        self.branch1 = models.Sequential([
-            ConvNormRelu(self.filters, 1, activation='selu'),
-            ConvNormRelu(self.filters, (1, 3), activation='selu'),
-            ConvNormRelu(self.filters, (3, 1), activation='selu'),
-            ConvNormRelu(self.filters, 3, activation='selu', dilation_rate=3)
+        self.branch0 = ConvNormAct(self.filters, 1)
+        self.branch1 = Sequential([
+            ConvNormAct(self.filters, 1),
+            ConvNormAct(self.filters, (1, 3)),
+            ConvNormAct(self.filters, (3, 1)),
+            ConvNormAct(self.filters, 3, dilation_rate=3)
         ])
-        self.branch2 = models.Sequential([
-            ConvNormRelu(self.filters, 1, activation='selu'),
-            ConvNormRelu(self.filters, (1, 5), activation='selu'),
-            ConvNormRelu(self.filters, (5, 1), activation='selu'),
-            ConvNormRelu(self.filters, 3, activation='selu', dilation_rate=5)
+        self.branch2 = Sequential([
+            ConvNormAct(self.filters, 1),
+            ConvNormAct(self.filters, (1, 5)),
+            ConvNormAct(self.filters, (5, 1)),
+            ConvNormAct(self.filters, 3, dilation_rate=5)
         ])
-        self.branch3 = models.Sequential([
-            ConvNormRelu(self.filters, 1, activation='selu'),
-            ConvNormRelu(self.filters, (1, 7), activation='selu'),
-            ConvNormRelu(self.filters, (7, 1), activation='selu'),
-            ConvNormRelu(self.filters, 3, activation='selu', dilation_rate=7)
+        self.branch3 = Sequential([
+            ConvNormAct(self.filters, 1),
+            ConvNormAct(self.filters, (1, 7)),
+            ConvNormAct(self.filters, (7, 1)),
+            ConvNormAct(self.filters, 3, dilation_rate=7)
         ])
-        self.conv = ConvNormRelu(self.filters, 3, activation='selu')
-        self.proj = ConvNormRelu(self.filters, 1, activation='selu')
+        self.conv = ConvNormAct(self.filters, 3)
+        self.proj = ConvNormAct(self.filters, 1)
 
         super().build(input_shape)
 
@@ -47,7 +48,8 @@ class ReceptiveField(layers.Layer):
         outputs = tf.concat([
             self.branch0(inputs), self.branch1(inputs), self.branch2(inputs), self.branch3(inputs)], axis=-1)
         outputs = self.conv(outputs)
-        outputs = tf.nn.relu(outputs + self.proj(inputs))
+        outputs += self.proj(inputs)
+        outputs = tf.nn.relu(outputs)
 
         return outputs
 

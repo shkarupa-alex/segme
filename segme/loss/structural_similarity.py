@@ -5,11 +5,11 @@ from scipy.special import softmax as np_softmax
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.ops.image_ops_impl import _ssim_helper
-from .common_loss import validate_input
-from .weighted_wrapper import WeightedLossFunctionWrapper
+from segme.loss.common_loss import validate_input
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class StructuralSimilarityLoss(WeightedLossFunctionWrapper):
     """ Proposed in: 'Optimizing the Latent Space of Generative Networks'
 
@@ -53,19 +53,23 @@ def _pad_odd(inputs):
 
 
 def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernels, k1, k2):
+    ksize = (kernels[0].shape[0], kernels[1].shape[1])
+
     pyramid = []
     for i, f in enumerate(factors):
-        similarity, contrast_structure = _ssim_level(
-            y_true, y_pred, max_val=max_val, kernels=kernels, k1=k1, k2=k2)
-        if sample_weight is not None:
-            ksize = (kernels[0].shape[0], kernels[1].shape[1])
-            sample_weight = -tf.nn.max_pool2d(  # min pooling
-                -sample_weight, ksize=ksize, strides=1, padding='VALID')
-            sample_weight = tf.stop_gradient(sample_weight)
         last_level = len(factors) - 1 == i
 
+        weight = None
+        if sample_weight is not None:
+            weight = -tf.nn.max_pool2d(  # min pooling
+                -sample_weight, ksize=ksize, strides=1, padding='VALID')
+            weight = tf.stop_gradient(weight)
+
+        similarity, contrast_structure = _ssim_level(
+            y_true, y_pred, max_val=max_val, kernels=kernels, k1=k1, k2=k2)
+
         value = similarity if last_level else contrast_structure
-        value = value if sample_weight is None else value * sample_weight
+        value = value if weight is None else value * weight
         value = tf.reduce_mean(value, axis=[1, 2])
         value = tf.nn.relu(value) ** f
         pyramid.append(value)
@@ -81,7 +85,8 @@ def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernels, k1, 
 
                 if sample_weight is not None:
                     sample_weight = _pad_odd(sample_weight)
-                    sample_weight = tf.nn.avg_pool2d(sample_weight, ksize=2, strides=2, padding='VALID')
+                    sample_weight = -tf.nn.max_pool2d(  # min pooling
+                        -sample_weight, ksize=2, strides=2, padding='VALID')
 
     pyramid = tf.stack(pyramid, axis=-1)
     pyramid = tf.reduce_prod(pyramid, [-1])

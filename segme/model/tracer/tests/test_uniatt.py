@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
-from ..uniatt import UnionAttention
+from segme.model.tracer.uniatt import UnionAttention
 
 
 @test_combinations.run_all_keras_modes

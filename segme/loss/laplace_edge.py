@@ -3,10 +3,10 @@ import tensorflow as tf
 from keras import backend, losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from .common_loss import validate_input, to_probs, to_1hot, crossentropy
+from segme.loss.common_loss import validate_input, to_probs, to_1hot, crossentropy
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class LaplaceEdgeCrossEntropy(losses.LossFunctionWrapper):
     """ Proposed in: 'Pyramid Feature Attention Network for Saliency detection (2019)'
 
@@ -26,7 +26,9 @@ def laplace(probs):
     laplace = np.reshape([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]], [3, 3, 1, 1])
     laplace = np.tile(laplace, [1, 1, classes, 1])
     laplace = tf.cast(laplace, probs.dtype)
-    edge = tf.nn.conv2d(probs, laplace, strides=[1] * 4, padding='SAME')
+
+    edge = tf.pad(probs, [(0, 0), (1, 1), (1, 1), (0, 0)], mode='SYMMETRIC')
+    edge = tf.nn.depthwise_conv2d(edge, laplace, strides=[1] * 4, padding='VALID')
     edge = tf.nn.relu(tf.tanh(edge))
 
     return edge
@@ -39,13 +41,10 @@ def laplace_edge_cross_entropy(y_true, y_pred, from_logits):
     y_true_1h, y_prob_1h = to_1hot(y_true, y_prob)
     y_true_1h = tf.cast(y_true_1h, y_prob_1h.dtype)
 
-    y_true_edge = laplace(y_true_1h)
+    y_true_edge = laplace(y_true_1h)[..., None]
     y_true_edge = tf.stop_gradient(y_true_edge)
+    y_pred_edge = laplace(y_prob_1h)[..., None]
 
-    y_pred_edge = laplace(y_prob_1h)
-    y_pred_edge = tf.clip_by_value(y_pred_edge, backend.epsilon(), 1. - backend.epsilon())
-    y_pred_edge = tf.math.log(y_pred_edge / (1. - y_pred_edge))
+    loss = crossentropy(y_true_edge, y_pred_edge, sample_weight=None, from_logits=False)
 
-    loss = crossentropy(y_true_edge, y_pred_edge, sample_weight=None, from_logits=True)
-
-    return tf.reduce_mean(loss, axis=-1)
+    return tf.reduce_mean(loss, axis=[-2, -1])

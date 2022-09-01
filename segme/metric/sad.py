@@ -4,7 +4,7 @@ from keras.utils import losses_utils, metrics_utils
 from keras.utils.generic_utils import register_keras_serializable
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Metric>Matting')
 class SAD(SumOverBatchSize):
     def __init__(self, name='sad', dtype=None):
         """Creates a `SumAbsoluteDifference` instance for matting task (by default downscales input by 255).

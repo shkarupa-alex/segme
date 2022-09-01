@@ -2,10 +2,10 @@ import tensorflow as tf
 from keras import losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from .common_loss import validate_input, crossentropy, to_probs, to_1hot
+from segme.loss.common_loss import validate_input, crossentropy, to_probs, to_1hot
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class CalibratedFocalCrossEntropy(losses.LossFunctionWrapper):
     """ Proposed in: 'Calibrating Deep Neural Networks using Focal Loss'
 

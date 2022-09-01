@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras import backend
-from .fg import solve_fg
+from segme.utils.matting.tf.fg import solve_fg
 
 
 def compose_two(fg, alpha, rest=None, solve=True, prob=0.5, name=None):
@@ -78,7 +78,7 @@ def compose_two(fg, alpha, rest=None, solve=True, prob=0.5, name=None):
         fg, alpha, rest_ = tf.cond(
             even_batch & apply,
             lambda: _transform(fg, alpha, rest_),
-            lambda: (fg, alpha, rest_))
+            lambda: (tf.identity(fg), tf.identity(alpha), [tf.identity(r) for r in rest_]))
 
         if rest:
             return fg, alpha, rest_

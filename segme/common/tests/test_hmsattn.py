@@ -3,7 +3,7 @@ from keras import layers
 from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from keras.utils.generic_utils import custom_object_scope
-from ..hmsattn import HierarchicalMultiScaleAttention
+from segme.common.hmsattn import HierarchicalMultiScaleAttention
 
 
 class LogitsWithGuidance(layers.Layer):
@@ -45,7 +45,9 @@ class TestHierarchicalMultiScaleAttention(test_combinations.TestCase):
                 expected_output_dtype='float32'
             )
 
-            mixed_precision.set_global_policy('mixed_float16')
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        with custom_object_scope({'LogitsWithGuidance': LogitsWithGuidance}):
             test_utils.layer_test(
                 HierarchicalMultiScaleAttention,
                 kwargs={'layer': LogitsWithGuidance(), 'scales': ((0.5,), (0.5, 2.0)),

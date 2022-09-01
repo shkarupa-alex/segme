@@ -3,7 +3,7 @@ import tensorflow as tf
 from keras import layers
 from keras.testing_infra import test_combinations
 from keras.utils.generic_utils import custom_object_scope
-from ..testing_utils import layer_multi_io_test
+from segme.testing_utils import layer_multi_io_test
 
 
 class OneToManyLayer(layers.Dense):

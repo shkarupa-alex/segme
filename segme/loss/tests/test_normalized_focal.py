@@ -3,8 +3,8 @@ import tensorflow as tf
 from keras import layers, models
 from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from ..normalized_focal import NormalizedFocalCrossEntropy
-from ..normalized_focal import normalized_focal_cross_entropy
+from segme.loss.normalized_focal import NormalizedFocalCrossEntropy
+from segme.loss.normalized_focal import normalized_focal_cross_entropy
 
 
 @test_combinations.run_all_keras_modes
@@ -113,7 +113,7 @@ class TestNormalizedFocalCrossEntropy(test_combinations.TestCase):
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
-        model.compile(loss='SegMe>NormalizedFocalCrossEntropy', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>NormalizedFocalCrossEntropy', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

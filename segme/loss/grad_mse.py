@@ -3,11 +3,11 @@ import tensorflow as tf
 from keras import backend, losses
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from .common_loss import validate_input
-from ..metric.grad import _togray, _gauss_filter, _gauss_gradient
+from segme.loss.common_loss import validate_input
+from segme.metric.grad import _togray, _gauss_filter, _gauss_gradient
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class GradientMeanSquaredError(losses.LossFunctionWrapper):
     """ Proposed in: 'Learning-based Sampling for Natural Image Matting'
 

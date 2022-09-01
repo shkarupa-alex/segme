@@ -2,11 +2,9 @@ import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
-from ..sample import ClassificationUncertainty, classification_uncertainty
-from ..sample import PointSample, point_sample
-from ..sample import UncertainPointsWithRandomness, uncertain_points_with_randomness
-from ..sample import UncertainPointsCoordsOnGrid, uncertain_points_coords_on_grid
-from ....testing_utils import layer_multi_io_test
+from segme.common.point_rend.sample import ClassificationUncertainty, PointSample, UncertainPointsWithRandomness, \
+    UncertainPointsCoordsOnGrid
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes
@@ -45,6 +43,7 @@ class TestClassificationUncertainty(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             ClassificationUncertainty,
@@ -60,7 +59,7 @@ class TestClassificationUncertainty(test_combinations.TestCase):
             input_shape=[2, 16, 16, 10],
             input_dtype='float32',
             expected_output_shape=[None, 16, 16],
-            expected_output_dtype='float32'
+            expected_output_dtype='float16'
         )
 
     def test_values_multiclass(self):
@@ -86,7 +85,7 @@ class TestClassificationUncertainty(test_combinations.TestCase):
             [[-0.11240238790130563, -0.6261272977939712],
              [-0.1641337988223608, -0.11752439931530134]]
         ]
-        result = classification_uncertainty(tf.convert_to_tensor(logits), from_logits=False)
+        result = ClassificationUncertainty(from_logits=False)(tf.convert_to_tensor(logits))
         self.assertAllClose(expected, result)
 
     def test_values_binary(self):
@@ -111,7 +110,7 @@ class TestClassificationUncertainty(test_combinations.TestCase):
              [-0.6355843544006348, -0.10969936847686768]],
             [[-0.4664100408554077, -0.7812962532043457],
              [-0.8891751766204834, -0.5338869094848633]]]
-        result = classification_uncertainty(tf.convert_to_tensor(logits), from_logits=False)
+        result = ClassificationUncertainty(from_logits=False)(tf.convert_to_tensor(logits))
         self.assertAllClose(expected, result)
 
 
@@ -243,6 +242,7 @@ class TestPointSample(test_combinations.TestCase):
             expected_output_dtypes=['int32']
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             PointSample,
@@ -280,51 +280,51 @@ class TestPointSample(test_combinations.TestCase):
         )
 
     def test_values_bilinear_random(self):
-        result = point_sample([
+        result = PointSample(align_corners=False)([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_random, 'float32')], align_corners=False)
+            tf.convert_to_tensor(self.grid_random, 'float32')])
         self.assertAllClose(self.bilinear_random, result)
 
     def test_values_bilinear_corner(self):
-        result = point_sample([
+        result = PointSample(align_corners=False)([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_corner, 'float32')], align_corners=False)
+            tf.convert_to_tensor(self.grid_corner, 'float32')])
         self.assertAllClose(self.bilinear_corner, result)
 
     def test_values_nearest_random(self):
-        result = point_sample([
+        result = PointSample(align_corners=False, mode='nearest')([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_random, 'float32')], align_corners=False, mode='nearest')
+            tf.convert_to_tensor(self.grid_random, 'float32')])
         self.assertAllClose(self.nearest_random, result)
 
     def test_values_nearest_corner(self):
-        result = point_sample([
+        result = PointSample(align_corners=False, mode='nearest')([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_corner, 'float32')], align_corners=False, mode='nearest')
+            tf.convert_to_tensor(self.grid_corner, 'float32')])
         self.assertAllClose(self.nearest_corner, result)
 
     def test_values_bilinear_random_align(self):
-        result = point_sample([
+        result = PointSample(align_corners=True)([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_random, 'float32')], align_corners=True)
+            tf.convert_to_tensor(self.grid_random, 'float32')])
         self.assertAllClose(self.bilinear_random_align, result)
 
     def test_values_bilinear_corner_align(self):
-        result = point_sample([
+        result = PointSample(align_corners=True)([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_corner, 'float32')], align_corners=True)
+            tf.convert_to_tensor(self.grid_corner, 'float32')])
         self.assertAllClose(self.bilinear_corner_align, result)
 
     def test_values_nearest_random_align(self):
-        result = point_sample([
+        result = PointSample(align_corners=True, mode='nearest')([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_random, 'float32')], align_corners=True, mode='nearest')
+            tf.convert_to_tensor(self.grid_random, 'float32')])
         self.assertAllClose(self.nearest_random_align, result)
 
     def test_values_nearest_corner_align(self):
-        result = point_sample([
+        result = PointSample(align_corners=True, mode='nearest')([
             tf.convert_to_tensor(self.features, 'float32'),
-            tf.convert_to_tensor(self.grid_corner, 'float32')], align_corners=True, mode='nearest')
+            tf.convert_to_tensor(self.grid_corner, 'float32')])
         self.assertAllClose(self.nearest_corner_align, result)
 
 
@@ -356,6 +356,7 @@ class TestUncertainPointsWithRandomness(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             UncertainPointsWithRandomness,
@@ -373,11 +374,6 @@ class TestUncertainPointsWithRandomness(test_combinations.TestCase):
             expected_output_shape=[None, None, 2],
             expected_output_dtype='float16'
         )
-
-    def test_shorthand(self):
-        uncertain_points_with_randomness(
-            tf.convert_to_tensor(np.random.rand(2, 16, 16, 10).astype(np.float32)),
-            points=0.03, align_corners=False, oversample=3, importance=0.75)
 
 
 @test_combinations.run_all_keras_modes
@@ -408,6 +404,7 @@ class TestUncertainPointsCoordsOnGrid(test_combinations.TestCase):
             expected_output_dtypes=['int32', 'float32']
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             UncertainPointsCoordsOnGrid,
@@ -469,7 +466,7 @@ class TestUncertainPointsCoordsOnGrid(test_combinations.TestCase):
             [[0.5625, 0.1666666716337204], [0.9375, 0.5], [0.3125, 0.1666666716337204]],
             [[0.5625, 0.8333333730697632], [0.4375, 0.1666666716337204], [0.4375, 0.8333333730697632]]
         ]
-        result0, result1 = uncertain_points_coords_on_grid(tf.convert_to_tensor(features), points=0.125)
+        result0, result1 = UncertainPointsCoordsOnGrid(points=0.125)(tf.convert_to_tensor(features))
         self.assertAllClose(indices, result0)
         self.assertAllClose(coords, result1)
 

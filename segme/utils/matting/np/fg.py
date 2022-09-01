@@ -28,7 +28,9 @@ def solve_fg(image, alpha, kappa=1., steps=16):
     alpha = alpha.astype('float32') / 255.
 
     afg = alpha * image
+
     fg = cv2.resize(image, (2, 2), interpolation=cv2.INTER_AREA)
+    fg = np.clip(fg, 0., 1.)
 
     levels = int(np.ceil(np.log2(max(width, height))))
     for level in range(1, levels + 1):
@@ -36,8 +38,13 @@ def solve_fg(image, alpha, kappa=1., steps=16):
         width_ = round(width ** (level / levels))
 
         afg_ = cv2.resize(afg, (width_, height_), interpolation=cv2.INTER_AREA)
+        afg_ = np.clip(afg_, 0., 1.)
+
         alpha_ = cv2.resize(alpha, (width_, height_), interpolation=cv2.INTER_AREA)[..., None]
+        alpha_ = np.clip(alpha_, 0., 1.)
+
         fg = cv2.resize(fg, (width_, height_), interpolation=cv2.INTER_LANCZOS4)
+        fg = np.clip(fg, 0., 1.)
 
         a00 = (1 - alpha_) ** 2
 
@@ -56,6 +63,7 @@ def solve_fg(image, alpha, kappa=1., steps=16):
                      da2 * fg_pad[:-2, 1:-1] + da3 * fg_pad[2:, 1:-1]) / denom
             fg = term0 + term1
 
-    fg = np.round(np.clip(fg, 0., 1.) * 255.).astype('uint8')
+    fg = np.clip(fg, 0., 1.)
+    fg = np.round(fg * 255.).astype('uint8')
 
     return fg

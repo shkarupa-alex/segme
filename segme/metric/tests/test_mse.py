@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from ..mse import MSE
+from segme.metric.mse import MSE
 
 
 @test_combinations.run_all_keras_modes

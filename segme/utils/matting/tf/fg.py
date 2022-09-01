@@ -16,8 +16,13 @@ def _solve_fg_level(level, alpha, afg, fg, height, width, levels, kappa, steps):
     width_ = tf.cast(tf.math.round(tf.cast(width, 'float32') ** (level / levels)), 'int32')
 
     afg_ = tf.image.resize(afg, [height_, width_], method=tf.image.ResizeMethod.AREA)
+    afg_ = tf.clip_by_value(afg_, 0., 1.)
+
     alpha_ = tf.image.resize(alpha, [height_, width_], method=tf.image.ResizeMethod.AREA)
+    alpha_ = tf.clip_by_value(alpha_, 0., 1.)
+
     fg = tf.image.resize(fg, [height_, width_], method=tf.image.ResizeMethod.LANCZOS5)
+    fg = tf.clip_by_value(fg, 0., 1.)
 
     a00 = (1 - alpha_) ** 2
 
@@ -67,7 +72,9 @@ def solve_fg(image, alpha, kappa=1., steps=16, name=None):
         alpha = tf.cast(alpha, 'float32') / 255.
 
         afg = alpha * image
+
         fg = tf.image.resize(image, (2, 2), method=tf.image.ResizeMethod.AREA)
+        fg = tf.clip_by_value(fg, 0., 1.)
 
         height, width = tf.unstack(tf.shape(image)[1:3])
         levels = tf.cast(tf.math.maximum(height, width), 'float32')

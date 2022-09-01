@@ -1,6 +1,9 @@
+import tensorflow as tf
 from keras.losses import MeanAbsoluteError
-from ...loss import WeightedLossFunctionWrapper
-from ...loss import ReflectionTransmissionExclusionLoss, GradientMeanSquaredError, LaplacianPyramidLoss
+from segme.loss.grad_mse import GradientMeanSquaredError
+from segme.loss.laplacian_pyramid import LaplacianPyramidLoss
+from segme.loss.rt_exclusion import ReflectionTransmissionExclusionLoss
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
 def l1_a(a_true, a_pred, sample_weight):
@@ -48,11 +51,14 @@ def llap_b(b_true, b_pred, sample_weight):
 
 
 def total_loss(afb_true, afb_pred, sample_weight, stage=0):
-    a_true, f_true, b_true = afb_true[..., 0:1], afb_true[..., 1:4], afb_true[..., 4:7]
-    a_pred, f_pred, b_pred = afb_pred[..., 0:1], afb_pred[..., 1:4], afb_pred[..., 4:7]
-    a_weight, f_weight, b_weight = sample_weight[..., 0:1], sample_weight[..., 1:2], sample_weight[..., 2:3]
+    a_true, f_true, b_true = tf.split(afb_true, [1, 3, 3], axis=-1)
+    a_pred, f_pred, b_pred = tf.split(afb_pred, [1, 3, 3], axis=-1)
 
-    _l1_a = l1_a(a_true, a_pred, sample_weight=a_weight)
+    u_weight, f_weight, b_weight = None, None, None
+    if sample_weight is not None:
+        u_weight, f_weight, b_weight = tf.split(sample_weight, [1, 3, 3], axis=-1)
+
+    _l1_a = l1_a(a_true, a_pred, sample_weight=u_weight)
     _l1_f = l1_f(f_true, f_pred, sample_weight=f_weight)
     _l1_b = l1_b(b_true, b_pred, sample_weight=b_weight)
 
@@ -66,19 +72,18 @@ def total_loss(afb_true, afb_pred, sample_weight, stage=0):
     if 4 == stage:
         return _l1_a + _lc_a + 0.25 * (_l1_f + _l1_b + _lc_fb)
 
-    _llap_a = llap_a(a_true, a_pred, sample_weight=a_weight)
+    _llap_a = llap_a(a_true, a_pred, sample_weight=u_weight)
     _llap_f = llap_f(f_true, f_pred, sample_weight=f_weight)
     _llap_b = llap_b(b_true, b_pred, sample_weight=b_weight)
 
     if 3 == stage:
         return _l1_a + _lc_a + _llap_a + 0.25 * (_l1_f + _l1_b + _lc_fb + _llap_f + _llap_b)
 
-    _lg_a = lg_a(a_true, a_pred, sample_weight=a_weight)
+    _lg_a = lg_a(a_true, a_pred, sample_weight=u_weight)
 
     if 2 == stage:
         return _l1_a + _lc_a + _lg_a + _llap_a + 0.25 * (_l1_f + _l1_b + _lc_fb + _llap_f + _llap_b)
 
-    # TODO: only in unknown?
     _lexcl_fb = lexcl_fb(f_pred, b_pred, sample_weight=None)
 
     if 1 == stage:
@@ -91,5 +96,5 @@ def total_loss(afb_true, afb_pred, sample_weight, stage=0):
     return _l1_a + _lc_a + _lg_a + _llap_a + 0.25 * (_l1_f + _l1_b + _lc_fb + _lexcl_fb + _llap_f + _llap_b)
 
 
-def fba_matting_loss(stage=0):
-    return WeightedLossFunctionWrapper(total_loss, stage=stage)
+def fba_matting_losses(stage=0):
+    return [WeightedLossFunctionWrapper(total_loss, stage=stage)] + [None] * 3

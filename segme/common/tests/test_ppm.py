@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
-from ..ppm import PyramidPooling
+from segme.common.ppm import PyramidPooling
 
 
 @test_combinations.run_all_keras_modes
@@ -24,10 +24,11 @@ class TestPyramidPooling(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             PyramidPooling,
-            kwargs={'filters': 32, 'sizes': (1, 2, 3, 6), 'activation': 'leaky_relu', 'standardized': True},
+            kwargs={'filters': 32, 'sizes': (1, 2, 3, 6)},
             input_shape=[2, 18, 18, 64],
             input_dtype='float16',
             expected_output_shape=[None, 18, 18, 32],

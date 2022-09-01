@@ -8,7 +8,7 @@ from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import graph_context_for_symbolic_tensors
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Loss')
 class WeightedLossFunctionWrapper(losses.LossFunctionWrapper):
     def call(self, y_true, y_pred, sample_weight=None):
         if tensor_util.is_tensor(y_pred) and tensor_util.is_tensor(y_true):

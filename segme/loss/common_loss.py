@@ -148,14 +148,14 @@ def crossentropy(y_true, y_pred, sample_weight, from_logits):
     return loss
 
 
-def iou(y_true, y_pred, sample_weight, from_logits, square=False, smooth=1., dice=False):
+def iou(y_true, y_pred, sample_weight, from_logits, square=False, smooth=1., dice=False):  # TODO
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
     y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
     y_true, y_pred = to_1hot(y_true, y_pred)
     y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
-    intersection = y_pred * y_true
+    intersection = y_pred * y_true  # TODO: reduce sum?
     # if sample_weight is not None:
     #     intersection *= sample_weight
     # intersection = tf.reduce_sum(intersection, axis=[1, 2])

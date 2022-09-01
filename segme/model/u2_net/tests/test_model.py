@@ -4,8 +4,8 @@ from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
-from ..model import U2Net, U2NetP, build_u2_net, build_u2_netp
-from ....testing_utils import layer_multi_io_test
+from segme.model.u2_net.model import U2Net, U2NetP, build_u2_net, build_u2_netp
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes
@@ -28,6 +28,7 @@ class TestU2Net(test_combinations.TestCase):
             expected_output_dtypes=['float32'] * 7
         )
 
+    def test_u2net_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             U2Net,
@@ -48,6 +49,7 @@ class TestU2Net(test_combinations.TestCase):
             expected_output_dtypes=['float32'] * 7
         )
 
+    def test_u2netp_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             U2NetP,
@@ -59,14 +61,13 @@ class TestU2Net(test_combinations.TestCase):
         )
 
     def test_model(self):
-        num_classes = 2
-        model = build_u2_net(classes=num_classes)
+        model = build_u2_net(classes=4)
         model.compile(
-            optimizer='sgd', loss='sparse_categorical_crossentropy',
+            optimizer='sgd', loss='binary_crossentropy',
             run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 224, 224, 3)).astype(np.uint8),
-            np.random.randint(0, num_classes, (2, 224, 224)),
+            np.random.randint(0, 4, (2, 224, 224, 4)),
             epochs=1, batch_size=1)
 
         # test config
@@ -79,14 +80,13 @@ class TestU2Net(test_combinations.TestCase):
             self.assertIn(v, checkpointed_objects)
 
     def test_model_p(self):
-        num_classes = 1
-        model = build_u2_netp(classes=num_classes)
+        model = build_u2_netp(classes=1)
         model.compile(
             optimizer='sgd', loss='binary_crossentropy',
             run_eagerly=test_utils.should_run_eagerly())
         model.fit(
             np.random.random((2, 224, 224, 3)).astype(np.uint8),
-            np.random.randint(0, num_classes, (2, 224, 224)),
+            np.random.randint(0, 1, (2, 224, 224, 1)),
             epochs=1, batch_size=1)
 
         # test config

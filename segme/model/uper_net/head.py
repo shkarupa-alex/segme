@@ -2,13 +2,11 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from ...common import HeadProjection, HeadActivation, resize_by_sample
-from ...common.guidedup import GuidedFilter, ConvGuidedFilter
-
-WITH_GF = 2
+from segme.common.head import HeadProjection, ClassificationActivation
+from segme.common.interrough import BilinearInterpolation
 
 
-@register_keras_serializable(package='SegMe>UPerNet')
+@register_keras_serializable(package='SegMe>Model>UPerNet')
 class Head(layers.Layer):
     def __init__(self, classes, dropout, **kwargs):
         super().__init__(**kwargs)
@@ -18,14 +16,10 @@ class Head(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
+        self.resize = BilinearInterpolation(None)
         self.drop = layers.Dropout(self.dropout)
         self.proj = HeadProjection(self.classes, 1)
-        self.act = HeadActivation(self.classes)
-
-        if 1 == WITH_GF:
-            self.gf = GuidedFilter()
-        elif 2 == WITH_GF:
-            self.gf = ConvGuidedFilter()
+        self.act = ClassificationActivation()
 
         super().build(input_shape)
 
@@ -34,13 +28,7 @@ class Head(layers.Layer):
 
         outputs = self.drop(predictions)
         outputs = self.proj(outputs)
-
-        if 1 == WITH_GF:
-            outputs = self.gf([images, outputs])
-        elif 2 == WITH_GF:
-            outputs = self.gf([images, outputs])
-        else:
-            outputs = resize_by_sample([outputs, images])
+        outputs = self.resize([outputs, images])
 
         outputs = self.act(outputs)
 

@@ -3,7 +3,7 @@ from keras.metrics import MeanSquaredError
 from keras.utils.generic_utils import register_keras_serializable
 
 
-@register_keras_serializable(package='SegMe')
+@register_keras_serializable(package='SegMe>Metric>Matting')
 class MSE(MeanSquaredError):
     def __init__(self, name='mse', dtype=None):
         """Creates a `MeanSquaredError` instance for matting task (by default downscales input by 255).

@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from ..aug import stateless_random_rotate_90, random_channel_shuffle, augment_onthefly
+from segme.utils.common.aug import stateless_random_rotate_90, random_color_mix, random_channel_shuffle, \
+    augment_onthefly
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -22,26 +23,33 @@ class TestStatelessRandomRotate90(tf.test.TestCase):
 
 
 @test_util.run_all_in_graph_and_eager_modes
+class TestRandomColorMix(tf.test.TestCase):
+    def test_no_aug(self):
+        image = np.random.uniform(0., 255., (4, 16, 16, 3)).astype('uint8')
+        mixed = random_color_mix(image, 0.)
+        mixed = self.evaluate(mixed)
+
+        self.assertAllEqual(mixed, image)
+
+    def test_aug(self):
+        image = np.random.uniform(0., 255., (4, 16, 16, 3)).astype('uint8')
+        mixed = random_color_mix(image, 1.)
+        mixed = self.evaluate(mixed)
+
+        self.assertNotAllEqual(mixed, image)
+
+
+@test_util.run_all_in_graph_and_eager_modes
 class TestRandomChannelShuffle(tf.test.TestCase):
     def test_aug(self):
-        augmented = False
+        expected = {(0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0)}
 
-        permutations = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
-        for _ in range(4):
-            image = np.random.uniform(0., 255., (2, 16, 16, 3)).astype('uint8')
+        images = np.tile([[[[0, 1, 2]]]], [25, 1, 1, 1])
+        shuffled = random_channel_shuffle(images)
+        shuffled = self.evaluate(shuffled)
+        result = set(tuple(u) for u in np.unique(shuffled[:, 0, 0, :], axis=0))
 
-            shuffled = random_channel_shuffle(image)
-            shuffled = self.evaluate(shuffled)
-
-            if np.all(image == shuffled):
-                continue
-
-            for perm in permutations:
-                if np.all(image[..., perm] == shuffled):
-                    augmented = True
-                    continue
-
-        self.assertTrue(augmented)
+        self.assertSetEqual(expected, result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
