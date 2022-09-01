@@ -2,13 +2,16 @@ import tensorflow as tf
 from keras import layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from tensorflow_addons.layers import SpectralNormalization
-from .encoder import Encoder
-from .decoder import Decoder
+from segme.common.convnormact import ConvAct, Conv, Norm
+from segme.common.sequent import Sequential
+from segme.model.hrrn.encoder import Encoder
+from segme.model.hrrn.decoder import Decoder
 
 
-@register_keras_serializable(package='SegMe>HRRN')
+@register_keras_serializable(package='SegMe>Model>HRRN')
 class HRRN(layers.Layer):
+    """ Proposed in https://arxiv.org/abs/2108.03551 """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
@@ -23,22 +26,18 @@ class HRRN(layers.Layer):
 
         self.encoder.build(input_shape)
 
-        short_channels = self.encoder.compute_output_shape(input_shape)
+        short_channels = self.encoder.compute_output_shape(input_shape[0][:-1] + (6,))
         short_channels = [shape[-1] for shape in short_channels[:-1]]
         short_channels = [max(channel, 32) for channel in short_channels]
 
         self.shorts = [
-            models.Sequential([
-                SpectralNormalization(layers.Conv2D(filters, 3, padding='same', use_bias=False)),
-                layers.ReLU(),
-                layers.BatchNormalization(),
-                SpectralNormalization(layers.Conv2D(filters, 3, padding='same', use_bias=False)),
-                layers.ReLU(),
-                layers.BatchNormalization()])
+            Sequential([
+                ConvAct(filters, 3, use_bias=False), Norm(),
+                ConvAct(filters, 3, use_bias=False), Norm()])
             for filters in short_channels
         ]
 
-        self.proj = layers.Conv2D(2, 3, padding='same')
+        self.proj = Conv(2, 3)
 
         # import tensorflow_probability as tfp
         # self.dist = tfp.layers.DistributionLambda(
@@ -48,7 +47,13 @@ class HRRN(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        features = self.encoder(inputs)
+        images, trimaps = inputs
+        trimaps = tf.one_hot(trimaps[..., 0] // 86, 3, dtype='uint8') * 255
+
+        combos = tf.concat([images, trimaps], axis=-1)
+        combos = tf.cast(combos, self.compute_dtype)
+
+        features = self.encoder(combos)
         shortcuts = [short(feat) for short, feat in zip(self.shorts, features[:-1])]
         outputs = self.decoder(shortcuts + features[-1:])
 
@@ -85,8 +90,7 @@ class HRRN(layers.Layer):
 def build_hrrn():
     inputs = [
         layers.Input(name='image', shape=[None, None, 3], dtype='uint8'),
-        layers.Input(name='trimap', shape=[None, None, 1], dtype='uint8')
-    ]
+        layers.Input(name='trimap', shape=[None, None, 1], dtype='uint8')]
     outputs = HRRN()(inputs)
     model = models.Model(inputs=inputs, outputs=outputs, name='hrrn')
 

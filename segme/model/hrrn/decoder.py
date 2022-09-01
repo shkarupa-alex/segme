@@ -1,30 +1,29 @@
 import tensorflow as tf
-from keras import activations, initializers, layers, models
+from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from tensorflow_addons.layers import SpectralNormalization
-from ...common import ResizeByScale
+from segme.common.convnormact import ConvNormAct, Conv, Norm, Act
+from segme.common.interrough import NearestInterpolation
+from segme.common.se import SE
+from segme.common.sequent import Sequential
 
 
-@register_keras_serializable(package='SegMe>HRRN')
+@register_keras_serializable(package='SegMe>Model>HRRN')
 class Decoder(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [layers.InputSpec(ndim=4) for _ in range(6)]
 
-    def _make_layer(self, filters, num_repeats, bn_epsilon=1e-5, bn_momentum=0.0, activation='leaky_relu'):
+    def _make_layer(self, filters, num_repeats):
         group = []
         for i in range(num_repeats):
             is_first = 0 == i
             group.append(Bottleneck(
                 filters=filters,
                 strides=2 if is_first else 1,  # TODO: last?
-                use_projection=is_first,
-                activation=activation,
-                bn_epsilon=bn_epsilon,
-                bn_momentum=bn_momentum))
+                use_projection=is_first))
 
-        return models.Sequential(group)
+        return Sequential(group)
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -34,11 +33,10 @@ class Decoder(layers.Layer):
         self.layer8 = self._make_layer(filters[3], 6)
         self.layer4 = self._make_layer(filters[2], 4)
         self.layer2 = self._make_layer(filters[1], 3)
-        self.layer1 = models.Sequential([
-            SpectralNormalization(layers.Conv2DTranspose(filters[0], 4, strides=2, padding='same', use_bias=False)),
-            layers.BatchNormalization(),
-            layers.Activation('leaky_relu')
-        ])
+        self.layer1 = Sequential([
+            layers.Conv2DTranspose(filters[0], 4, strides=2, padding='same', use_bias=False),  # TODO + SpecNorm?
+            Norm(),
+            Act()])
 
         super().build(input_shape)
 
@@ -58,18 +56,15 @@ class Decoder(layers.Layer):
         return input_shape[0]
 
 
-@register_keras_serializable(package='SegMe>HRRN')
+@register_keras_serializable(package='SegMe>Model>HRRN')
 class Bottleneck(layers.Layer):
-    def __init__(self, filters, strides, use_projection, bn_momentum, bn_epsilon, activation, **kwargs):
+    def __init__(self, filters, strides, use_projection, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
         self.filters = filters
         self.strides = strides
         self.use_projection = use_projection
-        self.bn_momentum = bn_momentum
-        self.bn_epsilon = bn_epsilon
-        self.activation = activations.get(activation)
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -82,32 +77,30 @@ class Bottleneck(layers.Layer):
             raise ValueError('Channel dimension of inputs should equals to filters value if no projection used.')
 
         if self.use_projection:
-            self.short = models.Sequential([
-                SpectralNormalization(layers.Conv2D(self.filters, 1, use_bias=False)),
-                layers.BatchNormalization(momentum=self.bn_momentum, epsilon=self.bn_epsilon),
-                ResizeByScale(self.strides, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)  # TODO: try bilinear
-            ])
+            self.short = Sequential([
+                Conv(self.filters, 1, use_bias=False),
+                Norm(),
+                NearestInterpolation(self.strides)])
 
-        self.block = models.Sequential([
+        self.block = Sequential([
             # First conv layer
-            SpectralNormalization(layers.Conv2D(self.channels, 1, use_bias=False)),  # TODO: try reduce channels first
-            layers.BatchNormalization(momentum=self.bn_momentum, epsilon=self.bn_epsilon),
-            layers.Activation(self.activation),
+            ConvNormAct(self.channels, 1),
 
             # Second conv layer
-            SpectralNormalization(
-                layers.Conv2D(self.channels, 3, padding='same', use_bias=False) if 1 == self.strides
-                # TODO: try bilinear
-                else layers.Conv2DTranspose(self.channels, 4, strides=2, padding='same', use_bias=False)),
-            layers.BatchNormalization(momentum=self.bn_momentum, epsilon=self.bn_epsilon),
-            layers.Activation(self.activation),
+
+            Conv(self.channels, 3, use_bias=False) if 1 == self.strides
+            # TODO: try bilinear
+            else layers.Conv2DTranspose(self.channels, 4, strides=2, padding='same', use_bias=False),  # TODO
+            Norm(),
+            Act(),
 
             # Third conv layer
-            SpectralNormalization(layers.Conv2D(self.filters, 1, use_bias=False)),
-            layers.BatchNormalization(momentum=self.bn_momentum, epsilon=self.bn_epsilon),
+            Conv(self.filters, 1, use_bias=False),
+            Norm(),
 
-            SqueezeExcitation()
+            SE()
         ])
+        self.activation = Act()
 
         super().build(input_shape)
 
@@ -133,53 +126,7 @@ class Bottleneck(layers.Layer):
         config.update({
             'filters': self.filters,
             'strides': self.strides,
-            'use_projection': self.use_projection,
-            'bn_momentum': self.bn_momentum,
-            'bn_epsilon': self.bn_epsilon,
-            'activation': activations.serialize(self.activation)
+            'use_projection': self.use_projection
         })
-
-        return config
-
-
-@register_keras_serializable(package='SegMe>HRRN')
-class SqueezeExcitation(layers.Layer):
-    def __init__(self, ratio=1, **kwargs):  # TODO: ratio
-        super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
-
-        self.ratio = ratio
-
-    @shape_type_conversion
-    def build(self, input_shape):
-        self.channels = input_shape[-1]
-        if self.channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-        self.input_spec = layers.InputSpec(ndim=4, axes={-1: self.channels})
-
-        squeeze_filters = max(1, self.channels // self.ratio)
-        kernel_init = initializers.get({
-            'class_name': 'VarianceScaling',
-            'config': {'scale': 2.0, 'mode': 'fan_out', 'distribution': 'truncated_normal'}})
-
-        self.se = models.Sequential([
-            layers.GlobalAvgPool2D(keepdims=True),
-            layers.Conv2D(squeeze_filters, 1, kernel_initializer=kernel_init, activation='relu'),
-            layers.Conv2D(self.channels, 1, kernel_initializer=kernel_init, activation='sigmoid')
-        ])
-
-        super().build(input_shape)
-
-    def call(self, inputs, **kwargs):
-        outputs = self.se(inputs) * inputs
-        return outputs
-
-    @shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({'ratio': self.ratio})
 
         return config
