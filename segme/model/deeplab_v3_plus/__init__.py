@@ -1,3 +1,3 @@
-from .model import build_deeplab_v3_plus
-from .hattn import build_deeplab_v3_plus_with_hierarchical_attention
-from .rend import build_deeplab_v3_plus_with_point_rend
+from segme.model.deeplab_v3_plus.model import build_deeplab_v3_plus
+from segme.model.deeplab_v3_plus.hattn import build_deeplab_v3_plus_with_hierarchical_attention
+from segme.model.deeplab_v3_plus.rend import build_deeplab_v3_plus_with_point_rend

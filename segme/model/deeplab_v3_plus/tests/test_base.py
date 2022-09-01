@@ -1,11 +1,7 @@
-import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
-from tensorflow.python.training.tracking import util as trackable_util
-from tensorflow.python.util import object_identity
-from ..base import DeepLabV3PlusBase
-from ....testing_utils import layer_multi_io_test
+from segme.model.deeplab_v3_plus.base import DeepLabV3PlusBase
 
 
 @test_combinations.run_all_keras_modes
@@ -19,29 +15,26 @@ class TestDeepLabV3PlusBase(test_combinations.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        # TODO: wait for issue with Sequential model restoring
-        #  will be resolved to migrate back on test_utils.layer_test
-        layer_multi_io_test(
+        test_utils.layer_test(
             DeepLabV3PlusBase,
             kwargs={
-                'classes': 4, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
-                'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 5, 'add_strides': (2, 4)},
-            input_shapes=[(2, 224, 224, 3)],
-            input_dtypes=['uint8'],
-            expected_output_shapes=[(None, 56, 56, 4), (None, 56, 56, 5), (None, 112, 112, 64), (None, 56, 56, 256)],
-            expected_output_dtypes=['float32'] * 4
+                'classes': 4, 'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 5},
+            input_shape=(2, 224, 224, 3),
+            input_dtype='uint8',
+            expected_output_shape=(None, 56, 56, 4),
+            expected_output_dtype='float32'
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
-        layer_multi_io_test(
+        test_utils.layer_test(
             DeepLabV3PlusBase,
             kwargs={
-                'classes': 1, 'bone_arch': 'resnet_50', 'bone_init': 'imagenet', 'bone_train': False,
-                'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 4, 'add_strides': None},
-            input_shapes=[(2, 224, 224, 3)],
-            input_dtypes=['uint8'],
-            expected_output_shapes=[(None, 56, 56, 1), (None, 56, 56, 4)],
-            expected_output_dtypes=['float16'] * 2
+                'classes': 1, 'aspp_filters': 8, 'aspp_stride': 32, 'low_filters': 16, 'decoder_filters': 4},
+            input_shape=(2, 224, 224, 3),
+            input_dtype='uint8',
+            expected_output_shape=(None, 56, 56, 1),
+            expected_output_dtype='float16'
         )
 
 

@@ -3,38 +3,36 @@ from keras import Model, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from keras.utils.tf_utils import shape_type_conversion
-from .base import DeepLabV3PlusBase
-from ...common import PointRend, PointLoss
+from segme.model.deeplab_v3_plus.base import DeepLabV3PlusBase
+from segme.common.point_rend import PointRend, PointLoss
 
 
-@register_keras_serializable(package='SegMe>DeepLabV3Plus')
+@register_keras_serializable(package='SegMe>Model>DeepLabV3Plus')
 class DeepLabV3PlusWithPointRend(DeepLabV3PlusBase):
-    def __init__(
-            self, rend_strides, rend_units, rend_points, rend_oversample, rend_importance, rend_corners, classes,
-            bone_arch, bone_init, bone_train, aspp_filters, aspp_stride, low_filters, decoder_filters, **kwargs):
-        super().__init__(
-            classes=classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,
-            aspp_stride=aspp_stride, low_filters=low_filters, decoder_filters=decoder_filters, add_strides=rend_strides,
-            **kwargs)
+    def __init__(self, rend_strides, rend_units, rend_points, rend_oversample, rend_importance, classes, aspp_filters,
+                 aspp_stride, low_filters, decoder_filters, **kwargs):
+        super().__init__(classes=classes, aspp_filters=aspp_filters, aspp_stride=aspp_stride, low_filters=low_filters,
+                         decoder_filters=decoder_filters, **kwargs)
 
         self.rend_strides = rend_strides
         self.rend_units = rend_units
         self.rend_points = rend_points
         self.rend_oversample = rend_oversample
         self.rend_importance = rend_importance
-        self.rend_corners = rend_corners
+
+        self._return_stride2 = True
 
     @shape_type_conversion
     def build(self, input_shape):
         self.rend = PointRend(
             self.classes, self.rend_units, self.rend_points, self.rend_oversample, self.rend_importance,
-            fines=len(self.rend_strides), residual=False, align_corners=self.rend_corners)
+            fines=1, residual=False, align_corners=False)
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs, _, *rend_feats = super().call(inputs)
-        outputs = self.rend([inputs, outputs, *rend_feats])
+        logits, stride2 = super().call(inputs)
+        outputs = self.rend([inputs, logits, stride2])
 
         return outputs
 
@@ -52,19 +50,16 @@ class DeepLabV3PlusWithPointRend(DeepLabV3PlusBase):
             'rend_units': self.rend_units,
             'rend_points': self.rend_points,
             'rend_oversample': self.rend_oversample,
-            'rend_importance': self.rend_importance,
-            'rend_corners': self.rend_corners
+            'rend_importance': self.rend_importance
         })
-
-        del config['add_strides']
 
         return config
 
 
 def build_deeplab_v3_plus_with_point_rend(
-        classes, bone_arch, bone_init, bone_train, rend_weights, aspp_filters=256, aspp_stride=32,
-        low_filters=48, decoder_filters=256, rend_strides=(2,), rend_units=(256, 256, 256), rend_points=(0.008, 0.06),
-        rend_oversample=3, rend_importance=0.75, rend_corners=True, rend_reduction=Reduction.AUTO):
+        classes, rend_weights, aspp_filters=256, aspp_stride=32, low_filters=48, decoder_filters=256, rend_strides=(2,),
+        rend_units=(256, 256, 256), rend_points=(0.008, 0.06), rend_oversample=3, rend_importance=0.75,
+        rend_reduction=Reduction.AUTO):
     model_inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
 
     rend_inputs = [layers.Input(name='label', shape=[None, None, 1], dtype='int32')]
@@ -75,10 +70,9 @@ def build_deeplab_v3_plus_with_point_rend(
         tf.get_logger().warning('Don\'t forget to pass "label" input into features')
 
     outputs, point_logits, point_coords = DeepLabV3PlusWithPointRend(
-        classes=classes, bone_arch=bone_arch, bone_init=bone_init, bone_train=bone_train, aspp_filters=aspp_filters,
-        aspp_stride=aspp_stride, low_filters=low_filters, decoder_filters=decoder_filters, rend_strides=rend_strides,
-        rend_units=rend_units, rend_points=rend_points, rend_oversample=rend_oversample,
-        rend_importance=rend_importance, rend_corners=rend_corners)(model_inputs)
+        classes=classes, aspp_filters=aspp_filters, aspp_stride=aspp_stride, low_filters=low_filters,
+        decoder_filters=decoder_filters, rend_strides=rend_strides, rend_units=rend_units, rend_points=rend_points,
+        rend_oversample=rend_oversample, rend_importance=rend_importance)(model_inputs)
 
     model = Model(
         inputs=[model_inputs, *rend_inputs], outputs=[outputs, point_coords], name='deeplab_v3_plus_with_point_rend')
