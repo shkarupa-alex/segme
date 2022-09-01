@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.losses import MeanAbsoluteError
-from ...loss import WeightedLossFunctionWrapper
-from ...loss import LaplacianPyramidLoss
+from segme.loss.laplacian_pyramid import LaplacianPyramidLoss
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
 def total_loss(afb_true, a_pred, sample_weight=None):

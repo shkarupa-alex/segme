@@ -4,11 +4,13 @@ from keras import layers, models
 from keras.applications import imagenet_utils
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from tensorflow_addons import layers as addon_layers
-from ...common import SameConv, ResizeByScale
+from segme.common.convnormact import ConvAct, Norm
+from segme.common.sequent import Sequential
+from segme.common.interrough import BilinearInterpolation
+from segme.policy import cnapol
 
 
-@register_keras_serializable(package='SegMe>MatteFormer')
+@register_keras_serializable(package='SegMe>Model>MatteFormer')
 class Encoder(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -43,16 +45,14 @@ class Encoder(layers.Layer):
         ext_model.set_weights(ext_weights)
 
         self.backbone = ext_model
-        self.shortcuts = [
-            models.Sequential([
-                addon_layers.SpectralNormalization(SameConv(filters, 3, use_bias=False)),
-                layers.ReLU(),
-                layers.BatchNormalization(),
-                addon_layers.SpectralNormalization(SameConv(filters, 3, use_bias=False)),
-                layers.ReLU(),
-                layers.BatchNormalization()])
-            for filters in [32, 32, 64, 128, 256, 512]]
-        self.up2 = ResizeByScale(2)
+
+        with cnapol.policy_scope('snconv-bn-relu'):
+            self.shortcuts = [
+                Sequential([
+                    ConvAct(filters, 3, use_bias=False), Norm(),
+                    ConvAct(filters, 3, use_bias=False), Norm()])
+                for filters in [32, 32, 64, 128, 256, 512]]
+        self.up2 = BilinearInterpolation(2)
 
         super().build(input_shape)
 

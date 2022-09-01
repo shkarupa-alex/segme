@@ -4,9 +4,9 @@ from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
-from ..model import MatteFormer, build_matte_former
-from ..loss import matte_former_losses
-from ....testing_utils import layer_multi_io_test
+from segme.model.matte_former.model import MatteFormer, build_matte_former
+from segme.model.matte_former.loss import matte_former_losses
+from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes
@@ -22,17 +22,18 @@ class TestMatteFormer(test_combinations.TestCase):
     def test_layer(self):
         layer_multi_io_test(
             MatteFormer,
-            kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2), 'radius':(30, 15)},
+            kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2), 'radius': (30, 15)},
             input_shapes=[(2, 512, 512, 3), (2, 512, 512, 1)],
             input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 512, 512, 1)] * 4,
             expected_output_dtypes=['float32'] * 4
         )
 
+    def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             MatteFormer,
-            kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2), 'radius':(30, 15)},
+            kwargs={'filters': (256, 128, 64, 32), 'depths': (2, 3, 3, 2), 'radius': (30, 15)},
             input_shapes=[(2, 256, 256, 3), (2, 256, 256, 1)],
             input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 256, 256, 1)] * 4,

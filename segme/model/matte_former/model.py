@@ -4,12 +4,12 @@ from keras.utils.control_flow_util import smart_cond
 from keras.utils.conv_utils import normalize_tuple
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from .decoder import Decoder
-from .encoder import Encoder
-from ...utils.matting.tf import alpha_trimap
+from segme.model.matte_former.decoder import Decoder
+from segme.model.matte_former.encoder import Encoder
+from segme.utils.matting.tf import alpha_trimap
 
 
-@register_keras_serializable(package='SegMe>MatteFormer')
+@register_keras_serializable(package='SegMe>Model>MatteFormer')
 class MatteFormer(layers.Layer):
     def __init__(self, filters, depths, radius, **kwargs):
         super().__init__(**kwargs)
