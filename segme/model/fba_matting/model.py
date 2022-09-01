@@ -57,8 +57,6 @@ class FBAMatting(layers.Layer):
 
         return [tf.TensorSpec(dtype='float32', shape=os.shape) for os in outptut_signature]
 
-        return config
-
 
 def build_fba_matting():
     inputs = [

@@ -67,13 +67,7 @@ class BilinearInterpolation(NearestInterpolation):
 
     def resize(self, inputs, size):
         outputs = tf.image.resize(inputs, size, method=tf.image.ResizeMethod.BILINEAR)
-
-        # TODO: compare with
-        # outputs = tf.compat.v1.image.resize(
-        #     inputs, size, method=tf.compat.v1.image.ResizeMethod.BILINEAR, align_corners=True)
-
-        if inputs.dtype != outputs.dtype:
-            outputs = tf.saturate_cast(outputs, inputs.dtype)
+        outputs = tf.saturate_cast(outputs, self.compute_dtype)
 
         return outputs
 

@@ -100,6 +100,14 @@ class TestBilinearInterpolation(test_combinations.TestCase):
             expected_output_shape=(None, 8, 8, 10),
             expected_output_dtype='float16'
         )
+        test_utils.layer_test(
+            BilinearInterpolation,
+            kwargs={'scale': 0.5, 'dtype': 'float32'},
+            input_shape=(2, 16, 16, 10),
+            input_dtype='float16',
+            expected_output_shape=(None, 8, 8, 10),
+            expected_output_dtype='float32'
+        )
 
     # Current tf.image.resize implementation fully mimics cv2.imresize
     # def test_corners(self):

@@ -29,7 +29,7 @@ class PointRend(layers.Layer):
         self.oversample = oversample
         self.importance = importance
         self.residual = residual
-        self.fines = fines
+        self.fines = fines  # TODO: check if needed
         self.align_corners = align_corners
 
     @shape_type_conversion
@@ -40,7 +40,7 @@ class PointRend(layers.Layer):
         self.uncertain_grid = UncertainPointsCoordsOnGrid(points=self.points[1])
         self.point_sample = PointSample(align_corners=self.align_corners)
         self.point_head = PointHead(classes=self.classes, units=self.units, fines=self.fines, residual=self.residual)
-        self.int_bysample = BilinearInterpolation(None)
+        self.int_bysample = BilinearInterpolation(None, dtype='float32')
         self.int_byscale = BilinearInterpolation(2)
         self.head_act = ClassificationActivation()
 

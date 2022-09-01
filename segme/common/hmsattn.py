@@ -17,7 +17,7 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
 
     def __init__(self, layer, scales=((0.5,), (0.25, 0.5, 2.0)), filters=256, dropout=0., **kwargs):
         super().__init__(layer, **kwargs)
-        self.input_spec = layers.InputSpec(ndim=4, dtype=self.compute_dtype)
+        self.input_spec = layers.InputSpec(ndim=4)
         self.scales = scales
         self.filters = filters
         self.dropout = dropout
@@ -39,7 +39,7 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
             layers.Conv2D(1, 1, activation='sigmoid', use_bias=False)
         ])
 
-        self.intbyscale = {scale: BilinearInterpolation(scale)
+        self.intbyscale = {str(scale): BilinearInterpolation(scale)
                            for scale in set(self.train_scales + self.eval_scales)}
         self.intbysample = BilinearInterpolation(None)
 
@@ -60,7 +60,7 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
         outputs = None
 
         for scale in scales:  # TODO: check order
-            _inputs = self.intbyscale[scale](inputs)  # TODO: bicubic? +antialiasing?
+            _inputs = self.intbyscale[str(scale)](inputs)  # TODO: bicubic? +antialiasing?
             _outputs, _features = self.layer.call(_inputs)
             _outputs = self.intbysample([_outputs, _inputs])
 
