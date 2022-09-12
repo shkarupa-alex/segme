@@ -64,48 +64,48 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
         self.assertEqual(loss.reduction, Reduction.NONE)
 
     def test_zeros(self):
-        probs = tf.zeros((1, 16, 16, 1), 'float32')
-        targets = tf.zeros((1, 16, 16, 1), 'float32')
+        probs = tf.zeros((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'float32')
 
         result = structural_similarity_loss(
             y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
             k1=0.01, k2=0.03)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_ones(self):
-        probs = tf.ones((1, 16, 16, 1), 'float32')
-        targets = tf.ones((1, 16, 16, 1), 'float32')
+        probs = tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'float32')
 
         result = structural_similarity_loss(
             y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
             k1=0.01, k2=0.03)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_false(self):
-        probs = tf.zeros((1, 16, 16, 1), 'float32')
-        targets = tf.ones((1, 16, 16, 1), 'float32')
+        probs = tf.zeros((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'float32')
 
         result = structural_similarity_loss(
             y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
             k1=0.01, k2=0.03)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [1.], atol=1e-2)
+        self.assertAllClose(result, [1.] * 3, atol=1e-2)
 
     def test_true(self):
-        probs = tf.ones((1, 16, 16, 1), 'float32')
-        targets = tf.zeros((1, 16, 16, 1), 'float32')
+        probs = tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'float32')
 
         result = structural_similarity_loss(
             y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
             k1=0.01, k2=0.03)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [1.], atol=1e-2)
+        self.assertAllClose(result, [1.] * 3, atol=1e-2)
 
     def test_even(self):
         probs = tf.zeros((1, 7, 7, 1), 'float32')
@@ -116,29 +116,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
             k1=0.01, k2=0.03)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.0])
-
-    def test_multi(self):
-        logits = tf.constant([
-            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
-             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
-             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
-             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
-            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
-             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
-             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
-             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
-        targets = tf.constant([
-            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
-             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
-            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
-             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
-        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
-
-        loss = StructuralSimilarityLoss(reduction=Reduction.SUM, factors=(0.5,), size=2)
-
-        result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.8004158, places=6)
+        self.assertAllClose(result, [0.])
 
     def test_value(self):
         probs = tf.constant([
@@ -253,7 +231,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
         result = loss(targets, probs)
         result = self.evaluate(result)
 
-        self.assertAlmostEqual(result, 0.8302058, places=6)  # 0.8249481320381165 when compensation = 1
+        self.assertAlmostEqual(result, 0.8302058)  # 0.8249481320381165 when compensation = 1
 
     def test_weight(self):
         logits = tf.constant([
@@ -272,29 +250,48 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
         targets = tf.repeat(tf.repeat(targets, 16, axis=1), 16, axis=2)
         weights = tf.concat([tf.ones((2, 64, 32, 1)), tf.zeros((2, 64, 32, 1))], axis=2)
 
-        loss = StructuralSimilarityLoss(reduction=Reduction.SUM, factors=(0.5,), size=2)
+        loss = StructuralSimilarityLoss(factors=(0.5,), size=2)
 
-        result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 0.885136, places=6)
-
-        result = self.evaluate(loss(targets[:, :, :32, :], logits[:, :, :32, :]))
-        self.assertAlmostEqual(result, 0.92526346, places=7)  # Depends on spatial size
+        result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
+        self.assertAlmostEqual(result, 0.46263173)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.2461021, places=6)
+        self.assertAlmostEqual(result, 0.62305105)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.9338272, places=6)
+        self.assertAlmostEqual(result, 0.4669136)
+
+    def test_multi(self):
+        logits = tf.constant([
+            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
+             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
+             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
+             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
+            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
+             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
+             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
+             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
+        targets = tf.constant([
+            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
+             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
+            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
+             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
+        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+
+        loss = StructuralSimilarityLoss(factors=(0.5,), size=2)
+        result = self.evaluate(loss(targets, logits, weights))
+
+        self.assertAlmostEqual(result, 0.9002079)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
         targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype('float32')
 
-        loss = StructuralSimilarityLoss(reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = StructuralSimilarityLoss()
         result0 = self.evaluate(loss(targets, probs))
         result1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
-        self.assertAlmostEqual(result0, result1, places=6)
+        self.assertAlmostEqual(result0, result1)
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
