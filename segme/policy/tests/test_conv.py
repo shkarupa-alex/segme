@@ -8,196 +8,196 @@ from keras.mixed_precision import policy as mixed_precision
 from segme.policy.conv import CONVOLUTIONS, FixedConv, FixedDepthwiseConv, StandardizedConv, SpectralConv
 
 
-# class TestConvsRegistry(unittest.TestCase):
-#     def test_filled(self):
-#         self.assertIn('conv', CONVOLUTIONS)
-#         self.assertIn('stdconv', CONVOLUTIONS)
-#
-#
-# @test_combinations.run_all_keras_modes
-# class TestFixedConv(test_combinations.TestCase):
-#     def setUp(self):
-#         super(TestFixedConv, self).setUp()
-#         self.default_policy = mixed_precision.global_policy()
-#
-#     def tearDown(self):
-#         super(TestFixedConv, self).tearDown()
-#         mixed_precision.set_global_policy(self.default_policy)
-#
-#     def test_layer(self):
-#         test_utils.layer_test(
-#             FixedConv,
-#             kwargs={'filters': 4, 'kernel_size': 3, 'strides': 1, 'dilation_rate': 3, 'padding': 'valid'},
-#             input_shape=[2, 16, 16, 8],
-#             input_dtype='float32',
-#             expected_output_shape=[None, 10, 10, 4],
-#             expected_output_dtype='float32'
-#         )
-#
-#     def test_fp16(self):
-#         mixed_precision.set_global_policy('mixed_float16')
-#         result = test_utils.layer_test(
-#             FixedConv,
-#             kwargs={'filters': 4, 'kernel_size': 3, 'strides': 2, 'dilation_rate': 1, 'padding': 'same'},
-#             input_shape=[2, 16, 16, 8],
-#             input_dtype='float16',
-#             expected_output_shape=[None, 8, 8, 4],
-#             expected_output_dtype='float16'
-#         )
-#         self.assertTrue(np.all(np.isfinite(result)))
-#
-#     def test_valid(self):
-#         for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
-#             if s > 1 and d > 1:
-#                 continue
-#
-#             exconv = layers.Conv2D(2, k, strides=s, dilation_rate=d, padding='valid')
-#             exconv.build([None, None, None, 4])
-#
-#             layer = FixedConv(2, k, strides=s, dilation_rate=d, padding='valid')
-#             layer.build([None, None, None, 4])
-#             layer.set_weights(exconv.get_weights())
-#
-#             for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
-#                 inputs = np.random.normal(size=(2, h, w, 4)) * 10.
-#
-#                 exshape = exconv.compute_output_shape(inputs.shape)
-#                 exshape = tuple(exshape.as_list())
-#
-#                 exval = exconv(inputs)
-#                 exval = self.evaluate(exval)
-#
-#                 result = layer(inputs)
-#                 result = self.evaluate(result)
-#
-#                 self.assertTupleEqual(exshape, result.shape)
-#                 self.assertLess(np.abs(exval - result).max(), 1e-4)
-#
-#     def test_same(self):
-#         for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
-#             if s > 1 and d > 1:
-#                 continue
-#
-#             exshapeconv = layers.Conv2D(2, k, strides=s, dilation_rate=d, padding='same')
-#
-#             exvalconv = layers.Conv2D(2, k, strides=s, dilation_rate=d, padding='valid')
-#             exvalconv.build([None, None, None, 4])
-#
-#             layer = FixedConv(2, k, strides=s, dilation_rate=d, padding='same')
-#             layer.build([None, None, None, 4])
-#             layer.set_weights(exvalconv.get_weights())
-#
-#             for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
-#                 inputs = np.random.normal(size=(2, h, w, 4)) * 10.
-#
-#                 paddings = d * (k - 1)
-#                 paddings = (paddings // 2, paddings - paddings // 2)
-#                 painputs = np.pad(inputs, ((0, 0), paddings, paddings, (0, 0)))
-#
-#                 exshape = exshapeconv.compute_output_shape(inputs.shape)
-#                 exshape = tuple(exshape.as_list())
-#
-#                 exval = exvalconv(painputs)
-#                 exval = self.evaluate(exval)
-#
-#                 result = layer(inputs)
-#                 result = self.evaluate(result)
-#
-#                 self.assertTupleEqual(exshape, result.shape)
-#                 self.assertLess(np.abs(exval - result).max(), 1e-4)
-#
-#
-# @test_combinations.run_all_keras_modes
-# class TestFixedDepthwiseConv(test_combinations.TestCase):
-#     def setUp(self):
-#         super(TestFixedDepthwiseConv, self).setUp()
-#         self.default_policy = mixed_precision.global_policy()
-#
-#     def tearDown(self):
-#         super(TestFixedDepthwiseConv, self).tearDown()
-#         mixed_precision.set_global_policy(self.default_policy)
-#
-#     def test_layer(self):
-#         test_utils.layer_test(
-#             FixedDepthwiseConv,
-#             kwargs={'kernel_size': 3, 'strides': 1, 'dilation_rate': 3, 'padding': 'same'},
-#             input_shape=[2, 16, 16, 8],
-#             input_dtype='float32',
-#             expected_output_shape=[None, 16, 16, 8],
-#             expected_output_dtype='float32'
-#         )
-#
-#     def test_fp16(self):
-#         mixed_precision.set_global_policy('mixed_float16')
-#         result = test_utils.layer_test(
-#             FixedDepthwiseConv,
-#             kwargs={'kernel_size': 3, 'strides': 2, 'dilation_rate': 1, 'padding': 'valid'},
-#             input_shape=[2, 16, 16, 8],
-#             input_dtype='float16',
-#             expected_output_shape=[None, 7, 7, 8],
-#             expected_output_dtype='float16'
-#         )
-#         self.assertTrue(np.all(np.isfinite(result)))
-#
-#     def test_valid(self):
-#         for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
-#             if s > 1 and d > 1:
-#                 continue
-#
-#             exconv = layers.DepthwiseConv2D(k, strides=s, dilation_rate=d, padding='valid')
-#             exconv.build([None, None, None, 4])
-#
-#             layer = FixedDepthwiseConv(k, strides=s, dilation_rate=d, padding='valid')
-#             layer.build([None, None, None, 4])
-#             layer.set_weights(exconv.get_weights())
-#
-#             for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
-#                 inputs = np.random.normal(size=(2, h, w, 4)) * 10.
-#
-#                 exshape = exconv.compute_output_shape(inputs.shape)
-#                 exshape = tuple(exshape.as_list())
-#
-#                 exval = exconv(inputs)
-#                 exval = self.evaluate(exval)
-#
-#                 result = layer(inputs)
-#                 result = self.evaluate(result)
-#
-#                 self.assertTupleEqual(exshape, result.shape)
-#                 self.assertLess(np.abs(exval - result).max(), 1e-4)
-#
-#     def test_same(self):
-#         for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
-#             if s > 1 and d > 1:
-#                 continue
-#
-#             exshapeconv = layers.DepthwiseConv2D(k, strides=s, dilation_rate=d, padding='same')
-#
-#             exvalconv = layers.DepthwiseConv2D(k, strides=s, dilation_rate=d, padding='valid')
-#             exvalconv.build([None, None, None, 4])
-#
-#             layer = FixedDepthwiseConv(k, strides=s, dilation_rate=d, padding='same')
-#             layer.build([None, None, None, 4])
-#             layer.set_weights(exvalconv.get_weights())
-#
-#             for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
-#                 inputs = np.random.normal(size=(2, h, w, 4)) * 10.
-#
-#                 paddings = d * (k - 1)
-#                 paddings = (paddings // 2, paddings - paddings // 2)
-#                 painputs = np.pad(inputs, ((0, 0), paddings, paddings, (0, 0)))
-#
-#                 exshape = exshapeconv.compute_output_shape(inputs.shape)
-#                 exshape = tuple(exshape.as_list())
-#
-#                 exval = exvalconv(painputs)
-#                 exval = self.evaluate(exval)
-#
-#                 result = layer(inputs)
-#                 result = self.evaluate(result)
-#
-#                 self.assertTupleEqual(exshape, result.shape)
-#                 self.assertLess(np.abs(exval - result).max(), 1e-4)
+class TestConvsRegistry(unittest.TestCase):
+    def test_filled(self):
+        self.assertIn('conv', CONVOLUTIONS)
+        self.assertIn('stdconv', CONVOLUTIONS)
+
+
+@test_combinations.run_all_keras_modes
+class TestFixedConv(test_combinations.TestCase):
+    def setUp(self):
+        super(TestFixedConv, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestFixedConv, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            FixedConv,
+            kwargs={'filters': 4, 'kernel_size': 3, 'strides': 1, 'dilation_rate': 3, 'padding': 'valid'},
+            input_shape=[2, 16, 16, 8],
+            input_dtype='float32',
+            expected_output_shape=[None, 10, 10, 4],
+            expected_output_dtype='float32'
+        )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        result = test_utils.layer_test(
+            FixedConv,
+            kwargs={'filters': 4, 'kernel_size': 3, 'strides': 2, 'dilation_rate': 1, 'padding': 'same'},
+            input_shape=[2, 16, 16, 8],
+            input_dtype='float16',
+            expected_output_shape=[None, 8, 8, 4],
+            expected_output_dtype='float16'
+        )
+        self.assertTrue(np.all(np.isfinite(result)))
+
+    def test_valid(self):
+        for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
+            if s > 1 and d > 1:
+                continue
+
+            exconv = layers.Conv2D(2, k, strides=s, dilation_rate=d, padding='valid')
+            exconv.build([None, None, None, 4])
+
+            layer = FixedConv(2, k, strides=s, dilation_rate=d, padding='valid')
+            layer.build([None, None, None, 4])
+            layer.set_weights(exconv.get_weights())
+
+            for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
+                inputs = np.random.normal(size=(2, h, w, 4)) * 10.
+
+                exshape = exconv.compute_output_shape(inputs.shape)
+                exshape = tuple(exshape.as_list())
+
+                exval = exconv(inputs)
+                exval = self.evaluate(exval)
+
+                result = layer(inputs)
+                result = self.evaluate(result)
+
+                self.assertTupleEqual(exshape, result.shape)
+                self.assertLess(np.abs(exval - result).max(), 1e-4)
+
+    def test_same(self):
+        for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
+            if s > 1 and d > 1:
+                continue
+
+            exshapeconv = layers.Conv2D(2, k, strides=s, dilation_rate=d, padding='same')
+
+            exvalconv = layers.Conv2D(2, k, strides=s, dilation_rate=d, padding='valid')
+            exvalconv.build([None, None, None, 4])
+
+            layer = FixedConv(2, k, strides=s, dilation_rate=d, padding='same')
+            layer.build([None, None, None, 4])
+            layer.set_weights(exvalconv.get_weights())
+
+            for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
+                inputs = np.random.normal(size=(2, h, w, 4)) * 10.
+
+                paddings = d * (k - 1)
+                paddings = (paddings // 2, paddings - paddings // 2)
+                painputs = np.pad(inputs, ((0, 0), paddings, paddings, (0, 0)))
+
+                exshape = exshapeconv.compute_output_shape(inputs.shape)
+                exshape = tuple(exshape.as_list())
+
+                exval = exvalconv(painputs)
+                exval = self.evaluate(exval)
+
+                result = layer(inputs)
+                result = self.evaluate(result)
+
+                self.assertTupleEqual(exshape, result.shape)
+                self.assertLess(np.abs(exval - result).max(), 1e-4)
+
+
+@test_combinations.run_all_keras_modes
+class TestFixedDepthwiseConv(test_combinations.TestCase):
+    def setUp(self):
+        super(TestFixedDepthwiseConv, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestFixedDepthwiseConv, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            FixedDepthwiseConv,
+            kwargs={'kernel_size': 3, 'strides': 1, 'dilation_rate': 3, 'padding': 'same'},
+            input_shape=[2, 16, 16, 8],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 8],
+            expected_output_dtype='float32'
+        )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        result = test_utils.layer_test(
+            FixedDepthwiseConv,
+            kwargs={'kernel_size': 3, 'strides': 2, 'dilation_rate': 1, 'padding': 'valid'},
+            input_shape=[2, 16, 16, 8],
+            input_dtype='float16',
+            expected_output_shape=[None, 7, 7, 8],
+            expected_output_dtype='float16'
+        )
+        self.assertTrue(np.all(np.isfinite(result)))
+
+    def test_valid(self):
+        for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
+            if s > 1 and d > 1:
+                continue
+
+            exconv = layers.DepthwiseConv2D(k, strides=s, dilation_rate=d, padding='valid')
+            exconv.build([None, None, None, 4])
+
+            layer = FixedDepthwiseConv(k, strides=s, dilation_rate=d, padding='valid')
+            layer.build([None, None, None, 4])
+            layer.set_weights(exconv.get_weights())
+
+            for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
+                inputs = np.random.normal(size=(2, h, w, 4)) * 10.
+
+                exshape = exconv.compute_output_shape(inputs.shape)
+                exshape = tuple(exshape.as_list())
+
+                exval = exconv(inputs)
+                exval = self.evaluate(exval)
+
+                result = layer(inputs)
+                result = self.evaluate(result)
+
+                self.assertTupleEqual(exshape, result.shape)
+                self.assertLess(np.abs(exval - result).max(), 1e-4)
+
+    def test_same(self):
+        for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
+            if s > 1 and d > 1:
+                continue
+
+            exshapeconv = layers.DepthwiseConv2D(k, strides=s, dilation_rate=d, padding='same')
+
+            exvalconv = layers.DepthwiseConv2D(k, strides=s, dilation_rate=d, padding='valid')
+            exvalconv.build([None, None, None, 4])
+
+            layer = FixedDepthwiseConv(k, strides=s, dilation_rate=d, padding='same')
+            layer.build([None, None, None, 4])
+            layer.set_weights(exvalconv.get_weights())
+
+            for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
+                inputs = np.random.normal(size=(2, h, w, 4)) * 10.
+
+                paddings = d * (k - 1)
+                paddings = (paddings // 2, paddings - paddings // 2)
+                painputs = np.pad(inputs, ((0, 0), paddings, paddings, (0, 0)))
+
+                exshape = exshapeconv.compute_output_shape(inputs.shape)
+                exshape = tuple(exshape.as_list())
+
+                exval = exvalconv(painputs)
+                exval = self.evaluate(exval)
+
+                result = layer(inputs)
+                result = self.evaluate(result)
+
+                self.assertTupleEqual(exshape, result.shape)
+                self.assertLess(np.abs(exval - result).max(), 1e-4)
 
 
 @test_combinations.run_all_keras_modes
