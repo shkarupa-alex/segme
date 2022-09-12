@@ -19,60 +19,40 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         self.assertEqual(loss.reduction, Reduction.NONE)
 
     def test_zeros(self):
-        probs = tf.zeros((1, 16, 16, 1), 'float32')
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        probs = tf.zeros((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None, smooth=0.01)
-        result = self.evaluate(result).mean(axis=(1, 2))
+        result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_ones(self):
-        probs = tf.ones((1, 16, 16, 1), 'float32')
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        probs = tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None, smooth=0.01)
-        result = self.evaluate(result).mean(axis=(1, 2))
+        result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_false(self):
-        probs = tf.zeros((1, 16, 16, 1), 'float32')
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        probs = tf.zeros((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None, smooth=0.01)
-        result = self.evaluate(result).mean(axis=(1, 2))
+        result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_true(self):
-        probs = tf.ones((1, 16, 16, 1), 'float32')
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        probs = tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None, smooth=0.01)
-        result = self.evaluate(result).mean(axis=(1, 2))
+        result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
-
-    def test_multi(self):
-        logits = tf.constant([
-            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
-             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
-             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
-             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
-            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
-             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
-             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
-             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
-        targets = tf.constant([
-            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
-             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
-            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
-             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
-
-        loss = HardGradientMeanAbsoluteError(reduction=Reduction.SUM_OVER_BATCH_SIZE)
-        result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 4.1706386, places=7)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_value(self):
         targets = np.array([
@@ -90,10 +70,10 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         probs = (targets * 1.9921875) ** 2 / 3.97
         trim = np.where(cv2.dilate(targets, np.ones((2, 2), 'float32')) > 0, 1., 0.)
 
-        result = hard_gradient_mean_absolute_error(
-            y_true=targets[None, ..., None], y_pred=probs[None, ..., None], sample_weight=None, smooth=0.01)
-        result = np.sum(self.evaluate(result) * trim[None, ...]).item()
-        self.assertAlmostEqual(result, 12.21849459700752, places=5)  # same for reduce_sum
+        loss = HardGradientMeanAbsoluteError()
+        result = self.evaluate(loss(targets[None, ..., None], probs[None, ..., None], trim[None, ..., None]))
+
+        self.assertAlmostEqual(result, 0.13576105)
 
     def test_weight(self):
         logits = tf.constant([
@@ -110,29 +90,47 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = HardGradientMeanAbsoluteError(reduction=Reduction.SUM)
+        loss = HardGradientMeanAbsoluteError()
 
-        result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 137.37576, places=5)
-
-        result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
-        self.assertAlmostEqual(result, 52.3124886, places=6)
+        result = self.evaluate(loss(targets[:, :, :2], logits[:, :, :2]))
+        self.assertAlmostEqual(result, 3.2695308)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 53.1266251, places=6)
+        self.assertAlmostEqual(result, 1.6347653)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 52.4497909 * 2., places=6)
+        self.assertAlmostEqual(result, 1.6347653 * 2., places=6)
+
+    def test_multi(self):
+        logits = tf.constant([
+            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
+             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
+             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
+             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
+            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
+             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
+             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
+             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
+        targets = tf.constant([
+            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
+             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
+            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
+             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
+
+        loss = HardGradientMeanAbsoluteError()
+        result = self.evaluate(loss(targets, logits))
+
+        self.assertAlmostEqual(result, 4.1706386)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
         targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype('int32')
 
-        loss = HardGradientMeanAbsoluteError(reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = HardGradientMeanAbsoluteError()
         result0 = self.evaluate(loss(targets, probs))
         result1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
-        self.assertAlmostEqual(result0, result1, places=6)
+        self.assertAlmostEqual(result0, result1)
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
