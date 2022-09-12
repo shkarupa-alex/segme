@@ -640,22 +640,25 @@ class TestRmiLowerBound(test_combinations.TestCase):
           [0.5744435168116591, 0.9999556021312976, 0.9644298107273639]]]], dtype='float32')
 
     def test_value_maxpool_3(self):
-        result = _rmi_lower_bound(
-            self.labels3, self.probs3, batch_weight=None, pool_stride=4, pool_way='maxpool', rmi_radius=3)
+        result = _rmi_lower_bound(self.labels3, self.probs3, pool_stride=4, pool_way='maxpool', rmi_radius=3)
         result = self.evaluate(result)
-        self.assertAlmostEqual(np.mean(result).item(), -11.195279121398926, places=4)
+
+        # self.assertAlmostEqual(np.mean(result).item(), -11.195279121398926, places=4)  # sum by channels
+        self.assertAlmostEqual(np.mean(result).item(), -3.731760263442993, places=6)
 
     def test_value_avgpool_3(self):
-        result = _rmi_lower_bound(
-            self.labels3, self.probs3, batch_weight=None, pool_stride=4, pool_way='avgpool', rmi_radius=3)
+        result = _rmi_lower_bound(self.labels3, self.probs3, pool_stride=4, pool_way='avgpool', rmi_radius=3)
         result = self.evaluate(result)
-        self.assertAlmostEqual(np.mean(result).item(), -9.124303817749023, places=5)
+
+        # self.assertAlmostEqual(np.mean(result).item(), -9.124303817749023)  # sum by channels
+        self.assertAlmostEqual(np.mean(result).item(), -3.0414345264434814, places=6)
 
     def test_value_resize_3(self):
-        result = _rmi_lower_bound(
-            self.labels3, self.probs3, batch_weight=None, pool_stride=4, pool_way='resize', rmi_radius=3)
+        result = _rmi_lower_bound(self.labels3, self.probs3, pool_stride=4, pool_way='resize', rmi_radius=3)
         result = self.evaluate(result)
-        self.assertAlmostEqual(np.mean(result).item(), -10.84033489227295, places=3)
+
+        # self.assertAlmostEqual(np.mean(result).item(), -10.84033489227295, places=3)  # sum by channels
+        self.assertAlmostEqual(np.mean(result).item(), -3.6134753227233887, places=6)
 
 
 @test_combinations.run_all_keras_modes
@@ -669,59 +672,48 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
         self.assertEqual(loss.reduction, Reduction.NONE)
 
     def test_zeros(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = region_mutual_information_loss(
             y_true=targets, y_pred=logits, sample_weight=None, rmi_radius=3, pool_stride=4, pool_way='avgpool',
             from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [-7.600902], atol=1e-4)
+        self.assertAllClose(result, [-3.800451] * 3, atol=1e-4)
 
     def test_ones(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = region_mutual_information_loss(
             y_true=targets, y_pred=logits, sample_weight=None, rmi_radius=3, pool_stride=4, pool_way='avgpool',
             from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [-7.600902], atol=1e-4)
+        self.assertAllClose(result, [-3.800451] * 3, atol=1e-4)
 
     def test_false(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = region_mutual_information_loss(
             y_true=targets, y_pred=logits, sample_weight=None, rmi_radius=3, pool_stride=4, pool_way='avgpool',
             from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [-7.600902], atol=1e-4)
+        self.assertAllClose(result, [-3.800451] * 3, atol=1e-4)
 
     def test_true(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = region_mutual_information_loss(
             y_true=targets, y_pred=logits, sample_weight=None, rmi_radius=3, pool_stride=4, pool_way='avgpool',
             from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [-7.600902], atol=1e-4)
-
-    def test_multi(self):
-        logits = tf.random.uniform((2, 64, 64, 5)) * 10.
-        probs = 1 / (1 + np.exp(-logits))
-        probs = tf.constant(probs)
-        probs._keras_logits = logits
-        targets = tf.cast(tf.random.uniform((2, 64, 64, 1)) * 10, 'int32')
-
-        loss = RegionMutualInformationLoss(rmi_radius=2, reduction=Reduction.SUM)
-        result = self.evaluate(loss(targets, probs))
-        self.assertAlmostEqual(result, 0.5831474 * 2., places=5)
+        self.assertAllClose(result, [-3.800451] * 3, atol=1e-4)
 
     def test_value(self):
         logits = tf.constant([
@@ -737,10 +729,10 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
             [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
 
-        loss = RegionMutualInformationLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = RegionMutualInformationLoss(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, -3.800451 * 2., places=5)
+        self.assertAlmostEqual(result, -3.8004506, places=6)
 
     def test_weight(self):
         logits = tf.constant([
@@ -788,19 +780,16 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
         ], 'int32')
         weights = tf.concat([tf.ones((2, 8, 4, 1)), tf.zeros((2, 8, 4, 1))], axis=2)
 
-        loss = RegionMutualInformationLoss(from_logits=True, rmi_radius=2, reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = RegionMutualInformationLoss(from_logits=True, rmi_radius=2)
 
-        result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, -3.800451 * 2., places=5)
-
-        result = self.evaluate(loss(targets[:, :, :2, :], logits[:, :, :2, :]))
-        self.assertAlmostEqual(result, -3.800451 * 2., places=5)
+        result = self.evaluate(loss(targets[:, :, :2], logits[:, :, :2]))
+        self.assertAlmostEqual(result, -3.8004513)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, -3.800451 * 2., places=5)
+        self.assertAlmostEqual(result, -3.8004513)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, -3.800451 * 2. * 2., places=5)
+        self.assertAlmostEqual(result, -3.8004513 * 2., places=6)
 
     def test_probs(self):
         probs = tf.constant([[
@@ -818,17 +807,29 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
             from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [-0.9504928588867188 * 2.], atol=1e-6)
+        self.assertAllClose(result, [-0.9504928588867188], atol=1e-6)
+
+    def test_multi(self):
+        logits = tf.random.uniform((2, 64, 64, 5)) * 10.
+        probs = 1 / (1 + np.exp(-logits))
+        probs = tf.constant(probs)
+        probs._keras_logits = logits
+        targets = tf.cast(tf.random.uniform((2, 64, 64, 1)) * 10, 'int32')
+
+        loss = RegionMutualInformationLoss(rmi_radius=2)
+        result = self.evaluate(loss(targets, probs))
+
+        self.assertAlmostEqual(result, 0.11662947, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
         targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype('int32')
 
-        loss = RegionMutualInformationLoss(from_logits=True, rmi_radius=2, reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = RegionMutualInformationLoss(from_logits=True, rmi_radius=2)
         result0 = self.evaluate(loss(targets, probs))
         result1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
-        self.assertAlmostEqual(result0, result1, places=6)
+        self.assertAlmostEqual(result0, result1)
 
     def test_model(self):
         model = models.Sequential([layers.Dense(5, activation='sigmoid')])
