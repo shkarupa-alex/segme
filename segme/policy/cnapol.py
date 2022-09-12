@@ -1,6 +1,6 @@
 import contextlib
 from keras.utils.generic_utils import deserialize_keras_object, serialize_keras_object
-from segme.policy.sameconv import SAMECONVS
+from segme.policy.conv import CONVOLUTIONS
 from segme.policy.norm import NORMALIZATIONS
 from segme.policy.act import ACTIVATIONS
 
@@ -24,7 +24,7 @@ class ConvNormActPolicy:
             raise ValueError('Policy name should cotain 3 parts separated with "-"')
 
         self._conv_type, self._norm_type, self._act_type = self._name.split('-')
-        if self._conv_type not in SAMECONVS:
+        if self._conv_type not in CONVOLUTIONS:
             raise ValueError(f'Convolution {self._conv_type} not registered')
         if self._norm_type not in NORMALIZATIONS:
             raise ValueError(f'Normalization {self._norm_type} not registered')
