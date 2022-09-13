@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from segme.loss.common_loss import validate_input
+from segme.loss.common_loss import validate_input, compute_gradient
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -17,40 +17,21 @@ class ReflectionTransmissionExclusionLoss(WeightedLossFunctionWrapper):
         super().__init__(reflection_transmission_exclusion_loss, reduction=reduction, name=name, levels=levels)
 
 
-def _compute_gradient(inputs, axis, reduction):
-    if 1 == axis:
-        grad = inputs[:, 1:, :, :], inputs[:, :-1, :, :]
-    elif 2 == axis:
-        grad = inputs[:, :, 1:, :], inputs[:, :, :-1, :]
-    else:
-        raise ValueError('Unsupported axis: {}'.format(axis))
-
-    if 'sub' == reduction:
-        grad = grad[0] - grad[1]
-    elif 'min' == reduction:
-        grad = tf.minimum(grad[0], grad[1])
-    else:
-        raise ValueError('Unsupported reduction: {}'.format(reduction))
-
-    return grad
-
-
 def _exclusion_level(r_pred, t_pred, axis, sample_weight):
-    grad_r = _compute_gradient(r_pred, axis, 'sub')
-    grad_t = _compute_gradient(t_pred, axis, 'sub')
-    grad_w = None if sample_weight is None else _compute_gradient(sample_weight, axis, 'min')
+    grad_r = compute_gradient(r_pred, axis, 'sub')
+    grad_t = compute_gradient(t_pred, axis, 'sub')
+    grad_w = None if sample_weight is None else compute_gradient(sample_weight, axis, 'min')
 
     alpha = 2. * tf.math.divide_no_nan(
-        tf.reduce_mean(tf.abs(grad_r)),
-        tf.reduce_mean(tf.abs(grad_t)))
+        tf.reduce_mean(tf.abs(grad_r), axis=[1, 2, 3], keepdims=True),
+        tf.reduce_mean(tf.abs(grad_t), axis=[1, 2, 3], keepdims=True))
     grad_rs = tf.nn.sigmoid(grad_r) * 2. - 1.
     grad_ts = tf.nn.sigmoid(grad_t * alpha) * 2. - 1.
 
-    axis_hwc = list(range(1, r_pred.shape.ndims))
-    loss = (grad_rs ** 2) * (grad_ts ** 2)
+    loss = tf.square(grad_rs) * tf.square(grad_ts)
     if grad_w is not None:
-        loss *= (grad_w ** 4)
-    loss = tf.reduce_mean(loss, axis=axis_hwc) ** 0.25
+        loss *= grad_w ** 4
+    loss = tf.reduce_mean(loss, axis=[1, 2, 3]) ** 0.25
 
     return loss
 
@@ -65,10 +46,10 @@ def _down_sample(reflections, transmissions, weights):
     if weights is not None:
         weights = tf.pad(weights, paddings, 'REFLECT')
 
-    reflections = tf.nn.avg_pool(reflections, ksize=2, strides=2, padding='SAME')
-    transmissions = tf.nn.avg_pool(transmissions, ksize=2, strides=2, padding='SAME')
+    reflections = tf.nn.avg_pool(reflections, ksize=2, strides=2, padding='VALID')
+    transmissions = tf.nn.avg_pool(transmissions, ksize=2, strides=2, padding='VALID')
     if weights is not None:
-        weights = tf.nn.avg_pool(weights, ksize=2, strides=2, padding='SAME')
+        weights = tf.nn.avg_pool(weights, ksize=2, strides=2, padding='VALID')
         weights = tf.stop_gradient(weights)
 
     return reflections, transmissions, weights

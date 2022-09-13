@@ -18,62 +18,40 @@ class TestReflectionTransmissionExclusionLoss(test_combinations.TestCase):
         self.assertEqual(loss.reduction, Reduction.NONE)
 
     def test_zeros(self):
-        r_pred = tf.zeros((1, 16, 16, 1), 'float32')
-        t_pred = tf.zeros((1, 16, 16, 1), 'float32')
+        r_pred = tf.zeros((3, 16, 16, 1), 'float32')
+        t_pred = tf.zeros((3, 16, 16, 1), 'float32')
 
         result = reflection_transmission_exclusion_loss(r_pred=r_pred, t_pred=t_pred, sample_weight=None, levels=1)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_ones(self):
-        r_pred = tf.ones((1, 16, 16, 1), 'float32')
-        t_pred = tf.ones((1, 16, 16, 1), 'float32')
+        r_pred = tf.ones((3, 16, 16, 1), 'float32')
+        t_pred = tf.ones((3, 16, 16, 1), 'float32')
 
         result = reflection_transmission_exclusion_loss(r_pred=r_pred, t_pred=t_pred, sample_weight=None, levels=1)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_false(self):
-        r_pred = tf.zeros((1, 16, 16, 1), 'float32')
-        t_pred = tf.ones((1, 16, 16, 1), 'float32')
+        r_pred = tf.zeros((3, 16, 16, 1), 'float32')
+        t_pred = tf.ones((3, 16, 16, 1), 'float32')
 
         result = reflection_transmission_exclusion_loss(r_pred=r_pred, t_pred=t_pred, sample_weight=None, levels=1)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_true(self):
-        r_pred = tf.ones((1, 16, 16, 1), 'float32')
-        t_pred = tf.zeros((1, 16, 16, 1), 'float32')
+        r_pred = tf.ones((3, 16, 16, 1), 'float32')
+        t_pred = tf.zeros((3, 16, 16, 1), 'float32')
 
         result = reflection_transmission_exclusion_loss(r_pred=r_pred, t_pred=t_pred, sample_weight=None, levels=1)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
-
-    def test_multi(self):
-        logits = tf.constant([
-            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
-             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
-             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
-             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
-            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
-             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
-             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
-             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
-        targets = tf.constant([
-            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
-             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
-            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
-             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
-        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
-
-        loss = ReflectionTransmissionExclusionLoss(reduction=Reduction.SUM, levels=1)
-
-        result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.6882384, places=6)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_value(self):
         r_pred = tf.constant([
@@ -179,10 +157,10 @@ class TestReflectionTransmissionExclusionLoss(test_combinations.TestCase):
             1.4, 9.2, 5.7, 8.9, 9.5, 0.4, 3.3, 7.7, 0.2, 5.6, 9.5, 6.4, 0.5, 0.0, 3.2, 3.1
         ], 'float32', shape=(1, 32, 32, 1))
 
-        loss = ReflectionTransmissionExclusionLoss(reduction=Reduction.SUM)
+        loss = ReflectionTransmissionExclusionLoss()
         result = self.evaluate(loss(r_pred, t_pred))
 
-        self.assertAlmostEqual(result, 0.6591184, places=6)
+        self.assertAlmostEqual(result, 0.6591185, places=6)
 
     def test_weight(self):
         r_pred = tf.constant([
@@ -197,33 +175,53 @@ class TestReflectionTransmissionExclusionLoss(test_combinations.TestCase):
         t_pred = tf.image.flip_left_right(r_pred)
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = ReflectionTransmissionExclusionLoss(reduction=Reduction.SUM, levels=1)
+        loss = ReflectionTransmissionExclusionLoss(levels=1)
 
-        result = self.evaluate(loss(r_pred, t_pred))
-        self.assertAlmostEqual(result, 1.6880386, places=6)
-
-        result = self.evaluate(loss(r_pred[:, :, :2, :], t_pred[:, :, :2, :]))
-        self.assertAlmostEqual(result, 1.6452107, places=6)  # Depends on spatial size
+        result = self.evaluate(loss(r_pred[:, :, :2], t_pred[:, :, :2]))
+        self.assertAlmostEqual(result, 0.8186368)
 
         result = self.evaluate(loss(r_pred, t_pred, weights))
-        self.assertAlmostEqual(result, 1.3274673, places=6)
+        self.assertAlmostEqual(result, 0.6637336)
 
         result = self.evaluate(loss(r_pred, t_pred, weights * 2.))
-        self.assertAlmostEqual(result, 1.3274673 * 2., places=6)
+        self.assertAlmostEqual(result, 0.6637336 * 2.)
+
+    def test_multi(self):
+        logits = tf.constant([
+            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
+             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
+             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
+             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
+            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
+             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
+             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
+             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
+        targets = tf.constant([
+            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
+             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
+            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
+             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
+        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+
+        loss = ReflectionTransmissionExclusionLoss(levels=1)
+        result = self.evaluate(loss(targets, logits, weights))
+
+        self.assertAlmostEqual(result, 0.33960193)
 
     def test_batch(self):
         r_pred = np.random.rand(2, 32, 32, 1).astype('float32')
         t_pred = np.random.rand(2, 32, 32, 1).astype('float32')
 
-        loss = ReflectionTransmissionExclusionLoss(reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = ReflectionTransmissionExclusionLoss()
         res0 = self.evaluate(loss(r_pred, t_pred))
         res1 = sum([self.evaluate(loss(r_pred[i:i + 1], t_pred[i:i + 1])) for i in range(2)]) / 2
 
-        self.assertAlmostEqual(res0, res1, places=3)
+        self.assertAlmostEqual(res0, res1)
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
-        model.compile(loss='SegMe>Loss>ReflectionTransmissionExclusionLoss', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>ReflectionTransmissionExclusionLoss',
+                      run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'float32'))
         models.Sequential.from_config(model.get_config())
 
