@@ -62,45 +62,20 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         self.assertAlmostEqual(result, 4.122532, places=6)
 
     def test_weight(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
-
         loss = LaplaceEdgeCrossEntropy(from_logits=True)
 
-        result = self.evaluate(loss(targets[:, :, :2], logits[:, :, :2]))
-        self.assertAlmostEqual(result, 3.652436)
+        result = self.evaluate(loss(BINARY_TARGETS[:, :, :2], BINARY_LOGITS[:, :, :2]))
+        self.assertAlmostEqual(result, 2.8783655)
 
-        result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.8507103)
+        result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
+        self.assertAlmostEqual(result, 1.5061817)
 
-        result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 1.8507103 * 2, places=6)
+        result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
+        self.assertAlmostEqual(result, 1.5061817 * 2, places=6)
 
     def test_multi(self):
-        logits = tf.constant([
-            [[[0.4250706654827763, -7.219920928747051, -1.14131948950217, 2.5576064452206024],
-              [-1.342442193620409, 0.20020616879804165, -6.977300484664198, 6.280817910206608]],
-             [[0.3206719246447576, 0.0176225602425912, -1.902292891065069, -3.369106587128292],
-              [-2.6576544216404563, 1.863726154333165, 4.581314280496405, -7.433728759092233]],
-             [[8.13888654097292, 1.311411218599392, 0.8372454481780323, -2.859455217953778],
-              [-2.0984725413538854, -4.619268334888168, 8.708732477440673, 1.9102341271004541]],
-             [[3.4914178176388266, -4.551627675234152, 7.709902261544302, 3.3982255596983277],
-              [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
-        targets = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
-
         loss = LaplaceEdgeCrossEntropy(from_logits=True)
-        result = self.evaluate(loss(targets, logits))
+        result = self.evaluate(loss(MULTI_TARGETS, MULTI_LOGITS))
         self.assertAlmostEqual(result, 3.2714694)
 
     def test_batch(self):

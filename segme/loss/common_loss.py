@@ -160,9 +160,6 @@ def crossentropy(y_true, y_pred, sample_weight, from_logits):
             y_true, y_pred, from_logits=from_logits)[..., None]
 
     if sample_weight is not None:
-        if 1 != sample_weight.shape[-1]:
-            sample_weight = tf.reduce_max(sample_weight, axis=-1, keepdims=True)
-
         loss *= sample_weight
 
     return tf.reduce_mean(loss, axis=[1, 2, 3])
