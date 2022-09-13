@@ -5,6 +5,7 @@ from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.adaptive_intensity import AdaptivePixelIntensityLoss
 from segme.loss.adaptive_intensity import adaptive_pixel_intensity_loss
+from segme.loss.tests.test_common_loss import BINARY_LOGITS, BINARY_TARGETS, BINARY_WEIGHTS, MULTI_LOGITS, MULTI_TARGETS
 
 
 @test_combinations.run_all_keras_modes
@@ -18,116 +19,80 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         self.assertEqual(loss.reduction, Reduction.NONE)
 
     def test_zeros(self):
-        logits = tf.ones((1, 64, 64, 1), 'float32') * (-10)
-        targets = tf.zeros((1, 64, 64, 1), 'int32')
+        logits = -10. * tf.ones((3, 64, 64, 1), 'float32')
+        targets = tf.zeros((3, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, from_logits=True)
+        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, np.ones((1, 64, 64), 'float32') * 0.07843973, atol=1e-3)
+        self.assertAllClose(result, [0.07852604] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = tf.ones((1, 64, 64, 1), 'float32') * 10.
-        targets = tf.ones((1, 64, 64, 1), 'int32')
+        logits = 10 * tf.ones((3, 64, 64, 1), 'float32')
+        targets = tf.ones((3, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, from_logits=True)
+        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, np.ones((1, 64, 64), 'float32') * 0.07846688, atol=1e-3)
+        self.assertAllClose(result, [0.07852604] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = tf.ones((1, 64, 64, 1), 'float32') * (-10)
-        targets = tf.ones((1, 64, 64, 1), 'int32')
+        logits = -10. * tf.ones((3, 64, 64, 1), 'float32')
+        targets = tf.ones((3, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, from_logits=True)
+        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, np.ones((1, 64, 64), 'float32') * 11.999733, atol=1e-3)
+        self.assertAllClose(result, [9.666324] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = tf.ones((1, 64, 64, 1), 'float32') * 10.
-        targets = tf.zeros((1, 64, 64, 1), 'int32')
+        logits = 10. * tf.ones((3, 64, 64, 1), 'float32')
+        targets = tf.zeros((3, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, from_logits=True)
+        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, np.ones((1, 64, 64), 'float32') * 11.999733, atol=1e-3)
-
-    def test_multi(self):
-        logits = tf.constant([
-            [[[0.4250706654827763, -7.219920928747051, -1.14131948950217, 2.5576064452206024],
-              [-1.342442193620409, 0.20020616879804165, -6.977300484664198, 6.280817910206608]],
-             [[0.3206719246447576, 0.0176225602425912, -1.902292891065069, -3.369106587128292],
-              [-2.6576544216404563, 1.863726154333165, 4.581314280496405, -7.433728759092233]],
-             [[8.13888654097292, 1.311411218599392, 0.8372454481780323, -2.859455217953778],
-              [-2.0984725413538854, -4.619268334888168, 8.708732477440673, 1.9102341271004541]],
-             [[3.4914178176388266, -4.551627675234152, 7.709902261544302, 3.3982255596983277],
-              [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
-        targets = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
-        logits = tf.repeat(tf.repeat(logits, 16, axis=1), 16, axis=2)
-        targets = tf.repeat(tf.repeat(targets, 16, axis=1), 16, axis=2)
-
-        loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
-        result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 7.702078, places=6)
+        self.assertAllClose(result, [9.666324] * 3, atol=6e-3)
 
     def test_value(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
+        logits = tf.tile(BINARY_LOGITS, [1, 16, 16, 1])
+        targets = tf.tile(BINARY_TARGETS, [1, 16, 16, 1])
 
-        logits = np.repeat(np.repeat(logits, 16, axis=1), 16, axis=2)
-        targets = np.repeat(np.repeat(targets, 16, axis=1), 16, axis=2)
-
-        loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = AdaptivePixelIntensityLoss(from_logits=True)
         result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 2.9660115, places=4)
+
+        self.assertAlmostEqual(result, 2.4229412)
 
     def test_weight(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-        logits = tf.repeat(tf.repeat(logits, 16, axis=1), 16, axis=2)
-        targets = tf.repeat(tf.repeat(targets, 16, axis=1), 16, axis=2)
-        weights = tf.concat([tf.ones((2, 64, 32, 1)), tf.zeros((2, 64, 32, 1))], axis=2)
+        logits = tf.tile(BINARY_LOGITS, [1, 16, 16, 1])
+        targets = tf.tile(BINARY_TARGETS, [1, 16, 16, 1])
+        weights = tf.tile(BINARY_WEIGHTS, [1, 16, 16, 1])
 
-        loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = AdaptivePixelIntensityLoss(from_logits=True)
 
-        result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 2.9660106, places=6)
-
-        result = self.evaluate(loss(targets[:, :, :32, :], logits[:, :, :32, :], weights[:, :, :32, :]))
-        self.assertAlmostEqual(result, 3.1911244, places=6)
+        result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
+        self.assertAlmostEqual(result, 2.423418)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.6371291, places=6)
+        self.assertAlmostEqual(result, 1.1870989)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 1.6371291 * 2., places=6)
+        self.assertAlmostEqual(result, 1.8727206, places=6)
+
+    def test_multi(self):
+        logits = tf.tile(MULTI_LOGITS, [1, 16, 16, 1])
+        targets = tf.tile(MULTI_TARGETS, [1, 16, 16, 1])
+
+        loss = AdaptivePixelIntensityLoss(from_logits=True)
+        result = self.evaluate(loss(targets, logits))
+
+        self.assertAlmostEqual(result, 5.6857705)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
         targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype('int32')
 
-        loss = AdaptivePixelIntensityLoss(from_logits=True, reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = AdaptivePixelIntensityLoss(from_logits=True)
         result0 = self.evaluate(loss(targets, probs))
         result1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
