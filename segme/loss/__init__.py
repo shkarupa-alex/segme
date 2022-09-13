@@ -1,5 +1,4 @@
 from segme.loss.adaptive_intensity import AdaptivePixelIntensityLoss
-from segme.loss.balanced_sigmoid import BalancedSigmoidCrossEntropy
 from segme.loss.boundary_categorical import BoundaryCategoricalLoss
 from segme.loss.calibrated_focal import CalibratedFocalCrossEntropy
 from segme.loss.consistency_enhanced import ConsistencyEnhancedLoss
@@ -9,8 +8,7 @@ from segme.loss.hard_grad import HardGradientMeanAbsoluteError
 from segme.loss.laplace_edge import LaplaceEdgeCrossEntropy
 from segme.loss.laplacian_pyramid import LaplacianPyramidLoss
 from segme.loss.normalized_focal import NormalizedFocalCrossEntropy
-from segme.loss.position_aware import PixelPositionAwareLoss
+from segme.loss.region_mutual import RegionMutualInformationLoss
 from segme.loss.rt_exclusion import ReflectionTransmissionExclusionLoss
 from segme.loss.sobel_edge import SobelEdgeLoss
 from segme.loss.structural_similarity import StructuralSimilarityLoss
-from segme.loss.region_mutual import RegionMutualInformationLoss

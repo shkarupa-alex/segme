@@ -61,7 +61,7 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         loss = AdaptivePixelIntensityLoss(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 2.4229412)
+        self.assertAlmostEqual(result, 2.4229412)  # Not sure
 
     def test_weight(self):
         logits = tf.tile(BINARY_LOGITS, [1, 16, 16, 1])

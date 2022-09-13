@@ -59,13 +59,10 @@ class TestNormalizedFocalCrossEntropy(test_combinations.TestCase):
         self.assertAllClose(result, [15.333237] * 3, atol=1e-4)
 
     def test_value(self):
-        probs = tf.constant([0.97, 0.45, 0.55, 0.03], 'float32')[:, None, None, None]
-        targets = tf.constant([1, 1, 1, 0], 'int32')[:, None, None, None]
+        loss = NormalizedFocalCrossEntropy(from_logits=True)
+        result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS))
 
-        loss = NormalizedFocalCrossEntropy(from_logits=False, reduction=Reduction.NONE)
-        result = self.evaluate(loss(targets, probs))
-
-        self.assertAllClose(result, [0.030456, 0.798507, 0.597836, 0.030456])
+        self.assertAlmostEqual(result, 4.1686983)  # Not sure
 
     def test_weight(self):
         loss = NormalizedFocalCrossEntropy(from_logits=True)

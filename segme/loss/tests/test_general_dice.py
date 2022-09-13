@@ -58,7 +58,7 @@ class TestGeneralizedDiceLoss(test_combinations.TestCase):
         loss = GeneralizedDiceLoss(from_logits=True)
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS))
 
-        self.assertAlmostEqual(result, 0.45575756)
+        self.assertAlmostEqual(result, 0.45575756)  # Not sure
 
     def test_weight(self):
         loss = GeneralizedDiceLoss(from_logits=True)
