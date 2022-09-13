@@ -7,6 +7,7 @@ from segme.loss.region_mutual import RegionMutualInformationLoss
 from segme.loss.region_mutual import region_mutual_information_loss
 from segme.loss.region_mutual import _map_get_pairs
 from segme.loss.region_mutual import _rmi_lower_bound
+from segme.loss.tests.test_common_loss import BINARY_LOGITS, BINARY_TARGETS
 
 
 @test_combinations.run_all_keras_modes
@@ -716,23 +717,10 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
         self.assertAllClose(result, [-3.800451] * 3, atol=1e-4)
 
     def test_value(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
+        loss = RegionMutualInformationLoss(from_logits=True, rmi_radius=2, pool_stride=1)
+        result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS))
 
-        loss = RegionMutualInformationLoss(from_logits=True)
-        result = self.evaluate(loss(targets, logits))
-
-        self.assertAlmostEqual(result, -3.8004506, places=6)
+        self.assertAlmostEqual(result, -0.2539971, places=6)
 
     def test_weight(self):
         logits = tf.constant([
