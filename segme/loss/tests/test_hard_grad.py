@@ -73,7 +73,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         loss = HardGradientMeanAbsoluteError()
         result = self.evaluate(loss(targets[None, ..., None], probs[None, ..., None], trim[None, ..., None]))
 
-        self.assertAlmostEqual(result, 0.13576105)
+        self.assertAlmostEqual(result, 0.15154228)
 
     def test_weight(self):
         logits = tf.constant([
@@ -93,13 +93,13 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         loss = HardGradientMeanAbsoluteError()
 
         result = self.evaluate(loss(targets[:, :, :2], logits[:, :, :2]))
-        self.assertAlmostEqual(result, 3.2695308)
+        self.assertAlmostEqual(result, 5.133383, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.6347653)
+        self.assertAlmostEqual(result, 2.179687, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 1.6347653 * 2., places=6)
+        self.assertAlmostEqual(result, 2.179687 * 2., places=6)
 
     def test_multi(self):
         logits = tf.constant([
@@ -120,7 +120,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         loss = HardGradientMeanAbsoluteError()
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 4.1706386)
+        self.assertAlmostEqual(result, 5.5608516)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
@@ -130,7 +130,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         result0 = self.evaluate(loss(targets, probs))
         result1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
-        self.assertAlmostEqual(result0, result1)
+        self.assertAlmostEqual(result0, result1, places=6)
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])

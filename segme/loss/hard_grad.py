@@ -37,14 +37,16 @@ def hard_gradient_mean_absolute_error(y_true, y_pred, sample_weight, smooth):
     if sample_weight is not None:
         g_loss_x *= g_weight_x
         g_loss_y *= g_weight_y
-    loss = g_loss_x + g_loss_y
+    loss = [g_loss_x, g_loss_y]
 
     if smooth > 0:
-        s_loss_x = tf.abs(g_pred_x)
-        s_loss_y = tf.abs(g_pred_y)
+        s_loss_x = tf.abs(g_pred_x) * smooth
+        s_loss_y = tf.abs(g_pred_y) * smooth
         if sample_weight is not None:
             s_loss_x *= g_weight_x
             s_loss_y *= g_weight_y
-        loss += (s_loss_x + s_loss_y) * smooth
+        loss.extend([s_loss_x, s_loss_y])
 
-    return tf.reduce_mean(loss, axis=[1, 2, 3])
+    loss = sum([tf.reduce_mean(l, axis=[1, 2, 3]) for l in loss])
+
+    return loss
