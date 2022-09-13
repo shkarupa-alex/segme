@@ -34,44 +34,44 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         self.assertEqual(loss.reduction, Reduction.NONE)
 
     def test_zeros(self):
-        probs = tf.zeros((1, 16, 16, 1), 'float32')
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        probs = tf.zeros((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = laplacian_pyramid_loss(
             y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0, residual=False)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_ones(self):
-        probs = tf.ones((1, 16, 16, 1), 'float32')
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        probs = tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = laplacian_pyramid_loss(
             y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0, residual=False)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.], atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=1e-4)
 
     def test_false(self):
-        probs = tf.zeros((1, 16, 16, 1), 'float32')
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        probs = tf.zeros((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = laplacian_pyramid_loss(
             y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0, residual=False)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.5715827], atol=1e-4)
+        self.assertAllClose(result, [0.356934] * 3, atol=1e-4)
 
     def test_true(self):
-        probs = tf.ones((1, 16, 16, 1), 'float32')
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        probs = tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = laplacian_pyramid_loss(
             y_true=targets, y_pred=probs, sample_weight=None, levels=2, size=5, sigma=2.0, residual=False)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.5715827], atol=1e-4)
+        self.assertAllClose(result, [0.356934] * 3, atol=1e-4)
 
     def test_even(self):
         probs = tf.constant([[
@@ -98,28 +98,6 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.0])
-
-    def test_multi(self):
-        logits = tf.constant([
-            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
-             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
-             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
-             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
-            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
-             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
-             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
-             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
-        targets = tf.constant([
-            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
-             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
-            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
-             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
-        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
-
-        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=1)
-
-        result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 2.1272023, places=6)
 
     def test_value(self):
         probs = tf.constant([
@@ -225,14 +203,14 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
             1.4, 9.2, 5.7, 8.9, 9.5, 0.4, 3.3, 7.7, 0.2, 5.6, 9.5, 6.4, 0.5, 0.0, 3.2, 3.1
         ], 'float32', shape=(1, 32, 32, 1))
 
-        loss = LaplacianPyramidLoss(levels=4, size=5, sigma=1.056, reduction=Reduction.SUM)
+        loss = LaplacianPyramidLoss(levels=4, size=5, sigma=1.056)
         result = self.evaluate(loss(targets, probs))
-        self.assertAlmostEqual(result, 7.5099545, places=5)  # without residual
-        # self.assertAlmostEqual(result, 6.944647789001465, places=6) # FBA (without residual)
+        self.assertAlmostEqual(result, 6.9706078, places=5)  # without residual
+        # self.assertAlmostEqual(result, 6.944648) # without residual, with manual kernel
 
-        loss = LaplacianPyramidLoss(levels=4, size=5, sigma=1.056, residual=True, reduction=Reduction.SUM)
+        loss = LaplacianPyramidLoss(levels=4, size=5, sigma=1.056, residual=True)
         result = self.evaluate(loss(targets, probs))
-        self.assertAlmostEqual(result, 9.234282, places=6)  # with residual
+        self.assertAlmostEqual(result, 7.6406145, places=6)  # with residual
 
     def test_weight(self):
         logits = tf.constant([
@@ -251,25 +229,44 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         targets = tf.repeat(tf.repeat(targets, 16, axis=1), 16, axis=2)
         weights = tf.concat([tf.ones((2, 64, 32, 1)), tf.zeros((2, 64, 32, 1))], axis=2)
 
-        loss = LaplacianPyramidLoss(reduction=Reduction.SUM, levels=2)
+        loss = LaplacianPyramidLoss(levels=2)
 
-        result = self.evaluate(loss(targets, logits))
-        self.assertAlmostEqual(result, 2.941966, places=6)
-
-        result = self.evaluate(loss(targets[:, :, :32, :], logits[:, :, :32, :]))
-        self.assertAlmostEqual(result, 3.0307264, places=7)
+        result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
+        self.assertAlmostEqual(result, 0.93986857)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.4132111, places=5)
+        self.assertAlmostEqual(result, 0.5371178)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 1.4132111 * 2., places=6)
+        self.assertAlmostEqual(result, 0.5371178 * 2.)
+
+    def test_multi(self):
+        logits = tf.constant([
+            [[[0.42, 7.21, 7.14], [7.21, 7.14, 2.55], [7.14, 2.55, 1.34], [2.55, 1.34, 0.20]],
+             [[1.34, 0.20, 3.97], [0.20, 3.97, 6.28], [3.97, 6.28, 0.32], [6.28, 0.32, 3.01]],
+             [[0.32, 3.01, 2.90], [3.01, 2.90, 3.36], [2.90, 3.36, 2.65], [3.36, 2.65, 6.86]],
+             [[2.65, 6.86, 4.58], [6.86, 4.58, 7.43], [4.58, 7.43, 8.13], [7.43, 8.13, 8.31]]],
+            [[[8.13, 8.31, 0.83], [8.31, 0.83, 2.85], [0.83, 2.85, 2.09], [2.85, 2.09, 4.61]],
+             [[2.09, 4.61, 8.70], [4.61, 8.70, 1.91], [8.70, 1.91, 3.49], [1.91, 3.49, 4.55]],
+             [[3.49, 4.55, 7.70], [4.55, 7.70, 3.39], [7.70, 3.39, 0.91], [3.39, 0.91, 3.03]],
+             [[0.91, 3.03, 2.18], [3.03, 2.18, 1.39], [2.18, 1.39, 0.42], [1.39, 0.42, 7.21]]]], 'float32')
+        targets = tf.constant([
+            [[[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 1], [0, 1, 1], [1, 1, 0], [1, 0, 1]],
+             [[0, 1, 0], [1, 0, 1], [0, 1, 0], [1, 0, 1]], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [1, 0, 1]]],
+            [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
+             [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
+        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+
+        loss = LaplacianPyramidLoss(levels=1)
+
+        result = self.evaluate(loss(targets, logits, weights))
+        self.assertAlmostEqual(result, 1.0270966)
 
     def test_batch(self):
         probs = np.random.rand(2, 128, 128, 3).astype('float32')
         targets = (np.random.rand(2, 128, 128, 3) > 0.5).astype('int32')
 
-        loss = LaplacianPyramidLoss(reduction=Reduction.SUM_OVER_BATCH_SIZE)
+        loss = LaplacianPyramidLoss()
         res0 = self.evaluate(loss(targets, probs))
         res1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 

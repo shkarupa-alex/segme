@@ -24,7 +24,7 @@ def _pad_odd(inputs):
     height_width = tf.shape(inputs)[1:3]
     hpad, wpad = tf.unstack(height_width % 2)
     paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
-    padded = tf.pad(inputs, paddings, 'REFLECT')
+    padded = tf.pad(inputs, paddings, 'SYMMETRIC')
 
     return padded
 
@@ -38,11 +38,13 @@ def _gauss_kernel(size, sigma):
 
 
 def _gauss_filter(inputs, kernel):
-    kernel_shape = (kernel[0].shape[0], kernel[1].shape[1])
-    paddings = [((k - 1) // 2, k // 2) for k in kernel_shape[::-1]]
-    paddings = [(0, 0)] + paddings + [(0, 0)]
+    kernel_size = max(kernel[0].shape[0], kernel[1].shape[1])
 
-    padded = tf.pad(inputs, paddings, 'SYMMETRIC')
+    padding = (kernel_size - 1)
+    padding = padding // 2, padding - padding // 2
+    paddings = [(0, 0)] + [padding, padding] + [(0, 0)]
+
+    padded = tf.pad(inputs, paddings, 'REFLECT')
     blurred = tf.nn.depthwise_conv2d(padded, kernel[0], strides=[1, 1, 1, 1], padding='VALID')
     blurred = tf.nn.depthwise_conv2d(blurred, kernel[1], strides=[1, 1, 1, 1], padding='VALID')
 
@@ -87,7 +89,6 @@ def _laplacian_pyramid(inputs, levels, kernel, residual):
 
 
 def _weight_pyramid(inputs, levels, residual):
-    # https://gist.github.com/MarcoForte/a07c40a2b721739bb5c5987671aa5270
     pyramid = []
 
     current = inputs
@@ -120,10 +121,9 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma, r
     if sample_weight is not None:
         weights = _weight_pyramid(sample_weight, levels, residual)
         weights = [tf.stop_gradient(pw) for pw in weights]
-        losses = [ls * sw for ls, sw in zip(losses, weights)]
+        losses = [ls * wt for ls, wt in zip(losses, weights)]
 
-    axis_hwc = list(range(1, y_pred.shape.ndims))
-    losses = [tf.reduce_mean(l, axis=axis_hwc) * (2 ** i) for i, l in enumerate(losses)]
+    losses = [tf.reduce_mean(l, axis=[1, 2, 3]) * (2 ** i) for i, l in enumerate(losses)]
     losses = sum(losses)
 
     return losses
