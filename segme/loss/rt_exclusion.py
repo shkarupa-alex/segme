@@ -41,10 +41,10 @@ def _down_sample(reflections, transmissions, weights):
     hpad, wpad = tf.unstack(height_width % 2)
     paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
 
-    reflections = tf.pad(reflections, paddings, 'REFLECT')
-    transmissions = tf.pad(transmissions, paddings, 'REFLECT')
+    reflections = tf.pad(reflections, paddings, 'SYMMETRIC')
+    transmissions = tf.pad(transmissions, paddings, 'SYMMETRIC')
     if weights is not None:
-        weights = tf.pad(weights, paddings, 'REFLECT')
+        weights = tf.pad(weights, paddings, 'SYMMETRIC')
 
     reflections = tf.nn.avg_pool(reflections, ksize=2, strides=2, padding='VALID')
     transmissions = tf.nn.avg_pool(transmissions, ksize=2, strides=2, padding='VALID')
