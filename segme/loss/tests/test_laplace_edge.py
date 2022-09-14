@@ -65,18 +65,18 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         loss = LaplaceEdgeCrossEntropy(from_logits=True)
 
         result = self.evaluate(loss(BINARY_TARGETS[:, :, :2], BINARY_LOGITS[:, :, :2]))
-        self.assertAlmostEqual(result, 2.8783655, places=5)
+        self.assertAlmostEqual(result, 2.8783655, places=4)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
-        self.assertAlmostEqual(result, 1.5061817, places=5)
+        self.assertAlmostEqual(result, 1.5061817, places=4)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 1.5061817 * 2, places=5)
+        self.assertAlmostEqual(result, 1.5061817 * 2, places=4)
 
     def test_multi(self):
         loss = LaplaceEdgeCrossEntropy(from_logits=True)
         result = self.evaluate(loss(MULTI_TARGETS, MULTI_LOGITS))
-        self.assertAlmostEqual(result, 3.2714694, places=5)
+        self.assertAlmostEqual(result, 3.2714694, places=4)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
