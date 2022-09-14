@@ -210,7 +210,7 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
 
         loss = LaplacianPyramidLoss(levels=4, size=5, sigma=1.056, residual=True)
         result = self.evaluate(loss(targets, probs))
-        self.assertAlmostEqual(result, 7.6406145, places=6)  # with residual
+        self.assertAlmostEqual(result, 7.6406145, places=5)  # with residual
 
     def test_weight(self):
         logits = tf.constant([
@@ -232,13 +232,13 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         loss = LaplacianPyramidLoss(levels=2)
 
         result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
-        self.assertAlmostEqual(result, 0.93986857)
+        self.assertAlmostEqual(result, 0.93986857, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.5371178)
+        self.assertAlmostEqual(result, 0.5371178, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.5371178 * 2.)
+        self.assertAlmostEqual(result, 0.5371178 * 2., places=6)
 
     def test_multi(self):
         logits = tf.constant([
@@ -260,7 +260,7 @@ class TestLaplacianPyramidLoss(test_combinations.TestCase):
         loss = LaplacianPyramidLoss(levels=1)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.0270966)
+        self.assertAlmostEqual(result, 1.0270966, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 128, 128, 3).astype('float32')

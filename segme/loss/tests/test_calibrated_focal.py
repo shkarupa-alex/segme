@@ -66,13 +66,13 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
         loss = CalibratedFocalCrossEntropy(from_logits=True)
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS))
 
-        self.assertAlmostEqual(result, 1.3325094)  # Not sure
+        self.assertAlmostEqual(result, 1.3325094, places=6)  # Not sure
 
     def test_weight(self):
         loss = CalibratedFocalCrossEntropy(from_logits=True)
 
         result = self.evaluate(loss(BINARY_TARGETS[:, :, :2, :], BINARY_LOGITS[:, :, :2]))
-        self.assertAlmostEqual(result, 0.8728758)
+        self.assertAlmostEqual(result, 0.8728758, places=6)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
         self.assertAlmostEqual(result, 0.4364379, places=6)

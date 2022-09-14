@@ -71,10 +71,10 @@ class TestMeanAbsoluteError(test_combinations.TestCase):
         loss = MeanAbsoluteError(from_logits=True)
 
         result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
-        self.assertAlmostEqual(result, 0.39642578)
+        self.assertAlmostEqual(result, 0.39642578, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.16849478)
+        self.assertAlmostEqual(result, 0.16849478, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
         self.assertAlmostEqual(result, 0.16849478 * 2, places=6)
@@ -86,7 +86,7 @@ class TestMeanAbsoluteError(test_combinations.TestCase):
         loss = MeanAbsoluteError(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 0.51633525)
+        self.assertAlmostEqual(result, 0.51633525, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

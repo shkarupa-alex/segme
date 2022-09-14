@@ -61,7 +61,7 @@ class TestCrossEntropyLoss(test_combinations.TestCase):
         loss = CrossEntropyLoss(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 1.5399182)
+        self.assertAlmostEqual(result, 1.5399182, places=6)
 
     def test_weight(self):
         logits = tf.tile(BINARY_LOGITS, [1, 16, 16, 1])
@@ -71,10 +71,10 @@ class TestCrossEntropyLoss(test_combinations.TestCase):
         loss = CrossEntropyLoss(from_logits=True)
 
         result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
-        self.assertAlmostEqual(result, 1.5399183)
+        self.assertAlmostEqual(result, 1.5399183, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.5381311)
+        self.assertAlmostEqual(result, 0.5381311, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
         self.assertAlmostEqual(result, 0.5381311 * 2, places=6)
@@ -86,7 +86,7 @@ class TestCrossEntropyLoss(test_combinations.TestCase):
         loss = CrossEntropyLoss(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 5.349822)
+        self.assertAlmostEqual(result, 5.349822, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

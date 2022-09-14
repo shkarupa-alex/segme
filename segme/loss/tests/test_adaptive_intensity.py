@@ -71,13 +71,13 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         loss = AdaptivePixelIntensityLoss(from_logits=True)
 
         result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
-        self.assertAlmostEqual(result, 2.423418, places=6)
+        self.assertAlmostEqual(result, 2.423418, places=5)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 1.1870989, places=6)
+        self.assertAlmostEqual(result, 1.1870989, places=5)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 1.8727206, places=6)
+        self.assertAlmostEqual(result, 1.8727206, places=5)
 
     def test_multi(self):
         logits = tf.tile(MULTI_LOGITS, [1, 16, 16, 1])

@@ -61,7 +61,7 @@ class TestMeanSquaredError(test_combinations.TestCase):
         loss = MeanSquaredError(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 0.32667673)
+        self.assertAlmostEqual(result, 0.32667673, places=6)
 
     def test_weight(self):
         logits = tf.tile(BINARY_LOGITS, [1, 16, 16, 1])
@@ -71,10 +71,10 @@ class TestMeanSquaredError(test_combinations.TestCase):
         loss = MeanSquaredError(from_logits=True)
 
         result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
-        self.assertAlmostEqual(result, 0.32667673)
+        self.assertAlmostEqual(result, 0.32667673, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.12487063)
+        self.assertAlmostEqual(result, 0.12487063, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
         self.assertAlmostEqual(result, 0.12487063 * 2, places=6)
@@ -86,7 +86,7 @@ class TestMeanSquaredError(test_combinations.TestCase):
         loss = MeanSquaredError(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 0.42551875)
+        self.assertAlmostEqual(result, 0.42551875, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

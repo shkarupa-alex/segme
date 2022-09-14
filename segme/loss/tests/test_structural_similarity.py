@@ -50,7 +50,7 @@ class TestSsimLevel(test_combinations.TestCase):
         result = tf.reduce_mean(result)
         result = self.evaluate(result)
 
-        self.assertAlmostEqual(0.5322474241256714, result, places=6)
+        self.assertAlmostEqual(0.5322474241256714, result, places=5)
 
 
 @test_combinations.run_all_keras_modes
@@ -231,7 +231,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
         result = loss(targets, probs)
         result = self.evaluate(result)
 
-        self.assertAlmostEqual(result, 0.8302058)  # 0.8249481320381165 when compensation = 1
+        self.assertAlmostEqual(result, 0.8302058, places=6)  # 0.8249481320381165 when compensation = 1
 
     def test_weight(self):
         logits = tf.constant([
@@ -253,13 +253,13 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
         loss = StructuralSimilarityLoss(factors=(0.5,), size=2)
 
         result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
-        self.assertAlmostEqual(result, 0.46263173)
+        self.assertAlmostEqual(result, 0.46263173, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.62305105)
+        self.assertAlmostEqual(result, 0.62305105, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.4669136)
+        self.assertAlmostEqual(result, 0.4669136, places=6)
 
     def test_multi(self):
         logits = tf.constant([
