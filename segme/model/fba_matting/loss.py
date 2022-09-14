@@ -1,33 +1,40 @@
 import tensorflow as tf
 from keras.losses import MeanAbsoluteError
-from segme.loss.grad_mse import GradientMeanSquaredError
-from segme.loss.laplacian_pyramid import LaplacianPyramidLoss
-from segme.loss.rt_exclusion import ReflectionTransmissionExclusionLoss
+from segme.loss import GradientMeanSquaredError, LaplacianPyramidLoss, ReflectionTransmissionExclusionLoss
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
+def _mae(y_true, y_pred, sample_weight):
+    loss = MeanAbsoluteError()(y_true, y_pred, sample_weight=sample_weight)
+
+    return tf.reduce_mean(loss, axis=[1, 2])
+
+def _lap(y_true, y_pred, sample_weight):
+    return LaplacianPyramidLoss(sigma=1.056)(y_true, y_pred, sample_weight=sample_weight)
+
+
 def l1_a(a_true, a_pred, sample_weight):
-    return MeanAbsoluteError()(a_true, a_pred, sample_weight=sample_weight)
+    return _mae(a_true, a_pred, sample_weight)
 
 
 def l1_f(f_true, f_pred, sample_weight):
-    return MeanAbsoluteError()(f_true, f_pred, sample_weight=sample_weight)
+    return _mae(f_true, f_pred, sample_weight)
 
 
 def l1_b(b_true, b_pred, sample_weight):
-    return MeanAbsoluteError()(b_true, b_pred, sample_weight=sample_weight)
+    return _mae(b_true, b_pred, sample_weight)
 
 
 def lc_a(f_true, b_true, c_true, a_pred, sample_weight):
     c_pred = a_pred * f_true + (1. - a_pred) * b_true
 
-    return MeanAbsoluteError()(c_true, c_pred, sample_weight=sample_weight)
+    return _mae(c_true, c_pred, sample_weight)
 
 
 def lc_fb(a_true, c_true, f_pred, b_pred, sample_weight):
     c_pred = a_true * f_pred + (1. - a_true) * b_pred
 
-    return MeanAbsoluteError()(c_true, c_pred, sample_weight=sample_weight)
+    return _mae(c_true, c_pred, sample_weight)
 
 
 def lexcl_fb(f_pred, b_pred, sample_weight):
@@ -39,26 +46,26 @@ def lg_a(a_true, a_pred, sample_weight):
 
 
 def llap_a(a_true, a_pred, sample_weight):
-    return LaplacianPyramidLoss(sigma=1.06)(a_true, a_pred, sample_weight=sample_weight)
+    return _lap(a_true, a_pred, sample_weight)
 
 
 def llap_f(f_true, f_pred, sample_weight):
-    return LaplacianPyramidLoss(sigma=1.06)(f_true, f_pred, sample_weight=sample_weight)
+    return _lap(f_true, f_pred, sample_weight)
 
 
 def llap_b(b_true, b_pred, sample_weight):
-    return LaplacianPyramidLoss(sigma=1.06)(b_true, b_pred, sample_weight=sample_weight)
+    return _lap(b_true, b_pred, sample_weight)
 
 
 def total_loss(afb_true, afb_pred, sample_weight, stage=0):
     a_true, f_true, b_true = tf.split(afb_true, [1, 3, 3], axis=-1)
     a_pred, f_pred, b_pred = tf.split(afb_pred, [1, 3, 3], axis=-1)
 
-    u_weight, f_weight, b_weight = None, None, None
+    a_weight, f_weight, b_weight = None, None, None
     if sample_weight is not None:
-        u_weight, f_weight, b_weight = tf.split(sample_weight, [1, 3, 3], axis=-1)
+        a_weight, f_weight, b_weight = tf.split(sample_weight, 3, axis=-1)
 
-    _l1_a = l1_a(a_true, a_pred, sample_weight=u_weight)
+    _l1_a = l1_a(a_true, a_pred, sample_weight=a_weight)
     _l1_f = l1_f(f_true, f_pred, sample_weight=f_weight)
     _l1_b = l1_b(b_true, b_pred, sample_weight=b_weight)
 
@@ -72,19 +79,19 @@ def total_loss(afb_true, afb_pred, sample_weight, stage=0):
     if 4 == stage:
         return _l1_a + _lc_a + 0.25 * (_l1_f + _l1_b + _lc_fb)
 
-    _llap_a = llap_a(a_true, a_pred, sample_weight=u_weight)
+    _llap_a = llap_a(a_true, a_pred, sample_weight=a_weight)
     _llap_f = llap_f(f_true, f_pred, sample_weight=f_weight)
     _llap_b = llap_b(b_true, b_pred, sample_weight=b_weight)
 
     if 3 == stage:
         return _l1_a + _lc_a + _llap_a + 0.25 * (_l1_f + _l1_b + _lc_fb + _llap_f + _llap_b)
 
-    _lg_a = lg_a(a_true, a_pred, sample_weight=u_weight)
+    _lg_a = lg_a(a_true, a_pred, sample_weight=a_weight)
 
     if 2 == stage:
         return _l1_a + _lc_a + _lg_a + _llap_a + 0.25 * (_l1_f + _l1_b + _lc_fb + _llap_f + _llap_b)
 
-    _lexcl_fb = lexcl_fb(f_pred, b_pred, sample_weight=None)
+    _lexcl_fb = lexcl_fb(f_pred, b_pred, sample_weight=a_weight)
 
     if 1 == stage:
         return _l1_a + _lc_a + _llap_a + 0.25 * (_l1_f + _l1_b + _lc_fb + _lexcl_fb + _llap_f + _llap_b)

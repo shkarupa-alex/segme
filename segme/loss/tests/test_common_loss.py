@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from segme.loss.common_loss import validate_input, to_logits, to_probs, to_1hot, compute_gradient, mae, crossentropy, \
-    iou
+from segme.loss.common_loss import validate_input, to_logits, to_probs, to_1hot, compute_gradient, mae, mse, \
+    crossentropy, iou
 
 
 @test_combinations.run_all_keras_modes
@@ -197,6 +197,65 @@ class TestMAE(test_combinations.TestCase):
         result = mae(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.5163353])
+
+
+@test_combinations.run_all_keras_modes
+class TestMSE(test_combinations.TestCase):
+    def test_zeros(self):
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
+
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
+
+    def test_ones(self):
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
+
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
+
+    def test_false(self):
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
+
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
+
+    def test_true(self):
+        logits = 10 * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
+
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
+
+    def test_value(self):
+        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.30168968, 0.35166395])
+
+    def test_weight(self):
+        result = mse(
+            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.36980823, 0.12967442])
+
+        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.1849041, 0.06483721])
+
+        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.3698082, 0.12967442])
+
+    def test_multi(self):
+        result = mse(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.42551923])
 
 
 @test_combinations.run_all_keras_modes

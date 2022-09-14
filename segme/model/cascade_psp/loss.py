@@ -1,5 +1,4 @@
-from keras.losses import MeanAbsoluteError, MeanSquaredError, BinaryCrossentropy
-from segme.loss.sobel_edge import SobelEdgeLoss
+from segme.loss import CrossEntropyLoss, MeanAbsoluteError, MeanSquaredError, SobelEdgeLoss
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -10,25 +9,25 @@ def _loss_224(y_true, y_pred, sample_weight=None):
 
 
 def _loss_28(y_true, y_pred, sample_weight=None):
-    return BinaryCrossentropy()(y_true, y_pred, sample_weight)
+    return CrossEntropyLoss()(y_true, y_pred, sample_weight)
 
 
 def _loss_56(y_true, y_pred, sample_weight=None):
-    return .5 * BinaryCrossentropy()(y_true, y_pred, sample_weight) + \
+    return .5 * CrossEntropyLoss()(y_true, y_pred, sample_weight) + \
            .25 * MeanAbsoluteError()(y_true, y_pred, sample_weight) + \
            .25 * MeanSquaredError()(y_true, y_pred, sample_weight)
 
 
 def _loss_28_2(y_true, y_pred, sample_weight=None):
-    return BinaryCrossentropy()(y_true, y_pred, sample_weight)
+    return CrossEntropyLoss()(y_true, y_pred, sample_weight)
 
 
 def _loss_28_3(y_true, y_pred, sample_weight=None):
-    return BinaryCrossentropy()(y_true, y_pred, sample_weight)
+    return CrossEntropyLoss()(y_true, y_pred, sample_weight)
 
 
 def _loss_56_2(y_true, y_pred, sample_weight=None):
-    return .5 * BinaryCrossentropy()(y_true, y_pred, sample_weight) + \
+    return .5 * CrossEntropyLoss()(y_true, y_pred, sample_weight) + \
            .25 * MeanAbsoluteError()(y_true, y_pred, sample_weight) + \
            .25 * MeanSquaredError()(y_true, y_pred, sample_weight)
 

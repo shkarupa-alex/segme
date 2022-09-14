@@ -149,6 +149,21 @@ def mae(y_true, y_pred, sample_weight, from_logits):
     return tf.reduce_mean(loss, axis=[1, 2, 3])
 
 
+def mse(y_true, y_pred, sample_weight, from_logits):
+    y_true, y_pred, sample_weight = validate_input(
+        y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='sparse')
+    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
+    y_true, y_pred = to_1hot(y_true, y_pred)
+    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+
+    loss = tf.math.squared_difference(y_pred, y_true)
+
+    if sample_weight is not None:
+        loss *= sample_weight
+
+    return tf.reduce_mean(loss, axis=[1, 2, 3])
+
+
 def crossentropy(y_true, y_pred, sample_weight, from_logits):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=None, channel='sparse')
@@ -156,8 +171,7 @@ def crossentropy(y_true, y_pred, sample_weight, from_logits):
     if 1 == y_pred.shape[-1]:
         loss = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
     else:
-        loss = backend.sparse_categorical_crossentropy(
-            y_true, y_pred, from_logits=from_logits)[..., None]
+        loss = backend.sparse_categorical_crossentropy(y_true, y_pred, from_logits=from_logits)[..., None]
 
     if sample_weight is not None:
         loss *= sample_weight

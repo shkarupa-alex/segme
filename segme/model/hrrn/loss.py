@@ -1,9 +1,10 @@
 import numpy as np
 import tensorflow as tf
-from keras.losses import MeanAbsoluteError, LossFunctionWrapper
+from segme.loss import MeanAbsoluteError
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
-def _loss_uncertainty(y_true, y_pred):
+def _loss_uncertainty(y_true, y_pred, sample_weight=None):
     y_true = tf.cast(y_true, y_pred.dtype)
 
     y_mean, y_var = tf.split(y_pred, 2, axis=-1)
@@ -20,4 +21,4 @@ def _loss_uncertainty(y_true, y_pred):
 
 
 def hrrn_losses():
-    return [MeanAbsoluteError(), LossFunctionWrapper(_loss_uncertainty)]
+    return [MeanAbsoluteError(), WeightedLossFunctionWrapper(_loss_uncertainty)]

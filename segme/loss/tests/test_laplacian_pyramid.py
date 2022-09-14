@@ -14,11 +14,11 @@ class TestGaussKernel(test_combinations.TestCase):
         # expected = np.array(
         #     [[1, 4, 6, 4, 1], [4, 16, 24, 16, 4], [6, 24, 36, 24, 6], [4, 16, 24, 16, 4], [1, 4, 6, 4, 1]], 'uint8')
         expected = np.array(
-            [[1, 4, 6, 4, 1], [4, 15, 24, 15, 4], [6, 24, 37, 24, 6], [4, 15, 24, 15, 4], [1, 4, 6, 4, 1]], 'uint8')
+            [[1, 4, 6, 4, 1], [4, 15, 24, 15, 4], [6, 24, 38, 24, 6], [4, 15, 24, 15, 4], [1, 4, 6, 4, 1]], 'uint8')
 
-        result = _gauss_kernel(5, 1.06)
+        result = _gauss_kernel(5, 1.056)
         result = result * result.T
-        result = np.round(result * 255).astype('uint8')
+        result = np.round(result * 256).astype('uint8')
 
         self.assertTrue(np.all(expected == result))
 
