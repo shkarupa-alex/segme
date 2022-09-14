@@ -231,7 +231,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
         result = loss(targets, probs)
         result = self.evaluate(result)
 
-        self.assertAlmostEqual(result, 0.8302058, places=6)  # 0.8249481320381165 when compensation = 1
+        self.assertAlmostEqual(result, 0.8302058, places=5)  # 0.8249481320381165 when compensation = 1
 
     def test_weight(self):
         logits = tf.constant([

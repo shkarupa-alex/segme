@@ -76,7 +76,7 @@ class TestConsistencyEnhancedLoss(test_combinations.TestCase):
         loss = ConsistencyEnhancedLoss(from_logits=True)
         result = self.evaluate(loss(MULTI_TARGETS, MULTI_LOGITS))
 
-        self.assertAlmostEqual(result, 0.6837686)
+        self.assertAlmostEqual(result, 0.6837686, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
