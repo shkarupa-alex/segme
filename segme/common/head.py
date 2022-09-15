@@ -2,7 +2,6 @@ import tensorflow as tf
 from keras import initializers, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from segme.common.convnormact import Conv
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -16,7 +15,8 @@ class HeadProjection(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.proj = Conv(self.classes, self.kernel_size, kernel_initializer=self.kernel_initializer)
+        self.proj = layers.Conv2D(
+            self.classes, self.kernel_size, padding='same', kernel_initializer=self.kernel_initializer)
 
         super().build(input_shape)
 
