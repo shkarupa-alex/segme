@@ -121,10 +121,8 @@ def stateless_random_rotate_90(image, seed):
 
     with tf.name_scope('stateless_random_rotate_90'):
         image = tf.convert_to_tensor(image, name='image')
-
-        assert_rank = tf.assert_rank(image, 4)
-        with tf.control_dependencies([assert_rank]):
-            image = tf.identity(image)
+        if 4 != image.shape.rank:
+            raise ValueError('Expecting `image` rank to be 4.')
 
         batch, height, width, _ = tf.unstack(tf.shape(image))
         assert_square = tf.assert_equal(height, width)
@@ -136,25 +134,30 @@ def stateless_random_rotate_90(image, seed):
         flip_ccw = uniform_random > 2. / 3.
         flip_no = (~flip_cw) & (~flip_ccw)
 
-        image_t = tf.transpose(image, [0, 2, 1, 3])
+        orig_dtype = image.dtype
+        image_ = image if orig_dtype in {tf.float16, tf.float32} else tf.image.convert_image_dtype(image, 'float32')
+
+        image_t = tf.transpose(image_, [0, 2, 1, 3])
         image_cw = tf.reverse(image_t, [2])
         image_ccw = tf.reverse(image_t, [1])
 
-        return image * tf.cast(flip_no, image.dtype) + \
-               image_cw * tf.cast(flip_cw, image.dtype) + \
-               image_ccw * tf.cast(flip_ccw, image.dtype)
+        image_ = image_ * tf.cast(flip_no, image_.dtype) + \
+                 image_cw * tf.cast(flip_cw, image_.dtype) + \
+                 image_ccw * tf.cast(flip_ccw, image_.dtype)
+        image_ = tf.image.convert_image_dtype(image_, orig_dtype, saturate=True)
+
+        return image_
 
 
 def random_color_mix(image, mix_max, seed=None):
     with tf.name_scope('random_color_mix'):
         image = tf.convert_to_tensor(image, name='image')
-        batch, _, _, channel = tf.unstack(tf.shape(image))
+        if 4 != image.shape.rank:
+            raise ValueError('Expecting `image` rank to be 4.')
+        if 3 != image.shape[-1]:
+            raise ValueError('Expecting `image` channels size to be 3.')
 
-        assert_rank = tf.assert_rank(image, 4)
-        assert_channel = tf.assert_equal(channel, 3)
-        with tf.control_dependencies([assert_rank, assert_channel]):
-            image = tf.identity(image)
-
+        batch = tf.shape(image)[0]
         color = tf.random.uniform(shape=[batch, 1, 1, 3], minval=0., maxval=1., seed=seed)
         weight = tf.random.uniform(shape=[batch, 1, 1, 1], minval=0., maxval=mix_max, seed=seed)
 
@@ -169,11 +172,10 @@ def random_color_mix(image, mix_max, seed=None):
 def random_channel_shuffle(image, seed=None):
     with tf.name_scope('random_channel_shuffle'):
         image = tf.convert_to_tensor(image, name='image')
-
-        assert_rank = tf.assert_rank(image, 4)
-        assert_channel = tf.assert_equal(image.shape[-1], 3)
-        with tf.control_dependencies([assert_rank, assert_channel]):
-            image = tf.identity(image)
+        if 4 != image.shape.rank:
+            raise ValueError('Expecting `image` rank to be 4.')
+        if 3 != image.shape[-1]:
+            raise ValueError('Expecting `image` channels size to be 3.')
 
         batch = tf.shape(image)[0]
         switch = tf.random.uniform(shape=[batch, 1, 1, 1], minval=0., maxval=1., seed=seed)

@@ -1,16 +1,17 @@
 import tensorflow as tf
 from keras.losses import MeanAbsoluteError
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss import GradientMeanSquaredError, LaplacianPyramidLoss, ReflectionTransmissionExclusionLoss
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
 def _mae(y_true, y_pred, sample_weight):
-    loss = MeanAbsoluteError()(y_true, y_pred, sample_weight=sample_weight)
+    loss = MeanAbsoluteError(reduction=Reduction.NONE)(y_true, y_pred, sample_weight=sample_weight)
 
     return tf.reduce_mean(loss, axis=[1, 2])
 
 def _lap(y_true, y_pred, sample_weight):
-    return LaplacianPyramidLoss(sigma=1.056)(y_true, y_pred, sample_weight=sample_weight)
+    return LaplacianPyramidLoss(sigma=1.056, reduction=Reduction.NONE)(y_true, y_pred, sample_weight=sample_weight)
 
 
 def l1_a(a_true, a_pred, sample_weight):
@@ -38,11 +39,11 @@ def lc_fb(a_true, c_true, f_pred, b_pred, sample_weight):
 
 
 def lexcl_fb(f_pred, b_pred, sample_weight):
-    return ReflectionTransmissionExclusionLoss()(f_pred, b_pred, sample_weight=sample_weight)
+    return ReflectionTransmissionExclusionLoss(reduction=Reduction.NONE)(f_pred, b_pred, sample_weight=sample_weight)
 
 
 def lg_a(a_true, a_pred, sample_weight):
-    return GradientMeanSquaredError()(a_true, a_pred, sample_weight=sample_weight)
+    return GradientMeanSquaredError(reduction=Reduction.NONE)(a_true, a_pred, sample_weight=sample_weight)
 
 
 def llap_a(a_true, a_pred, sample_weight):

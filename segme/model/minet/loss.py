@@ -1,4 +1,5 @@
-from segme.loss import CrossEntropyLoss, ConsistencyEnhancedLoss, WeightedLossFunctionWrapper
+from segme.loss import CrossEntropyLoss, ConsistencyEnhancedLoss
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
 def total_loss(y_true, y_pred, sample_weight=None):

@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from segme.loss import MeanAbsoluteError
+from keras.losses import MeanAbsoluteError
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
