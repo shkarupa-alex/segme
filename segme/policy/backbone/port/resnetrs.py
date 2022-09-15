@@ -41,7 +41,7 @@ def STEM(name=None):
         x = Norm(**norm_kwargs(), name=name + '_stem_batch_norm_3')(x)
         x = Act(name=name + '_stem_act_3')(x)
 
-        x = Conv(64, 3, **CONV_KWARGS, strides=2, name=name + '_stem_conv_4')(x)
+        x = Conv(64, 3, strides=2, **CONV_KWARGS, name=name + '_stem_conv_4')(x)
         x = Norm(**norm_kwargs(), name=name + '_stem_batch_norm_4')(x)
         x = Act(name=name + '_stem_act_4')(x)
 

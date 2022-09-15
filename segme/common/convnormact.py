@@ -32,16 +32,16 @@ class Conv(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         conv_kwargs = {
-            'kernel_size': self.kernel_size, 'strides': self.strides, 'data_format': self.data_format,
-            'dilation_rate': self.dilation_rate, 'activation': self.activation, 'use_bias': self.use_bias,
-            'kernel_initializer': self.kernel_initializer, 'bias_initializer': self.bias_initializer,
-            'kernel_regularizer': self.kernel_regularizer, 'bias_regularizer': self.bias_regularizer,
-            'kernel_constraint': self.kernel_constraint, 'bias_constraint': self.bias_constraint,
-            'name': 'wrapped'}
+            'kernel_size': self.kernel_size, 'strides': self.strides, 'padding': 'same',
+            'data_format': self.data_format, 'dilation_rate': self.dilation_rate, 'activation': self.activation,
+            'use_bias': self.use_bias, 'kernel_initializer': self.kernel_initializer,
+            'bias_initializer': self.bias_initializer, 'kernel_regularizer': self.kernel_regularizer,
+            'bias_regularizer': self.bias_regularizer, 'kernel_constraint': self.kernel_constraint,
+            'bias_constraint': self.bias_constraint, 'name': 'wrapped'}
         if self.filters:
-            self.conv = cnapol.SAMECONVS.new(self.policy.conv_type, filters=self.filters, **conv_kwargs)
+            self.conv = cnapol.CONVOLUTIONS.new(self.policy.conv_type, filters=self.filters, **conv_kwargs)
         else:  # depthwise
-            self.conv = cnapol.SAMECONVS.new('dwconv', **conv_kwargs)
+            self.conv = cnapol.CONVOLUTIONS.new('dwconv', **conv_kwargs)
         self.conv.build(input_shape)
 
         super().build(input_shape)

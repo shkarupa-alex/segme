@@ -3,7 +3,7 @@ from keras import initializers, layers
 from keras.mixed_precision import policy as mixed_precision
 from keras.testing_infra import test_combinations, test_utils
 from segme.common.convnormact import Conv, Norm, Act, ConvAct, ConvNormAct
-from segme.policy import cnapol, sameconv, norm, act
+from segme.policy import cnapol, conv, norm, act
 
 
 @test_combinations.run_all_keras_modes
@@ -95,7 +95,7 @@ class TestConv(test_combinations.TestCase):
         convinst = Conv(4, 3)
         convinst.build([None, None, None, 3])
 
-        self.assertIsInstance(convinst.conv, sameconv.SameConv)
+        self.assertIsInstance(convinst.conv, conv.FixedConv)
         self.assertEqual(convinst.conv.filters, 4)
         self.assertTupleEqual(convinst.conv.kernel_size, (3, 3))
 
@@ -103,7 +103,7 @@ class TestConv(test_combinations.TestCase):
         convinst = Conv(None, 3)
         convinst.build([None, None, None, 3])
 
-        self.assertIsInstance(convinst.conv, sameconv.SameDepthwiseConv)
+        self.assertIsInstance(convinst.conv, conv.FixedDepthwiseConv)
         self.assertTupleEqual(convinst.conv.kernel_size, (3, 3))
 
     def test_policy_scope_memorize(self):
@@ -111,14 +111,14 @@ class TestConv(test_combinations.TestCase):
             convinst = Conv(4, 3)
         convinst.build([None, None, None, 3])
 
-        self.assertIsInstance(convinst.conv, sameconv.SameStandardizedConv)
+        self.assertIsInstance(convinst.conv, conv.StandardizedConv)
         self.assertEqual(convinst.conv.filters, 4)
         self.assertTupleEqual(convinst.conv.kernel_size, (3, 3))
 
         restored = Conv.from_config(convinst.get_config())
         restored.build([None, None, None, 3])
 
-        self.assertIsInstance(restored.conv, sameconv.SameStandardizedConv)
+        self.assertIsInstance(restored.conv, conv.StandardizedConv)
         self.assertEqual(restored.conv.filters, 4)
         self.assertTupleEqual(restored.conv.kernel_size, (3, 3))
 
@@ -130,7 +130,7 @@ class TestConv(test_combinations.TestCase):
         restored = Conv.from_config(convinst.get_config())
         restored.build([None, None, None, 3])
 
-        self.assertIsInstance(restored.conv, sameconv.SameStandardizedConv)
+        self.assertIsInstance(restored.conv, conv.StandardizedConv)
         self.assertTupleEqual(restored.conv.strides, (2, 2))
 
 
@@ -368,7 +368,7 @@ class TestConvAct(test_combinations.TestCase):
         cna.build([None, None, None, 3])
 
         self.assertIsInstance(cna.conv, Conv)
-        self.assertIsInstance(cna.conv.conv, sameconv.SameConv)
+        self.assertIsInstance(cna.conv.conv, conv.FixedConv)
         self.assertEqual(cna.conv.conv.filters, 4)
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(cna.act, Act)
@@ -379,7 +379,7 @@ class TestConvAct(test_combinations.TestCase):
         cna.build([None, None, None, 3])
 
         self.assertIsInstance(cna.conv, Conv)
-        self.assertIsInstance(cna.conv.conv, sameconv.SameDepthwiseConv)
+        self.assertIsInstance(cna.conv.conv, conv.FixedDepthwiseConv)
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
 
     def test_policy_scope_memorize(self):
@@ -391,7 +391,7 @@ class TestConvAct(test_combinations.TestCase):
         self.assertEqual(cna.policy.name, 'stdconv-gn-leakyrelu')
 
         self.assertIsInstance(cna.conv, Conv)
-        self.assertIsInstance(cna.conv.conv, sameconv.SameStandardizedConv)
+        self.assertIsInstance(cna.conv.conv, conv.StandardizedConv)
         self.assertEqual(cna.conv.conv.filters, 4)
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(cna.act, Act)
@@ -400,7 +400,7 @@ class TestConvAct(test_combinations.TestCase):
         restored = ConvAct.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, sameconv.SameStandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
         self.assertEqual(restored.conv.conv.filters, 4)
         self.assertTupleEqual(restored.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(restored.act, Act)
@@ -414,7 +414,7 @@ class TestConvAct(test_combinations.TestCase):
         restored = ConvAct.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, sameconv.SameStandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
         self.assertTupleEqual(restored.conv.conv.strides, (2, 2))
         self.assertIsInstance(restored.act, Act)
         self.assertIsInstance(restored.act.act, layers.LeakyReLU)
@@ -510,7 +510,7 @@ class TestConvNormAct(test_combinations.TestCase):
         cna.build([None, None, None, 3])
 
         self.assertIsInstance(cna.conv, Conv)
-        self.assertIsInstance(cna.conv.conv, sameconv.SameConv)
+        self.assertIsInstance(cna.conv.conv, conv.FixedConv)
         self.assertEqual(cna.conv.conv.filters, 4)
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(cna.norm, Norm)
@@ -523,7 +523,7 @@ class TestConvNormAct(test_combinations.TestCase):
         cna.build([None, None, None, 3])
 
         self.assertIsInstance(cna.conv, Conv)
-        self.assertIsInstance(cna.conv.conv, sameconv.SameDepthwiseConv)
+        self.assertIsInstance(cna.conv.conv, conv.FixedDepthwiseConv)
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
 
     def test_policy_scope_memorize(self):
@@ -535,7 +535,7 @@ class TestConvNormAct(test_combinations.TestCase):
         self.assertEqual(cna.policy.name, 'stdconv-gn-leakyrelu')
 
         self.assertIsInstance(cna.conv, Conv)
-        self.assertIsInstance(cna.conv.conv, sameconv.SameStandardizedConv)
+        self.assertIsInstance(cna.conv.conv, conv.StandardizedConv)
         self.assertEqual(cna.conv.conv.filters, 4)
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(cna.norm, Norm)
@@ -546,7 +546,7 @@ class TestConvNormAct(test_combinations.TestCase):
         restored = ConvNormAct.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, sameconv.SameStandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
         self.assertEqual(restored.conv.conv.filters, 4)
         self.assertTupleEqual(restored.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(restored.norm, Norm)
@@ -562,7 +562,7 @@ class TestConvNormAct(test_combinations.TestCase):
         restored = ConvNormAct.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, sameconv.SameStandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
         self.assertTupleEqual(restored.conv.conv.strides, (2, 2))
         self.assertIsInstance(restored.norm, Norm)
         self.assertIsInstance(restored.norm.norm, norm.GroupNormalization)

@@ -1,14 +1,15 @@
 import numpy as np
 import tensorflow as tf
-from keras import backend, losses
+from keras import backend
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.common_loss import validate_input
 from segme.metric.grad import _togray, _gauss_filter, _gauss_gradient
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
 @register_keras_serializable(package='SegMe>Loss')
-class GradientMeanSquaredError(losses.LossFunctionWrapper):
+class GradientMeanSquaredError(WeightedLossFunctionWrapper):
     """ Proposed in: 'Learning-based Sampling for Natural Image Matting'
 
     Implements Equation [7] in https://openaccess.thecvf.com/content_CVPR_2019/papers/Tang_Learning-Based_Sampling_for_Natural_Image_Matting_CVPR_2019_paper.pdf
@@ -18,9 +19,9 @@ class GradientMeanSquaredError(losses.LossFunctionWrapper):
         super().__init__(gradient_mean_squared_error, reduction=reduction, name=name, sigma=sigma)
 
 
-def gradient_mean_squared_error(y_true, y_pred, sigma):
+def gradient_mean_squared_error(y_true, y_pred, sample_weight, sigma):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, weight=None, dtype=None, rank=4, channel='same')
+        y_true, y_pred, sample_weight, dtype=None, rank=4, channel='same')
 
     y_pred = _togray(y_pred)
     y_true = _togray(y_true)
@@ -44,6 +45,9 @@ def gradient_mean_squared_error(y_true, y_pred, sigma):
     true_amp = tf.stop_gradient(true_amp)
 
     loss = tf.math.squared_difference(pred_amp, true_amp)
-    loss = tf.reduce_mean(loss, axis=-1)
+    if sample_weight is not None:
+        loss *= sample_weight
+
+    loss = tf.reduce_mean(loss, axis=[1, 2, 3])
 
     return loss

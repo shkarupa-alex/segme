@@ -47,7 +47,7 @@ def _pad_odd(inputs):
     height_width = tf.shape(inputs)[1:3]
     hpad, wpad = tf.unstack(height_width % 2)
     paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
-    padded = tf.pad(inputs, paddings, 'REFLECT')
+    padded = tf.pad(inputs, paddings, 'SYMMETRIC')
 
     return padded
 

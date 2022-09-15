@@ -24,7 +24,7 @@ class TestSolveFgBg(tf.test.TestCase):
         error_fg = np.abs(expected_fg - result_fg[0]).mean()
         error_bg = np.abs(expected_bg - result_bg[0]).mean()
 
-        self.assertLess(error_fg, 0.0009)
+        self.assertLess(error_fg, 0.0018)
         self.assertLess(error_bg, 0.004)
 
 

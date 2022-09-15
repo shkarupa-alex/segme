@@ -1,4 +1,5 @@
 import tensorflow as tf
+from keras import backend
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.common_loss import validate_input, to_probs, to_1hot
@@ -35,12 +36,11 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
         valid_mask = sample_weight > 0.
         valid_weight = tf.cast(valid_mask, y_pred.dtype)
 
-        axis_hw = list(range(1, sample_weight.shape.ndims - 1))
-        batch_weight = tf.math.divide_no_nan(
-            tf.reduce_sum(sample_weight, axis=axis_hw), tf.reduce_sum(valid_weight, axis=axis_hw))
+        batch_weight = tf.reduce_sum(sample_weight, axis=[1, 2, 3]) / (
+                tf.reduce_sum(valid_weight, axis=[1, 2, 3]) + backend.epsilon())
 
         y_true *= tf.cast(valid_mask, y_true.dtype)
-        y_pred *= tf.cast(valid_mask, y_pred.dtype)
+        y_pred *= valid_weight
     else:
         batch_weight = None
 
@@ -48,13 +48,14 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
     y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
     # Get region mutual information
-    rmi_loss = _rmi_lower_bound(
-        y_true, y_pred, batch_weight=batch_weight, pool_stride=pool_stride, pool_way=pool_way, rmi_radius=rmi_radius)
+    rmi_loss = _rmi_lower_bound(y_true, y_pred, pool_stride=pool_stride, pool_way=pool_way, rmi_radius=rmi_radius)
+    if batch_weight is not None:
+        rmi_loss *= batch_weight
 
     return rmi_loss
 
 
-def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_radius):
+def _rmi_lower_bound(y_true, y_pred, pool_stride, pool_way, rmi_radius):
     square_radius = rmi_radius ** 2
     batch, height, width, channel = tf.unstack(tf.shape(y_true))
 
@@ -110,13 +111,8 @@ def _rmi_lower_bound(y_true, y_pred, batch_weight, pool_stride, pool_way, rmi_ra
     rmi_loss = 0.5 * tf.linalg.logdet(appro_var + diag_matrix)
     rmi_loss = tf.cast(rmi_loss, y_pred.dtype)
 
-    if batch_weight is not None:
-        rmi_loss *= batch_weight
-
-    # In source: mean over batch samples, sum over classes.
-    # Disable mean to match batch shape
-    # rmi_loss = tf.reduce_mean(rmi_loss, axis=0)
-    rmi_loss = tf.reduce_sum(rmi_loss / float(square_radius), axis=-1)
+    # In source: sum over classes, mean over batch samples.
+    rmi_loss = tf.reduce_mean(rmi_loss, axis=-1) / float(square_radius)
 
     return rmi_loss
 

@@ -3,8 +3,7 @@ from keras import layers, models
 from keras.applications.imagenet_utils import preprocess_input
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from segme.common.convnormact import Conv
-from segme.common.head import ClassificationActivation, ClassificationHead
+from segme.common.head import HeadProjection, ClassificationActivation, ClassificationHead
 from segme.common.pad import SymmetricPadding
 from segme.common.interrough import BilinearInterpolation
 from segme.common.sequent import Sequential
@@ -43,14 +42,14 @@ class U2Net(layers.Layer):
         self.stage2d = RSU6(32, 64)
         self.stage1d = RSU7(16, 64)
 
-        self.proj1 = Conv(self.classes, 3)
-        self.proj2 = Conv(self.classes, 3)
-        self.proj3 = Conv(self.classes, 3)
-        self.proj4 = Conv(self.classes, 3)
-        self.proj5 = Conv(self.classes, 3)
-        self.proj6 = Conv(self.classes, 3)
-
+        self.proj1 = HeadProjection(self.classes, 3)
+        self.proj2 = HeadProjection(self.classes, 3)
+        self.proj3 = HeadProjection(self.classes, 3)
+        self.proj4 = HeadProjection(self.classes, 3)
+        self.proj5 = HeadProjection(self.classes, 3)
+        self.proj6 = HeadProjection(self.classes, 3)
         self.act = ClassificationActivation()
+
         self.head = ClassificationHead(self.classes)
 
         super().build(input_shape)
@@ -160,14 +159,14 @@ class U2NetP(layers.Layer):
         self.stage2d = RSU6(16, 64)
         self.stage1d = RSU7(16, 64)
 
-        self.proj1 = Conv(self.classes, 3)
-        self.proj2 = Conv(self.classes, 3)
-        self.proj3 = Conv(self.classes, 3)
-        self.proj4 = Conv(self.classes, 3)
-        self.proj5 = Conv(self.classes, 3)
-        self.proj6 = Conv(self.classes, 3)
-
+        self.proj1 = HeadProjection(self.classes, 3)
+        self.proj2 = HeadProjection(self.classes, 3)
+        self.proj3 = HeadProjection(self.classes, 3)
+        self.proj4 = HeadProjection(self.classes, 3)
+        self.proj5 = HeadProjection(self.classes, 3)
+        self.proj6 = HeadProjection(self.classes, 3)
         self.act = ClassificationActivation()
+
         self.head = ClassificationHead(self.classes)
 
         super().build(input_shape)

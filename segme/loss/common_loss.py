@@ -15,8 +15,14 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
     if rank is not None and (y_pred.shape.rank != rank or y_true.shape.rank != rank):
         raise ValueError(f'Both labels and predictions must have rank {rank}.')
 
+    if rank is not None and weight is not None and weight.shape.rank != rank:
+        raise ValueError(f'Sample weights must have rank {rank}.')
+
     if y_pred.shape[-1] is None or y_true.shape[-1] is None:
         raise ValueError('Channel dimension of both labels and predictions must be defined.')
+
+    if weight is not None and 1 != weight.shape[-1]:
+        raise ValueError('Channel dimension of sample weights muse equals 1.')
 
     if channel not in {None, 'sparse', 'same'}:
         raise ValueError('Unknown channel size check')
@@ -110,6 +116,24 @@ def to_1hot(y_true, y_pred):
     return y_true, y_pred
 
 
+def compute_gradient(inputs, axis, reduction):
+    if 1 == axis:
+        grad = inputs[:, 1:, :, :], inputs[:, :-1, :, :]
+    elif 2 == axis:
+        grad = inputs[:, :, 1:, :], inputs[:, :, :-1, :]
+    else:
+        raise ValueError('Unsupported axis: {}'.format(axis))
+
+    if 'sub' == reduction:
+        grad = grad[0] - grad[1]
+    elif 'min' == reduction:
+        grad = tf.minimum(grad[0], grad[1])
+    else:
+        raise ValueError('Unsupported reduction: {}'.format(reduction))
+
+    return grad
+
+
 def mae(y_true, y_pred, sample_weight, from_logits):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='sparse')
@@ -122,60 +146,74 @@ def mae(y_true, y_pred, sample_weight, from_logits):
     if sample_weight is not None:
         loss *= sample_weight
 
-    return tf.reduce_mean(loss, axis=-1, keepdims=True)
+    return tf.reduce_mean(loss, axis=[1, 2, 3])
+
+
+def mse(y_true, y_pred, sample_weight, from_logits):
+    y_true, y_pred, sample_weight = validate_input(
+        y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='sparse')
+    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
+    y_true, y_pred = to_1hot(y_true, y_pred)
+    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+
+    loss = tf.math.squared_difference(y_pred, y_true)
+
+    if sample_weight is not None:
+        loss *= sample_weight
+
+    return tf.reduce_mean(loss, axis=[1, 2, 3])
 
 
 def crossentropy(y_true, y_pred, sample_weight, from_logits):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=None, channel='sparse')
 
-    if y_true.shape[-1] == y_pred.shape[-1]:
+    if 1 == y_pred.shape[-1]:
         loss = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
     else:
-        loss = backend.sparse_categorical_crossentropy(
-            y_true, y_pred, from_logits=from_logits)[..., None]
+        loss = backend.sparse_categorical_crossentropy(y_true, y_pred, from_logits=from_logits)[..., None]
 
     if sample_weight is not None:
-        if sample_weight.shape.rank == y_pred.shape.rank and 1 != sample_weight.shape[-1]:
-            if max(2, y_pred.shape[-1]) != sample_weight.shape[-1]:
-                raise ValueError('Can\'t properly estimate number of classes')
-            y_true_1h = tf.one_hot(tf.cast(y_true[..., 0], 'int32'), sample_weight.shape[-1], dtype=y_pred.dtype)
-            sample_weight = tf.reduce_max(y_true_1h * sample_weight, axis=-1, keepdims=True)
-            sample_weight = tf.stop_gradient(sample_weight)
-
         loss *= sample_weight
 
-    return loss
+    return tf.reduce_mean(loss, axis=[1, 2, 3])
 
 
-def iou(y_true, y_pred, sample_weight, from_logits, square=False, smooth=1., dice=False):  # TODO
+def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
     y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-    y_true, y_pred = to_1hot(y_true, y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+    y_true_1h, y_pred_1h = to_1hot(y_true, y_pred)
+    y_true_1h = tf.cast(y_true_1h, dtype=y_pred.dtype)
 
-    intersection = y_pred * y_true  # TODO: reduce sum?
-    # if sample_weight is not None:
-    #     intersection *= sample_weight
-    # intersection = tf.reduce_sum(intersection, axis=[1, 2])
-
-    if square:
-        union = y_pred ** 2 + y_true
-    else:
-        union = y_pred + y_true
-    # if sample_weight is not None:
-    #     union *= sample_weight
-    # union = tf.reduce_sum(union, axis=[1, 2])
-
-    size = tf.reduce_prod(tf.cast(tf.shape(y_true)[1:3], y_pred.dtype))
-    epsilon = smooth / size + backend.epsilon()
-    if dice:
-        loss = 1. - (2. * intersection + epsilon) / (union + epsilon)
-    else:
-        loss = 1. - (intersection + epsilon) / (union - intersection + epsilon)
+    y_and = y_pred_1h * y_true_1h
+    y_or = y_pred_1h + y_true_1h
 
     if sample_weight is not None:
-        loss *= sample_weight
+        y_and *= sample_weight
+        y_or *= sample_weight
 
-    return tf.reduce_mean(loss, axis=-1, keepdims=True)
+    # true_pos = y_pred_1h * y_true_1h
+    # false_pos = y_pred_1h * (1 - y_true_1h)
+    # false_neg = (1 - y_pred_1h) * y_true_1h
+
+    if dice:
+        # dice = 2 * true_pos / (2 * true_pos + false_pos + false_neg) = \
+        #   2 * y_pred_1h * y_true_1h / (y_pred_1h + y_true_1h)
+        numerator = 2. * y_and
+        denominator = y_or
+    else:
+        # iou = true_pos / (true_pos + false_pos + false_neg) = \
+        #   y_pred_1h * y_true_1h / (y_pred_1h + y_true_1h - y_pred_1h * y_true_1h)
+        numerator = y_and
+        denominator = y_or - y_and
+
+    numerator = tf.reduce_mean(numerator, axis=[1, 2])
+    denominator = tf.reduce_mean(denominator, axis=[1, 2])
+
+    size = tf.reduce_prod(tf.shape(y_true)[1:3])
+    epsilon = smooth / tf.cast(size, y_pred.dtype)
+
+    loss = 1. - (numerator + epsilon) / (denominator + epsilon)
+
+    return tf.reduce_mean(loss, axis=-1)

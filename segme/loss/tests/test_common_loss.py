@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from segme.loss.common_loss import validate_input, to_logits, to_probs, to_1hot, mae, crossentropy, iou
+from segme.loss.common_loss import validate_input, to_logits, to_probs, to_1hot, compute_gradient, mae, mse, \
+    crossentropy, iou
 
 
 @test_combinations.run_all_keras_modes
@@ -118,403 +119,351 @@ class TestUtils(test_combinations.TestCase):
         with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'Condition x == y did not hold'):
             to_1hot(targets1, np.ones((2, 4, 4, 1), 'float32') * 2.)
 
+    def test_compute_gradient(self):
+        inputs = tf.constant([
+            [[[0.], [0.], [1.], [0.]], [[1.], [0.], [1.], [1.]], [[0.], [1.], [0.], [1.]], [[0.], [1.], [1.], [1.]]],
+            [[[0.], [1.], [1.], [0.]], [[1.], [0.], [0.], [1.]], [[0.], [1.], [1.], [0.]], [[1.], [1.], [1.], [1.]]]],
+            'float32')
+        expected_1sub = [
+            [[[1.], [0.], [0.], [1.]], [[-1.], [1.], [-1.], [0.]], [[0.], [0.], [1.], [0.]]],
+            [[[1.], [-1.], [-1.], [1.]], [[-1.], [1.], [1.], [-1.]], [[1.], [0.], [0.], [1.]]]]
+        expected_2min = [
+            [[[0.], [0.], [0.]], [[0.], [0.], [1.]], [[0.], [0.], [0.]], [[0.], [1.], [1.]]],
+            [[[0.], [1.], [0.]], [[0.], [0.], [0.]], [[0.], [1.], [0.]], [[1.], [1.], [1.]]]]
+
+        grad_1sub = compute_gradient(inputs, 1, 'sub')
+        grad_1sub = self.evaluate(grad_1sub)
+        self.assertAllClose(grad_1sub, expected_1sub)
+
+        grad_2min = compute_gradient(inputs, 2, 'min')
+        grad_2min = self.evaluate(grad_2min)
+        self.assertAllClose(grad_2min, expected_2min)
+
 
 @test_combinations.run_all_keras_modes
 class TestMAE(test_combinations.TestCase):
     def test_zeros(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros_like(logits), atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros_like(logits), atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = 10 * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
-
-    def test_multi(self):
-        logits = tf.constant([
-            [[[0.4250706654827763, -7.219920928747051, -1.14131948950217, 2.5576064452206024],
-              [-1.342442193620409, 0.20020616879804165, -6.977300484664198, 6.280817910206608]],
-             [[0.3206719246447576, 0.0176225602425912, -1.902292891065069, -3.369106587128292],
-              [-2.6576544216404563, 1.863726154333165, 4.581314280496405, -7.433728759092233]],
-             [[8.13888654097292, 1.311411218599392, 0.8372454481780323, -2.859455217953778],
-              [-2.0984725413538854, -4.619268334888168, 8.708732477440673, 1.9102341271004541]],
-             [[3.4914178176388266, -4.551627675234152, 7.709902261544302, 3.3982255596983277],
-              [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
-        targets = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
-
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
-        result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.5163353, places=7)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
     def test_value(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mae(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.40374124, places=6)
+        self.assertAllClose(result, [0.375533, 0.417319])
 
     def test_weight(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+        result = mae(
+            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.49504662, 0.17893231])
 
-        result = self.evaluate(mae(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True))
-        self.assertAlmostEqual(result.mean(), 0.40374124, places=6)
+        result = mae(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.24752331, 0.08946615])
 
-        result = self.evaluate(mae(
-            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True))
-        self.assertAlmostEqual(result.mean(), 0.45837218, places=7)
+        result = mae(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.49504662, 0.17893231])
 
-        result = self.evaluate(mae(
-            y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True))
-        self.assertAlmostEqual(result.mean(), 0.22918609, places=7)
+    def test_multi(self):
+        result = mae(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.5163353])
 
-        result = self.evaluate(mae(
-            y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True))
-        self.assertAlmostEqual(result.mean(), 0.22918609 * 2., places=6)
+
+@test_combinations.run_all_keras_modes
+class TestMSE(test_combinations.TestCase):
+    def test_zeros(self):
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
+
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
+
+    def test_ones(self):
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
+
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
+
+    def test_false(self):
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
+
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
+
+    def test_true(self):
+        logits = 10 * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
+
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
+
+    def test_value(self):
+        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.30168968, 0.35166395])
+
+    def test_weight(self):
+        result = mse(
+            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.36980823, 0.12967442])
+
+        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.1849041, 0.06483721])
+
+        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.3698082, 0.12967442])
+
+    def test_multi(self):
+        result = mse(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.42551923])
 
 
 @test_combinations.run_all_keras_modes
 class TestCrossentropy(test_combinations.TestCase):
     def test_zeros(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros_like(logits), atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros_like(logits), atol=1e-4)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones_like(logits) * 10., atol=1e-2)
+        self.assertAllClose(result, [10.] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones_like(logits) * 10., atol=1e-2)
-
-    def test_multi(self):
-        logits = tf.constant([
-            [[[0.4250706654827763, -7.219920928747051, -1.14131948950217, 2.5576064452206024],
-              [-1.342442193620409, 0.20020616879804165, -6.977300484664198, 6.280817910206608]],
-             [[0.3206719246447576, 0.0176225602425912, -1.902292891065069, -3.369106587128292],
-              [-2.6576544216404563, 1.863726154333165, 4.581314280496405, -7.433728759092233]],
-             [[8.13888654097292, 1.311411218599392, 0.8372454481780323, -2.859455217953778],
-              [-2.0984725413538854, -4.619268334888168, 8.708732477440673, 1.9102341271004541]],
-             [[3.4914178176388266, -4.551627675234152, 7.709902261544302, 3.3982255596983277],
-              [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
-        targets = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
-
-        result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
-        result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 5.34982, places=5)
+        self.assertAllClose(result, [10.] * 3, atol=6e-3)
 
     def test_value(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-
-        result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = crossentropy(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 1.5985572, places=6)
+        self.assertAllClose(result, [1.2658163, 1.8140206])
 
     def test_weight(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+        result = crossentropy(
+            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [1.6474432, 0.50508237])
 
-        result = self.evaluate(crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True))
-        self.assertAlmostEqual(result.mean(), 1.5985572, places=6)
+        result = crossentropy(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.8237216, 0.25254118])
 
-        result = self.evaluate(crossentropy(
-            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True))
-        self.assertAlmostEqual(result.mean(), 1.8511493, places=7)
+        result = crossentropy(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [1.6474432, 0.50508237])
 
-        result = self.evaluate(crossentropy(y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True))
-        self.assertAlmostEqual(result.mean(), 0.9255747, places=7)
-
-        result = self.evaluate(crossentropy(y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True))
-        self.assertAlmostEqual(result.mean(), 0.9255747 * 2., places=6)
+    def test_multi(self):
+        result = crossentropy(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [5.34982])
 
 
 @test_combinations.run_all_keras_modes
 class TestIOU(test_combinations.TestCase):
     def test_zeros(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros_like(logits), atol=1e-2)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros_like(logits), atol=1e-2)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = 10 * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
+        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
-
-    def test_multi(self):
-        logits = tf.constant([
-            [[[0.4250706654827763, -7.219920928747051, -1.14131948950217, 2.5576064452206024],
-              [-1.342442193620409, 0.20020616879804165, -6.977300484664198, 6.280817910206608]],
-             [[0.3206719246447576, 0.0176225602425912, -1.902292891065069, -3.369106587128292],
-              [-2.6576544216404563, 1.863726154333165, 4.581314280496405, -7.433728759092233]],
-             [[8.13888654097292, 1.311411218599392, 0.8372454481780323, -2.859455217953778],
-              [-2.0984725413538854, -4.619268334888168, 8.708732477440673, 1.9102341271004541]],
-             [[3.4914178176388266, -4.551627675234152, 7.709902261544302, 3.3982255596983277],
-              [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
-        targets = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
-
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
-        result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.6096517, places=7)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
     def test_value(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False)
+        result = iou(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.48672712, places=6)
+        self.assertAllClose(result, [0.5122354, 0.5654068])
 
     def test_weight(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+        result = iou(
+            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.56775665, 0.263336])
 
-        result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=False))
-        self.assertAlmostEqual(result.mean(), 0.48672712, places=6)
+        result = iou(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.56775665, 0.263336])
 
-        result = self.evaluate(iou(
-            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True, dice=False))
-        self.assertAlmostEqual(result.mean(), 0.49471125, places=7)
+        result = iou(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.61162996, 0.29159677])
 
-        result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True, dice=False))
-        self.assertAlmostEqual(result.mean(), 0.27417138, places=7)
-
-        result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True, dice=False))
-        self.assertAlmostEqual(result.mean(), 0.27417138 * 2., places=6)
+    def test_multi(self):
+        result = iou(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.68037534])
 
 
 @test_combinations.run_all_keras_modes
 class TestDice(test_combinations.TestCase):
     def test_zeros(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10)
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros_like(logits), atol=1e-2)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.zeros_like(logits), atol=1e-2)
+        self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * (-10.)
-        targets = tf.ones((1, 16, 16, 1), 'int32')
+        logits = tf.ones((3, 16, 16, 1), 'float32') * (-10.)
+        targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = tf.ones((1, 16, 16, 1), 'float32') * 10.
-        targets = tf.zeros((1, 16, 16, 1), 'int32')
+        logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
+        targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, np.ones_like(logits), atol=1e-2)
-
-    def test_multi(self):
-        logits = tf.constant([
-            [[[0.4250706654827763, -7.219920928747051, -1.14131948950217, 2.5576064452206024],
-              [-1.342442193620409, 0.20020616879804165, -6.977300484664198, 6.280817910206608]],
-             [[0.3206719246447576, 0.0176225602425912, -1.902292891065069, -3.369106587128292],
-              [-2.6576544216404563, 1.863726154333165, 4.581314280496405, -7.433728759092233]],
-             [[8.13888654097292, 1.311411218599392, 0.8372454481780323, -2.859455217953778],
-              [-2.0984725413538854, -4.619268334888168, 8.708732477440673, 1.9102341271004541]],
-             [[3.4914178176388266, -4.551627675234152, 7.709902261544302, 3.3982255596983277],
-              [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
-        targets = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
-
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
-        result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.60636544, places=6)
+        self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
     def test_value(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-
-        result = iou(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True)
+        result = iou(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAlmostEqual(result.mean(), 0.46608606, places=6)
+        self.assertAllClose(result, [0.37031713, 0.43179172])
 
     def test_weight(self):
-        logits = tf.constant([
-            [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [2.5576064452206024]],
-             [[1.342442193620409], [0.20020616879804165], [3.977300484664198], [6.280817910206608]],
-             [[0.3206719246447576], [3.0176225602425912], [2.902292891065069], [3.369106587128292]],
-             [[2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
-            [[[8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
-             [[2.0984725413538854], [4.619268334888168], [8.708732477440673], [1.9102341271004541]],
-             [[3.4914178176388266], [4.551627675234152], [7.709902261544302], [3.3982255596983277]],
-             [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [1.3921544038795197]]]], 'float32')
-        targets = tf.constant([
-            [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
-            [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
-        weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+        result = iou(
+            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True,
+            dice=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.44075716, 0.17269272])
 
-        result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, dice=True))
-        self.assertAlmostEqual(result.mean(), 0.46608606, places=6)
+        result = iou(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True, dice=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.44075716, 0.17269272])
 
-        result = self.evaluate(iou(
-            y_true=targets[:, :, :2, :], y_pred=logits[:, :, :2, :], sample_weight=None, from_logits=True, dice=True))
-        self.assertAlmostEqual(result.mean(), 0.4710906, places=6)
+        result = iou(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True, dice=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.46677598, 0.18477038])
 
-        result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=weights, from_logits=True, dice=True))
-        self.assertAlmostEqual(result.mean(), 0.26115888, places=6)
+    def test_multi(self):
+        result = iou(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, dice=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.6068242])
 
-        result = self.evaluate(iou(
-            y_true=targets, y_pred=logits, sample_weight=weights * 2, from_logits=True, dice=True))
-        self.assertAlmostEqual(result.mean(), 0.26115888 * 2., places=6)
 
+BINARY_LOGITS = tf.constant([
+    [[[0.4250706654827763], [7.219920928747051], [7.14131948950217], [-2.5576064452206024]],
+     [[1.342442193620409], [0.20020616879804165], [-3.977300484664198], [6.280817910206608]],
+     [[0.3206719246447576], [-3.0176225602425912], [2.902292891065069], [3.369106587128292]],
+     [[-2.6576544216404563], [6.863726154333165], [4.581314280496405], [7.433728759092233]]],
+    [[[-8.13888654097292], [8.311411218599392], [0.8372454481780323], [2.859455217953778]],
+     [[2.0984725413538854], [-4.619268334888168], [8.708732477440673], [1.9102341271004541]],
+     [[3.4914178176388266], [4.551627675234152], [-7.709902261544302], [3.3982255596983277]],
+     [[0.9182162683255968], [3.0387004793287886], [2.1883984916630697], [-1.3921544038795197]]]], 'float32')
+BINARY_TARGETS = tf.constant([
+    [[[0], [0], [1], [0]], [[1], [0], [1], [1]], [[0], [1], [0], [1]], [[0], [1], [1], [1]]],
+    [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
+BINARY_WEIGHTS = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
+
+MULTI_LOGITS = tf.constant([
+    [[[0.4250706654827763, -7.219920928747051, -1.14131948950217, 2.5576064452206024],
+      [-1.342442193620409, 0.20020616879804165, -6.977300484664198, 6.280817910206608]],
+     [[0.3206719246447576, 0.0176225602425912, -1.902292891065069, -3.369106587128292],
+      [-2.6576544216404563, 1.863726154333165, 4.581314280496405, -7.433728759092233]],
+     [[8.13888654097292, 1.311411218599392, 0.8372454481780323, -2.859455217953778],
+      [-2.0984725413538854, -4.619268334888168, 8.708732477440673, 1.9102341271004541]],
+     [[3.4914178176388266, -4.551627675234152, 7.709902261544302, 3.3982255596983277],
+      [-0.9182162683255968, -7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
+MULTI_TARGETS = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
 
 if __name__ == '__main__':
     tf.test.main()

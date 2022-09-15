@@ -110,6 +110,25 @@ class TestGroupNormalization(test_combinations.TestCase):
         )
         self.assertTrue(np.all(np.isfinite(result)))
 
+    def test_batch(self):
+        inputs = np.random.normal(size=(32, 16, 16, 64)) * 10.
+        layer = GroupNormalization()
+
+        expected = layer(inputs, training=True)
+        expected = self.evaluate(expected)
+
+        result = layer(inputs, training=False)
+        result = self.evaluate(result)
+        self.assertAllClose(expected, result)
+
+        result = []
+        for i in range(inputs.shape[0]):
+            result1 = layer(inputs[i:i + 1], training=False)
+            result1 = self.evaluate(result1)
+            result.append(result1)
+        result = np.concatenate(result, axis=0)
+        self.assertAllClose(expected, result)
+
 
 @test_combinations.run_all_keras_modes
 class TestFilterResponseNormalization(test_combinations.TestCase):
