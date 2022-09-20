@@ -65,7 +65,7 @@ class SpatialEncoding(layers.Layer):
 
     def __init__(self, units=24, sigma=6, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
+        self.input_spec = layers.InputSpec(min_ndim=2)
 
         self.units = units
         self.sigma = sigma
@@ -75,7 +75,7 @@ class SpatialEncoding(layers.Layer):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-        self.input_spec = layers.InputSpec(ndim=4, axes={-1: self.channels})
+        self.input_spec = layers.InputSpec(ndim=len(input_shape), axes={-1: self.channels})
 
         self.embed_dim = max(1, self.units // 2 // self.channels)
         embed_dtype = tf.dtypes.as_dtype(self.dtype).as_numpy_dtype()
