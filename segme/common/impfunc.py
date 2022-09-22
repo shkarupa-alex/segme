@@ -67,15 +67,15 @@ def grid_sample(features, grid, mode='bilinear', align_corners=False, symmetric_
 
 
 def make_coords(inputs, dtype=None):
+    dtype = dtype or global_policy().compute_dtype
+
     if isinstance(inputs, (tuple, list)):
         if 3 != len(inputs):
             raise ValueError(f'Expected inputs to be a list or tuple with batch/height/width values, got {inputs}')
         batch, height, width = inputs
-        dtype = dtype or global_policy().compute_dtype
     else:
-        inputs = tf.convert_to_tensor(inputs, dtype)
+        inputs = tf.convert_to_tensor(inputs)
         batch, height, width, _ = tf.unstack(tf.shape(inputs))
-        dtype = dtype or inputs.dtype
 
     height_ = 1. / tf.cast(height, dtype)
     width_ = 1. / tf.cast(width, dtype)
