@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from segme.metric.bacc import BinaryBoundaryAccuracy, SparseCategoricalBoundaryAccuracy
+from segme.metric.boundary.bacc import BinaryBoundaryAccuracy, SparseCategoricalBoundaryAccuracy
 
 
 @test_combinations.run_all_keras_modes
