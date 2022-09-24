@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow_addons.image import euclidean_dist_transform
-from segme.loss.common_loss import validate_input, to_probs, to_1hot
+from segme.loss.common_loss import validate_input, weighted_loss, to_probs, to_1hot
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -34,8 +34,6 @@ def boundary_categorical_loss(y_true, y_pred, sample_weight, from_logits):
     distance *= tf.cast(has_true & has_false, 'float32')
     distance = tf.stop_gradient(distance)
 
-    loss = y_pred * distance
-    if sample_weight is not None:
-        loss *= sample_weight
+    loss = weighted_loss(y_pred * distance, sample_weight)
 
     return tf.reduce_mean(loss, axis=[1, 2, 3])

@@ -181,10 +181,10 @@ class TestReflectionTransmissionExclusionLoss(test_combinations.TestCase):
         self.assertAlmostEqual(result, 0.8186368)
 
         result = self.evaluate(loss(r_pred, t_pred, weights))
-        self.assertAlmostEqual(result, 0.6637336)
+        self.assertAlmostEqual(result, 0.82833385)
 
         result = self.evaluate(loss(r_pred, t_pred, weights * 2.))
-        self.assertAlmostEqual(result, 0.6637336 * 2.)
+        self.assertAlmostEqual(result, 0.82833385 * 2.)
 
     def test_multi(self):
         logits = tf.constant([
@@ -206,7 +206,7 @@ class TestReflectionTransmissionExclusionLoss(test_combinations.TestCase):
         loss = ReflectionTransmissionExclusionLoss(levels=1)
         result = self.evaluate(loss(targets, logits, weights))
 
-        self.assertAlmostEqual(result, 0.33960193)
+        self.assertAlmostEqual(result, 0.42529058)
 
     def test_batch(self):
         r_pred = np.random.rand(2, 32, 32, 1).astype('float32')

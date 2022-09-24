@@ -8,12 +8,11 @@ from segme.loss.grad_mse import GradientMeanSquaredError
 from segme.loss.hard_grad import HardGradientMeanAbsoluteError
 from segme.loss.laplace_edge import LaplaceEdgeCrossEntropy
 from segme.loss.laplacian_pyramid import LaplacianPyramidLoss
-from segme.loss.mean_absolute import MeanAbsoluteError
-from segme.loss.mean_absolute import mean_absolute_error
-from segme.loss.mean_squared import MeanSquaredError
-from segme.loss.mean_squared import mean_squared_error
+from segme.loss.mean_absolute import MeanAbsoluteClassificationError, MeanAbsoluteRegressionError
+from segme.loss.mean_squared import MeanSquaredClassificationError, MeanSquaredRegressionError
 from segme.loss.normalized_focal import NormalizedFocalCrossEntropy
 from segme.loss.region_mutual import RegionMutualInformationLoss
 from segme.loss.rt_exclusion import ReflectionTransmissionExclusionLoss
 from segme.loss.sobel_edge import SobelEdgeLoss
 from segme.loss.structural_similarity import StructuralSimilarityLoss
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper

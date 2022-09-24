@@ -73,7 +73,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         loss = HardGradientMeanAbsoluteError()
         result = self.evaluate(loss(targets[None, ..., None], probs[None, ..., None], trim[None, ..., None]))
 
-        self.assertAlmostEqual(result, 0.15154228)
+        self.assertAlmostEqual(result, 0.20806925)
 
     def test_weight(self):
         logits = tf.constant([
@@ -96,10 +96,10 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         self.assertAlmostEqual(result, 5.133383, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 2.179687, places=6)
+        self.assertAlmostEqual(result, 5.133383, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 2.179687 * 2., places=6)
+        self.assertAlmostEqual(result, 5.133383 * 2., places=6)
 
     def test_multi(self):
         logits = tf.constant([

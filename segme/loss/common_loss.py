@@ -116,6 +116,22 @@ def to_1hot(y_true, y_pred):
     return y_true, y_pred
 
 
+def weighted_loss(loss, sample_weight, axis=(1, 2, 3)):
+    if sample_weight is not None:
+        valid_weight = tf.cast(sample_weight > 0., sample_weight.dtype)
+        valid_weight = tf.reduce_mean(valid_weight, axis=[1, 2], keepdims=True)
+
+        sample_weight = tf.math.divide_no_nan(sample_weight, valid_weight)
+        sample_weight = tf.stop_gradient(sample_weight)
+
+        loss *= sample_weight
+
+    if axis:
+        loss = tf.reduce_mean(loss, axis=axis)
+
+    return loss
+
+
 def compute_gradient(inputs, axis, reduction):
     if 1 == axis:
         grad = inputs[:, 1:, :, :], inputs[:, :-1, :, :]
@@ -134,34 +150,40 @@ def compute_gradient(inputs, axis, reduction):
     return grad
 
 
-def mae(y_true, y_pred, sample_weight, from_logits):
-    y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='sparse')
-    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-    y_true, y_pred = to_1hot(y_true, y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+def mae(y_true, y_pred, sample_weight, from_logits, regression=False):
+    if regression:
+        if from_logits:
+            raise ValueError('Regression MAE does not support "from_logits=True"')
+        y_true, y_pred, sample_weight = validate_input(
+            y_true, y_pred, sample_weight, dtype=None, rank=None, channel='same')
+    else:
+        y_true, y_pred, sample_weight = validate_input(
+            y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='sparse')
+        y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
+        y_true, y_pred = to_1hot(y_true, y_pred)
+        y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
     loss = tf.abs(y_pred - y_true)
 
-    if sample_weight is not None:
-        loss *= sample_weight
-
-    return tf.reduce_mean(loss, axis=[1, 2, 3])
+    return weighted_loss(loss, sample_weight)
 
 
-def mse(y_true, y_pred, sample_weight, from_logits):
-    y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='sparse')
-    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-    y_true, y_pred = to_1hot(y_true, y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+def mse(y_true, y_pred, sample_weight, from_logits, regression=False):
+    if regression:
+        if from_logits:
+            raise ValueError('Regression MAE does not support "from_logits=True"')
+        y_true, y_pred, sample_weight = validate_input(
+            y_true, y_pred, sample_weight, dtype=None, rank=None, channel='same')
+    else:
+        y_true, y_pred, sample_weight = validate_input(
+            y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='sparse')
+        y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
+        y_true, y_pred = to_1hot(y_true, y_pred)
+        y_true = tf.cast(y_true, dtype=y_pred.dtype)
 
     loss = tf.math.squared_difference(y_pred, y_true)
 
-    if sample_weight is not None:
-        loss *= sample_weight
-
-    return tf.reduce_mean(loss, axis=[1, 2, 3])
+    return weighted_loss(loss, sample_weight)
 
 
 def crossentropy(y_true, y_pred, sample_weight, from_logits):
@@ -173,10 +195,7 @@ def crossentropy(y_true, y_pred, sample_weight, from_logits):
     else:
         loss = backend.sparse_categorical_crossentropy(y_true, y_pred, from_logits=from_logits)[..., None]
 
-    if sample_weight is not None:
-        loss *= sample_weight
-
-    return tf.reduce_mean(loss, axis=[1, 2, 3])
+    return weighted_loss(loss, sample_weight)
 
 
 def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False):
@@ -188,10 +207,6 @@ def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False):
 
     y_and = y_pred_1h * y_true_1h
     y_or = y_pred_1h + y_true_1h
-
-    if sample_weight is not None:
-        y_and *= sample_weight
-        y_or *= sample_weight
 
     # true_pos = y_pred_1h * y_true_1h
     # false_pos = y_pred_1h * (1 - y_true_1h)
@@ -208,8 +223,8 @@ def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False):
         numerator = y_and
         denominator = y_or - y_and
 
-    numerator = tf.reduce_mean(numerator, axis=[1, 2])
-    denominator = tf.reduce_mean(denominator, axis=[1, 2])
+    numerator = weighted_loss(numerator, sample_weight, axis=[1, 2])
+    denominator = weighted_loss(denominator, sample_weight, axis=[1, 2])
 
     size = tf.reduce_prod(tf.shape(y_true)[1:3])
     epsilon = smooth / tf.cast(size, y_pred.dtype)

@@ -69,7 +69,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
 
         result = structural_similarity_loss(
             y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
-            k1=0.01, k2=0.03)
+            k1=0.01, k2=0.03, weight_pooling='mean')
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -80,7 +80,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
 
         result = structural_similarity_loss(
             y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
-            k1=0.01, k2=0.03)
+            k1=0.01, k2=0.03, weight_pooling='mean')
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -91,7 +91,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
 
         result = structural_similarity_loss(
             y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
-            k1=0.01, k2=0.03)
+            k1=0.01, k2=0.03, weight_pooling='mean')
         result = self.evaluate(result)
 
         self.assertAllClose(result, [1.] * 3, atol=1e-2)
@@ -102,7 +102,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
 
         result = structural_similarity_loss(
             y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
-            k1=0.01, k2=0.03)
+            k1=0.01, k2=0.03, weight_pooling='mean')
         result = self.evaluate(result)
 
         self.assertAllClose(result, [1.] * 3, atol=1e-2)
@@ -113,7 +113,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
 
         result = structural_similarity_loss(
             y_true=targets, y_pred=probs, sample_weight=None, max_val=1., factors=(0.5,), size=2, sigma=1.5,
-            k1=0.01, k2=0.03)
+            k1=0.01, k2=0.03, weight_pooling='mean')
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.])
@@ -231,7 +231,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
         result = loss(targets, probs)
         result = self.evaluate(result)
 
-        self.assertAlmostEqual(result, 0.8302058, places=5)  # 0.8249481320381165 when compensation = 1
+        self.assertAlmostEqual(result, 0.8972229, places=4)  # 0.8249481320381165 when compensation = 1
 
     def test_weight(self):
         logits = tf.constant([
@@ -253,13 +253,13 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
         loss = StructuralSimilarityLoss(factors=(0.5,), size=2)
 
         result = self.evaluate(loss(targets[:, :, :32], logits[:, :, :32]))
-        self.assertAlmostEqual(result, 0.46263173, places=6)
+        self.assertAlmostEqual(result, 0.6233712, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.62305105, places=6)
+        self.assertAlmostEqual(result, 0.63185704, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.4669136, places=6)
+        self.assertAlmostEqual(result, 0.63185704 * 2, places=6)
 
     def test_multi(self):
         logits = tf.constant([
@@ -281,7 +281,7 @@ class TestStructuralSimilarityLoss(test_combinations.TestCase):
         loss = StructuralSimilarityLoss(factors=(0.5,), size=2)
         result = self.evaluate(loss(targets, logits, weights))
 
-        self.assertAlmostEqual(result, 0.9002079)
+        self.assertAlmostEqual(result, 0.85025084)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

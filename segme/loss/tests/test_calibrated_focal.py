@@ -75,10 +75,10 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
         self.assertAlmostEqual(result, 0.8728758, places=6)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
-        self.assertAlmostEqual(result, 0.4364379, places=6)
+        self.assertAlmostEqual(result, 0.8728758, places=6)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 0.4364379 * 2., places=6)
+        self.assertAlmostEqual(result, 0.8728758 * 2., places=6)
 
     def test_multi(self):
         loss = CalibratedFocalCrossEntropy(from_logits=True)

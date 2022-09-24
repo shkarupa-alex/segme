@@ -3,8 +3,8 @@ import tensorflow as tf
 from keras import backend
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from segme.loss.common_loss import validate_input
-from segme.metric.grad import _togray, _gauss_filter, _gauss_gradient
+from segme.loss.common_loss import validate_input, weighted_loss
+from segme.metric.matting.grad import _togray, _gauss_filter, _gauss_gradient
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -45,9 +45,6 @@ def gradient_mean_squared_error(y_true, y_pred, sample_weight, sigma):
     true_amp = tf.stop_gradient(true_amp)
 
     loss = tf.math.squared_difference(pred_amp, true_amp)
-    if sample_weight is not None:
-        loss *= sample_weight
-
-    loss = tf.reduce_mean(loss, axis=[1, 2, 3])
+    loss = weighted_loss(loss, sample_weight)
 
     return loss

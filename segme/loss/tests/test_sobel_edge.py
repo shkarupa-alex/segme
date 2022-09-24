@@ -66,10 +66,10 @@ class TestSobelEdgeLoss(test_combinations.TestCase):
         self.assertAlmostEqual(result, 0.08495622)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
-        self.assertAlmostEqual(result, 0.04641555)
+        self.assertAlmostEqual(result, 0.0928311)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 0.04641555 * 2.)
+        self.assertAlmostEqual(result, 0.0928311 * 2.)
 
     def test_multi(self):
         loss = SobelEdgeLoss(from_logits=True)
