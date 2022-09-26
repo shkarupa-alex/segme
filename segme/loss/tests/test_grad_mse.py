@@ -73,7 +73,7 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
         loss = GradientMeanSquaredError()
         result = self.evaluate(loss(targets[None, ..., None], probs[None, ..., None], trim[None, ..., None]))
 
-        self.assertAlmostEqual(result, 0.018489433)
+        self.assertAlmostEqual(result, 0.023772128)
 
     def test_weight(self):
         logits = tf.constant([
@@ -96,10 +96,10 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
         self.assertAlmostEqual(result, 0.20074403)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.057381306)
+        self.assertAlmostEqual(result, 0.11476261)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.057381306 * 2.)
+        self.assertAlmostEqual(result, 0.11476261 * 2.)
 
     def test_multi(self):
         logits = tf.constant([

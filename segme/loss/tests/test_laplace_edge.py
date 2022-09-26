@@ -68,10 +68,10 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         self.assertAlmostEqual(result, 2.8783655, places=4)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
-        self.assertAlmostEqual(result, 1.5061817, places=4)
+        self.assertAlmostEqual(result, 3.0123634, places=4)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 1.5061817 * 2, places=4)
+        self.assertAlmostEqual(result, 3.0123634 * 2, places=4)
 
     def test_multi(self):
         loss = LaplaceEdgeCrossEntropy(from_logits=True)

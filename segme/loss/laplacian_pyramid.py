@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from segme.loss.common_loss import validate_input
+from segme.loss.common_loss import validate_input, weighted_loss
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -14,10 +14,10 @@ class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
     Implements Lap1 in https://arxiv.org/pdf/1707.05776.pdf
     """
 
-    def __init__(self, levels=5, size=5, sigma=None, residual=False, reduction=Reduction.AUTO,
+    def __init__(self, levels=5, size=5, sigma=None, residual=False, weight_pooling='mean', reduction=Reduction.AUTO,
                  name='laplacian_pyramid_loss'):
         super().__init__(laplacian_pyramid_loss, reduction=reduction, name=name, levels=levels, size=size, sigma=sigma,
-                         residual=residual)
+                         residual=residual, weight_pooling=weight_pooling)
 
 
 def _pad_odd(inputs):
@@ -88,14 +88,28 @@ def _laplacian_pyramid(inputs, levels, kernel, residual):
     return pyramid
 
 
-def _weight_pyramid(inputs, levels, residual):
-    pyramid = []
+def _weight_pyramid(inputs, levels, residual, weight_pooling):
+    if inputs is None:
+        return [None] * (levels + int(residual))
 
+    if weight_pooling in {'min', 'max'}:
+        pooling = tf.nn.max_pool2d
+    elif 'mean' == weight_pooling:
+        pooling = tf.nn.avg_pool2d
+    else:
+        raise ValueError('Unknown weight pooling mode')
+
+    pyramid = []
     current = inputs
     for level in range(levels):
         current = _pad_odd(current)
         pyramid.append(current)
-        current = -tf.nn.max_pool2d(-current, ksize=2, strides=2, padding='VALID')  # min pooling
+
+        if 'min' == weight_pooling:
+            current = -current
+        current = pooling(current, ksize=2, strides=2, padding='VALID')
+        if 'min' == weight_pooling:
+            current = -current
 
     if residual:
         pyramid.append(current)
@@ -103,7 +117,7 @@ def _weight_pyramid(inputs, levels, residual):
     return pyramid
 
 
-def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma, residual):
+def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma, residual, weight_pooling):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=4, channel='same')
 
@@ -118,12 +132,10 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma, r
         pyr_true = [tf.stop_gradient(pt) for pt in pyr_true]
 
     losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
-    if sample_weight is not None:
-        weights = _weight_pyramid(sample_weight, levels, residual)
-        weights = [tf.stop_gradient(pw) for pw in weights]
-        losses = [ls * wt for ls, wt in zip(losses, weights)]
+    weights = _weight_pyramid(sample_weight, levels, residual, weight_pooling)
+    losses = [weighted_loss(loss, weight) for loss, weight in zip(losses, weights)]
 
-    losses = [tf.reduce_mean(l, axis=[1, 2, 3]) * (2 ** i) for i, l in enumerate(losses)]
+    losses = [loss * (2 ** i) for i, loss in enumerate(losses)]
     losses = sum(losses)
 
     return losses

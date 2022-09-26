@@ -74,10 +74,10 @@ class TestCrossEntropyLoss(test_combinations.TestCase):
         self.assertAlmostEqual(result, 1.5399183, places=5)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.5381311, places=5)
+        self.assertAlmostEqual(result, 1.0762622, places=5)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.5381311 * 2, places=5)
+        self.assertAlmostEqual(result, 1.0762622 * 2, places=5)
 
     def test_multi(self):
         logits = tf.tile(MULTI_LOGITS, [1, 16, 16, 1])

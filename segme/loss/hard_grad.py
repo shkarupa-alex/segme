@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from segme.loss.common_loss import validate_input, compute_gradient
+from segme.loss.common_loss import validate_input, weighted_loss, compute_gradient
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -32,21 +32,15 @@ def hard_gradient_mean_absolute_error(y_true, y_pred, sample_weight, smooth):
         g_weight_x = compute_gradient(sample_weight, 1, 'min')
         g_weight_y = compute_gradient(sample_weight, 2, 'min')
 
-    g_loss_x = tf.abs(g_true_x - g_pred_x)
-    g_loss_y = tf.abs(g_true_y - g_pred_y)
-    if sample_weight is not None:
-        g_loss_x *= g_weight_x
-        g_loss_y *= g_weight_y
+    g_loss_x = weighted_loss(tf.abs(g_true_x - g_pred_x), g_weight_x)
+    g_loss_y = weighted_loss(tf.abs(g_true_y - g_pred_y), g_weight_y)
     loss = [g_loss_x, g_loss_y]
 
     if smooth > 0:
-        s_loss_x = tf.abs(g_pred_x) * smooth
-        s_loss_y = tf.abs(g_pred_y) * smooth
-        if sample_weight is not None:
-            s_loss_x *= g_weight_x
-            s_loss_y *= g_weight_y
+        s_loss_x = weighted_loss(tf.abs(g_pred_x) * smooth, g_weight_x)
+        s_loss_y = weighted_loss(tf.abs(g_pred_y) * smooth, g_weight_y)
         loss.extend([s_loss_x, s_loss_y])
 
-    loss = sum([tf.reduce_mean(l, axis=[1, 2, 3]) for l in loss])
+    loss = sum(loss)
 
     return loss

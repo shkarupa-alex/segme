@@ -67,10 +67,10 @@ class TestGeneralizedDiceLoss(test_combinations.TestCase):
         self.assertAlmostEqual(result, 0.33624452)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
-        self.assertAlmostEqual(result, 0.37371558)
+        self.assertAlmostEqual(result, 0.37904036)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 0.37904036)
+        self.assertAlmostEqual(result, 0.38176167)
 
     def test_multi(self):
         loss = GeneralizedDiceLoss(from_logits=True)

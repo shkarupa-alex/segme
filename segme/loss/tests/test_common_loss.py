@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras.testing_infra import test_combinations
-from segme.loss.common_loss import validate_input, to_logits, to_probs, to_1hot, compute_gradient, mae, mse, \
-    crossentropy, iou
+from segme.loss.common_loss import validate_input, to_logits, to_probs, to_1hot, weighted_loss, compute_gradient, \
+    mae, mse, crossentropy, iou
 
 
 @test_combinations.run_all_keras_modes
@@ -119,6 +119,19 @@ class TestUtils(test_combinations.TestCase):
         with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'Condition x == y did not hold'):
             to_1hot(targets1, np.ones((2, 4, 4, 1), 'float32') * 2.)
 
+    def test_weighted_loss(self):
+        loss = np.random.uniform(size=(2, 4, 5, 3))
+        weight = np.random.uniform(size=(2, 4, 5, 1)) - 0.5
+        weight[weight < 0.] = 0.
+        expected = np.array([
+            (loss[0] * weight[0])[(weight[0] > 0.).repeat(loss.shape[-1], axis=-1)].mean(),
+            (loss[1] * weight[1])[(weight[1] > 0.).repeat(loss.shape[-1], axis=-1)].mean()
+        ])
+
+        result = weighted_loss(loss, weight)
+        result = self.evaluate(result)
+        self.assertAllClose(expected, result)
+
     def test_compute_gradient(self):
         inputs = tf.constant([
             [[[0.], [0.], [1.], [0.]], [[1.], [0.], [1.], [1.]], [[0.], [1.], [0.], [1.]], [[0.], [1.], [1.], [1.]]],
@@ -179,6 +192,12 @@ class TestMAE(test_combinations.TestCase):
         result = self.evaluate(result)
         self.assertAllClose(result, [0.375533, 0.417319])
 
+        result = mae(
+            y_true=tf.cast(BINARY_TARGETS, 'float32'), y_pred=tf.nn.sigmoid(BINARY_LOGITS), sample_weight=None,
+            from_logits=False, regression=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.375533, 0.417319])
+
     def test_weight(self):
         result = mae(
             y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True)
@@ -187,11 +206,11 @@ class TestMAE(test_combinations.TestCase):
 
         result = mae(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.24752331, 0.08946615])
+        self.assertAllClose(result, [0.49504662, 0.17893231])
 
         result = mae(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.49504662, 0.17893231])
+        self.assertAllClose(result, [0.99009323, 0.35786462])
 
     def test_multi(self):
         result = mae(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
@@ -238,19 +257,25 @@ class TestMSE(test_combinations.TestCase):
         result = self.evaluate(result)
         self.assertAllClose(result, [0.30168968, 0.35166395])
 
+        result = mse(
+            y_true=tf.cast(BINARY_TARGETS, 'float32'), y_pred=tf.nn.sigmoid(BINARY_LOGITS), sample_weight=None,
+            from_logits=False, regression=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.30168968, 0.35166395])
+
     def test_weight(self):
         result = mse(
             y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.36980823, 0.12967442])
+        self.assertAllClose(result, [0.3698082, 0.12967442])
 
         result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.1849041, 0.06483721])
+        self.assertAllClose(result, [0.3698082, 0.12967442])
 
         result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.3698082, 0.12967442])
+        self.assertAllClose(result, [0.7396164, 0.25934884])
 
     def test_multi(self):
         result = mse(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
@@ -306,12 +331,12 @@ class TestCrossentropy(test_combinations.TestCase):
         result = crossentropy(
             y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.8237216, 0.25254118])
+        self.assertAllClose(result, [1.6474432, 0.50508237])
 
         result = crossentropy(
             y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [1.6474432, 0.50508237])
+        self.assertAllClose(result, [3.2948864, 1.0101647])
 
     def test_multi(self):
         result = crossentropy(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
@@ -366,11 +391,11 @@ class TestIOU(test_combinations.TestCase):
 
         result = iou(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.56775665, 0.263336])
+        self.assertAllClose(result, [0.61162996, 0.29159677])
 
         result = iou(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.61162996, 0.29159677])
+        self.assertAllClose(result, [0.6362138, 0.30826524])
 
     def test_multi(self):
         result = iou(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
@@ -427,12 +452,12 @@ class TestDice(test_combinations.TestCase):
         result = iou(
             y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.44075716, 0.17269272])
+        self.assertAllClose(result, [0.46677598, 0.18477038])
 
         result = iou(
             y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.46677598, 0.18477038])
+        self.assertAllClose(result, [0.48097467, 0.19151434])
 
     def test_multi(self):
         result = iou(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, dice=True)

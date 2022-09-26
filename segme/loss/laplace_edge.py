@@ -3,7 +3,7 @@ import tensorflow as tf
 from keras import backend
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from segme.loss.common_loss import validate_input, to_probs, to_1hot, crossentropy
+from segme.loss.common_loss import validate_input, weighted_loss, to_probs, to_1hot
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -48,8 +48,6 @@ def laplace_edge_cross_entropy(y_true, y_pred, sample_weight, from_logits):
 
     loss = backend.binary_crossentropy(y_true_edge, y_pred_edge, from_logits=False)
     loss = tf.reduce_mean(loss, axis=-1)
-    if sample_weight is not None:
-        loss *= sample_weight
-    loss = tf.reduce_mean(loss, axis=[1, 2, 3])
+    loss = weighted_loss(loss, sample_weight)
 
     return loss

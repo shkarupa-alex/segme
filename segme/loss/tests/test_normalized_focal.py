@@ -71,10 +71,10 @@ class TestNormalizedFocalCrossEntropy(test_combinations.TestCase):
         self.assertAlmostEqual(result, 3.4507565, places=5)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
-        self.assertAlmostEqual(result, 1.4240515, places=5)
+        self.assertAlmostEqual(result, 2.848103, places=5)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 1.4240515 * 2., places=5)
+        self.assertAlmostEqual(result, 2.848103 * 2., places=5)
 
     def test_multi(self):
         loss = NormalizedFocalCrossEntropy(from_logits=True)

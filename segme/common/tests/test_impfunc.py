@@ -191,6 +191,13 @@ class TestMakeCoords(tf.test.TestCase):
         self.assertAllClose(expected, result)
         self.assertDTypeEqual(result, expected.dtype)
 
+    def test_uint8(self):
+        inputs = tf.zeros([2, 16, 16, 1], 'uint8')
+        result = make_coords(inputs)
+        result = self.evaluate(result)
+        self.assertTupleEqual(result.shape, (2, 16, 16, 2))
+        self.assertDTypeEqual(result, 'float32')
+
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         expected = np.array([

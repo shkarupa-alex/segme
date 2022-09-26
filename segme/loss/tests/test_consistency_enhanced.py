@@ -70,7 +70,7 @@ class TestConsistencyEnhancedLoss(test_combinations.TestCase):
         self.assertAlmostEqual(result, 0.33698937)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 0.3369894)
+        self.assertAlmostEqual(result, 0.33698946)
 
     def test_multi(self):
         loss = ConsistencyEnhancedLoss(from_logits=True)

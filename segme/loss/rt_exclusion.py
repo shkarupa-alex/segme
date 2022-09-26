@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from segme.loss.common_loss import validate_input, compute_gradient
+from segme.loss.common_loss import validate_input, weighted_loss, compute_gradient
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
@@ -20,7 +20,7 @@ class ReflectionTransmissionExclusionLoss(WeightedLossFunctionWrapper):
 def _exclusion_level(r_pred, t_pred, axis, sample_weight):
     grad_r = compute_gradient(r_pred, axis, 'sub')
     grad_t = compute_gradient(t_pred, axis, 'sub')
-    grad_w = None if sample_weight is None else compute_gradient(sample_weight, axis, 'min')
+    grad_w = None if sample_weight is None else compute_gradient(sample_weight, axis, 'min') ** 4
 
     alpha = 2. * tf.math.divide_no_nan(
         tf.reduce_mean(tf.abs(grad_r), axis=[1, 2, 3], keepdims=True),
@@ -29,9 +29,7 @@ def _exclusion_level(r_pred, t_pred, axis, sample_weight):
     grad_ts = tf.nn.sigmoid(grad_t * alpha) * 2. - 1.
 
     loss = tf.square(grad_rs) * tf.square(grad_ts)
-    if grad_w is not None:
-        loss *= grad_w ** 4
-    loss = tf.reduce_mean(loss, axis=[1, 2, 3]) ** 0.25
+    loss = weighted_loss(loss, grad_w) ** 0.25
 
     return loss
 
