@@ -2,7 +2,6 @@ import tensorflow as tf
 from keras import layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from segme.common.convnormact import Conv
 from segme.common.interrough import NearestInterpolation
 
 
@@ -33,8 +32,8 @@ class FadeFeatureAlignment(layers.Layer):
 
         # in original version coarse and fine features should have same channel size
         # here we project them to the same channel size before merging
-        self.fine = Conv(self.filters, 1)
-        self.coarse = Conv(self.filters, 1)
+        self.fine = layers.Conv2D(self.filters, 1)
+        self.coarse = layers.Conv2D(self.filters, 1)
 
         super().build(input_shape)
 
@@ -83,9 +82,9 @@ class SemiShift(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.coarse = Conv(self.embedding_size, 1)
-        self.fine = Conv(self.embedding_size, 1, use_bias=False)
-        self.content = Conv(self.filters, self.kernel_size)
+        self.coarse = layers.Conv2D(self.embedding_size, 1)
+        self.fine = layers.Conv2D(self.embedding_size, 1, use_bias=False)
+        self.content = layers.Conv2D(self.filters, self.kernel_size, padding='same')
 
         self.internear = NearestInterpolation()
 

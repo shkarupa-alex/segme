@@ -4,10 +4,9 @@ from keras import initializers, layers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.adppool import AdaptiveAveragePooling
-from segme.common.align.impf import SpatialEncoding
 from segme.common.align.fade import CarafeConvolution
 from segme.common.intersmooth import SmoothInterpolation
-from segme.common.convnormact import ConvNormAct, ConvAct, Conv, Act
+from segme.common.convnormact import ConvNormAct, ConvAct
 from segme.common.sequent import Sequential
 
 
@@ -97,7 +96,7 @@ class SeFeatureSelection(layers.Layer):
             ConvAct(self.filters, 1, kernel_initializer='variance_scaling'),
             layers.Conv2D(self.channels, 1, activation='sigmoid', kernel_initializer='variance_scaling')])
 
-        self.proj = Conv(self.filters, 1)
+        self.proj = layers.Conv2D(self.filters, 1)
 
         super().build(input_shape)
 
@@ -137,8 +136,8 @@ class GuidedFeatureSelection(layers.Layer):
             layers.InputSpec(ndim=4, axes={-1: self.channels[0]}),
             layers.InputSpec(ndim=4, axes={-1: self.channels[1]})]
 
-        self.sample_proj = Conv(None, 3)
-        self.guide_proj = Conv(None, 3)
+        self.sample_proj = layers.DepthwiseConv2D(3, padding='same')
+        self.guide_proj = layers.DepthwiseConv2D(3, padding='same')
         self.avg_pool = AdaptiveAveragePooling(self.pool_size)
 
         self.att_bias = self.add_weight(
@@ -148,7 +147,7 @@ class GuidedFeatureSelection(layers.Layer):
             trainable=True,
             dtype=self.dtype)
 
-        self.out_proj = Conv(self.filters, 1)
+        self.out_proj = layers.Conv2D(self.filters, 1)
 
         super().build(input_shape)
 
@@ -209,7 +208,7 @@ class ImplicitKernelPrediction(layers.Layer):
             layers.InputSpec(ndim=4, axes={-1: channels[0]}), layers.InputSpec(ndim=4, axes={-1: channels[1]})]
 
         self.intbysample = SmoothInterpolation(None)
-        self.content = Conv(self.filters, self.kernel_size)
+        self.content = layers.Conv2D(self.filters, self.kernel_size, padding='same')
 
         super().build(input_shape)
 
