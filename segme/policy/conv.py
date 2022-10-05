@@ -130,7 +130,8 @@ class StandardizedConv(FixedConv):
         kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, variance_epsilon=1e-5)
         kernel = tf.stop_gradient(kernel)
 
-        with tf.control_dependencies([self.kernel.assign(kernel)]):
+        kernel_update = self.kernel.assign(kernel, read_value=False)
+        with tf.control_dependencies([kernel_update]):
             outputs = tf.identity(inputs)
 
         return outputs
@@ -194,7 +195,9 @@ class SpectralConv(StandardizedConv):
         kernel = tf.stop_gradient(kernel)
         u = tf.stop_gradient(u)
 
-        with tf.control_dependencies([self.kernel.assign(kernel), self.u.assign(u)]):
+        kernel_update = self.kernel.assign(kernel, read_value=False)
+        u_update = self.u.assign(u, read_value=False)
+        with tf.control_dependencies([kernel_update, u_update]):
             outputs = tf.identity(inputs)
 
         return outputs
