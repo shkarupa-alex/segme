@@ -1,8 +1,8 @@
+import tensorflow as tf
 from keras import layers, models
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfmiss.keras.layers import DCNv2
-from segme.common.convnormact import Conv, Act
 from segme.common.interrough import BilinearInterpolation
 
 
@@ -29,7 +29,6 @@ class DeformableFeatureAlignment(layers.Layer):
         self.offset = layers.Conv2D(self.filters * 2, 1, use_bias=False, kernel_initializer='he_uniform')
         self.dcn = DCNv2(
             self.filters, 3, padding='same', deformable_groups=self.deformable_groups, custom_alignment=True)
-        self.act = Act()
 
         super().build(input_shape)
 
@@ -42,7 +41,7 @@ class DeformableFeatureAlignment(layers.Layer):
         fine_coarse = layers.concatenate([fine_calibrated, coarse * 2.])
         align_offset = self.offset(fine_coarse)
         coarse_aligned = self.dcn([coarse, align_offset])
-        coarse_aligned = self.act(coarse_aligned)
+        coarse_aligned = tf.nn.relu(coarse_aligned)
 
         outputs = coarse_aligned + fine_calibrated
 
@@ -81,7 +80,7 @@ class FeatureSelection(layers.Layer):
             layers.GlobalAvgPool2D(keepdims=True),
             layers.Conv2D(channels, 1, activation='sigmoid', use_bias=False, kernel_initializer='he_uniform'),
         ])
-        self.conv = Conv(self.filters, 1, use_bias=False, kernel_initializer='he_uniform')
+        self.conv = layers.Conv2D(self.filters, 1, use_bias=False, kernel_initializer='he_uniform')
 
         super().build(input_shape)
 

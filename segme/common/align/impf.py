@@ -14,7 +14,7 @@ class ImplicitFeatureAlignment(layers.Layer):
     https://arxiv.org/pdf/2206.08655.pdf
     """
 
-    def __init__(self, filters, **kwargs):
+    def __init__(self, filters=256, **kwargs):
         super().__init__(**kwargs)
 
         self.filters = filters
@@ -27,7 +27,8 @@ class ImplicitFeatureAlignment(layers.Layer):
         self.input_spec = [layers.InputSpec(ndim=4, axes={-1: c}) for c in self.channels]
 
         self.posemb = [SpatialEncoding() for _ in input_shape]
-        self.imnet = models.Sequential([ConvNormAct(self.filters * 2, 1), ConvNormAct(self.filters, 1)])
+        self.imnet = models.Sequential([
+            ConvNormAct(self.filters * 2, 1), ConvNormAct(self.filters, 1), ConvNormAct(self.filters, 1)])
 
         super().build(input_shape)
 
