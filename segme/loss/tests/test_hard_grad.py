@@ -22,7 +22,8 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         probs = tf.zeros((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None, smooth=0.01)
+        result = hard_gradient_mean_absolute_error(
+            y_true=targets, y_pred=probs, sample_weight=None, weight=1., smooth=0.01)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -31,7 +32,8 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         probs = tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None, smooth=0.01)
+        result = hard_gradient_mean_absolute_error(
+            y_true=targets, y_pred=probs, sample_weight=None, weight=1., smooth=0.01)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -40,7 +42,8 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         probs = tf.zeros((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None, smooth=0.01)
+        result = hard_gradient_mean_absolute_error(
+            y_true=targets, y_pred=probs, sample_weight=None, weight=1., smooth=0.01)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -49,7 +52,8 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         probs = tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None, smooth=0.01)
+        result = hard_gradient_mean_absolute_error(
+            y_true=targets, y_pred=probs, sample_weight=None, weight=1., smooth=0.01)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)

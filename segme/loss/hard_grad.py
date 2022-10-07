@@ -13,11 +13,12 @@ class HardGradientMeanAbsoluteError(WeightedLossFunctionWrapper):
     """
 
     def __init__(
-            self, smooth=0.01, reduction=Reduction.AUTO, name='hard_gradient_mean_absolute_error'):
-        super().__init__(hard_gradient_mean_absolute_error, reduction=reduction, name=name, smooth=smooth)
+            self, weight=1., smooth=0.01, reduction=Reduction.AUTO, name='hard_gradient_mean_absolute_error'):
+        super().__init__(
+            hard_gradient_mean_absolute_error, reduction=reduction, name=name, weight=weight, smooth=smooth)
 
 
-def hard_gradient_mean_absolute_error(y_true, y_pred, sample_weight, smooth):
+def hard_gradient_mean_absolute_error(y_true, y_pred, sample_weight, weight, smooth):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=4, channel='same')
 
@@ -32,13 +33,13 @@ def hard_gradient_mean_absolute_error(y_true, y_pred, sample_weight, smooth):
         g_weight_x = compute_gradient(sample_weight, 1, 'min')
         g_weight_y = compute_gradient(sample_weight, 2, 'min')
 
-    g_loss_x = weighted_loss(tf.abs(g_true_x - g_pred_x), g_weight_x)
-    g_loss_y = weighted_loss(tf.abs(g_true_y - g_pred_y), g_weight_y)
+    g_loss_x = weighted_loss(tf.abs(g_true_x - g_pred_x), g_weight_x) * weight
+    g_loss_y = weighted_loss(tf.abs(g_true_y - g_pred_y), g_weight_y) * weight
     loss = [g_loss_x, g_loss_y]
 
     if smooth > 0:
-        s_loss_x = weighted_loss(tf.abs(g_pred_x) * smooth, g_weight_x)
-        s_loss_y = weighted_loss(tf.abs(g_pred_y) * smooth, g_weight_y)
+        s_loss_x = weighted_loss(tf.abs(g_pred_x), g_weight_x) * smooth
+        s_loss_y = weighted_loss(tf.abs(g_pred_y), g_weight_y) * smooth
         loss.extend([s_loss_x, s_loss_y])
 
     loss = sum(loss)
