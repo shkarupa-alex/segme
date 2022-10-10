@@ -119,32 +119,57 @@ def augment_onthefly(image, masks, hflip_prob=0.5, vflip_prob=0.3, rotate_prob=0
 def stateless_random_rotate_90(image, seed):
     random_func = functools.partial(tf.random.stateless_uniform, seed=seed)
 
+    def _rotate_all(target):
+        rand_val = random_func(shape=[], minval=0, maxval=1.0)
+        flip_cw = rand_val < 1. / 3.
+        flip_ccw = rand_val > 2. / 3.
+
+        target_t = tf.transpose(target, [0, 2, 1, 3])
+
+        target_ = tf.cond(
+            flip_cw,
+            lambda: tf.reverse(target_t, [2]),
+            lambda: tf.identity(target))
+        target_ = tf.cond(
+            flip_ccw,
+            lambda: tf.reverse(target_t, [1]),
+            lambda: tf.identity(target_))
+
+        return target_
+
+    def _rotate_some(target):
+        batch = tf.shape(target)[0]
+
+        rand_val = random_func(shape=[batch, 1, 1, 1], minval=0, maxval=1.0)
+        flip_cw = rand_val < 1. / 3.
+        flip_ccw = rand_val > 2. / 3.
+        flip_no = (~flip_cw) & (~flip_ccw)
+
+        orig_dtype = target.dtype
+        target_ = target if orig_dtype in {tf.float16, tf.float32} \
+            else tf.image.convert_image_dtype(target, 'float32')
+
+        target_t = tf.transpose(target_, [0, 2, 1, 3])
+        target_cw = tf.reverse(target_t, [2])
+        target_ccw = tf.reverse(target_t, [1])
+
+        target_ = target_ * tf.cast(flip_no, target_.dtype) + \
+                  target_cw * tf.cast(flip_cw, target_.dtype) + \
+                  target_ccw * tf.cast(flip_ccw, target_.dtype)
+        target_ = tf.image.convert_image_dtype(target_, orig_dtype, saturate=True)
+
+        return target_
+
     with tf.name_scope('stateless_random_rotate_90'):
         image = tf.convert_to_tensor(image, name='image')
         if 4 != image.shape.rank:
             raise ValueError('Expecting `image` rank to be 4.')
 
-        batch, height, width, _ = tf.unstack(tf.shape(image))
-        assert_square = tf.assert_equal(height, width)
-        with tf.control_dependencies([assert_square]):
-            image = tf.identity(image)
+        height, width = tf.unstack(tf.shape(image)[1:3])
+        max_size = tf.maximum(height, width)
 
-        uniform_random = random_func(shape=[batch, 1, 1, 1], minval=0, maxval=1.0)
-        flip_cw = uniform_random < 1. / 3.
-        flip_ccw = uniform_random > 2. / 3.
-        flip_no = (~flip_cw) & (~flip_ccw)
-
-        orig_dtype = image.dtype
-        image_ = image if orig_dtype in {tf.float16, tf.float32} else tf.image.convert_image_dtype(image, 'float32')
-
-        image_t = tf.transpose(image_, [0, 2, 1, 3])
-        image_cw = tf.reverse(image_t, [2])
-        image_ccw = tf.reverse(image_t, [1])
-
-        image_ = image_ * tf.cast(flip_no, image_.dtype) + \
-                 image_cw * tf.cast(flip_cw, image_.dtype) + \
-                 image_ccw * tf.cast(flip_ccw, image_.dtype)
-        image_ = tf.image.convert_image_dtype(image_, orig_dtype, saturate=True)
+        image_ = tf.pad(image, [(0, 0), (0, max_size - height), (0, max_size - width), (0, 0)])
+        image_ = tf.cond(tf.equal(height, width), lambda: _rotate_some(image_), lambda: _rotate_all(image))
 
         return image_
 

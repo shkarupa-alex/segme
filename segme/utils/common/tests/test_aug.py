@@ -8,7 +8,7 @@ from segme.utils.common.aug import stateless_random_rotate_90, random_color_mix,
 
 @test_util.run_all_in_graph_and_eager_modes
 class TestStatelessRandomRotate90(tf.test.TestCase):
-    def test_aug(self):
+    def test_aug_some(self):
         image = np.random.uniform(0., 255., (4, 16, 16, 3)).astype('uint8')
         expected = np.array([
             image[0],
@@ -17,6 +17,20 @@ class TestStatelessRandomRotate90(tf.test.TestCase):
             image[3]])
 
         rotated = stateless_random_rotate_90(image, [0, 1024])
+        rotated = self.evaluate(rotated)
+
+        self.assertAllEqual(rotated, expected)
+
+    def test_aug_all(self):
+        image = np.random.uniform(0., 255., (4, 16, 12, 3)).astype('uint8')
+        expected = np.array([
+            cv2.flip(cv2.transpose(image[0]), flipCode=1),
+            cv2.flip(cv2.transpose(image[1]), flipCode=1),
+            cv2.flip(cv2.transpose(image[2]), flipCode=1),
+            cv2.flip(cv2.transpose(image[3]), flipCode=1)
+        ])
+
+        rotated = stateless_random_rotate_90(image, [2, 1024])
         rotated = self.evaluate(rotated)
 
         self.assertAllEqual(rotated, expected)
