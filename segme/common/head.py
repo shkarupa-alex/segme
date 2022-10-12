@@ -40,8 +40,9 @@ class HeadProjection(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class ClassificationActivation(layers.Layer):
-    def __init__(self, dtype='float32', **kwargs):
-        super().__init__(dtype=dtype, **kwargs)
+    def __init__(self, **kwargs):
+        kwargs['dtype'] = 'float32'
+        super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(min_ndim=2)
 
     @shape_type_conversion
@@ -62,11 +63,6 @@ class ClassificationActivation(layers.Layer):
     def compute_output_shape(self, input_shape):
         return input_shape
 
-    def compute_output_signature(self, input_signature):
-        output_signature = super().compute_output_signature(input_signature)
-
-        return tf.TensorSpec(dtype='float32', shape=output_signature.shape)
-
 
 @register_keras_serializable(package='SegMe>Common')
 class ClassificationHead(layers.Layer):
@@ -80,9 +76,7 @@ class ClassificationHead(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.proj = HeadProjection(
-            self.classes,
-            kernel_size=self.kernel_size,
-            kernel_initializer=self.kernel_initializer)
+            self.classes, kernel_size=self.kernel_size, kernel_initializer=self.kernel_initializer)
         self.act = ClassificationActivation()
 
         super().build(input_shape)
@@ -99,8 +93,9 @@ class ClassificationHead(layers.Layer):
 
     def compute_output_signature(self, input_signature):
         output_signature = super().compute_output_signature(input_signature)
+        output_signature = self.act.compute_output_signature(output_signature)
 
-        return tf.TensorSpec(dtype='float32', shape=output_signature.shape)
+        return output_signature
 
     def get_config(self):
         config = super().get_config()

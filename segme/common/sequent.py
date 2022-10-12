@@ -8,6 +8,7 @@ from keras.utils.tf_utils import shape_type_conversion
 @register_keras_serializable(package='SegMe>Common')
 class Sequential(layers.Layer):
     def __init__(self, items=None, **kwargs):
+        kwargs['autocast'] = False
         super().__init__(**kwargs)
 
         items = items or []
@@ -41,6 +42,14 @@ class Sequential(layers.Layer):
 
         return outputs
 
+    def compute_mask(self, inputs, mask=None):
+        outputs = self.call(inputs, mask=mask)
+
+        if 1 == len(tf.nest.flatten(outputs)):
+            return getattr(outputs, '_keras_mask', None)
+
+        return None
+
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
         output_shape = input_shape
@@ -49,13 +58,12 @@ class Sequential(layers.Layer):
 
         return output_shape
 
-    def compute_mask(self, inputs, mask):
-        outputs = self.call(inputs, mask=mask)
+    def compute_output_signature(self, input_signature):
+        output_signature = input_signature
+        for item in self.items:
+            output_signature = item.compute_output_signature(output_signature)
 
-        if 1 == len(tf.nest.flatten(outputs)):
-            return getattr(outputs, '_keras_mask', None)
-
-        return None
+        return output_signature
 
     def get_config(self):
         config = super().get_config()

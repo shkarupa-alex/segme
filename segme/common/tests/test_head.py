@@ -66,6 +66,14 @@ class TestClassificationActivation(test_combinations.TestCase):
             expected_output_shape=[None, 16, 16, 1],
             expected_output_dtype='float32'
         )
+        test_utils.layer_test(
+            ClassificationActivation,
+            kwargs={'dtype': 'float32'},
+            input_shape=[2, 16, 16, 1],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 1],
+            expected_output_dtype='float32'
+        )
 
 
 @test_combinations.run_all_keras_modes
@@ -101,6 +109,14 @@ class TestClassificationHead(test_combinations.TestCase):
         test_utils.layer_test(
             ClassificationHead,
             kwargs={'classes': 4, 'kernel_size': 1, 'kernel_initializer': 'glorot_uniform'},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            ClassificationHead,
+            kwargs={'classes': 4, 'kernel_size': 1, 'kernel_initializer': 'glorot_uniform', 'dtype': 'float32'},
             input_shape=[2, 16, 16, 3],
             input_dtype='float16',
             expected_output_shape=[None, 16, 16, 4],

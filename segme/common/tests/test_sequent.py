@@ -53,6 +53,14 @@ class TestSequential(test_combinations.TestCase):
             expected_output_shape=(None, 16, 16, 10),
             expected_output_dtype='float16'
         )
+        test_utils.layer_test(
+            Sequential,
+            kwargs={'items': [layers.BatchNormalization(), layers.ReLU(dtype='float32')]},
+            input_shape=(2, 16, 16, 10),
+            input_dtype='float16',
+            expected_output_shape=(None, 16, 16, 10),
+            expected_output_dtype='float32'
+        )
         layer_multi_io_test(
             Sequential,
             kwargs={'items': [layers.ReLU(), layers.Lambda(lambda x: tf.split(x, 2, axis=-1))]},
