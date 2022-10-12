@@ -1,4 +1,3 @@
-import copy
 from keras import activations, constraints, initializers, layers, regularizers
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
@@ -38,7 +37,7 @@ class Conv(layers.Layer):
             'use_bias': self.use_bias, 'kernel_initializer': self.kernel_initializer,
             'bias_initializer': self.bias_initializer, 'kernel_regularizer': self.kernel_regularizer,
             'bias_regularizer': self.bias_regularizer, 'kernel_constraint': self.kernel_constraint,
-            'bias_constraint': self.bias_constraint, 'name': 'wrapped'}
+            'bias_constraint': self.bias_constraint, 'name': 'wrapped', 'dtype': self.dtype_policy}
         if self.filters:
             self.conv = cnapol.CONVOLUTIONS.new(self.policy.conv_type, filters=self.filters, **conv_kwargs)
         else:  # depthwise
@@ -79,17 +78,18 @@ class Conv(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common>ConvNormAct')
 class Norm(layers.Layer):
-    def __init__(self, epsilon=None, policy=None, **kwargs):
+    def __init__(self, data_format=None, epsilon=None, policy=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
+        self.data_format = data_format
         self.epsilon = epsilon
         self.policy = cnapol.deserialize(policy or cnapol.global_policy())
 
     @shape_type_conversion
     def build(self, input_shape):
-        norm_kwargs = {'name': 'wrapped'}
-        if self.epsilon:
+        norm_kwargs = {'data_format': self.data_format, 'name': 'wrapped', 'dtype': self.dtype_policy}
+        if self.epsilon is not None:
             norm_kwargs['epsilon'] = self.epsilon
 
         self.norm = cnapol.NORMALIZATIONS.new(self.policy.norm_type, **norm_kwargs)
@@ -107,6 +107,7 @@ class Norm(layers.Layer):
     def get_config(self):
         config = super().get_config()
         config.update({
+            'data_format': self.data_format,
             'epsilon': self.epsilon,
             'policy': cnapol.serialize(self.policy)
         })
@@ -124,7 +125,7 @@ class Act(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.act = cnapol.ACTIVATIONS.new(self.policy.act_type, name='wrapped')
+        self.act = cnapol.ACTIVATIONS.new(self.policy.act_type, name='wrapped', dtype=self.dtype_policy)
         self.act.build(input_shape)
 
         super().build(input_shape)
@@ -179,8 +180,8 @@ class ConvAct(layers.Layer):
             kernel_initializer=kernel_initializer, bias_initializer=self.bias_initializer,
             kernel_regularizer=self.kernel_regularizer, bias_regularizer=self.bias_regularizer,
             kernel_constraint=self.kernel_constraint, bias_constraint=self.bias_constraint, policy=self.policy,
-            name='policy_conv')
-        self.act = Act(policy=self.policy, name='policy_act')
+            name='policy_conv', dtype=self.dtype_policy)
+        self.act = Act(policy=self.policy, name='policy_act', dtype=self.dtype_policy)
 
         current_shape = input_shape
         self.conv.build(current_shape)
@@ -255,9 +256,11 @@ class ConvNormAct(layers.Layer):
             kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer,
             kernel_regularizer=self.kernel_regularizer, bias_regularizer=self.bias_regularizer,
             kernel_constraint=self.kernel_constraint, bias_constraint=self.bias_constraint, policy=self.policy,
-            name='policy_conv')
-        self.norm = Norm(epsilon=self.epsilon, policy=self.policy, name='policy_norm')
-        self.act = Act(policy=self.policy, name='policy_act')
+            name='policy_conv', dtype=self.dtype_policy)
+        self.norm = Norm(
+            data_format=self.data_format, epsilon=self.epsilon, policy=self.policy, name='policy_norm',
+            dtype=self.dtype_policy)
+        self.act = Act(policy=self.policy, name='policy_act', dtype=self.dtype_policy)
 
         current_shape = input_shape
         self.conv.build(current_shape)
