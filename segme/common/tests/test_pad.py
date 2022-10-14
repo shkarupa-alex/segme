@@ -1,7 +1,10 @@
+import numpy as np
 import tensorflow as tf
+from keras import layers
 from keras.mixed_precision import policy as mixed_precision
+from keras.utils import custom_object_scope
 from keras.testing_infra import test_combinations, test_utils
-from segme.common.pad import SymmetricPadding
+from segme.common.pad import SymmetricPadding, with_pad_odd
 
 
 @test_combinations.run_all_keras_modes
@@ -38,6 +41,67 @@ class TestSymmetricPadding(test_combinations.TestCase):
     def test_error(self):
         with self.assertRaisesRegex(ValueError, 'Symmetric padding can lead to misbehavior'):
             SymmetricPadding(((0, 1), (1, 2)))
+
+
+class WithOddConstraint(layers.Layer):
+    def __init__(self, data_format='channels_last', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.data_format = data_format
+        self.data_format_ = 'NHWC' if 'channels_last' == data_format else 'NCHW'
+
+    def call(self, inputs, *args, **kwargs):
+        outputs, unpad = with_pad_odd(inputs, data_format=self.data_format)
+        outputs = tf.nn.space_to_depth(outputs, 2, data_format=self.data_format_)
+        outputs -= 1.
+        outputs = tf.nn.depth_to_space(outputs, 2, data_format=self.data_format_)
+        outputs = unpad(outputs)
+
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({'data_format': self.data_format})
+
+        return config
+
+
+@test_combinations.run_all_keras_modes
+class TestWithPadOdd(test_combinations.TestCase):
+    def setUp(self):
+        super(TestWithPadOdd, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestWithPadOdd, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        with custom_object_scope({'WithOddConstraint': WithOddConstraint}):
+            test_utils.layer_test(
+                WithOddConstraint,
+                kwargs={'data_format': 'channels_last'},
+                input_shape=[2, 4, 5, 3],
+                input_dtype='float32',
+                expected_output_shape=[None, 4, 5, 3],
+                expected_output_dtype='float32'
+            )
+
+            if tf.test.is_gpu_available():
+                test_utils.layer_test(
+                    WithOddConstraint,
+                    kwargs={'data_format': 'channels_first'},
+                    input_shape=[2, 3, 5, 4],
+                    input_dtype='float32',
+                    expected_output_shape=[None, 3, 5, 4],
+                    expected_output_dtype='float32'
+                )
+
+    def test_value(self):
+        inputs = np.arange(2 * 3 * 5 * 4).astype('float32').reshape([2, 3, 5, 4])
+
+        result = WithOddConstraint()(inputs)
+        result = self.evaluate(result)
+        self.assertAllClose(result, inputs - 1.)
 
 
 if __name__ == '__main__':
