@@ -70,7 +70,12 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
         squezed_labels = tf.reshape(component_labels, [batch_size, -1])
         squezed_weights = tf.cast(squezed_labels != 0, y_true.dtype)
 
-        component_sizes = tf.math.bincount(squezed_labels, axis=-1, weights=squezed_weights)
+        # Workaround for XLA issue: "Input 1 to node `bincount/DenseBincount` must be a compile-time constant."
+        if tf.executing_eagerly():
+            component_sizes = tf.math.bincount(squezed_labels, axis=-1, weights=squezed_weights)
+        else:
+            with tf.xla.experimental.jit_scope(compile_ops=False):
+                component_sizes = tf.math.bincount(squezed_labels, axis=-1, weights=squezed_weights)
         component_max = tf.argmax(component_sizes, axis=-1, output_type='int32')[:, None, None]
 
         component_back = component_labels != component_max
