@@ -11,6 +11,9 @@ class SE(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
+        if not 0. <= ratio <= 1.:
+            raise ValueError('Squeeze ratio must be in range [0; 1].')
+
         self.ratio = ratio
 
     @shape_type_conversion
