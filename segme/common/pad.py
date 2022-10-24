@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras import backend, layers
 from keras.utils.control_flow_util import smart_cond
-from keras.utils.conv_utils import normalize_data_format
+from keras.utils.conv_utils import normalize_data_format, normalize_tuple
 from keras.utils.generic_utils import register_keras_serializable
 
 
@@ -34,10 +34,14 @@ class SymmetricPadding(layers.ZeroPadding2D):
         return tf.pad(inputs, pattern, mode='SYMMETRIC')
 
 
-def with_pad_odd(inputs, mode='CONSTANT', data_format=None):
+def with_multiple_pad(inputs, multipliers, mode='CONSTANT', data_format=None):
     inputs = tf.convert_to_tensor(inputs)
     if 4 != inputs.shape.rank:
         raise ValueError('Expecting `inputs` rank to be 4.')
+
+    multipliers = normalize_tuple(multipliers, 2, 'normalize_tuple')
+    if 1 == max(multipliers):
+        raise ValueError('Nothing to pad: both multipliers equals to 1.')
 
     data_format = normalize_data_format(data_format)
 
@@ -49,10 +53,11 @@ def with_pad_odd(inputs, mode='CONSTANT', data_format=None):
         batch, _, height, width = shape
         height_, width_ = inputs.shape[2:4]
 
-    h_pad, w_pad = height % 2, width % 2
-    h_pad_ = None if height_ is None else height_ % 2
-    w_pad_ = None if width_ is None else width_ % 2
-    with_pad = h_pad + w_pad > 0
+    h_pad = (multipliers[0] - height % multipliers[0]) % multipliers[0]
+    w_pad = (multipliers[1] - width % multipliers[1]) % multipliers[1]
+
+    h_pad_ = None if height_ is None else (multipliers[0] - height_ % multipliers[0]) % multipliers[0]
+    w_pad_ = None if width_ is None else (multipliers[1] - width_ % multipliers[1]) % multipliers[1]
 
     if 'channels_last' == data_format:
         paddings = [[0, 0], [0, h_pad], [0, w_pad], [0, 0]]
@@ -68,6 +73,7 @@ def with_pad_odd(inputs, mode='CONSTANT', data_format=None):
             None if height_ is None else height_ + h_pad_,
             None if width_ is None else width_ + w_pad_)
 
+    with_pad = h_pad + w_pad > 0
     outputs = smart_cond(
         with_pad,
         lambda: tf.pad(inputs, paddings, mode),

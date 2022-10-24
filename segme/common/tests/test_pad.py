@@ -4,7 +4,7 @@ from keras import layers
 from keras.mixed_precision import policy as mixed_precision
 from keras.utils import custom_object_scope
 from keras.testing_infra import test_combinations, test_utils
-from segme.common.pad import SymmetricPadding, with_pad_odd
+from segme.common.pad import SymmetricPadding, with_multiple_pad
 
 
 @test_combinations.run_all_keras_modes
@@ -43,14 +43,14 @@ class TestSymmetricPadding(test_combinations.TestCase):
             SymmetricPadding(((0, 1), (1, 2)))
 
 
-class WithOddConstraint(layers.Layer):
+class OddConstrainedLayer(layers.Layer):
     def __init__(self, data_format='channels_last', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data_format = data_format
         self.data_format_ = 'NHWC' if 'channels_last' == data_format else 'NCHW'
 
     def call(self, inputs, *args, **kwargs):
-        outputs, unpad = with_pad_odd(inputs, data_format=self.data_format)
+        outputs, unpad = with_multiple_pad(inputs, 2, data_format=self.data_format)
         outputs = tf.nn.space_to_depth(outputs, 2, data_format=self.data_format_)
         outputs -= 1.
         outputs = tf.nn.depth_to_space(outputs, 2, data_format=self.data_format_)
@@ -66,19 +66,19 @@ class WithOddConstraint(layers.Layer):
 
 
 @test_combinations.run_all_keras_modes
-class TestWithPadOdd(test_combinations.TestCase):
+class TestWithMultiplePad(test_combinations.TestCase):
     def setUp(self):
-        super(TestWithPadOdd, self).setUp()
+        super(TestWithMultiplePad, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestWithPadOdd, self).tearDown()
+        super(TestWithMultiplePad, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        with custom_object_scope({'WithOddConstraint': WithOddConstraint}):
+        with custom_object_scope({'OddConstrainedLayer': OddConstrainedLayer}):
             test_utils.layer_test(
-                WithOddConstraint,
+                OddConstrainedLayer,
                 kwargs={'data_format': 'channels_last'},
                 input_shape=[2, 4, 5, 3],
                 input_dtype='float32',
@@ -88,7 +88,7 @@ class TestWithPadOdd(test_combinations.TestCase):
 
             if tf.test.is_gpu_available():
                 test_utils.layer_test(
-                    WithOddConstraint,
+                    OddConstrainedLayer,
                     kwargs={'data_format': 'channels_first'},
                     input_shape=[2, 3, 5, 4],
                     input_dtype='float32',
@@ -99,7 +99,7 @@ class TestWithPadOdd(test_combinations.TestCase):
     def test_value(self):
         inputs = np.arange(2 * 3 * 5 * 4).astype('float32').reshape([2, 3, 5, 4])
 
-        result = WithOddConstraint()(inputs)
+        result = OddConstrainedLayer()(inputs)
         result = self.evaluate(result)
         self.assertAllClose(result, inputs - 1.)
 
