@@ -9,7 +9,7 @@ from segme.common.se import SE
 
 @register_keras_serializable(package='SegMe>Common')
 class MBConv(layers.Layer):
-    def __init__(self, filters, kernel_size, fused, strides=1, expand_ratio=4., se_ratio=0., drop_ratio=0., **kwargs):
+    def __init__(self, filters, kernel_size, fused, strides=1, expand_ratio=4., se_ratio=0.25, drop_ratio=0., **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(min_ndim=1)
 
