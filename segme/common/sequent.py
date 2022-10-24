@@ -16,14 +16,21 @@ class Sequential(layers.Layer):
 
         self.items = []
         self.argspecs = []
-        for i, item in enumerate(items):
-            if not isinstance(item, layers.Layer):
-                raise ValueError(f'Expected keras.layers.Layer instance, got {item}')
+        for item in items:
+            self.add(item)
 
-            self.items.append(item)
-            self.argspecs.append(getfullargspec(item.call).args)
+    def add(self, item):
+        if self.built:
+            raise ValueError(f'Unable to add new layer: {self.name} is already built.')
 
-            setattr(self, f'layer{i}', item)
+        if not isinstance(item, layers.Layer):
+            raise ValueError(f'Expected keras.layers.Layer instance, got {item}')
+
+        self.items.append(item)
+        self.argspecs.append(getfullargspec(item.call).args)
+
+        idx = len(self.items)
+        setattr(self, f'layer_{idx}', item)
 
     def call(self, inputs, training=None, mask=None):
         outputs = inputs
