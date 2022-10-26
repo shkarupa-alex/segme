@@ -1,4 +1,4 @@
-from keras import layers
+from keras import initializers, layers
 from keras.utils.conv_utils import normalize_tuple
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
@@ -9,7 +9,8 @@ from segme.common.se import SE
 
 @register_keras_serializable(package='SegMe>Common')
 class MBConv(layers.Layer):
-    def __init__(self, filters, kernel_size, fused, strides=1, expand_ratio=4., se_ratio=0.25, drop_ratio=0., **kwargs):
+    def __init__(self, filters, kernel_size, fused, strides=1, expand_ratio=4., se_ratio=0.25, gamma_initializer='ones',
+                 drop_ratio=0., **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(min_ndim=1)
 
@@ -19,6 +20,7 @@ class MBConv(layers.Layer):
         self.strides = normalize_tuple(strides, 2, 'strides')
         self.expand_ratio = expand_ratio
         self.se_ratio = se_ratio
+        self.gamma_initializer = initializers.get(gamma_initializer)
         self.drop_ratio = drop_ratio
 
     @shape_type_conversion
@@ -48,13 +50,13 @@ class MBConv(layers.Layer):
         if self.with_se:
             self.se = SE(self.se_ratio, name='se')
 
-        if self.fused and self.with_expansion:
-            self.proj = ConvNorm(self.filters, 1, kernel_initializer=kernel_initializer)
-        elif self.fused:
+        if self.fused and not self.with_expansion:
             self.proj = ConvNormAct(
-                self.filters, self.kernel_size, strides=self.strides, kernel_initializer=kernel_initializer)
+                self.filters, self.kernel_size, strides=self.strides, kernel_initializer=kernel_initializer,
+                gamma_initializer=self.gamma_initializer)
         else:
-            self.proj = ConvNorm(self.filters, 1, kernel_initializer=kernel_initializer)
+            self.proj = ConvNorm(self.filters, 1, kernel_initializer=kernel_initializer,
+                                 gamma_initializer=self.gamma_initializer)
 
         if self.with_residual:
             self.drop = DropPath(self.drop_ratio, name='drop')
@@ -102,6 +104,7 @@ class MBConv(layers.Layer):
             'strides': self.strides,
             'expand_ratio': self.expand_ratio,
             'se_ratio': self.se_ratio,
+            'gamma_initializer': initializers.serialize(self.gamma_initializer),
             'drop_ratio': self.drop_ratio
         })
 

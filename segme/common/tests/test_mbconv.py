@@ -18,7 +18,7 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': True, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.,
-                    'drop_ratio': 0.},
+                    'gamma_initializer': 'ones', 'drop_ratio': 0.},
             input_shape=[2, 8, 8, 3],
             input_dtype='float32',
             expected_output_shape=[None, 8, 8, 4],
@@ -27,7 +27,7 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': False, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.,
-                    'drop_ratio': 0.},
+                    'gamma_initializer': 'ones', 'drop_ratio': 0.},
             input_shape=[2, 8, 8, 3],
             input_dtype='float32',
             expected_output_shape=[None, 8, 8, 4],
@@ -37,7 +37,7 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': True, 'strides': 2, 'expand_ratio': 4., 'se_ratio': 0.,
-                    'drop_ratio': 0.},
+                    'gamma_initializer': 'ones', 'drop_ratio': 0.},
             input_shape=[2, 8, 8, 3],
             input_dtype='float32',
             expected_output_shape=[None, 4, 4, 4],
@@ -46,7 +46,7 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': False, 'strides': 2, 'expand_ratio': 4., 'se_ratio': 0.,
-                    'drop_ratio': 0.},
+                    'gamma_initializer': 'ones', 'drop_ratio': 0.},
             input_shape=[2, 8, 8, 3],
             input_dtype='float32',
             expected_output_shape=[None, 4, 4, 4],
@@ -56,7 +56,7 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': True, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.2,
-                    'drop_ratio': 0.},
+                    'gamma_initializer': 'ones', 'drop_ratio': 0.},
             input_shape=[2, 8, 8, 3],
             input_dtype='float32',
             expected_output_shape=[None, 8, 8, 4],
@@ -65,7 +65,7 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': False, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.2,
-                    'drop_ratio': 0.},
+                    'gamma_initializer': 'ones', 'drop_ratio': 0.},
             input_shape=[2, 8, 8, 3],
             input_dtype='float32',
             expected_output_shape=[None, 8, 8, 4],
@@ -75,7 +75,7 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': True, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.,
-                    'drop_ratio': 0.2},
+                    'gamma_initializer': 'zeros', 'drop_ratio': 0.},
             input_shape=[2, 8, 8, 4],
             input_dtype='float32',
             expected_output_shape=[None, 8, 8, 4],
@@ -84,7 +84,26 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': False, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.,
-                    'drop_ratio': 0.2},
+                    'gamma_initializer': 'zeros', 'drop_ratio': 0.},
+            input_shape=[2, 8, 8, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 8, 8, 4],
+            expected_output_dtype='float32'
+        )
+
+        test_utils.layer_test(
+            MBConv,
+            kwargs={'filters': 4, 'kernel_size': 3, 'fused': True, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.,
+                    'gamma_initializer': 'ones', 'drop_ratio': 0.2},
+            input_shape=[2, 8, 8, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 8, 8, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            MBConv,
+            kwargs={'filters': 4, 'kernel_size': 3, 'fused': False, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.,
+                    'gamma_initializer': 'ones', 'drop_ratio': 0.2},
             input_shape=[2, 8, 8, 4],
             input_dtype='float32',
             expected_output_shape=[None, 8, 8, 4],
@@ -96,7 +115,7 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': True, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.2,
-                    'drop_ratio': 0.2},
+                    'gamma_initializer': 'ones', 'drop_ratio': 0.2},
             input_shape=[2, 8, 8, 4],
             input_dtype='float16',
             expected_output_shape=[None, 8, 8, 4],
@@ -105,7 +124,7 @@ class TestMBConv(test_combinations.TestCase):
         test_utils.layer_test(
             MBConv,
             kwargs={'filters': 4, 'kernel_size': 3, 'fused': False, 'strides': 1, 'expand_ratio': 4., 'se_ratio': 0.2,
-                    'drop_ratio': 0.2},
+                    'gamma_initializer': 'zeros', 'drop_ratio': 0.2},
             input_shape=[2, 8, 8, 4],
             input_dtype='float16',
             expected_output_shape=[None, 8, 8, 4],

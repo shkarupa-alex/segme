@@ -78,17 +78,19 @@ class Conv(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common>ConvNormAct')
 class Norm(layers.Layer):
-    def __init__(self, data_format=None, epsilon=None, policy=None, **kwargs):
+    def __init__(self, data_format=None, epsilon=None, gamma_initializer='ones', policy=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
         self.data_format = data_format
         self.epsilon = epsilon
+        self.gamma_initializer = initializers.get(gamma_initializer)
         self.policy = cnapol.deserialize(policy or cnapol.global_policy())
 
     @shape_type_conversion
     def build(self, input_shape):
-        norm_kwargs = {'data_format': self.data_format, 'name': 'wrapped', 'dtype': self.dtype_policy}
+        norm_kwargs = {'gamma_initializer': self.gamma_initializer, 'data_format': self.data_format, 'name': 'wrapped',
+                       'dtype': self.dtype_policy}
         if self.epsilon is not None:
             norm_kwargs['epsilon'] = self.epsilon
 
@@ -109,6 +111,7 @@ class Norm(layers.Layer):
         config.update({
             'data_format': self.data_format,
             'epsilon': self.epsilon,
+            'gamma_initializer': initializers.serialize(self.gamma_initializer),
             'policy': cnapol.serialize(self.policy)
         })
 
@@ -148,8 +151,8 @@ class Act(layers.Layer):
 class ConvNormAct(layers.Layer):
     def __init__(self, filters, kernel_size, strides=(1, 1), padding='same', data_format=None, dilation_rate=(1, 1),
                  use_bias=False, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None,
-                 bias_regularizer=None, kernel_constraint=None, bias_constraint=None, epsilon=None, policy=None,
-                 **kwargs):
+                 bias_regularizer=None, kernel_constraint=None, bias_constraint=None, epsilon=None,
+                 gamma_initializer='ones', policy=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -167,6 +170,7 @@ class ConvNormAct(layers.Layer):
         self.kernel_constraint = constraints.get(kernel_constraint)
         self.bias_constraint = constraints.get(bias_constraint)
         self.epsilon = epsilon
+        self.gamma_initializer = initializers.get(gamma_initializer)
         self.policy = cnapol.deserialize(policy or cnapol.global_policy())
 
     @shape_type_conversion
@@ -178,9 +182,10 @@ class ConvNormAct(layers.Layer):
             kernel_regularizer=self.kernel_regularizer, bias_regularizer=self.bias_regularizer,
             kernel_constraint=self.kernel_constraint, bias_constraint=self.bias_constraint, policy=self.policy,
             name='policy_conv', dtype=self.dtype_policy)
+
         self.norm = Norm(
-            data_format=self.data_format, epsilon=self.epsilon, policy=self.policy, name='policy_norm',
-            dtype=self.dtype_policy)
+            data_format=self.data_format, epsilon=self.epsilon, gamma_initializer=self.gamma_initializer,
+            policy=self.policy, name='policy_norm', dtype=self.dtype_policy)
         self.act = Act(policy=self.policy, name='policy_act', dtype=self.dtype_policy)
 
         current_shape = input_shape
@@ -220,6 +225,7 @@ class ConvNormAct(layers.Layer):
             'kernel_constraint': constraints.serialize(self.kernel_constraint),
             'bias_constraint': constraints.serialize(self.bias_constraint),
             'epsilon': self.epsilon,
+            'gamma_initializer': initializers.serialize(self.gamma_initializer),
             'policy': cnapol.serialize(self.policy)
         })
 
@@ -230,8 +236,8 @@ class ConvNormAct(layers.Layer):
 class ConvNorm(layers.Layer):
     def __init__(self, filters, kernel_size, strides=(1, 1), padding='same', data_format=None, dilation_rate=(1, 1),
                  use_bias=False, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None,
-                 bias_regularizer=None, kernel_constraint=None, bias_constraint=None, epsilon=None, policy=None,
-                 **kwargs):
+                 bias_regularizer=None, kernel_constraint=None, bias_constraint=None, epsilon=None,
+                 gamma_initializer='ones', policy=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -249,6 +255,7 @@ class ConvNorm(layers.Layer):
         self.kernel_constraint = constraints.get(kernel_constraint)
         self.bias_constraint = constraints.get(bias_constraint)
         self.epsilon = epsilon
+        self.gamma_initializer = initializers.get(gamma_initializer)
         self.policy = cnapol.deserialize(policy or cnapol.global_policy())
 
     @shape_type_conversion
@@ -261,8 +268,8 @@ class ConvNorm(layers.Layer):
             kernel_constraint=self.kernel_constraint, bias_constraint=self.bias_constraint, policy=self.policy,
             name='policy_conv', dtype=self.dtype_policy)
         self.norm = Norm(
-            data_format=self.data_format, epsilon=self.epsilon, policy=self.policy, name='policy_norm',
-            dtype=self.dtype_policy)
+            data_format=self.data_format, epsilon=self.epsilon, gamma_initializer=self.gamma_initializer,
+            policy=self.policy, name='policy_norm', dtype=self.dtype_policy)
 
         current_shape = input_shape
         self.conv.build(current_shape)
@@ -299,6 +306,7 @@ class ConvNorm(layers.Layer):
             'kernel_constraint': constraints.serialize(self.kernel_constraint),
             'bias_constraint': constraints.serialize(self.bias_constraint),
             'epsilon': self.epsilon,
+            'gamma_initializer': initializers.serialize(self.gamma_initializer),
             'policy': cnapol.serialize(self.policy)
         })
 
