@@ -4,7 +4,7 @@ from keras import layers
 from keras.mixed_precision import policy as mixed_precision
 from keras.utils import custom_object_scope
 from keras.testing_infra import test_combinations, test_utils
-from segme.common.pad import SymmetricPadding, with_multiple_pad
+from segme.common.pad import SymmetricPadding, with_divisible_pad
 
 
 @test_combinations.run_all_keras_modes
@@ -49,12 +49,15 @@ class OddConstrainedLayer(layers.Layer):
         self.data_format = data_format
         self.data_format_ = 'NHWC' if 'channels_last' == data_format else 'NCHW'
 
-    def call(self, inputs, *args, **kwargs):
-        outputs, unpad = with_multiple_pad(inputs, 2, data_format=self.data_format)
-        outputs = tf.nn.space_to_depth(outputs, 2, data_format=self.data_format_)
+    def constraned_op(self, inputs):
+        outputs = tf.nn.space_to_depth(inputs, 2, data_format=self.data_format_)
         outputs -= 1.
         outputs = tf.nn.depth_to_space(outputs, 2, data_format=self.data_format_)
-        outputs = unpad(outputs)
+
+        return outputs
+
+    def call(self, inputs, *args, **kwargs):
+        outputs = with_divisible_pad(self.constraned_op, inputs, 2, data_format=self.data_format)
 
         return outputs
 
@@ -66,13 +69,13 @@ class OddConstrainedLayer(layers.Layer):
 
 
 @test_combinations.run_all_keras_modes
-class TestWithMultiplePad(test_combinations.TestCase):
+class TestWithDivisiblePad(test_combinations.TestCase):
     def setUp(self):
-        super(TestWithMultiplePad, self).setUp()
+        super(TestWithDivisiblePad, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestWithMultiplePad, self).tearDown()
+        super(TestWithDivisiblePad, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
