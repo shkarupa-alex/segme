@@ -49,7 +49,7 @@ class OddConstrainedLayer(layers.Layer):
         self.data_format = data_format
         self.data_format_ = 'NHWC' if 'channels_last' == data_format else 'NCHW'
 
-    def constraned_op(self, inputs):
+    def constraned_op(self, inputs, **kwargs):
         outputs = tf.nn.space_to_depth(inputs, 2, data_format=self.data_format_)
         outputs -= 1.
         outputs = tf.nn.depth_to_space(outputs, 2, data_format=self.data_format_)

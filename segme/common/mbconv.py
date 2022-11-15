@@ -39,13 +39,14 @@ class MBConv(layers.Layer):
 
         if self.with_expansion and self.fused:
             self.expand = ConvNormAct(
-                expand_filters, self.kernel_size, strides=self.strides, kernel_initializer=kernel_initializer)
+                expand_filters, self.kernel_size, strides=self.strides, kernel_initializer=kernel_initializer,
+                name='expand')
         elif self.with_expansion:
-            self.expand = ConvNormAct(expand_filters, 1, kernel_initializer=kernel_initializer)
+            self.expand = ConvNormAct(expand_filters, 1, kernel_initializer=kernel_initializer, name='expand')
 
         if not self.fused:
             self.dwconv = ConvNormAct(
-                None, self.kernel_size, strides=self.strides, kernel_initializer=kernel_initializer)
+                None, self.kernel_size, strides=self.strides, kernel_initializer=kernel_initializer, name='dw')
 
         if self.with_se:
             self.se = SE(self.se_ratio, name='se')
@@ -53,10 +54,10 @@ class MBConv(layers.Layer):
         if self.fused and not self.with_expansion:
             self.proj = ConvNormAct(
                 self.filters, self.kernel_size, strides=self.strides, kernel_initializer=kernel_initializer,
-                gamma_initializer=self.gamma_initializer)
+                gamma_initializer=self.gamma_initializer, name='proj')
         else:
             self.proj = ConvNorm(self.filters, 1, kernel_initializer=kernel_initializer,
-                                 gamma_initializer=self.gamma_initializer)
+                                 gamma_initializer=self.gamma_initializer, name='proj')
 
         if self.with_residual:
             self.drop = DropPath(self.drop_ratio, name='drop')
