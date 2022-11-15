@@ -13,7 +13,7 @@ class StandardizedRegularizer(Regularizer):
     def __call__(self, x):
         # Kernel has shape HWIO, normalize over HWI
         mean, var = tf.nn.moments(x, axes=[0, 1, 2], keepdims=True)
-        y = tf.nn.batch_normalization(y, mean, var, None, None, variance_epsilon=1e-5)
+        y = tf.nn.batch_normalization(x, mean, var, None, None, variance_epsilon=1e-5)
         y = tf.stop_gradient(y)
 
         return self.l1 * tf.reduce_sum(tf.abs(x - y))
