@@ -4,8 +4,20 @@ from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.policy.registry import LayerRegistry
+from segme.policy.regular import StandardizedRegularizer
 
 CONVOLUTIONS = LayerRegistry()
+
+CONVOLUTIONS.register('softstd1')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
+    'kernel_regularizer': StandardizedRegularizer(1e-1)}})
+CONVOLUTIONS.register('softstd2')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
+    'kernel_regularizer': StandardizedRegularizer(1e-2)}})
+CONVOLUTIONS.register('softstd3')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
+    'kernel_regularizer': StandardizedRegularizer(1e-3)}})
+CONVOLUTIONS.register('softstd4')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
+    'kernel_regularizer': StandardizedRegularizer(1e-4)}})
+CONVOLUTIONS.register('softstd5')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
+    'kernel_regularizer': StandardizedRegularizer(1e-5)}})
 
 
 @CONVOLUTIONS.register('conv')
