@@ -82,8 +82,7 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', data_format=None, 
         outputs.set_shape(padded_shape_)
 
         outputs = op(
-            outputs, batch_size=inputs_batch, pad_size=(inputs_height + h_pad, inputs_width + w_pad), with_pad=with_pad,
-            src_size=(inputs_height, inputs_width), pad_val=(h_pad, w_pad))
+            outputs, with_pad=with_pad, src_size=(inputs_batch, inputs_height, inputs_width), pad_val=(h_pad, w_pad))
 
         outputs_shape = tf.unstack(tf.shape(outputs))
         if 'channels_last' == data_format:
