@@ -44,28 +44,17 @@ class TestSymmetricPadding(test_combinations.TestCase):
 
 
 class OddConstrainedLayer(layers.Layer):
-    def __init__(self, data_format='channels_last', *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.data_format = data_format
-        self.data_format_ = 'NHWC' if 'channels_last' == data_format else 'NCHW'
-
     def constraned_op(self, inputs, **kwargs):
-        outputs = tf.nn.space_to_depth(inputs, 2, data_format=self.data_format_)
+        outputs = tf.nn.space_to_depth(inputs, 2)
         outputs -= 1.
-        outputs = tf.nn.depth_to_space(outputs, 2, data_format=self.data_format_)
+        outputs = tf.nn.depth_to_space(outputs, 2)
 
         return outputs
 
     def call(self, inputs, *args, **kwargs):
-        outputs = with_divisible_pad(self.constraned_op, inputs, 2, data_format=self.data_format)
+        outputs = with_divisible_pad(self.constraned_op, inputs, 2)
 
         return outputs
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({'data_format': self.data_format})
-
-        return config
 
 
 @test_combinations.run_all_keras_modes
@@ -82,22 +71,12 @@ class TestWithDivisiblePad(test_combinations.TestCase):
         with custom_object_scope({'OddConstrainedLayer': OddConstrainedLayer}):
             test_utils.layer_test(
                 OddConstrainedLayer,
-                kwargs={'data_format': 'channels_last'},
+                kwargs={},
                 input_shape=[2, 4, 5, 3],
                 input_dtype='float32',
                 expected_output_shape=[None, 4, 5, 3],
                 expected_output_dtype='float32'
             )
-
-            if tf.test.is_gpu_available():
-                test_utils.layer_test(
-                    OddConstrainedLayer,
-                    kwargs={'data_format': 'channels_first'},
-                    input_shape=[2, 3, 5, 4],
-                    input_dtype='float32',
-                    expected_output_shape=[None, 3, 5, 4],
-                    expected_output_dtype='float32'
-                )
 
     def test_value(self):
         inputs = np.arange(2 * 3 * 5 * 4).astype('float32').reshape([2, 3, 5, 4])
