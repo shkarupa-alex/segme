@@ -27,7 +27,7 @@ class SE(layers.Layer):
             layers.GlobalAvgPool2D(keepdims=True, name='glob_avg'),
             ConvAct(filters, 1, kernel_initializer='variance_scaling', name='fc0'),
             layers.Conv2D(channels, 1, activation='sigmoid', kernel_initializer='variance_scaling', name='fc1')
-        ])
+        ], name='se')
 
         super().build(input_shape)
 

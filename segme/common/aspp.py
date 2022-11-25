@@ -32,27 +32,26 @@ class AtrousSpatialPyramidPooling(layers.Layer):
 
         rate0, rate1, rate2 = self._stride_rates[self.stride]
         self.conv3r0 = Sequential([
-            ConvNormAct(None, 3, dilation_rate=rate0),
-            ConvNormAct(self.filters, 1)])
+            ConvNormAct(None, 3, dilation_rate=rate0, name='conv3r0_dna'),
+            ConvNormAct(self.filters, 1, name='conv3r0_pna')], name='conv3r0')
         self.conv3r1 = Sequential([
-            ConvNormAct(None, 3, dilation_rate=rate1),
-            ConvNormAct(self.filters, 1)])
+            ConvNormAct(None, 3, dilation_rate=rate1, name='conv3r1_dna'),
+            ConvNormAct(self.filters, 1, name='conv3r1_pna')], name='conv3r1')
         self.conv3r2 = Sequential([
-            ConvNormAct(None, 3, dilation_rate=rate2),
-            ConvNormAct(self.filters, 1)])
+            ConvNormAct(None, 3, dilation_rate=rate2, name='conv3r2_dna'),
+            ConvNormAct(self.filters, 1, name='conv3r2_pna')], name='conv3r2')
 
         self.pool = Sequential([
             layers.GlobalAveragePooling2D(keepdims=True),
             # TODO: wait for https://github.com/tensorflow/tensorflow/issues/48845
             # Or use fused=False with BatchNormalization
-            ConvNormAct(self.filters, 1)
-        ])
+            ConvNormAct(self.filters, 1, name='pool_cna')
+        ], name='pool')
         self.intnear = NearestInterpolation()
 
         self.proj = Sequential([
-            ConvNormAct(self.filters, 1),
-            layers.Dropout(self.dropout)
-        ])
+            ConvNormAct(self.filters, 1, name='proj_cna'),
+            layers.Dropout(self.dropout, name='proj_drop')], name='pool')
 
         super().build(input_shape)
 

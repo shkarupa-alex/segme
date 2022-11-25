@@ -15,7 +15,7 @@ class HeadProjection(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.proj = layers.Conv2D(
-            self.classes, self.kernel_size, padding='same', kernel_initializer=self.kernel_initializer)
+            self.classes, self.kernel_size, padding='same', kernel_initializer=self.kernel_initializer, name='proj')
 
         super().build(input_shape)
 
@@ -51,7 +51,7 @@ class ClassificationActivation(layers.Layer):
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
         activation = 'softmax' if channels > 1 else 'sigmoid'
-        self.act = layers.Activation(activation, dtype=self.dtype)  # for mixed_float16
+        self.act = layers.Activation(activation, dtype=self.dtype, name='act')  # for mixed_float16
 
         super().build(input_shape)
 
@@ -75,8 +75,8 @@ class ClassificationHead(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.proj = HeadProjection(
-            self.classes, kernel_size=self.kernel_size, kernel_initializer=self.kernel_initializer)
-        self.act = ClassificationActivation()
+            self.classes, kernel_size=self.kernel_size, kernel_initializer=self.kernel_initializer, name='proj')
+        self.act = ClassificationActivation(name='act')
 
         super().build(input_shape)
 

@@ -20,11 +20,13 @@ class PyramidPooling(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.stages = [
-            Sequential([AdaptiveAveragePooling(size), ConvNormAct(self.filters, 1)]) for size in self.sizes]
+        self.stages = [Sequential([
+            AdaptiveAveragePooling(size, name=f'stage_{size}_pool'),
+            ConvNormAct(self.filters, 1, name=f'stage_{size}_cna')], name=f'stage_{size}')
+            for size in self.sizes]
         self.interpolations = [
             NearestInterpolation(None) if 1 == size else SmoothInterpolation(None) for size in self.sizes]
-        self.bottleneck = ConvNormAct(self.filters, 3)
+        self.bottleneck = ConvNormAct(self.filters, 3, name='bottleneck')
 
         super().build(input_shape)
 

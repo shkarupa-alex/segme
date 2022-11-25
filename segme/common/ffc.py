@@ -24,7 +24,7 @@ class FourierUnit(layers.Layer):
 
         nchw_support = tf.test.is_gpu_available() or enclosing_tpu_context() is not None
         self.data_format = 'channels_first' if nchw_support else 'channels_last'
-        self.cna = ConvNormAct(self.filters * 2, 1, data_format=self.data_format, dtype='float32')
+        self.cna = ConvNormAct(self.filters * 2, 1, data_format=self.data_format, dtype='float32', name='cna')
 
         super().build(input_shape)
 
@@ -88,13 +88,13 @@ class SpectralTransform(layers.Layer):
         if self.channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.downsample = layers.Activation('linear') if 1 == max(self.strides) \
-            else layers.AvgPool2D(self.strides, padding='same')
-        self.reduce = ConvNormAct(self.filters // 2, 1)
-        self.gfu = FourierUnit(self.filters // 2)
+        self.downsample = layers.Activation('linear', name='downsample') if 1 == max(self.strides) \
+            else layers.AvgPool2D(self.strides, padding='same', name='downsample')
+        self.reduce = ConvNormAct(self.filters // 2, 1, name='reduce')
+        self.gfu = FourierUnit(self.filters // 2, name='gfu')
         if self.use_lfu:
-            self.lfu = FourierUnit(self.filters // 2)
-        self.proj = layers.Conv2D(self.filters, 1, use_bias=self.use_bias)
+            self.lfu = FourierUnit(self.filters // 2, name='lfu')
+        self.proj = layers.Conv2D(self.filters, 1, use_bias=self.use_bias, name='proj')
 
         super().build(input_shape)
 
@@ -179,20 +179,20 @@ class FastFourierConv(layers.Layer):
             raise ValueError('Local branch filters must be greater then 0.')
 
         self.l2l = Conv(self.filters_local, self.kernel_size, strides=self.strides, padding='same',
-                        dilation_rate=self.dilation_rate, use_bias=self.use_bias)
+                        dilation_rate=self.dilation_rate, use_bias=self.use_bias, name='l2l')
         self.g2l = None if 0 == self.channels[1] \
             else Conv(self.filters_local, self.kernel_size, strides=self.strides, padding='same',
-                      dilation_rate=self.dilation_rate, use_bias=self.use_bias)
+                      dilation_rate=self.dilation_rate, use_bias=self.use_bias, name='g2l')
         self.l2g = None if 0 == self.filters_global \
             else Conv(self.filters_global, self.kernel_size, strides=self.strides, padding='same',
-                      dilation_rate=self.dilation_rate, use_bias=self.use_bias)
+                      dilation_rate=self.dilation_rate, use_bias=self.use_bias, name='l2g')
         self.g2g = None if 0 == self.channels[1] or 0 == self.filters_global \
             else SpectralTransform(self.filters_global, strides=self.strides, use_bias=self.use_bias,
-                                   use_lfu=self.use_lfu)
+                                   use_lfu=self.use_lfu, name='g2g')
 
-        self.norm_global = None if 0 == self.filters_global else Norm()
-        self.norm_local = None if 0 == self.filters_local else Norm()
-        self.act = Act()
+        self.norm_global = None if 0 == self.filters_global else Norm(name='norm_global')
+        self.norm_local = None if 0 == self.filters_local else Norm(name='norm_local')
+        self.act = Act(name='act')
 
         super().build(input_shape)
 

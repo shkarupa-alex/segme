@@ -32,11 +32,11 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
 
     def build(self, input_shape=None):
         self.attention = models.Sequential([
-            ConvNormAct(self.filters, 3),
-            ConvNormAct(self.filters, 3),
-            layers.Dropout(self.dropout),
-            layers.Conv2D(1, 1, activation='sigmoid', use_bias=False)
-        ])
+            ConvNormAct(self.filters, 3, name='attention_cna0'),
+            ConvNormAct(self.filters, 3, name='attention_cna1'),
+            layers.Dropout(self.dropout, name='attention_drop'),
+            layers.Conv2D(1, 1, activation='sigmoid', use_bias=False, name='attention_proj')
+        ], name='attention')
 
         self.intbyscale = {str(scale): BilinearInterpolation(scale)
                            for scale in set(self.train_scales + self.eval_scales)}
