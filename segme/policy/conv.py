@@ -234,7 +234,6 @@ class StandardizedRegularizer(regularizers.Regularizer):
         mean, var = tf.nn.moments(x, axes=axes, keepdims=True)
         y = tf.nn.batch_normalization(x, mean, var, None, None, variance_epsilon=1e-5)
         y = tf.stop_gradient(y)
-        layers.Dense
 
         return self.l1 * tf.reduce_sum(tf.abs(x - y))
 
