@@ -1,23 +1,21 @@
 import tensorflow as tf
-from keras import backend, initializers, layers
+from keras import backend, initializers, layers, regularizers
 from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.policy.registry import LayerRegistry
-from segme.policy.regular import StandardizedRegularizer
 
 CONVOLUTIONS = LayerRegistry()
-
 CONVOLUTIONS.register('softstd1')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': StandardizedRegularizer(1e-1)}})
+    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
 CONVOLUTIONS.register('softstd2')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': StandardizedRegularizer(1e-2)}})
+    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
 CONVOLUTIONS.register('softstd3')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': StandardizedRegularizer(1e-3)}})
+    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
 CONVOLUTIONS.register('softstd4')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': StandardizedRegularizer(1e-4)}})
+    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
 CONVOLUTIONS.register('softstd5')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': StandardizedRegularizer(1e-5)}})
+    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
 
 
 @CONVOLUTIONS.register('conv')
@@ -219,3 +217,26 @@ class SpectralConv(StandardizedConv):
         config.update({'power_iterations': self.power_iterations})
 
         return config
+
+
+@register_keras_serializable(package='SegMe>Policy>Conv')
+class StandardizedRegularizer(regularizers.Regularizer):
+    def __init__(self, l1=1e-4, axes=None):
+        regularizers._check_penalty_number(l1)
+
+        self.l1 = float(l1)
+        self.axes = axes
+
+    def __call__(self, x):
+        # Kernel has shape HWIO, normalize over HWI
+        axes = self.axes or list(range(x.shape.rank - 1))
+
+        mean, var = tf.nn.moments(x, axes=axes, keepdims=True)
+        y = tf.nn.batch_normalization(x, mean, var, None, None, variance_epsilon=1e-5)
+        y = tf.stop_gradient(y)
+        layers.Dense
+
+        return self.l1 * tf.reduce_sum(tf.abs(x - y))
+
+    def get_config(self):
+        return {'l1': self.l1, 'axis': self.axes}

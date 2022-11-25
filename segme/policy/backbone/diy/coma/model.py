@@ -2,12 +2,12 @@ import numpy as np
 import tensorflow as tf
 from keras import backend, initializers, layers, models
 from keras.applications import imagenet_utils
-from keras.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.mixed_precision import global_policy
 from keras.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, ConvNormAct, ConvNorm
 from segme.common.drop import DropPath
 from segme.common.mbconv import MBConv
+from segme.policy import cnapol
 from segme.policy.backbone.diy.coma.attn import DHMSA, GGMSA, CHMSA
 from segme.policy.backbone.diy.coma.mlp import MLP
 
@@ -26,163 +26,173 @@ WEIGHT_HASHES = {}
 # TODO: CLS token usage https://github.com/microsoft/CvT/blob/main/lib/models/cls_cvt.py#L183
 # TODO: IN21k pretraining https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/98f13708210194c475687be6106a3b84-Paper-round1.pdf
 
-
-def Stem(filters, depth, path_gamma=1., name=None):
+def Stem(filters, depth, path_gamma=1., cna_policy=None, name=None):
     if name is None:
         counter = backend.get_uid('stem')
         name = f'stem_{counter}'
 
     def apply(x):
-        x = ConvNormAct(filters, 3, strides=2, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_conv')(x)
+        with cnapol.policy_scope(cna_policy):
+            x = ConvNormAct(
+                filters, 3, strides=2, kernel_initializer=initializers.VarianceScaling(2., 'fan_out'),
+                name=f'{name}_conv')(x)
 
-        # From EfficientNet2
-        for i in range(depth):
-            x = MBConv(
-                filters, 3, fused=True, expand_ratio=1., se_ratio=0.,
-                gamma_initializer=initializers.constant(path_gamma), name=f'{name}_mbconv_{i}')(x)
+            # From EfficientNet2
+            for i in range(depth):
+                x = MBConv(
+                    filters, 3, fused=True, expand_ratio=1., se_ratio=0.,
+                    gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_mbconv_{i}')(x)
 
-        return x
+            return x
 
     return apply
 
 
 def Reduce(fused, kernel_size=3, spatial_ratio=0.5, channel_ratio=2., expand_ratio=4., se_ratio=0.25, drop_ratio=0.,
-           path_gamma=1., name=None):
+           path_gamma=1., cna_policy=None, name=None):
     if name is None:
         counter = backend.get_uid('reduce')
         name = f'reduce_{counter}'
 
     def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+        with cnapol.policy_scope(cna_policy):
+            channels = inputs.shape[-1]
+            if channels is None:
+                raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        strides = int(1. / spatial_ratio)
-        filters = int(channels * channel_ratio)
+            strides = int(1. / spatial_ratio)
+            filters = int(channels * channel_ratio)
 
-        # From ResNetRS
-        skip = layers.AvgPool2D(strides, name=f'{name}_pool')(inputs)
-        skip = ConvNorm(filters, 1, name=f'{name}_proj')(skip)
+            # From ResNetRS
+            skip = layers.AvgPool2D(strides, name=f'{name}_pool')(inputs)
+            skip = ConvNorm(filters, 1, name=f'{name}_proj')(skip)
 
-        # From EfficientNet2
-        x = MBConv(
-            filters, kernel_size, fused=fused, strides=strides, expand_ratio=expand_ratio, se_ratio=se_ratio,
-            gamma_initializer=initializers.constant(path_gamma), name=f'{name}_mbconv')(inputs)
-        x = DropPath(drop_ratio, name=f'{name}_drop')(x)
+            # From EfficientNet2
+            x = MBConv(
+                filters, kernel_size, fused=fused, strides=strides, expand_ratio=expand_ratio, se_ratio=se_ratio,
+                gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_mbconv')(inputs)
+            x = DropPath(drop_ratio, name=f'{name}_drop')(x)
 
-        x = layers.add([x, skip], name=f'{name}_add')
+            x = layers.add([x, skip], name=f'{name}_add')
 
-        return x
+            return x
 
     return apply
 
 
-def ConvBlock(fused, kernel_size=3, expand_ratio=4., se_ratio=0.25, drop_ratio=0., path_gamma=1., name=None):
+def ConvBlock(fused, kernel_size=3, expand_ratio=4., se_ratio=0.25, drop_ratio=0., path_gamma=1., cna_policy=None,
+              name=None):
     if name is None:
         counter = backend.get_uid('conv_block')
         name = f'conv_block_{counter}'
 
     def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+        with cnapol.policy_scope(cna_policy):
+            channels = inputs.shape[-1]
+            if channels is None:
+                raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x = MBConv(
-            channels, kernel_size, fused, expand_ratio=expand_ratio, se_ratio=se_ratio,
-            gamma_initializer=initializers.constant(path_gamma), drop_ratio=drop_ratio, name=f'{name}_mbconv')(inputs)
+            x = MBConv(
+                channels, kernel_size, fused, expand_ratio=expand_ratio, se_ratio=se_ratio,
+                gamma_initializer=initializers.Constant(path_gamma), drop_ratio=drop_ratio, name=f'{name}_mbconv')(
+                inputs)
 
-        return x
+            return x
 
     return apply
 
 
 def WindBlock(current_window, pretrain_window, num_heads, dilation_rate=1, qkv_bias=True, attn_drop=0., proj_drop=0.,
-              path_drop=0., mlp_ratio=4., mlp_drop=0., path_gamma=1., name=None):
+              path_drop=0., mlp_ratio=4., mlp_drop=0., path_gamma=1., cna_policy=None, name=None):
     if name is None:
         counter = backend.get_uid('attn_block')
         name = f'attn_block_{counter}'
 
     def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+        with cnapol.policy_scope(cna_policy):
+            channels = inputs.shape[-1]
+            if channels is None:
+                raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x = DHMSA(
-            current_window, pretrain_window, num_heads, dilation_rate=dilation_rate, qkv_bias=qkv_bias,
-            attn_drop=attn_drop, proj_drop=proj_drop, name=f'{name}_window')(inputs)
-        x = Norm(gamma_initializer=initializers.constant(path_gamma), name=f'{name}_norm1')(x)
-        x = DropPath(path_drop, name=f'{name}_drop1')(x)
-        x = layers.add([x, inputs], name=f'{name}_add1')
+            x = DHMSA(
+                current_window, pretrain_window, num_heads, dilation_rate=dilation_rate, qkv_bias=qkv_bias,
+                attn_drop=attn_drop, proj_drop=proj_drop, name=f'{name}_window')(inputs)
+            x = Norm(gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_norm1')(x)
+            x = DropPath(path_drop, name=f'{name}_drop1')(x)
+            x = layers.add([x, inputs], name=f'{name}_add1')
 
-        y = MLP(mlp_ratio, mlp_drop, name=f'{name}_mlp')(x)
-        y = Norm(gamma_initializer=initializers.constant(path_gamma), name=f'{name}_norm2')(y)
-        y = DropPath(path_drop, name=f'{name}_drop2')(y)
-        y = layers.add([y, x], name=f'{name}_add2')
+            y = MLP(mlp_ratio, mlp_drop, name=f'{name}_mlp')(x)
+            y = Norm(gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_norm2')(y)
+            y = DropPath(path_drop, name=f'{name}_drop2')(y)
+            y = layers.add([y, x], name=f'{name}_add2')
 
-        return y
+            return y
 
     return apply
 
 
 def GridBlock(current_window, pretrain_window, num_heads, qkv_bias=True, attn_drop=0., proj_drop=0., path_drop=0.,
-              mlp_ratio=4., mlp_drop=0., path_gamma=1., name=None):
+              mlp_ratio=4., mlp_drop=0., path_gamma=1., cna_policy=None, name=None):
     if name is None:
         counter = backend.get_uid('attn_block')
         name = f'attn_block_{counter}'
 
     def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+        with cnapol.policy_scope(cna_policy):
+            channels = inputs.shape[-1]
+            if channels is None:
+                raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x = GGMSA(
-            current_window, pretrain_window, num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=proj_drop,
-            name=f'{name}_grid')(inputs)
-        x = Norm(gamma_initializer=initializers.constant(path_gamma), name=f'{name}_norm1')(x)
-        x = DropPath(path_drop, name=f'{name}_drop1')(x)
-        x = layers.add([x, inputs], name=f'{name}_add1')
+            x = GGMSA(
+                current_window, pretrain_window, num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=proj_drop,
+                name=f'{name}_grid')(inputs)
+            x = Norm(gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_norm1')(x)
+            x = DropPath(path_drop, name=f'{name}_drop1')(x)
+            x = layers.add([x, inputs], name=f'{name}_add1')
 
-        y = MLP(mlp_ratio, mlp_drop, name=f'{name}_mlp')(x)
-        y = Norm(gamma_initializer=initializers.constant(path_gamma), name=f'{name}_norm2')(y)
-        y = DropPath(path_drop, name=f'{name}_drop2')(y)
-        y = layers.add([y, x], name=f'{name}_add2')
+            y = MLP(mlp_ratio, mlp_drop, name=f'{name}_mlp')(x)
+            y = Norm(gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_norm2')(y)
+            y = DropPath(path_drop, name=f'{name}_drop2')(y)
+            y = layers.add([y, x], name=f'{name}_add2')
 
-        return y
+            return y
 
     return apply
 
 
 def ChanBlock(num_heads, qkv_bias=True, attn_drop=0., proj_drop=0., path_drop=0., mlp_ratio=4., mlp_drop=0.,
-              path_gamma=1., name=None):
+              path_gamma=1., cna_policy=None, name=None):
     if name is None:
         counter = backend.get_uid('attn_block')
         name = f'attn_block_{counter}'
 
     def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+        with cnapol.policy_scope(cna_policy):
+            channels = inputs.shape[-1]
+            if channels is None:
+                raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x = CHMSA(
-            num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=proj_drop, name=f'{name}_channel')(inputs)
-        x = Norm(gamma_initializer=initializers.constant(path_gamma), name=f'{name}_norm1')(x)
-        x = DropPath(path_drop, name=f'{name}_drop1')(x)
-        x = layers.add([x, inputs], name=f'{name}_add1')
+            x = CHMSA(
+                num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=proj_drop, name=f'{name}_channel')(inputs)
+            x = Norm(gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_norm1')(x)
+            x = DropPath(path_drop, name=f'{name}_drop1')(x)
+            x = layers.add([x, inputs], name=f'{name}_add1')
 
-        y = MLP(mlp_ratio, mlp_drop, name=f'{name}_mlp')(x)
-        y = Norm(gamma_initializer=initializers.constant(path_gamma), name=f'{name}_norm2')(y)
-        y = DropPath(path_drop, name=f'{name}_drop2')(y)
-        y = layers.add([y, x], name=f'{name}_add2')
+            y = MLP(mlp_ratio, mlp_drop, name=f'{name}_mlp')(x)
+            y = Norm(gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_norm2')(y)
+            y = DropPath(path_drop, name=f'{name}_drop2')(y)
+            y = layers.add([y, x], name=f'{name}_add2')
 
-        return y
+            return y
 
     return apply
 
 
 def CoMA(
         embed_dim, stem_depth, stage_depths, current_window=8, pretrain_window=8, path_gamma=0.1, path_drop=0.2,
-        pretrain_size=384, input_shape=None, include_top=True, model_name='coma', pooling=None, weights='imagenet',
-        input_tensor=None, classes=21841, classifier_activation='softmax', include_preprocessing=True):
+        conv_policy='conv-gn-gelu', attn_policy='conv-gn-gelu', pretrain_size=384, input_shape=None, include_top=True,
+        model_name='coma', pooling=None, weights='imagenet', input_tensor=None, classes=21841,
+        classifier_activation='softmax', include_preprocessing=True):
     """ Inspired with:
 
     15.11.2022 Focal Modulation Networks
@@ -227,6 +237,10 @@ def CoMA(
         + overlapped reduction
         + depthwise convolution in MLP
         - reduce length for efficient self-attention
+    24.10.2021 Leveraging Batch Normalization for Vision Transformers
+        + BN is faster than LN in early stages when input has larger spatial resolution and smaller channel number
+        - BN in MLP
+        - BN in attention
     15.09.2021 CoAtNet: Marrying Convolution and Attention for All Data Sizes
         + stage architecrure CCTT
         + MBConv for reduction and as convolutional block
@@ -300,7 +314,7 @@ def CoMA(
     path_drops = np.linspace(0., path_drop, sum(stage_depths) + len(stage_depths))
     path_gammas = np.linspace(path_gamma, 1e-4, sum(stage_depths) + len(stage_depths) * 2 + 1)
 
-    x = Stem(embed_dim // 2, stem_depth, path_gamma=path_gammas[0], name='stem')(x)
+    x = Stem(embed_dim // 2, stem_depth, path_gamma=path_gammas[0], cna_policy=conv_policy, name='stem')(x)
     x = layers.Activation('linear', name='stem_out')(x)
 
     for i, depth in enumerate(stage_depths):
@@ -310,18 +324,19 @@ def CoMA(
         path_gamma_ = path_gammas[sum(stage_depths[:i]) + i * 2 + 1:sum(stage_depths[:i + 1]) + i * 2 + 3].tolist()
 
         # From GCViT
-        x = Reduce(fused, path_gamma=path_gamma_[0], name=f'stage_{i}_reduce')(x)
+        x = Reduce(fused, path_gamma=path_gamma_[0], cna_policy=conv_policy, name=f'stage_{i}_reduce')(x)
 
         for j in range(depth):
             if i < 2:  # From CoAtNet
                 x = ConvBlock(
-                    fused, drop_ratio=path_drop_[j], path_gamma=path_gamma_[j + 1], name=f'stage_{i}_conv_{j}')(x)
+                    fused, drop_ratio=path_drop_[j], path_gamma=path_gamma_[j + 1], cna_policy=conv_policy,
+                    name=f'stage_{i}_conv_{j}')(x)
                 continue
 
             if len(stage_depths) - 1 == i and j % 2:
                 x = GridBlock(  # From MaxViT
                     current_window, pretrain_window, num_heads, path_gamma=path_gamma_[j + 1], path_drop=path_drop_[j],
-                    name=f'stage_{i}_attn_{j}')(x)
+                    cna_policy=attn_policy, name=f'stage_{i}_attn_{j}')(x)
                 continue
 
             current_size = pretrain_size // 2 ** (i + 2)
@@ -332,14 +347,15 @@ def CoMA(
 
             x = WindBlock(
                 current_window, pretrain_window, num_heads, dilation_rate=dilation_rate, path_gamma=path_gamma_[j + 1],
-                path_drop=path_drop_[j], name=f'stage_{i}_attn_{j}')(x)
+                path_drop=path_drop_[j], cna_policy=attn_policy, name=f'stage_{i}_attn_{j}')(x)
 
         # From DaViT, HAT
         x = ChanBlock(
-            num_heads, path_gamma=path_gamma_[-1], path_drop=path_drop_[-1], name=f'stage_{i}_attn_{depth}')(x)
+            num_heads, path_gamma=path_gamma_[-1], path_drop=path_drop_[-1], cna_policy=attn_policy,
+            name=f'stage_{i}_attn_{depth}')(x)
         x = layers.Activation('linear', name=f'stage_{i}_out')(x)
 
-    x = Norm(name='norm')(x)
+    x = Norm(name='norm', policy=attn_policy)(x)
 
     if include_top or pooling in {None, 'avg'}:
         x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
@@ -382,22 +398,19 @@ def CoMATiny(embed_dim=64, stem_depth=1, stage_depths=(4, 4, 18, 2), path_drop=0
         model_name='coma-tiny', **kwargs)
 
 
-def CoMASmall(embed_dim=96, stem_depth=2, stage_depths=(2, 6, 16, 3), path_drop=0.2, **kwargs):
+def CoMASmall(embed_dim=96, stem_depth=2, stage_depths=(2, 6, 16, 3), **kwargs):
     return CoMA(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
-        model_name='coma-small', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-small', **kwargs)
 
 
-def CoMABase(embed_dim=128, stem_depth=3, stage_depths=(2, 8, 20, 4), path_drop=0.3, **kwargs):
+def CoMABase(embed_dim=128, stem_depth=3, stage_depths=(2, 8, 20, 4), **kwargs):
     return CoMA(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
-        model_name='coma-base', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-base', **kwargs)
 
 
-def CoMALarge(embed_dim=160, stem_depth=4, stage_depths=(2, 10, 24, 5), path_drop=0.4, **kwargs):
+def CoMALarge(embed_dim=160, stem_depth=4, stage_depths=(2, 10, 24, 5), **kwargs):
     return CoMA(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
-        model_name='coma-large', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-large', **kwargs)
 
 # Swin v2
 #  96 / 2 2  6 2
