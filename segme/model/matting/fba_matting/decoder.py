@@ -25,15 +25,12 @@ class Decoder(layers.Layer):
     def build(self, input_shape):
         self.resize = BilinearInterpolation(None)
 
-        from segme.policy.cnapol import policy_scope  # TODO
+        self.ppm = PyramidPooling(256)
+        self.ppm.build(input_shape[2])
 
-        with policy_scope('stdconv-gn-leakyrelu'):
-            self.ppm = PyramidPooling(256)
-            self.ppm.build(input_shape[2])
-
-            self.conv_up1 = ConvNormAct(256, 3)
-            self.conv_up2 = ConvNormAct(256, 3)
-            self.conv_up3 = ConvNormAct(64, 3)
+        self.conv_up1 = ConvNormAct(256, 3)
+        self.conv_up2 = ConvNormAct(256, 3)
+        self.conv_up3 = ConvNormAct(64, 3)
 
         self.conv_up4 = Sequential([
             layers.Conv2D(32, 3, padding='same'),
