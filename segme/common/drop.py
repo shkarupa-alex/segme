@@ -78,9 +78,14 @@ class DropBlock(layers.Layer):
         return outputs
 
     def drop(self, inputs):
-        gamma = self.rate / (self.size ** 2)
+        shape = tf.shape(inputs)
+        fsize = tf.reduce_mean(shape[1:3])
+        fsize = tf.cast(fsize, self.compute_dtype)
+        bsize = float(self.size)
 
-        mask = tf.random.uniform(tf.shape(inputs)[:3])[..., None]
+        gamma = (self.rate / bsize ** 2) * (fsize / (fsize - bsize + 1.)) ** 2
+
+        mask = tf.random.uniform(shape, dtype=self.compute_dtype)
         mask = tf.cast(mask < gamma, self.compute_dtype)
         mask = 1. - tf.nn.max_pool2d(mask, self.size, 1, 'SAME')
         mask = mask / tf.reduce_mean(mask, axis=[1, 2], keepdims=True)
