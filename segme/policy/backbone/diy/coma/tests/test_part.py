@@ -110,3 +110,7 @@ class TestWithPartition(tf.test.TestCase):
                 result = with_partition(lambda x, **kwargs: x, inputs, part_type, size, dilation_rate)
                 result = self.evaluate(result)
                 self.assertAllEqual(inputs, result)
+
+
+if __name__ == '__main__':
+    tf.test.main()

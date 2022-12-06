@@ -1,13 +1,12 @@
 import numpy as np
 import tensorflow as tf
 from keras import initializers, layers
-from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNorm, Conv, Act
 from segme.common.pad import with_divisible_pad
 from segme.common.sequent import Sequential
-from segme.policy.backbone.diy.coma.part import partition_apply, partition_reverse, with_partition
+from segme.policy.backbone.diy.coma.part import partition_apply, partition_reverse
 
 
 @register_keras_serializable(package='SegMe>Policy>Backbone>DIY>CoMA')
@@ -194,160 +193,6 @@ class DHMSA(layers.Layer):
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
             'dilation_rate': self.dilation_rate,
-            'qkv_bias': self.qkv_bias,
-            'attn_drop': self.attn_drop,
-            'proj_drop': self.proj_drop,
-        })
-
-        return config
-
-
-@register_keras_serializable(package='SegMe>Policy>Backbone>DIY>CoMA')
-class GGMSA(layers.Layer):
-    def __init__(self, current_window, pretrain_window, num_heads, qkv_bias=True, attn_drop=0., proj_drop=0., **kwargs):
-        super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
-
-        if current_window < pretrain_window:
-            raise ValueError('Actual window size should not be less then pretrain one.')
-
-        self.current_window = current_window
-        self.pretrain_window = pretrain_window
-        self.num_heads = num_heads
-        self.qkv_bias = qkv_bias
-        self.attn_drop = attn_drop
-        self.proj_drop = proj_drop
-
-    @shape_type_conversion
-    def build(self, input_shape):
-        self.channels = input_shape[-1]
-        if self.channels is None:
-            raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
-        if self.channels % self.num_heads:
-            raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
-
-        self.window_length = self.current_window ** 2
-
-        self.qkv = Sequential([
-            ConvNorm(None, 3, name='qkv_dw'),  # From CvT
-            Conv(self.channels * 3, 1, use_bias=False, name='qkv_pw')], name='qkv')
-
-        if self.qkv_bias:
-            self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
-            self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
-
-        self.scale = self.add_weight(
-            'scale', shape=[self.num_heads, 1, 1],
-            initializer=initializers.constant(np.log(10., dtype=self.dtype)),
-            constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
-
-        self.cpb = Sequential([
-            layers.Dense(512, name='cpb_fc0'),
-            Act(name='cpb_act'),
-            layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name='cpb_fc1')], name='cpb')
-
-        self.drop_attn = layers.Dropout(self.attn_drop, name='attn_drop')
-        self.proj = Conv(self.channels, 1, name='proj')
-        self.drop_proj = layers.Dropout(self.proj_drop, name='proj_drop')
-
-        super().build(input_shape)
-
-    def call(self, inputs, **kwargs):
-        qkv = self.qkv(inputs)
-        if self.qkv_bias:
-            k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
-            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, qkv_bias)
-
-        outputs = with_partition(self.qkv_attn, qkv, 'grid_size', self.current_window)
-
-        outputs = self.proj(outputs)
-        outputs = self.drop_proj(outputs)
-
-        return outputs
-
-    def qkv_attn(self, qkv, with_pad, pad_size, pad_val):
-        qkv = tf.reshape(qkv, [-1, self.window_length, 3, self.num_heads, self.channels // self.num_heads])
-        qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
-        q, k, v = tf.unstack(qkv, 3, axis=0)
-
-        q = tf.math.l2_normalize(q, axis=-1)
-        k = tf.math.l2_normalize(k, axis=-1)
-
-        attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
-        attn = self.rel_bias(attn)
-        attn = smart_cond(
-            with_pad,
-            lambda: self.pad_mask(attn, pad_size, pad_val),
-            lambda: tf.identity(attn))
-        attn = tf.nn.softmax(attn)
-        attn = self.drop_attn(attn)
-
-        outputs = tf.transpose(tf.matmul(attn, v), perm=[0, 2, 1, 3])
-        outputs = tf.reshape(outputs, [-1, self.window_length, self.channels])
-
-        return outputs
-
-    def rel_bias(self, attn):
-        reltab = np.arange(1 - self.current_window, self.current_window).astype('float32')
-        reltab = np.stack(np.meshgrid(reltab, reltab, indexing='ij'))
-        reltab = np.transpose(reltab, [1, 2, 0])[None]
-        reltab *= 8. / (self.pretrain_window - 1.)
-        reltab = np.sign(reltab) * np.log1p(np.abs(reltab)) / np.log(8)
-        reltab = tf.cast(reltab, self.compute_dtype)
-
-        relidx = np.arange(self.current_window)
-        relidx = np.stack(np.meshgrid(relidx, relidx, indexing='ij'), axis=0)
-        relidx = np.reshape(relidx, [2, -1])
-        relidx = relidx[:, :, None] - relidx[:, None]
-        relidx = relidx + (self.current_window - 1)
-        relidx = relidx[0] * (2 * self.current_window - 1) + relidx[1]
-        relidx = np.reshape(relidx, [-1])
-        relidx = tf.cast(relidx, 'int64')
-
-        bias = self.cpb(reltab) * 16.
-        bias = tf.reshape(bias, [-1, self.num_heads])
-        bias = tf.gather(bias, relidx)
-        bias = tf.reshape(bias, [self.window_length, self.window_length, -1])
-        bias = tf.transpose(bias, perm=[2, 0, 1])[None]
-
-        attn += bias
-
-        return attn
-
-    def pad_mask(self, attn, pad_size, pad_val):
-        batch_size, pad_height, pad_width = pad_size
-        src_height, src_width = pad_height - pad_val[0], pad_width - pad_val[1]
-
-        hb_pad, wb_pad = pad_val[0] // 2, pad_val[1] // 2
-        ha_pad, wa_pad = pad_val[0] - hb_pad, pad_val[1] - wb_pad
-        paddings = [[0, 0], [hb_pad, ha_pad], [wb_pad, wa_pad], [0, 0]]
-
-        mask = tf.ones((1, src_height, src_width, 1), dtype='int32')
-        mask = tf.pad(mask, paddings)
-        mask = partition_apply(mask, pad_height, pad_width, 'grid_size', self.current_window, 1)
-        mask = tf.squeeze(mask == 0, axis=-1)[None, :, None, None]
-        mask = -100. * tf.cast(mask, self.compute_dtype)
-
-        num_windows = pad_height * pad_width // self.window_length
-        attn = tf.reshape(attn, shape=[batch_size, num_windows, self.num_heads, self.window_length, self.window_length])
-        attn += mask
-        attn = tf.reshape(
-            attn, shape=[batch_size * num_windows, self.num_heads, self.window_length, self.window_length])
-
-        return attn
-
-    @shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-    def get_config(self):
-        config = super().get_config()
-
-        config.update({
-            'current_window': self.current_window,
-            'pretrain_window': self.pretrain_window,
-            'num_heads': self.num_heads,
             'qkv_bias': self.qkv_bias,
             'attn_drop': self.attn_drop,
             'proj_drop': self.proj_drop,
