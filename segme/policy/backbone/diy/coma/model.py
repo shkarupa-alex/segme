@@ -15,12 +15,9 @@ WEIGHT_HASHES = {}
 
 
 # TODO: DW in MLP - before/after/none
-# TODO: SE in MLP - yes/no (too much weights)
 # TODO: DW in attention - yes/no
 
-
-# TODO: disable biases?
-# TODO: channel shift
+# TODO: channel shift ?
 
 # TODO: CLS token usage https://github.com/microsoft/CvT/blob/main/lib/models/cls_cvt.py#L183
 # TODO: IN21k pretraining https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/98f13708210194c475687be6106a3b84-Paper-round1.pdf
@@ -165,9 +162,9 @@ def ChanBlock(num_heads, qkv_bias=True, attn_drop=0., proj_drop=0., path_drop=0.
 
 
 def CoMA(
-        embed_dim, stem_depth, stage_depths, current_window=8, pretrain_window=8, expand_ratio=4, path_gamma=0.1,
+        embed_dim, stem_depth, stage_depths, current_window=8, pretrain_window=8, expand_ratio=3, path_gamma=0.1,
         path_drop=0.2, pretrain_size=384, input_shape=None, include_top=True, model_name='coma', pooling=None,
-        weights=None, input_tensor=None, classes=21841, classifier_activation='softmax', include_preprocessing=False):
+        weights=None, input_tensor=None, classes=1000, classifier_activation='softmax', include_preprocessing=False):
     """ Inspired with:
 
     15.11.2022 Focal Modulation Networks
@@ -294,7 +291,7 @@ def CoMA(
     x = layers.Activation('linear', name='stem_out')(x)
 
     for i, stage_depth in enumerate(stage_depths):
-        fused = embed_dim * (2 ** i) < 128
+        fused = 0 == i
         num_heads = embed_dim // 2 ** (5 - i)
 
         path_drop_, path_drops = path_drops[:stage_depth + 1], path_drops[stage_depth + 1:]
@@ -363,73 +360,26 @@ def CoMA(
     return model
 
 
-def CoMATiny(embed_dim=64, stem_depth=1, stage_depths=(4, 4, 18, 2), path_drop=0.1, **kwargs):
+def CoMATiny(embed_dim=64, stem_depth=2, stage_depths=(3, 4, 19, 3), path_drop=0.1, **kwargs):
+    # 27.4 M, 18.5 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
         model_name='coma-tiny', **kwargs)
 
 
-def CoMASmall(embed_dim=96, stem_depth=2, stage_depths=(2, 6, 16, 3), **kwargs):
-    # 2 4 4
+def CoMASmall(embed_dim=96, stem_depth=2, stage_depths=(3, 4, 19, 3), **kwargs):
+    # 60.8 M, 39.5 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-small', **kwargs)
 
 
-def CoMABase(embed_dim=128, stem_depth=3, stage_depths=(2, 8, 20, 4), expand_ratio=2, **kwargs):
-    # 3 5 5
+def CoMABase(embed_dim=128, stem_depth=3, stage_depths=(4, 5, 21, 3), **kwargs):
+    # 114.0 M, 78.7 G
     return CoMA(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, expand_ratio=expand_ratio,
-        model_name='coma-base', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-base', **kwargs)
 
 
-def CoMALarge(embed_dim=160, stem_depth=4, stage_depths=(2, 10, 24, 5), expand_ratio=2, **kwargs):
-    # 4 7 7
+def CoMALarge(embed_dim=160, stem_depth=4, stage_depths=(5, 6, 21, 5), **kwargs):
+    # 212.3 M, 136.9 G
     return CoMA(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, expand_ratio=expand_ratio,
-        model_name='coma-large', **kwargs)
-
-# Swin v2
-#  96 / 2 2  6 2
-#  96 / 2 2 18 2
-# 128 / 2 2 18 2
-# 192 / 2 2 18 2
-
-
-# GCViT
-#  64 / 3 4 19 5
-#  96 / 3 4 19 5
-# 128 / 3 4 19 5
-# 192 / 3 4 19 5
-
-
-# DaViT
-#  96 / 2 2  6 2
-#  96 / 2 2 18 2
-# 128 / 2 2 18 2
-# 192 / 2 2 18 2
-
-
-# MaxViT
-#  64 / 2 2  5 2
-#  96 / 2 2  5 2
-#  96 / 2 6 14 2
-# 128 / 2 6 14 2
-
-
-# CoAt
-#  64 /  2 6 14 2
-# 128 /  2 6 14 2
-# 192 /  2 6 14 2
-# 192 / 2 12 28 2
-
-
-# EffNet
-# 48 / 4 4 15 15
-# 48 / 5 5 21 18
-# 64 / 7 7 29 32
-
-
-# T  28- 31 / 18G
-# S  49- 69 / 36G
-# B  87-120 / 47G-74G
-# L 197-212 / 103G-133G
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-large', **kwargs)
