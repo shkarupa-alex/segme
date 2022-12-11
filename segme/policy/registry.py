@@ -1,7 +1,7 @@
 import copy
 import inspect
 from keras import layers
-from keras.utils.generic_utils import get_custom_objects_by_name
+from keras.saving.object_registration import get_registered_object
 
 
 class Registry:
@@ -72,7 +72,7 @@ class LayerRegistry(Registry):
         if is_class:
             cls = value
         elif isinstance(value, dict):
-            cls = layers.get_builtin_layer(value['class_name']) or get_custom_objects_by_name(value['class_name'])
+            cls = layers.get_builtin_layer(value['class_name']) or get_registered_object(value['class_name'])
             if cls is None:
                 raise ValueError(f'Can\'t find class for {value}')
         else:

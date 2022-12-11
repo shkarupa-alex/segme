@@ -21,3 +21,6 @@ BACKBONES.register('gcvit_small')((
 
 BACKBONES.register('gcvit_base')((
     partial(wrap_bone, tfgcvit.GCViTBase, tfgcvit.preprocess_input), GCVIT_ENDPOINTS))
+
+BACKBONES.register('gcvit_large')((
+    partial(wrap_bone, tfgcvit.GCViTLarge, tfgcvit.preprocess_input), GCVIT_ENDPOINTS))

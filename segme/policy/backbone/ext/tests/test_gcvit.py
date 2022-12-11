@@ -112,6 +112,22 @@ class TestGCViT(test_combinations.TestCase):
             expected_output_dtypes=['float32'] * 5
         )
 
+    def test_large(self):
+        layer_multi_io_test(
+            Backbone,
+            kwargs={'scales': None, 'policy': 'gcvit_large-none'},
+            input_shapes=[(2, 224, 224, 3)],
+            input_dtypes=['uint8'],
+            expected_output_shapes=[
+                (None, 112, 112, 192),
+                (None, 56, 56, 192),
+                (None, 28, 28, 384),
+                (None, 14, 14, 768),
+                (None, 7, 7, 1536)
+            ],
+            expected_output_dtypes=['float32'] * 5
+        )
+
 
 if __name__ == '__main__':
     tf.test.main()
