@@ -1,19 +1,21 @@
 import tensorflow as tf
-from keras import backend, initializers, layers, regularizers
+from keras import backend, constraints, initializers, layers, regularizers
 from keras.utils.control_flow_util import smart_cond
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.policy.registry import LayerRegistry
 
 CONVOLUTIONS = LayerRegistry()
+CONVOLUTIONS.register('stdconv')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
+    'kernel_constraint': {'class_name': 'SegMe>Policy>Conv>StandardizedConstraint', 'config': {}}}})
 CONVOLUTIONS.register('softstd1')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
+    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-1}}}})
 CONVOLUTIONS.register('softstd2')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
+    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-2}}}})
 CONVOLUTIONS.register('softstd3')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
+    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-3}}}})
 CONVOLUTIONS.register('softstd4')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
+    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-4}}}})
 CONVOLUTIONS.register('softstd5')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
     'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
 
@@ -127,42 +129,9 @@ class FixedDepthwiseConv(layers.DepthwiseConv2D):
         return config
 
 
-@CONVOLUTIONS.register('stdconv')
-@register_keras_serializable(package='SegMe>Policy>Conv')
-class StandardizedConv(FixedConv):
-    """Implements https://arxiv.org/abs/1903.10520"""
-
-    def before_train(self, inputs):
-        kernel = tf.cast(self.kernel, self.dtype)
-
-        # Kernel has shape HWIO, normalize over HWI
-        mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
-        kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, variance_epsilon=1e-5)
-        kernel = tf.stop_gradient(kernel)
-
-        kernel_update = self.kernel.assign(kernel, read_value=False)
-        with tf.control_dependencies([kernel_update]):
-            outputs = tf.identity(inputs)
-
-        return outputs
-
-    def call(self, inputs, training=None):
-        if training is None:
-            training = backend.learning_phase()
-
-        outputs = smart_cond(
-            training,
-            lambda: self.before_train(inputs),
-            lambda: tf.identity(inputs))
-
-        outputs = super().call(outputs)
-
-        return outputs
-
-
 @CONVOLUTIONS.register('snconv')
 @register_keras_serializable(package='SegMe>Policy>Conv')
-class SpectralConv(StandardizedConv):
+class SpectralConv(FixedConv):
     """Implements https://arxiv.org/abs/1802.05957"""
 
     def __init__(self, filters, kernel_size, strides=(1, 1), padding='valid', data_format=None, dilation_rate=(1, 1),
@@ -212,11 +181,43 @@ class SpectralConv(StandardizedConv):
 
         return outputs
 
+    def call(self, inputs, training=None):
+        if training is None:
+            training = backend.learning_phase()
+
+        outputs = smart_cond(
+            training,
+            lambda: self.before_train(inputs),
+            lambda: tf.identity(inputs))
+
+        outputs = super().call(outputs)
+
+        return outputs
+
     def get_config(self):
         config = super().get_config()
         config.update({'power_iterations': self.power_iterations})
 
         return config
+
+
+@register_keras_serializable(package='SegMe>Policy>Conv')
+class StandardizedConstraint(constraints.Constraint):
+    def __init__(self, axes=None):
+        self.axes = axes
+
+    def __call__(self, x):
+        # Kernel has shape HWIO, normalize over HWI
+        axes = self.axes or list(range(x.shape.rank - 1))
+
+        mean, var = tf.nn.moments(x, axes=axes, keepdims=True)
+        y = tf.nn.batch_normalization(x, mean, var, None, None, variance_epsilon=1e-5)
+        y = tf.stop_gradient(y)
+
+        return y
+
+    def get_config(self):
+        return {'axis': self.axes}
 
 
 @register_keras_serializable(package='SegMe>Policy>Conv')
