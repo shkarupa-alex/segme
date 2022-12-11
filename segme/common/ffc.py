@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras import layers
 from keras.utils.conv_utils import normalize_tuple
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tensorflow.python.platform.device_context import enclosing_tpu_context
 from segme.common.convnormact import Conv, Norm, Act, ConvNormAct

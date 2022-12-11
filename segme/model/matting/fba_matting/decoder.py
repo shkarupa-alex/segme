@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras import Sequential, layers
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct, Act
 from segme.common.ppm import PyramidPooling

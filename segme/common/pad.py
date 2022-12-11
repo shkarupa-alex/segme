@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import backend, layers
 from keras.utils.control_flow_util import smart_cond
 from keras.utils.conv_utils import normalize_tuple
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 
 
 @register_keras_serializable(package='SegMe>Common')

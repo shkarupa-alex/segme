@@ -67,10 +67,10 @@ class TestBoundaryCategoricalLoss(test_combinations.TestCase):
         self.assertAlmostEqual(result, 0.1696591)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
-        self.assertAlmostEqual(result, 0.07836693)
+        self.assertAlmostEqual(result, 0.15673386)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 0.07836693 * 2., places=6)
+        self.assertAlmostEqual(result, 0.15673386 * 2., places=6)
 
     def test_multi(self):
         loss = BoundaryCategoricalLoss(from_logits=True)

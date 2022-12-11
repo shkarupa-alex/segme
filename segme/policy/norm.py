@@ -3,7 +3,7 @@ import tensorflow as tf
 import warnings
 from keras import layers
 from keras.utils.conv_utils import normalize_data_format
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tensorflow_addons import layers as add_layers
 from segme.policy.registry import LayerRegistry

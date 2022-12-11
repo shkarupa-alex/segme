@@ -4,7 +4,7 @@ from tensorflow.python.eager import context
 from tensorflow.python.framework import tensor_util
 from keras import backend, losses
 from keras.utils import losses_utils
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import graph_context_for_symbolic_tensors
 
 

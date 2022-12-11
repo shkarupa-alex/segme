@@ -1,5 +1,5 @@
 from keras import models, layers
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.policy import bbpol
 from segme.policy.backbone.utils import get_layer
