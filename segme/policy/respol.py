@@ -1,5 +1,5 @@
 import contextlib
-from keras.utils.generic_utils import deserialize_keras_object, serialize_keras_object
+from keras.utils import deserialize_keras_object, serialize_keras_object
 from segme.policy.resize import RESIZERS
 
 
