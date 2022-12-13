@@ -36,7 +36,7 @@ class TestConv(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 Conv,
                 kwargs={'filters': 4, 'kernel_size': 3},
@@ -73,7 +73,7 @@ class TestConv(test_combinations.TestCase):
             expected_output_dtype='float16'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 Conv,
                 kwargs={'filters': 4, 'kernel_size': 3},
@@ -107,30 +107,30 @@ class TestConv(test_combinations.TestCase):
         self.assertTupleEqual(convinst.conv.kernel_size, (3, 3))
 
     def test_policy_scope_memorize(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             convinst = Conv(4, 3)
         convinst.build([None, None, None, 3])
 
-        self.assertIsInstance(convinst.conv, conv.StandardizedConv)
+        self.assertIsInstance(convinst.conv, conv.SpectralConv)
         self.assertEqual(convinst.conv.filters, 4)
         self.assertTupleEqual(convinst.conv.kernel_size, (3, 3))
 
         restored = Conv.from_config(convinst.get_config())
         restored.build([None, None, None, 3])
 
-        self.assertIsInstance(restored.conv, conv.StandardizedConv)
+        self.assertIsInstance(restored.conv, conv.SpectralConv)
         self.assertEqual(restored.conv.filters, 4)
         self.assertTupleEqual(restored.conv.kernel_size, (3, 3))
 
     def test_policy_override_kwargs(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             convinst = Conv(4, 3, strides=2)
         convinst.build([None, None, None, 3])
 
         restored = Conv.from_config(convinst.get_config())
         restored.build([None, None, None, 3])
 
-        self.assertIsInstance(restored.conv, conv.StandardizedConv)
+        self.assertIsInstance(restored.conv, conv.SpectralConv)
         self.assertTupleEqual(restored.conv.strides, (2, 2))
 
 
@@ -156,7 +156,7 @@ class TestNorm(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 Norm,
                 kwargs={},
@@ -177,7 +177,7 @@ class TestNorm(test_combinations.TestCase):
             expected_output_dtype='float16'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 Norm,
                 kwargs={},
@@ -194,7 +194,7 @@ class TestNorm(test_combinations.TestCase):
         self.assertIsInstance(norminst.norm, layers.BatchNormalization)
 
     def test_policy_scope_memorize(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             norminst = Norm()
         norminst.build([None, None, None, 3])
 
@@ -228,7 +228,7 @@ class TestAct(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 Act,
                 kwargs={},
@@ -249,7 +249,7 @@ class TestAct(test_combinations.TestCase):
             expected_output_dtype='float16'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 Act,
                 kwargs={},
@@ -266,7 +266,7 @@ class TestAct(test_combinations.TestCase):
         self.assertIsInstance(actinst.act, layers.ReLU)
 
     def test_policy_scope_memorize(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             actinst = Act()
         actinst.build([None, None, None, 3])
 
@@ -308,7 +308,7 @@ class TestConvNormAct(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 ConvNormAct,
                 kwargs={'filters': 4, 'kernel_size': 3},
@@ -345,7 +345,7 @@ class TestConvNormAct(test_combinations.TestCase):
             expected_output_dtype='float16'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 ConvNormAct,
                 kwargs={'filters': 4, 'kernel_size': 3},
@@ -385,15 +385,15 @@ class TestConvNormAct(test_combinations.TestCase):
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
 
     def test_policy_scope_memorize(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             cna = ConvNormAct(4, 3)
         cna.build([None, None, None, 3])
 
         self.assertIsInstance(cna.policy, cnapol.ConvNormActPolicy)
-        self.assertEqual(cna.policy.name, 'stdconv-gn-leakyrelu')
+        self.assertEqual(cna.policy.name, 'snconv-gn-leakyrelu')
 
         self.assertIsInstance(cna.conv, Conv)
-        self.assertIsInstance(cna.conv.conv, conv.StandardizedConv)
+        self.assertIsInstance(cna.conv.conv, conv.SpectralConv)
         self.assertEqual(cna.conv.conv.filters, 4)
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(cna.norm, Norm)
@@ -404,7 +404,7 @@ class TestConvNormAct(test_combinations.TestCase):
         restored = ConvNormAct.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.SpectralConv)
         self.assertEqual(restored.conv.conv.filters, 4)
         self.assertTupleEqual(restored.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(restored.norm, Norm)
@@ -413,14 +413,14 @@ class TestConvNormAct(test_combinations.TestCase):
         self.assertIsInstance(restored.act.act, layers.LeakyReLU)
 
     def test_policy_override_kwargs(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             cna = ConvNormAct(4, 3, strides=2)
         cna.build([None, None, None, 3])
 
         restored = ConvNormAct.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.SpectralConv)
         self.assertTupleEqual(restored.conv.conv.strides, (2, 2))
         self.assertIsInstance(restored.norm, Norm)
         self.assertIsInstance(restored.norm.norm, norm.GroupNormalization)
@@ -458,7 +458,7 @@ class TestConvNorm(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 ConvNorm,
                 kwargs={'filters': 4, 'kernel_size': 3},
@@ -495,7 +495,7 @@ class TestConvNorm(test_combinations.TestCase):
             expected_output_dtype='float16'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 ConvNorm,
                 kwargs={'filters': 4, 'kernel_size': 3},
@@ -533,15 +533,15 @@ class TestConvNorm(test_combinations.TestCase):
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
 
     def test_policy_scope_memorize(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             cna = ConvNorm(4, 3)
         cna.build([None, None, None, 3])
 
         self.assertIsInstance(cna.policy, cnapol.ConvNormActPolicy)
-        self.assertEqual(cna.policy.name, 'stdconv-gn-leakyrelu')
+        self.assertEqual(cna.policy.name, 'snconv-gn-leakyrelu')
 
         self.assertIsInstance(cna.conv, Conv)
-        self.assertIsInstance(cna.conv.conv, conv.StandardizedConv)
+        self.assertIsInstance(cna.conv.conv, conv.SpectralConv)
         self.assertEqual(cna.conv.conv.filters, 4)
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(cna.norm, Norm)
@@ -550,21 +550,21 @@ class TestConvNorm(test_combinations.TestCase):
         restored = ConvNorm.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.SpectralConv)
         self.assertEqual(restored.conv.conv.filters, 4)
         self.assertTupleEqual(restored.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(restored.norm, Norm)
         self.assertIsInstance(restored.norm.norm, norm.GroupNormalization)
 
     def test_policy_override_kwargs(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             cna = ConvNorm(4, 3, strides=2)
         cna.build([None, None, None, 3])
 
         restored = ConvNorm.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.SpectralConv)
         self.assertTupleEqual(restored.conv.conv.strides, (2, 2))
         self.assertIsInstance(restored.norm, Norm)
         self.assertIsInstance(restored.norm.norm, norm.GroupNormalization)
@@ -600,7 +600,7 @@ class TestConvAct(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 ConvAct,
                 kwargs={'filters': 4, 'kernel_size': 3},
@@ -637,7 +637,7 @@ class TestConvAct(test_combinations.TestCase):
             expected_output_dtype='float16'
         )
 
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             test_utils.layer_test(
                 ConvAct,
                 kwargs={'filters': 4, 'kernel_size': 3},
@@ -675,15 +675,15 @@ class TestConvAct(test_combinations.TestCase):
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
 
     def test_policy_scope_memorize(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             cna = ConvAct(4, 3)
         cna.build([None, None, None, 3])
 
         self.assertIsInstance(cna.policy, cnapol.ConvNormActPolicy)
-        self.assertEqual(cna.policy.name, 'stdconv-gn-leakyrelu')
+        self.assertEqual(cna.policy.name, 'snconv-gn-leakyrelu')
 
         self.assertIsInstance(cna.conv, Conv)
-        self.assertIsInstance(cna.conv.conv, conv.StandardizedConv)
+        self.assertIsInstance(cna.conv.conv, conv.SpectralConv)
         self.assertEqual(cna.conv.conv.filters, 4)
         self.assertTupleEqual(cna.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(cna.act, Act)
@@ -692,21 +692,21 @@ class TestConvAct(test_combinations.TestCase):
         restored = ConvAct.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.SpectralConv)
         self.assertEqual(restored.conv.conv.filters, 4)
         self.assertTupleEqual(restored.conv.conv.kernel_size, (3, 3))
         self.assertIsInstance(restored.act, Act)
         self.assertIsInstance(restored.act.act, layers.LeakyReLU)
 
     def test_policy_override_kwargs(self):
-        with cnapol.policy_scope('stdconv-gn-leakyrelu'):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
             cna = ConvAct(4, 3, strides=2)
         cna.build([None, None, None, 3])
 
         restored = ConvAct.from_config(cna.get_config())
         restored.build([None, None, None, 3])
         self.assertIsInstance(restored.conv, Conv)
-        self.assertIsInstance(restored.conv.conv, conv.StandardizedConv)
+        self.assertIsInstance(restored.conv.conv, conv.SpectralConv)
         self.assertTupleEqual(restored.conv.conv.strides, (2, 2))
         self.assertIsInstance(restored.act, Act)
         self.assertIsInstance(restored.act.act, layers.LeakyReLU)

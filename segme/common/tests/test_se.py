@@ -28,10 +28,10 @@ class TestSE(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             SE,
-            kwargs={'ratio': 1.5},
-            input_shape=[2, 4, 4, 3],
+            kwargs={'ratio': 0.25},
+            input_shape=[2, 4, 4, 4],
             input_dtype='float16',
-            expected_output_shape=[None, 4, 4, 3],
+            expected_output_shape=[None, 4, 4, 4],
             expected_output_dtype='float16'
         )
 

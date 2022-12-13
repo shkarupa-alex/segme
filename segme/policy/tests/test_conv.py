@@ -274,7 +274,7 @@ class TestSpectralConv(test_combinations.TestCase):
             result1 = self.evaluate(result1)
             result.append(result1)
         result = np.concatenate(result, axis=0)
-        self.assertAllClose(expected, result, atol=5e-6)
+        self.assertAllClose(expected, result, atol=6e-5)
 
 
 @test_combinations.run_all_keras_modes

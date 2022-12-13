@@ -39,9 +39,8 @@ class HeadProjection(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class ClassificationActivation(layers.Layer):
-    def __init__(self, **kwargs):
-        kwargs['dtype'] = 'float32'
-        super().__init__(**kwargs)
+    def __init__(self, dtype='float32', **kwargs):
+        super().__init__(dtype=dtype, **kwargs)
         self.input_spec = layers.InputSpec(min_ndim=2)
 
     @shape_type_conversion

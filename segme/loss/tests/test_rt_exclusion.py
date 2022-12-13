@@ -181,10 +181,10 @@ class TestReflectionTransmissionExclusionLoss(test_combinations.TestCase):
         self.assertAlmostEqual(result, 0.8186368)
 
         result = self.evaluate(loss(r_pred, t_pred, weights))
-        self.assertAlmostEqual(result, 0.82833385)
+        self.assertAlmostEqual(result, 0.82833385, places=6)
 
         result = self.evaluate(loss(r_pred, t_pred, weights * 2.))
-        self.assertAlmostEqual(result, 0.82833385 * 2.)
+        self.assertAlmostEqual(result, 0.82833385 * 2., places=6)
 
     def test_multi(self):
         logits = tf.constant([
