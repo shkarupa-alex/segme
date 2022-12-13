@@ -20,7 +20,6 @@ WEIGHT_HASHES = {}
 # TODO: channel shift ?
 
 # TODO: CLS token usage https://github.com/microsoft/CvT/blob/main/lib/models/cls_cvt.py#L183
-# TODO: IN21k pretraining https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/98f13708210194c475687be6106a3b84-Paper-round1.pdf
 
 
 def Stem(filters, depth, path_gamma=1., path_drop=0., name=None):
