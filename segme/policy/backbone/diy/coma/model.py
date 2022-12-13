@@ -168,7 +168,7 @@ def CoMA(
 
     15.11.2022 Focal Modulation Networks
         + overlapped patch embedding
-        ~ deeper but thinner TODO
+        + deeper but thinner
         - focal-modulation instead of self-attention
         - context aggregation
     10.11.2022 Demystify Transformers & Convolutions in Modern Image Deep Networks

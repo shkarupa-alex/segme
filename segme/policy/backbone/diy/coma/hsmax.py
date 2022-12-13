@@ -2,7 +2,7 @@ import itertools
 import operator
 import re
 import tensorflow as tf
-from keras import layers
+from keras import layers, losses
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.control_flow_util import smart_cond
 from keras.utils.metrics_utils import sparse_categorical_matches
@@ -13,7 +13,7 @@ from tensorflow.python.distribute import distribution_strategy_context
 
 @register_keras_serializable(package='SegMe>Policy>Backbone>DIY>CoMA')
 class HSMax(layers.Layer):
-    def __init__(self, tree, loss_reduction=Reduction.AUTO, **kwargs):
+    def __init__(self, tree, label_smoothing=0., loss_reduction=Reduction.AUTO, **kwargs):
         kwargs['autocast'] = False
         super().__init__(**kwargs)
         classes = self._validate_node(tree, root=True)
@@ -21,6 +21,7 @@ class HSMax(layers.Layer):
 
         self.tree = tree
         self.loss_reduction = loss_reduction
+        self.label_smoothing = label_smoothing
 
     def _validate_node(self, node, root=False):
         if not isinstance(node, dict):
@@ -160,7 +161,14 @@ class HSMax(layers.Layer):
                 'https://www.tensorflow.org/tutorials/distribute/custom_training for more details.')
 
         logits = tf.cast(logits, 'float32')
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
+
+        if self.label_smoothing > 0.:
+            targets = tf.one_hot(targets, logits.shape[-1], dtype='float32')
+            loss = losses.categorical_crossentropy(
+                targets, logits, from_logits=True, label_smoothing=self.label_smoothing)
+        else:
+            loss = losses.sparse_categorical_crossentropy(targets, logits, from_logits=True)
+
         loss = compute_weighted_loss(loss, sample_weight=weights, reduction=self.loss_reduction)
 
         return loss
@@ -179,6 +187,7 @@ class HSMax(layers.Layer):
         config = super().get_config()
         config.update({
             'tree': self.tree,
+            'label_smoothing': self.label_smoothing,
             'loss_reduction': self.loss_reduction
         })
 
