@@ -7,7 +7,7 @@ from keras.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, ConvNormAct, ConvNorm
 from segme.common.drop import DropPath
 from segme.common.mbconv import MBConv
-from segme.policy.backbone.diy.coma.attn import DHMSA, CHMSA
+from segme.policy.backbone.diy.coma.attn import DHMSA, CHMSA, GGMSA
 from segme.policy.backbone.diy.coma.mlp import MLP
 
 WEIGHT_URLS = {}
@@ -16,10 +16,6 @@ WEIGHT_HASHES = {}
 
 # TODO: DW in MLP - before/after/none
 # TODO: DW in attention - yes/no
-
-# TODO: channel shift ?
-
-# TODO: CLS token usage https://github.com/microsoft/CvT/blob/main/lib/models/cls_cvt.py#L183
 
 
 def Stem(filters, depth, path_gamma=1., path_drop=0., name=None):
@@ -160,6 +156,34 @@ def ChanBlock(num_heads, qkv_bias=True, attn_drop=0., proj_drop=0., path_drop=0.
     return apply
 
 
+def GridBlock(current_window, pretrain_window, num_heads, qkv_bias=True, attn_drop=0., proj_drop=0., path_drop=0.,
+              expand_ratio=4., mlp_drop=0., path_gamma=1., name=None):
+    if name is None:
+        counter = backend.get_uid('attn_block')
+        name = f'attn_block_{counter}'
+
+    def apply(inputs):
+        channels = inputs.shape[-1]
+        if channels is None:
+            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+
+        x = GGMSA(
+            current_window, pretrain_window, num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=proj_drop,
+            name=f'{name}_grid')(inputs)
+        x = Norm(gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_norm1')(x)
+        x = DropPath(path_drop, name=f'{name}_drop1')(x)
+        x = layers.add([x, inputs], name=f'{name}_add1')
+
+        y = MLP(expand_ratio, mlp_drop, name=f'{name}_mlp')(x)
+        y = Norm(gamma_initializer=initializers.Constant(path_gamma), name=f'{name}_norm2')(y)
+        y = DropPath(path_drop, name=f'{name}_drop2')(y)
+        y = layers.add([y, x], name=f'{name}_add2')
+
+        return y
+
+    return apply
+
+
 def CoMA(
         embed_dim, stem_depth, stage_depths, current_window=8, pretrain_window=8, expand_ratio=3, path_gamma=0.1,
         path_drop=0.2, pretrain_size=384, input_shape=None, include_top=True, model_name='coma', pooling=None,
@@ -229,6 +253,9 @@ def CoMA(
         + average pooling & pointwise convolution as main reduction branch
         ~ zero-gamma trick
         - decreasing weight decay when using augmentations
+
+    27.05.2022 Revealing the Dark Secrets of Masked Image Modeling
+        * MIM pretraining is better for downstream tasks
     """
     if embed_dim % 32:
         raise ValueError('Embedding size should be a multiple of 32.')
@@ -240,7 +267,7 @@ def CoMA(
         raise ValueError('The `weights` argument should be either `None` (random initialization), `imagenet` '
                          '(pre-training on ImageNet), or the path to the weights file to be loaded.')
 
-    if weights == 'imagenet' and include_top and classes not in {1000, 21841}:
+    if weights == 'imagenet' and include_top and classes not in {1000, 14615}:
         raise ValueError('If using `weights` as `"imagenet"` with `include_top` as true, '
                          '`classes` should be 1000 or 21841 depending on pretrain dataset.')
 
@@ -270,9 +297,9 @@ def CoMA(
         if backend.is_keras_tensor(input_tensor):
             image = input_tensor
         else:
-            image = layers.Input(tensor=input_tensor, shape=input_shape, dtype=input_dtype)
+            image = layers.Input(shape=input_shape, name='images', dtype=input_dtype, tensor=input_tensor)
     else:
-        image = layers.Input(shape=input_shape, dtype=input_dtype)
+        image = layers.Input(shape=input_shape, name='images', dtype=input_dtype)
 
     x = image
 
