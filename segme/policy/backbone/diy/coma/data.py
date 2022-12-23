@@ -195,7 +195,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
         shape = np.array(image.shape[:2]).astype('float32')
         shape *= self.image_size / self.crop_pct / shape.min()
-        shape = shape.round().astype('int32')
+        shape = shape.round().astype('int64')
 
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = cv2.resize(image, shape[::-1], interpolation=cv2.INTER_CUBIC)
