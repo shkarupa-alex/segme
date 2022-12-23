@@ -120,8 +120,8 @@ class DHMSA(layers.Layer):
         kv = tf.transpose(kv, [2, 0, 3, 1, 4])
         k, v = tf.unstack(kv, 2, axis=0)
 
-        q = tf.math.l2_normalize(q, axis=-1, epsilon=1e-7)
-        k = tf.math.l2_normalize(k, axis=-1, epsilon=1e-7)
+        q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
+        k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
         attn = self.rel_bias(attn)
@@ -250,8 +250,8 @@ class CHMSA(layers.Layer):
         qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
         q, k, v = tf.unstack(qkv, 3)
 
-        q = tf.math.l2_normalize(q, axis=-1, epsilon=1e-7)
-        k = tf.math.l2_normalize(k, axis=-1, epsilon=1e-7)
+        q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
+        k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_a=True)
         attn = tf.nn.softmax(attn)
@@ -353,8 +353,8 @@ class GGMSA(layers.Layer):
         qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
         q, k, v = tf.unstack(qkv, 3, axis=0)
 
-        q = tf.math.l2_normalize(q, axis=-1, epsilon=1e-7)
-        k = tf.math.l2_normalize(k, axis=-1, epsilon=1e-7)
+        q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
+        k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
         attn = self.rel_bias(attn)
