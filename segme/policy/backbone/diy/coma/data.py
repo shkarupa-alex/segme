@@ -7,7 +7,8 @@ import os
 import resource
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from segme.policy.backbone.diy.coma import preprocess_input
+from segme.policy.backbone.diy.coma.prep import preprocess_input
+from segme.policy.backbone.diy.coma.tree import synsets_21k1k
 from segme.utils.common import augment_onthefly
 
 
@@ -207,9 +208,8 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
 
 @tf.function()
-def _transform_examples(examples, split, mode):
+def _transform_examples(examples, split, table, mode):
     images = examples['image']
-    labels = examples['synset']
 
     if tfds.Split.TRAIN == split:
         images = tf.image.convert_image_dtype(images, 'float32')
@@ -218,6 +218,9 @@ def _transform_examples(examples, split, mode):
         images = tf.cast(tf.round(tf.clip_by_value(images, 0., 1.) * 255.), 'uint8')
 
     images = preprocess_input(images)
+
+    labels = examples['synset']
+    labels = table.lookup(labels)
 
     if 'hsmax' == mode:
         return {'images': images, 'labels': labels}
@@ -232,11 +235,17 @@ def make_dataset(data_dir, split_name, batch_size, output_mode, shuffle_files=Tr
     builder = Imagenet21k1k(data_dir=data_dir)
     builder.download_and_prepare()
 
+    with tf.init_scope():
+        synsets = synsets_21k1k()
+        init = tf.lookup.KeyValueTensorInitializer(
+            keys=synsets, values=list(range(len(synsets))), key_dtype=tf.string, value_dtype=tf.int64)
+        class_table = tf.lookup.StaticHashTable(init, default_value=-1)
+
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
     dataset = dataset.shuffle(batch_size * 100)
     dataset = dataset.map(
-        lambda ex: _transform_examples(ex, split_name, output_mode),
+        lambda ex: _transform_examples(ex, split_name, class_table, output_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 

@@ -17,7 +17,7 @@ class HSMax(layers.Layer):
         kwargs['autocast'] = False
         super().__init__(**kwargs)
         classes = self._validate_node(tree, root=True)
-        self.input_spec = [layers.InputSpec(ndim=2, axes={-1: classes}), layers.InputSpec(ndim=1, dtype='string')]
+        self.input_spec = [layers.InputSpec(ndim=2, axes={-1: classes}), layers.InputSpec(ndim=1, dtype='int64')]
 
         self.tree = tree
         self.loss_reduction = loss_reduction
@@ -48,7 +48,7 @@ class HSMax(layers.Layer):
             if len(child) < 2:
                 raise ValueError('Root node should contain at least 2 child nodes.')
 
-            cover = self._build_cover(node).split(',')
+            cover = self._build_cover(node)
             if len(cover) != len(set(cover)):
                 raise ValueError('All id\'s and covers must be unique.')
 
@@ -73,7 +73,7 @@ class HSMax(layers.Layer):
             queue.extend(child)
 
             index = node['id']
-            lname = re.sub('[^0-9a-z_]', '_', f'lookup_{index.lower()}')
+            lname = re.sub('[^0-9a-z_]', '_', f'lookup_{index}'.lower())
 
             self._feature_slices[index] = (last, last + len(child))
             self._labels_lookup[index] = lname
@@ -88,15 +88,13 @@ class HSMax(layers.Layer):
         while queue:
             node = queue.pop(0)
             cover.append(node['id'])
-            cover.append(node.get('cover', ''))
+            cover.extend(node.get('cover', []))
 
             child = node.get('child', [])
             if not child:
                 continue
 
             queue.extend(child)
-
-        cover = ','.join([c for c in cover if c])
 
         return cover
 
@@ -195,48 +193,70 @@ class HSMax(layers.Layer):
 
 
 @register_keras_serializable(package='SegMe>Policy>Backbone>DIY>CoMA')
-class TTL(layers.StringLookup):
+class TTL(layers.IntegerLookup):
     """ Tree target lookup """
 
     def __init__(self, vocabulary, oov_check=True, **kwargs):
-        self.oov_check = oov_check
+        kwargs.pop('max_values', None)
+        kwargs.pop('mask_value', None)
+        kwargs.pop('oov_value', None)
         super().__init__(
-            max_tokens=None, num_oov_indices=0, mask_token=None, oov_token=None, vocabulary=vocabulary,
-            idf_weights=None, encoding='utf-8', invert=False, output_mode='int', sparse=False, pad_to_max_tokens=False,
-            has_input_vocabulary=True, **kwargs)
+            max_tokens=None, num_oov_indices=0, mask_token=None, oov_token=-1, vocabulary=vocabulary,
+            vocabulary_dtype='int64', idf_weights=None, invert=False, output_mode='int', sparse=False,
+            pad_to_max_tokens=False, has_input_vocabulary=True, **kwargs)
+        self.oov_check = oov_check
 
     def adapt(self, data, batch_size=None, steps=None):
         raise NotImplementedError()
 
+    def set_vocabulary(self, vocabulary, idf_weights=None):
+        if idf_weights is not None:
+            raise ValueError('Setting vocabulary from IDF weights not supported.')
+
+        if isinstance(vocabulary, str):
+            raise ValueError('Setting vocabulary from file not supported.')
+
+        if tf.is_tensor(vocabulary):
+            raise ValueError('Setting vocabulary from tensor not supported.')
+
+        tokens = list(itertools.chain.from_iterable(vocabulary))
+        if self.oov_token in tokens:
+            raise ValueError(f'Vocabulary contains OOV token.')
+
+        repeated_tokens = self._find_repeated_tokens(tokens)
+        if repeated_tokens:
+            raise ValueError(f'Vocabulary has at least one repeated term: {repeated_tokens}.')
+
+        self.lookup_table = self._lookup_table_from_tokens(vocabulary)
+
     def get_vocabulary(self, include_special_tokens=True):
         del include_special_tokens
 
-        if self.lookup_table.size() == 0:
+        if 0 == self.lookup_table.size():
             return []
 
         keys, values = self.lookup_table.export()
         keys = self._tensor_vocab_to_numpy(keys).tolist()
         values = values.numpy()
 
-        vocab = sorted(zip(values, keys), key=operator.itemgetter(1))
-        vocab = sorted(vocab, key=operator.itemgetter(0))
-        vocab = itertools.groupby(vocab, operator.itemgetter(0))
-        vocab = [','.join(map(operator.itemgetter(1), v)) for _, v in vocab]
+        vocab = sorted(zip(keys, values), key=operator.itemgetter(0))
+        vocab = sorted(vocab, key=operator.itemgetter(1))
+        vocab = itertools.groupby(vocab, operator.itemgetter(1))
+        vocab = [list(map(operator.itemgetter(0), v)) for _, v in vocab]
 
         return vocab
 
     def _lookup_table_from_tokens(self, tokens):
         with tf.init_scope():
-            token_start = self._token_start_index()
-            token_end = token_start + tf.size(tokens)
-            indices = tf.range(token_start, token_end, dtype=self._value_dtype)
+            keys = list(itertools.chain.from_iterable(tokens))
 
-            keys = tf.strings.split(tokens, ',')
-            values = tf.repeat(indices, keys.nested_row_lengths()[0])
-            initializer = tf.lookup.KeyValueTensorInitializer(
-                keys.flat_values, values, self._key_dtype, self._value_dtype)
+            values = [[i] * len(t) for i, t in enumerate(tokens)]
+            values = list(itertools.chain.from_iterable(values))
 
-            return tf.lookup.StaticHashTable(initializer, self._default_value)
+            init = tf.lookup.KeyValueTensorInitializer(keys, values, self._key_dtype, self._value_dtype)
+            table = tf.lookup.StaticHashTable(init, self._default_value)
+
+            return table
 
     def _lookup_table_from_file(self, filename):
         raise NotImplementedError()
@@ -258,8 +278,8 @@ class TTL(layers.StringLookup):
         del config['num_oov_indices']
         del config['mask_token']
         del config['oov_token']
+        del config['vocabulary_dtype']
         del config['idf_weights']
-        del config['encoding']
         del config['invert']
 
         del config['output_mode']

@@ -267,7 +267,7 @@ def CoMA(
         raise ValueError('The `weights` argument should be either `None` (random initialization), `imagenet` '
                          '(pre-training on ImageNet), or the path to the weights file to be loaded.')
 
-    if weights == 'imagenet' and include_top and classes not in {1000, 14615}:
+    if weights == 'imagenet' and include_top and classes not in {1000, 14607}:
         raise ValueError('If using `weights` as `"imagenet"` with `include_top` as true, '
                          '`classes` should be 1000 or 21841 depending on pretrain dataset.')
 
