@@ -1,23 +1,11 @@
 import tensorflow as tf
-from keras import backend, constraints, initializers, layers, regularizers
+from keras import backend, initializers, layers, regularizers
 from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.policy.registry import LayerRegistry
 
 CONVOLUTIONS = LayerRegistry()
-CONVOLUTIONS.register('stdconv')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_constraint': {'class_name': 'SegMe>Policy>Conv>StandardizedConstraint', 'config': {}}}})
-CONVOLUTIONS.register('softstd1')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-1}}}})
-CONVOLUTIONS.register('softstd2')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-2}}}})
-CONVOLUTIONS.register('softstd3')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-3}}}})
-CONVOLUTIONS.register('softstd4')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-4}}}})
-CONVOLUTIONS.register('softstd5')({'class_name': 'SegMe>Policy>Conv>FixedConv', 'config': {
-    'kernel_regularizer': {'class_name': 'SegMe>Policy>Conv>StandardizedRegularizer', 'config': {'l1': 1e-5}}}})
 
 
 @CONVOLUTIONS.register('conv')
@@ -129,6 +117,68 @@ class FixedDepthwiseConv(layers.DepthwiseConv2D):
         return config
 
 
+@CONVOLUTIONS.register('stdconv')
+@register_keras_serializable(package='SegMe>Policy>Conv')
+class StandardizedConv(FixedConv):
+    """Implements https://arxiv.org/abs/1903.10520"""
+
+    def __init__(self, filters, kernel_size, strides=(1, 1), padding='valid', data_format=None, dilation_rate=(1, 1),
+                 activation=None, use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
+                 kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None,
+                 bias_constraint=None, standardize_l1=1e-4, **kwargs):
+        super().__init__(filters=filters, kernel_size=kernel_size, strides=strides, padding=padding,
+                         data_format=data_format, dilation_rate=dilation_rate, groups=1, activation=activation,
+                         use_bias=use_bias, kernel_initializer=self._standardized_initilizer,
+                         bias_initializer=bias_initializer, kernel_regularizer=self._standardized_regularizer,
+                         bias_regularizer=bias_regularizer, activity_regularizer=activity_regularizer,
+                         kernel_constraint=kernel_constraint, bias_constraint=bias_constraint, **kwargs)
+
+        self._kernel_initializer = initializers.get(kernel_initializer)
+        self._kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.standardize_l1 = standardize_l1
+
+    def _standardize_kernel(self, kernel, dtype=None):
+        kernel = tf.cast(kernel, self.dtype)
+        mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
+        kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
+        kernel = tf.cast(kernel, dtype or self.compute_dtype)
+
+        return kernel
+
+    def _standardized_initilizer(self, shape, dtype=None, **kwargs):
+        kernel = self._kernel_initializer(shape, dtype, **kwargs)
+        kernel = self._standardize_kernel(kernel, dtype)
+
+        return kernel
+
+    def _standardized_regularizer(self, kernel):
+        expected = self._standardize_kernel(kernel, kernel.dtype)
+        expected = tf.stop_gradient(expected)
+
+        loss = tf.reduce_mean(tf.abs(kernel - expected), axis=[0, 1, 2])
+        loss = self.standardize_l1 * tf.reduce_sum(loss)
+
+        if self._kernel_regularizer is not None:
+            loss += self._kernel_regularizer(kernel)
+
+        return loss
+
+    def convolution_op(self, inputs, kernel):
+        kernel = self._standardize_kernel(kernel)
+
+        return super().convolution_op(inputs, kernel)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'kernel_initializer': initializers.serialize(self._kernel_initializer),
+            'kernel_regularizer': regularizers.serialize(self._kernel_regularizer),
+            'standardize_l1': self.standardize_l1
+        })
+
+        return config
+
+
 @CONVOLUTIONS.register('snconv')
 @register_keras_serializable(package='SegMe>Policy>Conv')
 class SpectralConv(FixedConv):
@@ -199,44 +249,3 @@ class SpectralConv(FixedConv):
         config.update({'power_iterations': self.power_iterations})
 
         return config
-
-
-@register_keras_serializable(package='SegMe>Policy>Conv')
-class StandardizedConstraint(constraints.Constraint):
-    def __init__(self, axes=None):
-        self.axes = axes
-
-    def __call__(self, x):
-        # Kernel has shape HWIO, normalize over HWI
-        axes = self.axes or list(range(x.shape.rank - 1))
-
-        mean, var = tf.nn.moments(x, axes=axes, keepdims=True)
-        y = tf.nn.batch_normalization(x, mean, var, None, None, variance_epsilon=1e-5)
-        y = tf.stop_gradient(y)
-
-        return y
-
-    def get_config(self):
-        return {'axis': self.axes}
-
-
-@register_keras_serializable(package='SegMe>Policy>Conv')
-class StandardizedRegularizer(regularizers.Regularizer):
-    def __init__(self, l1=1e-4, axes=None):
-        regularizers._check_penalty_number(l1)
-
-        self.l1 = float(l1)
-        self.axes = axes
-
-    def __call__(self, x):
-        # Kernel has shape HWIO, normalize over HWI
-        axes = self.axes or list(range(x.shape.rank - 1))
-
-        mean, var = tf.nn.moments(x, axes=axes, keepdims=True)
-        y = tf.nn.batch_normalization(x, mean, var, None, None, variance_epsilon=1e-5)
-        y = tf.stop_gradient(y)
-
-        return self.l1 * tf.reduce_sum(tf.abs(x - y))
-
-    def get_config(self):
-        return {'l1': self.l1, 'axis': self.axes}
