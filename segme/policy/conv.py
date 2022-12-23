@@ -128,12 +128,11 @@ class StandardizedConv(FixedConv):
                  bias_constraint=None, standardize_l1=1e-4, **kwargs):
         super().__init__(filters=filters, kernel_size=kernel_size, strides=strides, padding=padding,
                          data_format=data_format, dilation_rate=dilation_rate, groups=1, activation=activation,
-                         use_bias=use_bias, kernel_initializer=self._standardized_initilizer,
-                         bias_initializer=bias_initializer, kernel_regularizer=self._standardized_regularizer,
-                         bias_regularizer=bias_regularizer, activity_regularizer=activity_regularizer,
-                         kernel_constraint=kernel_constraint, bias_constraint=bias_constraint, **kwargs)
+                         use_bias=use_bias, kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
+                         kernel_regularizer=self._standardized_regularizer, bias_regularizer=bias_regularizer,
+                         activity_regularizer=activity_regularizer, kernel_constraint=kernel_constraint,
+                         bias_constraint=bias_constraint, **kwargs)
 
-        self._kernel_initializer = initializers.get(kernel_initializer)
         self._kernel_regularizer = regularizers.get(kernel_regularizer)
         self.standardize_l1 = standardize_l1
 
@@ -142,12 +141,6 @@ class StandardizedConv(FixedConv):
         mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
         kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
         kernel = tf.cast(kernel, dtype or self.compute_dtype)
-
-        return kernel
-
-    def _standardized_initilizer(self, shape, dtype=None, **kwargs):
-        kernel = self._kernel_initializer(shape, dtype, **kwargs)
-        kernel = self._standardize_kernel(kernel, dtype)
 
         return kernel
 
@@ -171,7 +164,6 @@ class StandardizedConv(FixedConv):
     def get_config(self):
         config = super().get_config()
         config.update({
-            'kernel_initializer': initializers.serialize(self._kernel_initializer),
             'kernel_regularizer': regularizers.serialize(self._kernel_regularizer),
             'standardize_l1': self.standardize_l1
         })
