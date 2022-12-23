@@ -9,13 +9,13 @@ from tensorflow_addons import layers as add_layers
 from segme.policy.registry import LayerRegistry
 
 NORMALIZATIONS = LayerRegistry()
-NORMALIZATIONS.register('brn')({'class_name': 'SegMe>Policy>Normalization>BatchNormalization', 'config': {
+NORMALIZATIONS.register('brn')({'class_name': 'SegMe>Policy>Normalization>BatchNorm', 'config': {
     'renorm': True, 'renorm_clipping': {'rmax': 3, 'rmin': 0.3333, 'dmax': 5}, 'renorm_momentum': 0.99}})
 
 
 @NORMALIZATIONS.register('bn')
 @register_keras_serializable(package='SegMe>Policy>Normalization')
-class BatchNormalization(layers.BatchNormalization):
+class BatchNorm(layers.BatchNormalization):
     """Overload for data_format understanding"""
 
     def __init__(self, data_format=None, momentum=0.99, epsilon=1e-3, center=True, scale=True, beta_initializer='zeros',
@@ -57,7 +57,7 @@ class BatchNormalization(layers.BatchNormalization):
 
 @NORMALIZATIONS.register('ln')
 @register_keras_serializable(package='SegMe>Policy>Normalization')
-class LayerNormalization(layers.LayerNormalization):
+class LayerNorm(layers.LayerNormalization):
     """Overload casting for stability and fused implementation"""
 
     def __init__(self, data_format=None, epsilon=1e-3, center=True, scale=True, beta_initializer='zeros',
@@ -99,7 +99,7 @@ class LayerNormalization(layers.LayerNormalization):
 
 @NORMALIZATIONS.register('gn')
 @register_keras_serializable(package='SegMe>Policy>Normalization')
-class GroupNormalization(add_layers.GroupNormalization):
+class GroupNorm(layers.GroupNormalization):
     """Overload casting for stability and groups reduction"""
 
     def __init__(self, groups=None, data_format=None, epsilon=1e-3, center=True, scale=True, beta_initializer='zeros',
@@ -154,7 +154,7 @@ class GroupNormalization(add_layers.GroupNormalization):
 
 @NORMALIZATIONS.register('frn')
 @register_keras_serializable(package='SegMe>Policy>Normalization')
-class FilterResponseNormalization(add_layers.FilterResponseNormalization):
+class FilterResponseNorm(add_layers.FilterResponseNormalization):
     """Overload casting for stability"""
 
     def __init__(self, data_format=None, epsilon=1e-6, beta_initializer='zeros', gamma_initializer='ones',

@@ -3,7 +3,7 @@ import tensorflow as tf
 import unittest
 from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
-from segme.policy.norm import NORMALIZATIONS, LayerNormalization, GroupNormalization, FilterResponseNormalization
+from segme.policy.norm import NORMALIZATIONS, LayerNorm, GroupNorm, FilterResponseNorm
 
 
 class TestNormalizationsRegistry(unittest.TestCase):
@@ -46,18 +46,18 @@ class TestBatchNormalization(test_combinations.TestCase):
 
 
 @test_combinations.run_all_keras_modes
-class TestLayerNormalization(test_combinations.TestCase):
+class TestLayerNorm(test_combinations.TestCase):
     def setUp(self):
-        super(TestLayerNormalization, self).setUp()
+        super(TestLayerNorm, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestLayerNormalization, self).tearDown()
+        super(TestLayerNorm, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         test_utils.layer_test(
-            LayerNormalization,
+            LayerNorm,
             kwargs={},
             input_shape=[2, 8, 16, 3],
             input_dtype='float32',
@@ -68,7 +68,7 @@ class TestLayerNormalization(test_combinations.TestCase):
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         result = test_utils.layer_test(
-            LayerNormalization,
+            LayerNorm,
             kwargs={},
             input_shape=[2, 8, 16, 3],
             input_dtype='float16',
@@ -79,18 +79,18 @@ class TestLayerNormalization(test_combinations.TestCase):
 
 
 @test_combinations.run_all_keras_modes
-class TestGroupNormalization(test_combinations.TestCase):
+class TestGroupNorm(test_combinations.TestCase):
     def setUp(self):
-        super(TestGroupNormalization, self).setUp()
+        super(TestGroupNorm, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestGroupNormalization, self).tearDown()
+        super(TestGroupNorm, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         test_utils.layer_test(
-            GroupNormalization,
+            GroupNorm,
             kwargs={},
             input_shape=[2, 8, 16, 64],
             input_dtype='float32',
@@ -101,7 +101,7 @@ class TestGroupNormalization(test_combinations.TestCase):
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         result = test_utils.layer_test(
-            GroupNormalization,
+            GroupNorm,
             kwargs={},
             input_shape=[2, 8, 16, 3],
             input_dtype='float16',
@@ -112,7 +112,7 @@ class TestGroupNormalization(test_combinations.TestCase):
 
     def test_batch(self):
         inputs = np.random.normal(size=(32, 16, 16, 64)) * 10.
-        layer = GroupNormalization()
+        layer = GroupNorm()
 
         expected = layer(inputs, training=True)
         expected = self.evaluate(expected)
@@ -131,18 +131,18 @@ class TestGroupNormalization(test_combinations.TestCase):
 
 
 @test_combinations.run_all_keras_modes
-class TestFilterResponseNormalization(test_combinations.TestCase):
+class TestFilterResponseNorm(test_combinations.TestCase):
     def setUp(self):
-        super(TestFilterResponseNormalization, self).setUp()
+        super(TestFilterResponseNorm, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestFilterResponseNormalization, self).tearDown()
+        super(TestFilterResponseNorm, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         test_utils.layer_test(
-            FilterResponseNormalization,
+            FilterResponseNorm,
             kwargs={},
             input_shape=[2, 8, 16, 3],
             input_dtype='float32',
@@ -153,7 +153,7 @@ class TestFilterResponseNormalization(test_combinations.TestCase):
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         result = test_utils.layer_test(
-            FilterResponseNormalization,
+            FilterResponseNorm,
             kwargs={},
             input_shape=[2, 8, 16, 3],
             input_dtype='float16',
