@@ -185,7 +185,7 @@ class TestModel(test_combinations.TestCase):
         model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
 
         images = np.random.random((10, 384, 384, 3)).astype('float32')
-        labels = (np.random.random((10, 1)) + 0.5).astype('int32')
+        labels = (np.random.random((10, 1)) + 0.5).astype('int64')
         model.fit(images, labels, epochs=1, batch_size=2)
 
         # test config
@@ -211,7 +211,7 @@ class TestModel(test_combinations.TestCase):
         model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
 
         images = np.random.random((10, 512, 384, 3)).astype('float32')
-        labels = (np.random.random((10, 16, 12, 512)) + 0.5).astype('int32')
+        labels = (np.random.random((10, 16, 12, 512)) + 0.5).astype('int64')
         model.fit(images, labels, epochs=1, batch_size=2)
 
         # test config

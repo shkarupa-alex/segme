@@ -120,8 +120,8 @@ class DHMSA(layers.Layer):
         kv = tf.transpose(kv, [2, 0, 3, 1, 4])
         k, v = tf.unstack(kv, 2, axis=0)
 
-        q = tf.math.l2_normalize(q, axis=-1)
-        k = tf.math.l2_normalize(k, axis=-1)
+        q = tf.math.l2_normalize(q, axis=-1, epsilon=1e-7)
+        k = tf.math.l2_normalize(k, axis=-1, epsilon=1e-7)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
         attn = self.rel_bias(attn)
@@ -169,7 +169,7 @@ class DHMSA(layers.Layer):
         src_height, src_width = pad_height - pad_val[0], pad_width - pad_val[1]
         halo_height, halo_width = halo_size
 
-        mask = tf.ones((1, src_height, src_width, 1), dtype='int32')
+        mask = tf.ones((1, src_height, src_width, 1), dtype='int64')
         mask = tf.pad(mask, [(0, 0), (0, pad_val[0]), (0, pad_val[1]), (0, 0)])
         mask = self.halo_part(mask, halo_size)
         mask = tf.squeeze(mask == 0, axis=-1)[None, :, None, None]
@@ -250,8 +250,8 @@ class CHMSA(layers.Layer):
         qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
         q, k, v = tf.unstack(qkv, 3)
 
-        q = tf.math.l2_normalize(q, axis=-1)
-        k = tf.math.l2_normalize(k, axis=-1)
+        q = tf.math.l2_normalize(q, axis=-1, epsilon=1e-7)
+        k = tf.math.l2_normalize(k, axis=-1, epsilon=1e-7)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_a=True)
         attn = tf.nn.softmax(attn)
@@ -353,8 +353,8 @@ class GGMSA(layers.Layer):
         qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
         q, k, v = tf.unstack(qkv, 3, axis=0)
 
-        q = tf.math.l2_normalize(q, axis=-1)
-        k = tf.math.l2_normalize(k, axis=-1)
+        q = tf.math.l2_normalize(q, axis=-1, epsilon=1e-7)
+        k = tf.math.l2_normalize(k, axis=-1, epsilon=1e-7)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
         attn = self.rel_bias(attn)
@@ -405,7 +405,7 @@ class GGMSA(layers.Layer):
         ha_pad, wa_pad = pad_val[0] - hb_pad, pad_val[1] - wb_pad
         paddings = [[0, 0], [hb_pad, ha_pad], [wb_pad, wa_pad], [0, 0]]
 
-        mask = tf.ones((1, src_height, src_width, 1), dtype='int32')
+        mask = tf.ones((1, src_height, src_width, 1), dtype='int64')
         mask = tf.pad(mask, paddings)
         mask = partition_apply(mask, pad_height, pad_width, 'grid_size', self.current_window, 1)
         mask = tf.squeeze(mask == 0, axis=-1)[None, :, None, None]
