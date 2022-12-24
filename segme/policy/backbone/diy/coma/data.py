@@ -219,6 +219,9 @@ def _transform_examples(examples, split, table, mode):
 
     images = preprocess_input(images)
 
+    if 'distill' == mode:
+        return images
+
     labels = examples['synset']
     labels = table.lookup(labels)
 
@@ -243,7 +246,6 @@ def make_dataset(data_dir, split_name, batch_size, output_mode, shuffle_files=Tr
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
-    dataset = dataset.shuffle(batch_size * 100)
     dataset = dataset.map(
         lambda ex: _transform_examples(ex, split_name, class_table, output_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
