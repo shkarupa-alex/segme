@@ -3,7 +3,7 @@ import tempfile
 import tensorflow as tf
 from keras import applications, backend, layers, models
 from keras.mixed_precision import policy as mixed_precision
-from keras.testing_infra import test_combinations, test_utils
+from keras.testing_infra import test_combinations
 from segme.common.fdist import FeatureDistillation
 
 
