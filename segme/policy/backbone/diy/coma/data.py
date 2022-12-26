@@ -44,6 +44,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                 'size': tfds.features.Text(),
                 'label': tfds.features.Text(),
                 'synset': tfds.features.Text(),
+                'class': tfds.features.ClassLabel(names=synsets_21k1k())
             })
         )
 
@@ -110,7 +111,8 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                 'in1k': True,
                 'size': size,
                 'label': label_name,
-                'synset': synset_name
+                'synset': synset_name,
+                'class': synset_name
             }
 
     def _generate_examples_21k(self, skip_files):
@@ -154,7 +156,8 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                     'in1k': False,
                     'size': size,
                     'label': label_name,
-                    'synset': synset_name
+                    'synset': synset_name,
+                    'class': synset_name
                 }
 
     @functools.lru_cache(maxsize=20000)
@@ -208,47 +211,33 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
 
 @tf.function()
-def _transform_examples(examples, split, table, mode):
+def _transform_examples(examples, augment, hsmax):
     images = examples['image']
-
-    if tfds.Split.TRAIN == split:
+    if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
         images, _ = augment_onthefly(images, [])
         # TODO: https://github.com/tensorflow/tensorflow/pull/54484
         images = tf.cast(tf.round(tf.clip_by_value(images, 0., 1.) * 255.), 'uint8')
-
     images = preprocess_input(images)
 
-    if 'distill' == mode:
-        return images
+    labels = examples['class']
 
-    labels = examples['synset']
-    labels = table.lookup(labels)
+    if hsmax:
+        return {'images': images, 'labels': labels}, labels
 
-    if 'hsmax' == mode:
-        return {'images': images, 'labels': labels}
-
-    if 'softmax' == mode:
-        return images, labels
-
-    raise ValueError(f'Unknown output mode: {mode}')
+    return images, labels
 
 
-def make_dataset(data_dir, split_name, batch_size, output_mode, shuffle_files=True, drop_remainder=True):
+def make_dataset(data_dir, split_name, batch_size, hsmax_out=False, shuffle_files=True, drop_remainder=True):
+    apply_aug = tfds.Split.TRAIN == split_name
+
     builder = Imagenet21k1k(data_dir=data_dir)
     builder.download_and_prepare()
-
-    with tf.init_scope():
-        synsets = synsets_21k1k()
-        init = tf.lookup.KeyValueTensorInitializer(
-            keys=synsets, values=list(range(len(synsets))), key_dtype=tf.string, value_dtype=tf.int64)
-        class_table = tf.lookup.StaticHashTable(init, default_value=-1)
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
     dataset = dataset.map(
-        lambda ex: _transform_examples(ex, split_name, class_table, output_mode),
-        num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        lambda ex: _transform_examples(ex, apply_aug, hsmax_out), num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return dataset
