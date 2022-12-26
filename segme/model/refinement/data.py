@@ -8,7 +8,7 @@ import re
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from segme.common.impfunc import make_coords
-from segme.utils.albumentations import RotateFix, ElasticTransformFix, GridDistortionFix, drop_unapplied
+from segme.utils.albumentations import drop_unapplied
 from segme.utils.common import augment_onthefly
 
 CROP_SIZE = 384
@@ -252,10 +252,10 @@ def train_augment(image, mask, replay=False):
                 alb.Affine(interpolation=interpolation, mask_interpolation=cv2.INTER_NEAREST_EXACT)
                 for interpolation in INTERPOLATIONS]),
             alb.OneOf([
-                ElasticTransformFix(alpha_affine=25, border_mode=cv2.BORDER_CONSTANT, interpolation=interpolation)
+                alb.ElasticTransform(alpha_affine=25, border_mode=cv2.BORDER_CONSTANT, interpolation=interpolation)
                 for interpolation in INTERPOLATIONS]),
             alb.OneOf([
-                GridDistortionFix(border_mode=cv2.BORDER_CONSTANT, interpolation=interpolation)
+                alb.GridDistortion(border_mode=cv2.BORDER_CONSTANT, interpolation=interpolation)
                 for interpolation in INTERPOLATIONS]),
             # makes image larger in all directions
             # alb.OpticalDistortion(distort_limit=(-0.5, 0.5), border_mode=cv2.BORDER_CONSTANT),
@@ -269,7 +269,7 @@ def train_augment(image, mask, replay=False):
 
         # Rotate
         alb.OneOf([
-            RotateFix(limit=(-45, 45), border_mode=cv2.BORDER_CONSTANT, interpolation=interpolation)
+            alb.Rotate(limit=(-45, 45), border_mode=cv2.BORDER_CONSTANT, interpolation=interpolation)
             for interpolation in INTERPOLATIONS], p=0.2),
 
         # Pad & crop
@@ -348,8 +348,8 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
 
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         return {
-            tfds.Split.VALIDATION: self._generate_examples(False),
-            tfds.Split.TRAIN: self._generate_examples(True)
+            tfds.Split.TRAIN: self._generate_examples(True),
+            tfds.Split.VALIDATION: self._generate_examples(False)
         }
 
     def _generate_examples(self, training):
