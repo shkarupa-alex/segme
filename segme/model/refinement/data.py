@@ -415,8 +415,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
 
         min_size = min(image_.shape[:2])
         if min_size < CROP_SIZE:
-            sample_weight *= (min_size / CROP_SIZE) ** 2
-            if sample_weight < 1 / 20:
+            if sample_weight * (min_size / CROP_SIZE) ** 2 < 1 / 20:
                 return []
 
         max_scales = math.ceil(math.log2(min_size / CROP_SIZE))
@@ -431,6 +430,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
 
             if min_size < CROP_SIZE:
                 curr_scale = CROP_SIZE / min_size
+                curr_weight *= (min_size / CROP_SIZE) ** 2
                 interp = cv2.INTER_LANCZOS4
 
             image_ = cv2.resize(image, (0, 0), fx=curr_scale, fy=curr_scale, interpolation=interp)
