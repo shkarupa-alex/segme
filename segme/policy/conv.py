@@ -17,8 +17,8 @@ class FixedConv(layers.Conv2D):
                  bias_constraint=None, **kwargs):
         kwargs.pop('groups', None)
         super().__init__(filters=filters, kernel_size=kernel_size, strides=strides, padding=padding,
-                         data_format=data_format, dilation_rate=dilation_rate, groups=1, activation=activation,
-                         use_bias=use_bias, kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
+                         data_format=data_format, dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                         kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                          kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                          activity_regularizer=activity_regularizer, kernel_constraint=kernel_constraint,
                          bias_constraint=bias_constraint, **kwargs)
@@ -54,7 +54,7 @@ class FixedConv(layers.Conv2D):
         return config
 
 
-@CONVOLUTIONS.register('dwconv')
+@CONVOLUTIONS.register('dw_conv')
 @register_keras_serializable(package='SegMe>Policy>Conv')
 class FixedDepthwiseConv(layers.DepthwiseConv2D):
     def __init__(self, kernel_size, strides=(1, 1), padding='valid', data_format=None, dilation_rate=(1, 1),
@@ -127,8 +127,8 @@ class StandardizedConv(FixedConv):
                  kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None,
                  bias_constraint=None, standardize_l1=1e-4, **kwargs):
         super().__init__(filters=filters, kernel_size=kernel_size, strides=strides, padding=padding,
-                         data_format=data_format, dilation_rate=dilation_rate, groups=1, activation=activation,
-                         use_bias=use_bias, kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
+                         data_format=data_format, dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                         kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
                          kernel_regularizer=self._standardized_regularizer, bias_regularizer=bias_regularizer,
                          activity_regularizer=activity_regularizer, kernel_constraint=kernel_constraint,
                          bias_constraint=bias_constraint, **kwargs)
@@ -171,6 +171,60 @@ class StandardizedConv(FixedConv):
         return config
 
 
+@CONVOLUTIONS.register('dw_stdconv')
+@register_keras_serializable(package='SegMe>Policy>Conv')
+class StandardizedDepthwiseConv(FixedDepthwiseConv):
+    """Implements https://arxiv.org/abs/1903.10520"""
+
+    def __init__(self, kernel_size, strides=(1, 1), padding='valid', data_format=None, dilation_rate=(1, 1),
+                 activation=None, use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
+                 kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None,
+                 bias_constraint=None, standardize_l1=1e-4, **kwargs):
+        super().__init__(kernel_size=kernel_size, strides=strides, padding=padding, data_format=data_format,
+                         dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                         kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
+                         kernel_regularizer=self._standardized_regularizer, bias_regularizer=bias_regularizer,
+                         activity_regularizer=activity_regularizer, kernel_constraint=kernel_constraint,
+                         bias_constraint=bias_constraint, **kwargs)
+
+        self._kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.standardize_l1 = standardize_l1
+
+    def _standardize_kernel(self, kernel, dtype=None):
+        kernel = tf.cast(kernel, self.dtype)
+        mean, var = tf.nn.moments(kernel, axes=[0, 1], keepdims=True)
+        kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
+        kernel = tf.cast(kernel, dtype or self.compute_dtype)
+
+        return kernel
+
+    def _standardized_regularizer(self, kernel):
+        expected = self._standardize_kernel(kernel, kernel.dtype)
+        expected = tf.stop_gradient(expected)
+
+        loss = tf.reduce_mean(tf.abs(kernel - expected), axis=[0, 1])
+        loss = self.standardize_l1 * tf.reduce_sum(loss)
+
+        if self._kernel_regularizer is not None:
+            loss += self._kernel_regularizer(kernel)
+
+        return loss
+
+    def _conv_op(self, inputs, kernel):
+        kernel = self._standardize_kernel(kernel)
+
+        return super()._conv_op(inputs, kernel)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'kernel_regularizer': regularizers.serialize(self._kernel_regularizer),
+            'standardize_l1': self.standardize_l1
+        })
+
+        return config
+
+
 @CONVOLUTIONS.register('snconv')
 @register_keras_serializable(package='SegMe>Policy>Conv')
 class SpectralConv(FixedConv):
@@ -187,6 +241,8 @@ class SpectralConv(FixedConv):
                          activity_regularizer=activity_regularizer, kernel_constraint=kernel_constraint,
                          bias_constraint=bias_constraint, **kwargs)
 
+        if power_iterations < 1:
+            raise ValueError('Number of iterations must be greater then 0.')
         self.power_iterations = power_iterations
 
     @shape_type_conversion
@@ -217,6 +273,84 @@ class SpectralConv(FixedConv):
         u = tf.stop_gradient(u)
 
         kernel_update = self.kernel.assign(kernel, read_value=False)
+        u_update = self.u.assign(u, read_value=False)
+        with tf.control_dependencies([kernel_update, u_update]):
+            outputs = tf.identity(inputs)
+
+        return outputs
+
+    def call(self, inputs, training=None):
+        if training is None:
+            training = backend.learning_phase()
+
+        outputs = smart_cond(
+            training,
+            lambda: self.before_train(inputs),
+            lambda: tf.identity(inputs))
+
+        outputs = super().call(outputs)
+
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({'power_iterations': self.power_iterations})
+
+        return config
+
+
+@CONVOLUTIONS.register('dw_snconv')
+@register_keras_serializable(package='SegMe>Policy>Conv')
+class SpectralDepthwiseConv(FixedDepthwiseConv):
+    """Implements https://arxiv.org/abs/1802.05957"""
+
+    def __init__(self, kernel_size, strides=(1, 1), padding='valid', data_format=None, dilation_rate=(1, 1),
+                 activation=None, use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
+                 kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None,
+                 bias_constraint=None, power_iterations=1, **kwargs):
+        super().__init__(kernel_size=kernel_size, strides=strides, padding=padding, data_format=data_format,
+                         dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
+                         kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
+                         kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
+                         activity_regularizer=activity_regularizer, kernel_constraint=kernel_constraint,
+                         bias_constraint=bias_constraint, **kwargs)
+
+        if power_iterations < 1:
+            raise ValueError('Number of iterations must be greater then 0.')
+        self.power_iterations = power_iterations
+
+    @shape_type_conversion
+    def build(self, input_shape):
+        self.channels = input_shape[-1]
+        if self.channels is None:
+            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+
+        self.u = self.add_weight(
+            shape=(1, self.channels),
+            initializer=initializers.TruncatedNormal(stddev=0.02),
+            trainable=False,
+            name='sn_u',
+            dtype=self.dtype,
+        )
+
+        super().build(input_shape)
+
+    def before_train(self, inputs):
+        kernel = tf.cast(self.depthwise_kernel, self.dtype)
+        u = tf.cast(self.u, self.dtype)
+
+        w = tf.reshape(kernel, [-1, self.channels])
+
+        for _ in range(self.power_iterations):
+            v = tf.math.l2_normalize(tf.matmul(u, w, transpose_b=True))
+            u = tf.math.l2_normalize(tf.matmul(v, w))
+
+        sigma = tf.matmul(tf.matmul(v, w), u, transpose_b=True)
+        kernel = tf.reshape(kernel / sigma, self.depthwise_kernel.shape)
+        kernel = tf.stop_gradient(kernel)
+        u = tf.stop_gradient(u)
+
+        kernel_update = self.depthwise_kernel.assign(kernel, read_value=False)
         u_update = self.u.assign(u, read_value=False)
         with tf.control_dependencies([kernel_update, u_update]):
             outputs = tf.identity(inputs)
