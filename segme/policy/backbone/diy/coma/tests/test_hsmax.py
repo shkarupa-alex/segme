@@ -31,6 +31,20 @@ class TestHSMax(test_combinations.TestCase):
             expected_output_dtypes=['float32']
         )
 
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        layer_multi_io_test(
+            HSMax,
+            kwargs={'tree': tree_21k1k(), 'label_smoothing': .1},
+            input_datas=[
+                np.random.uniform(size=[4, 14607]),
+                np.array([1539, 15920, 5130, 1101])
+            ],
+            input_dtypes=['float16', 'int64'],
+            expected_output_shapes=[(None, 14607)],
+            expected_output_dtypes=['float16']
+        )
+
     def test_serializable(self):
         inputs = [
             layers.Input(name='features', shape=[14607], dtype='float32'),
@@ -57,20 +71,6 @@ class TestHSMax(test_combinations.TestCase):
         self.assertAllClose(results1, results2)
         self.assertListEqual(history1, history2)
 
-    def test_fp16(self):
-        mixed_precision.set_global_policy('mixed_float16')
-        layer_multi_io_test(
-            HSMax,
-            kwargs={'tree': tree_21k1k(), 'label_smoothing': .1},
-            input_datas=[
-                np.random.uniform(size=[4, 14607]),
-                np.array([1539, 15920, 5130, 1101])
-            ],
-            input_dtypes=['float16', 'int64'],
-            expected_output_shapes=[(None, 14607)],
-            expected_output_dtypes=['float16']
-        )
-
 
 @test_combinations.run_all_keras_modes
 class TestTTL(test_combinations.TestCase):
@@ -92,6 +92,17 @@ class TestTTL(test_combinations.TestCase):
             expected_output_dtype='int64'
         )
 
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        test_utils.layer_test(
+            TTL,
+            kwargs={'vocabulary': [[0, 1], [2]], 'oov_check': False},
+            input_data=np.array([[0, 1, 2]]),
+            input_dtype='int64',
+            expected_output_shape=[None, 3],
+            expected_output_dtype='int64'
+        )
+
     def test_value(self):
         layer = TTL([[0, 1], [2]], oov_check=False)
 
@@ -105,17 +116,6 @@ class TestTTL(test_combinations.TestCase):
         layer = TTL([[0, 1], [2]], oov_check=True)
         with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'inputs should be in vocabulary.+OOV values.+3 4'):
             layer(np.array([[0, 1, 2, 3, 4]]))
-
-    def test_fp16(self):
-        mixed_precision.set_global_policy('mixed_float16')
-        test_utils.layer_test(
-            TTL,
-            kwargs={'vocabulary': [[0, 1], [2]], 'oov_check': False},
-            input_data=np.array([[0, 1, 2]]),
-            input_dtype='int64',
-            expected_output_shape=[None, 3],
-            expected_output_dtype='int64'
-        )
 
 
 if __name__ == '__main__':
