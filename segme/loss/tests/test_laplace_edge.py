@@ -11,10 +11,7 @@ from segme.loss.tests.test_common_loss import BINARY_LOGITS, BINARY_TARGETS, BIN
 @test_combinations.run_all_keras_modes
 class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
     def test_config(self):
-        loss = LaplaceEdgeCrossEntropy(
-            reduction=Reduction.NONE,
-            name='loss1'
-        )
+        loss = LaplaceEdgeCrossEntropy(reduction=Reduction.NONE, name='loss1')
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 

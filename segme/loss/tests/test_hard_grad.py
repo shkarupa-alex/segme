@@ -11,10 +11,7 @@ from segme.loss.hard_grad import hard_gradient_mean_absolute_error
 @test_combinations.run_all_keras_modes
 class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
     def test_config(self):
-        loss = HardGradientMeanAbsoluteError(
-            reduction=Reduction.NONE,
-            name='loss1'
-        )
+        loss = HardGradientMeanAbsoluteError(reduction=Reduction.NONE, name='loss1')
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 

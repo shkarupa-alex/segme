@@ -26,10 +26,7 @@ class TestGaussKernel(test_combinations.TestCase):
 @test_combinations.run_all_keras_modes
 class TestLaplacianPyramidLoss(test_combinations.TestCase):
     def test_config(self):
-        loss = LaplacianPyramidLoss(
-            reduction=Reduction.NONE,
-            name='loss1'
-        )
+        loss = LaplacianPyramidLoss(reduction=Reduction.NONE, name='loss1')
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 

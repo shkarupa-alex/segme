@@ -12,10 +12,9 @@ class HardGradientMeanAbsoluteError(WeightedLossFunctionWrapper):
     Implements Equation [4] in https://arxiv.org/pdf/2201.06889.pdf
     """
 
-    def __init__(
-            self, weight=1., smooth=0.01, reduction=Reduction.AUTO, name='hard_gradient_mean_absolute_error'):
-        super().__init__(
-            hard_gradient_mean_absolute_error, reduction=reduction, name=name, weight=weight, smooth=smooth)
+    def __init__(self, weight=1., smooth=0.01, reduction=Reduction.AUTO, name='hard_gradient_mean_absolute_error'):
+        super().__init__(hard_gradient_mean_absolute_error, reduction=reduction, name=name, weight=weight,
+                         smooth=smooth)
 
 
 def hard_gradient_mean_absolute_error(y_true, y_pred, sample_weight, weight, smooth):

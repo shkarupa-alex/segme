@@ -665,10 +665,7 @@ class TestRmiLowerBound(test_combinations.TestCase):
 @test_combinations.run_all_keras_modes
 class TestRegionMutualInformationLoss(test_combinations.TestCase):
     def test_config(self):
-        loss = RegionMutualInformationLoss(
-            reduction=Reduction.NONE,
-            name='loss1'
-        )
+        loss = RegionMutualInformationLoss(reduction=Reduction.NONE, name='loss1')
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 

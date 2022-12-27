@@ -12,11 +12,21 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
     if weight is not None:
         weight = tf.cast(weight, y_pred.dtype)
 
-    if rank is not None and (y_pred.shape.rank != rank or y_true.shape.rank != rank):
-        raise ValueError(f'Both labels and predictions must have rank {rank}.')
+    if rank is not None:
+        if y_pred.shape.rank != rank:
+            raise ValueError(f'Predictions must have rank {rank}.')
 
-    if rank is not None and weight is not None and weight.shape.rank != rank:
-        raise ValueError(f'Sample weights must have rank {rank}.')
+        if weight is not None and weight.shape.rank != rank:
+            raise ValueError(f'Sample weights must have rank {rank}.')
+
+    # if rank is not None and (y_pred.shape.rank != rank or y_true.shape.rank != rank):
+    #     raise ValueError(f'Both labels and predictions must have rank {rank}.')
+    #
+    # if rank is not None and weight is not None and weight.shape.rank != rank:
+    #     raise ValueError(f'Sample weights must have rank {rank}.')
+
+    if y_pred.shape.rank != y_true.shape.rank:
+        raise ValueError(f'Labels and predictions must have ranks must be equal.')
 
     if y_pred.shape[-1] is None or y_true.shape[-1] is None:
         raise ValueError('Channel dimension of both labels and predictions must be defined.')
@@ -32,6 +42,12 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
 
     if 'same' == channel and y_pred.shape[-1] != y_true.shape[-1]:
         raise ValueError('Labels and predictions channel sizes must be equal.')
+
+    # if 'sparse' == channel and 1 != y_true.shape[-1]:
+    #     raise ValueError('Labels must be sparse-encoded.')
+    #
+    # if 'same' == channel and y_pred.shape[-1] != y_true.shape[-1]:
+    #     raise ValueError('Labels and predictions channel sizes must be equal.')
 
     return y_true, y_pred, weight
 

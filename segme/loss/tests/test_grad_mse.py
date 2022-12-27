@@ -11,10 +11,7 @@ from segme.loss.grad_mse import gradient_mean_squared_error
 @test_combinations.run_all_keras_modes
 class TestGradientMeanSquaredError(test_combinations.TestCase):
     def test_config(self):
-        loss = GradientMeanSquaredError(
-            reduction=Reduction.NONE,
-            name='loss1'
-        )
+        loss = GradientMeanSquaredError(reduction=Reduction.NONE, name='loss1')
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 

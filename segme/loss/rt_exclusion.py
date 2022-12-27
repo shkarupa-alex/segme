@@ -12,8 +12,7 @@ class ReflectionTransmissionExclusionLoss(WeightedLossFunctionWrapper):
     Implements Equation [5] in https://arxiv.org/pdf/1806.05376.pdf
     """
 
-    def __init__(
-            self, levels=3, reduction=Reduction.AUTO, name='reflection_transmission_exclusion_loss'):
+    def __init__(self, levels=3, reduction=Reduction.AUTO, name='reflection_transmission_exclusion_loss'):
         super().__init__(reflection_transmission_exclusion_loss, reduction=reduction, name=name, levels=levels)
 
 

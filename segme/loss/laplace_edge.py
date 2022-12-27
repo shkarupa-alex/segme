@@ -15,11 +15,8 @@ class LaplaceEdgeCrossEntropy(WeightedLossFunctionWrapper):
     Compute edge loss with Laplace operator
     """
 
-    def __init__(
-            self, from_logits=False, reduction=Reduction.AUTO,
-            name='laplace_edge_cross_entropy'):
-        super().__init__(
-            laplace_edge_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
+    def __init__(self, from_logits=False, reduction=Reduction.AUTO, name='laplace_edge_cross_entropy'):
+        super().__init__(laplace_edge_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
 
 
 def laplace(probs, kernel):

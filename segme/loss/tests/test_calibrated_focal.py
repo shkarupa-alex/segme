@@ -11,10 +11,7 @@ from segme.loss.tests.test_common_loss import BINARY_LOGITS, BINARY_TARGETS, BIN
 @test_combinations.run_all_keras_modes
 class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
     def test_config(self):
-        loss = CalibratedFocalCrossEntropy(
-            reduction=Reduction.NONE,
-            name='loss1'
-        )
+        loss = CalibratedFocalCrossEntropy(reduction=Reduction.NONE, name='loss1')
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 
@@ -49,7 +46,7 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
             from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [9.997774] * 3, atol=1e-4)
+        self.assertAllClose(result, [9.995504] * 3, atol=1e-4)
 
     def test_true(self):
         logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
@@ -60,31 +57,31 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
             from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [9.997774] * 3, atol=1e-4)
+        self.assertAllClose(result, [9.995504] * 3, atol=1e-4)
 
     def test_value(self):
         loss = CalibratedFocalCrossEntropy(from_logits=True)
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS))
 
-        self.assertAlmostEqual(result, 1.3325094, places=6)  # Not sure
+        self.assertAlmostEqual(result, 1.2206392, places=6)  # Not sure
 
     def test_weight(self):
         loss = CalibratedFocalCrossEntropy(from_logits=True)
 
         result = self.evaluate(loss(BINARY_TARGETS[:, :, :2, :], BINARY_LOGITS[:, :, :2]))
-        self.assertAlmostEqual(result, 0.8728758, places=6)
+        self.assertAlmostEqual(result, 0.7874017, places=6)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
-        self.assertAlmostEqual(result, 0.8728758, places=6)
+        self.assertAlmostEqual(result, 0.7874017, places=6)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 0.8728758 * 2., places=6)
+        self.assertAlmostEqual(result, 0.7874017 * 2., places=6)
 
     def test_multi(self):
         loss = CalibratedFocalCrossEntropy(from_logits=True)
         result = self.evaluate(loss(MULTI_TARGETS, MULTI_LOGITS))
 
-        self.assertAlmostEqual(result, 5.309415, places=6)
+        self.assertAlmostEqual(result, 5.2713118, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

@@ -10,10 +10,7 @@ from segme.loss.rt_exclusion import reflection_transmission_exclusion_loss
 @test_combinations.run_all_keras_modes
 class TestReflectionTransmissionExclusionLoss(test_combinations.TestCase):
     def test_config(self):
-        loss = ReflectionTransmissionExclusionLoss(
-            reduction=Reduction.NONE,
-            name='loss1'
-        )
+        loss = ReflectionTransmissionExclusionLoss(reduction=Reduction.NONE, name='loss1')
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 

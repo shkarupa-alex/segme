@@ -14,9 +14,9 @@ class NormalizedFocalCrossEntropy(WeightedLossFunctionWrapper):
     Note: remember to use focal loss trick: initialize last layer's bias with small negative value like -1.996
     """
 
-    def __init__(self, from_logits=False, gamma=2, reduction=Reduction.AUTO, name='normalized_focal_cross_entropy'):
-        super().__init__(normalized_focal_cross_entropy, reduction=reduction, name=name, from_logits=from_logits,
-                         gamma=gamma)
+    def __init__(self, gamma=2, from_logits=False, reduction=Reduction.AUTO, name='normalized_focal_cross_entropy'):
+        super().__init__(normalized_focal_cross_entropy, reduction=reduction, name=name, gamma=gamma,
+                         from_logits=from_logits)
 
 
 def normalized_focal_cross_entropy(y_true, y_pred, sample_weight, gamma, from_logits):

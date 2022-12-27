@@ -56,10 +56,7 @@ class TestSsimLevel(test_combinations.TestCase):
 @test_combinations.run_all_keras_modes
 class TestStructuralSimilarityLoss(test_combinations.TestCase):
     def test_config(self):
-        loss = StructuralSimilarityLoss(
-            reduction=Reduction.NONE,
-            name='loss1'
-        )
+        loss = StructuralSimilarityLoss(reduction=Reduction.NONE, name='loss1')
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 

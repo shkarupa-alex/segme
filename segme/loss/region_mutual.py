@@ -13,12 +13,10 @@ class RegionMutualInformationLoss(WeightedLossFunctionWrapper):
     Implements right sum part in equation [16] in https://arxiv.org/pdf/1910.12037.pdf
     """
 
-    def __init__(
-            self, from_logits=False, rmi_radius=3, pool_way='avgpool', pool_stride=4,
-            reduction=Reduction.AUTO, name='region_mutual_information_loss'):
-        super().__init__(
-            region_mutual_information_loss, reduction=reduction, name=name, from_logits=from_logits,
-            rmi_radius=rmi_radius, pool_way=pool_way, pool_stride=pool_stride)
+    def __init__(self, rmi_radius=3, pool_way='avgpool', pool_stride=4, from_logits=False, reduction=Reduction.AUTO,
+                 name='region_mutual_information_loss'):
+        super().__init__(region_mutual_information_loss, reduction=reduction, name=name, rmi_radius=rmi_radius,
+                         pool_way=pool_way, pool_stride=pool_stride, from_logits=from_logits)
 
 
 def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, pool_stride, pool_way, from_logits):

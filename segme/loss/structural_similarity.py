@@ -16,12 +16,10 @@ class StructuralSimilarityLoss(WeightedLossFunctionWrapper):
     Implements Lap1 in https://arxiv.org/pdf/1707.05776.pdf
     """
 
-    def __init__(
-            self, max_val=1., factors=(0.0448, 0.2856, 0.3001, 0.2363, 0.1333), size=11, sigma=2.0, k1=0.01, k2=0.03,
-            weight_pooling='mean', reduction=Reduction.AUTO, name='structural_similarity_loss'):
-        super().__init__(
-            structural_similarity_loss, reduction=reduction, name=name, max_val=max_val, factors=factors, size=size,
-            sigma=sigma, k1=k1, k2=k2, weight_pooling=weight_pooling)
+    def __init__(self, max_val=1., factors=(0.0448, 0.2856, 0.3001, 0.2363, 0.1333), size=11, sigma=2.0, k1=0.01,
+                 k2=0.03, weight_pooling='mean', reduction=Reduction.AUTO, name='structural_similarity_loss'):
+        super().__init__(structural_similarity_loss, reduction=reduction, name=name, max_val=max_val, factors=factors,
+                         size=size, sigma=sigma, k1=k1, k2=k2, weight_pooling=weight_pooling)
 
 
 def _ssim_level(y_true, y_pred, max_val, kernels, k1, k2):
