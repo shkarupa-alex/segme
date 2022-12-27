@@ -167,7 +167,6 @@ class DHMSA(layers.Layer):
     def pad_mask(self, attn, pad_size, pad_val, halo_size):
         batch_size, pad_height, pad_width = pad_size
         src_height, src_width = pad_height - pad_val[0], pad_width - pad_val[1]
-        halo_height, halo_width = halo_size
 
         mask = tf.ones((1, src_height, src_width, 1), dtype='int64')
         mask = tf.pad(mask, [(0, 0), (0, pad_val[0]), (0, pad_val[1]), (0, 0)])

@@ -62,7 +62,7 @@ class Encoder(layers.Layer):
         images = tf.cast(images, self.compute_dtype)
         images = imagenet_utils.preprocess_input(images, mode='torch')
 
-        trimaps = tf.one_hot(trimaps[..., 0] // 86, 3, dtype=self.compute_dtype)
+        trimaps = tf.one_hot(tf.squeeze(trimaps, -1) // 86, 3, dtype=self.compute_dtype)
         trimaps = tf.nn.bias_add(trimaps, tf.cast([-0.090, -0.860, -0.050], self.compute_dtype))
         trimaps /= tf.cast([0.286, 0.347, 0.217], self.compute_dtype)
 

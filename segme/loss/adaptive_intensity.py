@@ -23,7 +23,7 @@ def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
     min_shape = tf.reduce_min(tf.shape(y_true)[1:3])
     assert_shape = tf.assert_greater(min_shape, 30)
     with tf.control_dependencies([assert_shape]):
-        y_true_1h = tf.one_hot(y_true[..., 0], max(2, y_pred.shape[-1]), dtype=y_pred.dtype)
+        y_true_1h = tf.one_hot(tf.squeeze(y_true, -1), max(2, y_pred.shape[-1]), dtype=y_pred.dtype)
         omega = sum([
             tf.abs(tf.nn.avg_pool2d(y_true_1h, ksize=k, strides=1, padding='SAME') - y_true_1h)
             for k in [3, 15, 31]]) * y_true_1h * .5 + 1.

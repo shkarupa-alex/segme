@@ -175,7 +175,7 @@ class TestMeanAbsoluteRegressionError(test_combinations.TestCase):
 
     def test_multi(self):
         logits = tf.nn.sigmoid(MULTI_LOGITS)
-        targets = tf.one_hot(MULTI_TARGETS[..., 0], 4, dtype='float32')
+        targets = tf.one_hot(tf.squeeze(MULTI_TARGETS, -1), 4, dtype='float32')
 
         loss = MeanAbsoluteRegressionError()
         result = self.evaluate(loss(targets, logits))

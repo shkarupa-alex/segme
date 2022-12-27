@@ -43,7 +43,7 @@ class SparseCategoricalBoundaryAccuracy(SparseCategoricalAccuracy):
         self.radius = radius
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        y_true_1h = tf.one_hot(y_true[..., 0], y_pred.shape[-1], dtype='int32')
+        y_true_1h = tf.one_hot(tf.squeeze(y_true, -1), y_pred.shape[-1], dtype='int32')
         sample_weight = boundary_weight(y_true_1h, self.radius, sample_weight)
 
         return super().update_state(y_true, y_pred, sample_weight)

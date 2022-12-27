@@ -127,7 +127,7 @@ def to_1hot(y_true, y_pred):
         with tf.control_dependencies([assert_min, assert_max]):
             y_pred = tf.concat([1. - y_pred, y_pred], axis=-1)
 
-    y_true = tf.one_hot(y_true[..., 0], y_pred.shape[-1], dtype=y_true.dtype)
+    y_true = tf.one_hot(tf.squeeze(y_true, -1), y_pred.shape[-1], dtype=y_true.dtype)
 
     return y_true, y_pred
 
