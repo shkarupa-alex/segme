@@ -274,7 +274,7 @@ class TestStandardizedConv(test_combinations.TestCase):
             result1 = self.evaluate(result1)
             result.append(result1)
         result = np.concatenate(result, axis=0)
-        self.assertAllClose(expected, result, atol=1e-4)
+        self.assertAllClose(expected, result, atol=3e-4)
 
 
 @test_combinations.run_all_keras_modes
