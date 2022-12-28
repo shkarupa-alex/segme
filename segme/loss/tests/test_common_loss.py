@@ -127,6 +127,7 @@ class TestUtils(test_combinations.TestCase):
             (loss[0] * weight[0])[(weight[0] > 0.).repeat(loss.shape[-1], axis=-1)].mean(),
             (loss[1] * weight[1])[(weight[1] > 0.).repeat(loss.shape[-1], axis=-1)].mean()
         ])
+        loss, weight = tf.constant(loss), tf.constant(weight)
 
         result = weighted_loss(loss, weight)
         result = self.evaluate(result)

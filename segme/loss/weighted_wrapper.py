@@ -28,6 +28,11 @@ class WeightedLossFunctionWrapper(losses.LossFunctionWrapper):
                 call_fn = self.call
             else:
                 call_fn = autograph.tf_convert(self.call, ag_ctx.control_status_ctx())
+
+            # Rescaling disabled, should be done in loss function with weighted_loss(...) call.
+            # pred_mask = losses_utils.get_mask(y_pred)
+            # sample_weight = losses_utils.apply_valid_mask(y_pred, sample_weight, pred_mask, self._get_reduction())
+
             losses = call_fn(y_true, y_pred, sample_weight)
 
             return losses_utils.compute_weighted_loss(losses, None, reduction=self._get_reduction())

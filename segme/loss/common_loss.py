@@ -19,12 +19,6 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
         if weight is not None and weight.shape.rank != rank:
             raise ValueError(f'Sample weights must have rank {rank}.')
 
-    # if rank is not None and (y_pred.shape.rank != rank or y_true.shape.rank != rank):
-    #     raise ValueError(f'Both labels and predictions must have rank {rank}.')
-    #
-    # if rank is not None and weight is not None and weight.shape.rank != rank:
-    #     raise ValueError(f'Sample weights must have rank {rank}.')
-
     if y_pred.shape.rank != y_true.shape.rank:
         raise ValueError(f'Labels and predictions must have ranks must be equal.')
 
@@ -42,12 +36,6 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
 
     if 'same' == channel and y_pred.shape[-1] != y_true.shape[-1]:
         raise ValueError('Labels and predictions channel sizes must be equal.')
-
-    # if 'sparse' == channel and 1 != y_true.shape[-1]:
-    #     raise ValueError('Labels must be sparse-encoded.')
-    #
-    # if 'same' == channel and y_pred.shape[-1] != y_true.shape[-1]:
-    #     raise ValueError('Labels and predictions channel sizes must be equal.')
 
     return y_true, y_pred, weight
 
@@ -132,18 +120,39 @@ def to_1hot(y_true, y_pred):
     return y_true, y_pred
 
 
-def weighted_loss(loss, sample_weight, axis=(1, 2, 3)):
-    if sample_weight is not None:
-        valid_weight = tf.cast(sample_weight > 0., sample_weight.dtype)
-        valid_weight = tf.reduce_mean(valid_weight, axis=[1, 2], keepdims=True)
+def weighted_loss(loss, sample_weight, sample_axes=None, reduce_axes=None):
+    if sample_axes is None:
+        sample_axes = tuple(range(1, loss.shape.rank))
+    else:
+        bad_axes = set(sample_axes) - set(range(1, loss.shape.rank))
+        if bad_axes:
+            raise ValueError(f'Some sample axes can not belong to provided inputs: {bad_axes}.')
 
-        sample_weight = tf.math.divide_no_nan(sample_weight, valid_weight)
-        sample_weight = tf.stop_gradient(sample_weight)
+    if reduce_axes is None:
+        reduce_axes = sample_axes[:-1]
+    else:
+        bad_axes = set(reduce_axes) - set(range(1, loss.shape.rank))
+        if bad_axes:
+            raise ValueError(f'Some reduction axes can not belong to provided inputs: {bad_axes}.')
+
+    if sample_weight is not None:
+        if sample_weight.shape.rank != loss.shape.rank:
+            raise ValueError('Sample weights and loss ranks must be equal.')
+
+        if 1 != sample_weight.shape[-1]:
+            raise ValueError('Channel dimension of sample weights muse equals 1.')
+
+        if len(sample_axes) > 1:
+            valid_weight = tf.cast(sample_weight > 0., sample_weight.dtype)
+            valid_weight = tf.reduce_mean(valid_weight, axis=reduce_axes, keepdims=True)
+
+            sample_weight = tf.math.divide_no_nan(sample_weight, valid_weight)
+            sample_weight = tf.stop_gradient(sample_weight)
 
         loss *= sample_weight
 
-    if axis:
-        loss = tf.reduce_mean(loss, axis=axis)
+    if sample_axes:
+        loss = tf.reduce_mean(loss, axis=sample_axes)
 
     return loss
 
@@ -239,8 +248,8 @@ def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False):
         numerator = y_and
         denominator = y_or - y_and
 
-    numerator = weighted_loss(numerator, sample_weight, axis=[1, 2])
-    denominator = weighted_loss(denominator, sample_weight, axis=[1, 2])
+    numerator = weighted_loss(numerator, sample_weight, sample_axes=[1, 2], reduce_axes=[1, 2])
+    denominator = weighted_loss(denominator, sample_weight, sample_axes=[1, 2], reduce_axes=[1, 2])
 
     size = tf.reduce_prod(tf.shape(y_true)[1:3])
     epsilon = smooth / tf.cast(size, y_pred.dtype)
