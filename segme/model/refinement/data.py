@@ -249,8 +249,7 @@ def train_augment(image, mask, replay=False):
         # Distortion and scaling
         alb.OneOf([
             alb.OneOf([
-                alb.Affine(interpolation=interpolation, mask_interpolation=cv2.INTER_NEAREST_EXACT)
-                for interpolation in INTERPOLATIONS]),
+                alb.Affine(interpolation=interpolation) for interpolation in INTERPOLATIONS]),
             alb.OneOf([
                 alb.ElasticTransform(alpha_affine=25, border_mode=cv2.BORDER_CONSTANT, interpolation=interpolation)
                 for interpolation in INTERPOLATIONS]),
@@ -262,8 +261,7 @@ def train_augment(image, mask, replay=False):
             # moves image to top-left corner
             # alb.Perspective(scale=(0.01, 0.05)),
             alb.OneOf([
-                alb.PiecewiseAffine(
-                    scale=(0.01, 0.03), interpolation=interpolation, mask_interpolation=cv2.INTER_NEAREST_EXACT)
+                alb.PiecewiseAffine(scale=(0.01, 0.03), interpolation=interpolation)
                 for interpolation in INTERPOLATIONS]),
         ], p=0.2),
 
@@ -315,8 +313,6 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
             source_dirs = [source_dirs]
         if not isinstance(source_dirs, list):
             raise ValueError('Expecting source directories to be a single path or a list of paths.')
-        if not source_dirs:
-            raise ValueError('Expecting source directories to contain at least one path.')
 
         source_dirs = [os.fspath(s) for s in source_dirs]
         source_exists = [os.path.isdir(s) for s in source_dirs]
@@ -363,6 +359,9 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                 }
 
     def _iterate_source(self, training):
+        if not self.source_dirs:
+            raise ValueError('Expecting source directories to contain at least one path for dataset generation.')
+
         for source_dir in self.source_dirs:
             if source_dir.split('/')[-1][0] in {'.', '_'}:
                 continue
@@ -478,6 +477,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
 @tf.function(jit_compile=True)
 def _transform_examples(examples, augment, batch_size, with_coord):
     images, masks, labels, weights = examples['image'], examples['mask'], examples['label'], examples['weight']
+    masks = tf.cast(masks > 127, 'uint8') * 255
 
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
