@@ -76,7 +76,7 @@ class LayerNorm(layers.LayerNormalization):
     def build(self, input_shape):
         super().build(input_shape)
         if not self._fused:
-            warnings.warn(f'Layer {self.name} will use an inefficient implementation.')
+            raise ValueError(f'Layer {self.name} tried to use an inefficient implementation.')
 
     def call(self, inputs, *args, **kwargs):
         outputs = tf.cast(inputs, 'float32')
