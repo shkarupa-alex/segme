@@ -249,13 +249,30 @@ class TestStandardizedConv(test_combinations.TestCase):
         layer.build(inputs.shape)
         layer.set_weights([kernel, bias])
 
-        result = layer(inputs, training=True)
-        result = self.evaluate(result)
-        self.assertAllClose(expected, result)
-
         result = layer(inputs)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
+
+    def test_value_nonfused(self):
+        mixed_precision.set_global_policy('float16')
+        inputs = np.array([
+            0.298, -0.336, 4.725, -0.393, -1.951, -3.269, -2.453, -0.043, 0.25, -4.571, -2.143, 2.744, 1.483, 3.229,
+            1.472, -1.802, 3.146, -0.048, 1.407, 1.315, -0.823, 0.763, -0.103, 0.295, 1.507, -3.52, -1.55, -2.573,
+            0.929, 1.649, 1.545, -0.365, 1.845, 1.208, -0.829, -3.652], 'float32').reshape((1, 3, 4, 3))
+        kernel = np.array([
+            0.307, -0.094, 0.031, -0.301, -0.164, -0.073, 0.07, -0.167, 0.267, -0.128, -0.226, -0.181, -0.248, -0.05,
+            0.056, -0.535, 0.221, -0.04, 0.521, -0.285, -0.323, 0.094, 0.362, -0.022, -0.097, -0.054, -0.084],
+            'float32').reshape((3, 3, 3, 1))
+        bias = np.zeros((1,), 'float32')
+        expected = np.array([7.993624, -9.57225], 'float32').reshape((1, 1, 2, 1))
+
+        layer = StandardizedConv(1, 3)
+        layer.build(inputs.shape)
+        layer.set_weights([kernel, bias])
+
+        result = layer(inputs)
+        result = self.evaluate(result)
+        self.assertAllClose(expected, result, atol=7e-3)
 
     def test_batch(self):
         inputs = np.random.normal(size=(32, 16, 16, 64)) * 10.
@@ -326,13 +343,31 @@ class TestStandardizedDepthwiseConv(test_combinations.TestCase):
         layer.build(inputs.shape)
         layer.set_weights([kernel, bias])
 
-        result = layer(inputs, training=True)
-        result = self.evaluate(result)
-        self.assertAllClose(expected, result)
-
         result = layer(inputs)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
+
+    def test_value_nonfused(self):
+        mixed_precision.set_global_policy('float16')
+        inputs = np.array([
+            0.298, -0.336, 4.725, -0.393, -1.951, -3.269, -2.453, -0.043, 0.25, -4.571, -2.143, 2.744, 1.483, 3.229,
+            1.472, -1.802, 3.146, -0.048, 1.407, 1.315, -0.823, 0.763, -0.103, 0.295, 1.507, -3.52, -1.55, -2.573,
+            0.929, 1.649, 1.545, -0.365, 1.845, 1.208, -0.829, -3.652], 'float32').reshape((1, 3, 4, 3))
+        kernel = np.array([
+            0.307, -0.094, 0.031, -0.301, -0.164, -0.073, 0.07, -0.167, 0.267, -0.128, -0.226, -0.181, -0.248, -0.05,
+            0.056, -0.535, 0.221, -0.04, 0.521, -0.285, -0.323, 0.094, 0.362, -0.022, -0.097, -0.054, -0.084],
+            'float32').reshape((3, 3, 3, 1))
+        bias = np.zeros((3,), 'float32')
+        expected = np.array(
+            [-0.32465044, 6.2342463, 4.557652, -5.863132, -3.0357158, 1.6686258], 'float32').reshape((1, 1, 2, 3))
+
+        layer = StandardizedDepthwiseConv(3)
+        layer.build(inputs.shape)
+        layer.set_weights([kernel, bias])
+
+        result = layer(inputs)
+        result = self.evaluate(result)
+        self.assertAllClose(expected, result, atol=7e-3)
 
     def test_batch(self):
         inputs = np.random.normal(size=(32, 16, 16, 64)) * 10.

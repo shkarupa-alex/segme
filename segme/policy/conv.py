@@ -138,16 +138,19 @@ class StandardizedConv(FixedConv):
         self.standardize_l1 = standardize_l1
 
     def _standardize_kernel(self, kernel, dtype=None):
-        # Non-fused implementation
-        # mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
-        # kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
-
-        shape = kernel.shape
-        receptors, filters = np.prod(shape[:3]), shape[3]
-        kernel = tf.reshape(kernel, [1, receptors, 1, filters])
-        scale, offset = tf.ones([filters], dtype=self.dtype), tf.zeros([filters], dtype=self.dtype)
-        kernel, _, _ = tf.compat.v1.nn.fused_batch_norm(kernel, scale, offset, epsilon=1e-5, data_format='NHWC')
-        kernel = tf.reshape(kernel, shape)
+        if 'float32' != self.dtype or self._compute_dtype not in ('float16', 'float16', 'float32', None):
+            kernel = tf.cast(kernel, 'float32')
+            mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
+            kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
+            kernel = tf.cast(kernel, dtype or self.compute_dtype)
+        else:
+            # Fused implementation
+            shape = kernel.shape
+            receptors, filters = np.prod(shape[:3]), shape[3]
+            kernel = tf.reshape(kernel, [1, receptors, 1, filters])
+            scale, offset = tf.ones([filters], dtype=self.dtype), tf.zeros([filters], dtype=self.dtype)
+            kernel, _, _ = tf.compat.v1.nn.fused_batch_norm(kernel, scale, offset, epsilon=1e-5, data_format='NHWC')
+            kernel = tf.reshape(kernel, shape)
 
         return kernel
 
@@ -198,16 +201,19 @@ class StandardizedDepthwiseConv(FixedDepthwiseConv):
         self.standardize_l1 = standardize_l1
 
     def _standardize_kernel(self, kernel, dtype=None):
-        # Non-fused implementation
-        # mean, var = tf.nn.moments(kernel, axes=[0, 1], keepdims=True)
-        # kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
-
-        shape = kernel.shape
-        receptors, filters = np.prod(shape[:2]), np.prod(shape[2:])
-        kernel = tf.reshape(kernel, [1, receptors, 1, filters])
-        scale, offset = tf.ones([filters], dtype=self.dtype), tf.zeros([filters], dtype=self.dtype)
-        kernel, _, _ = tf.compat.v1.nn.fused_batch_norm(kernel, scale, offset, epsilon=1e-5, data_format='NHWC')
-        kernel = tf.reshape(kernel, shape)
+        if 'float32' != self.dtype or self._compute_dtype not in ('float16', 'float16', 'float32', None):
+            kernel = tf.cast(kernel, 'float32')
+            mean, var = tf.nn.moments(kernel, axes=[0, 1], keepdims=True)
+            kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
+            kernel = tf.cast(kernel, dtype or self.compute_dtype)
+        else:
+            # Fused implementation
+            shape = kernel.shape
+            receptors, filters = np.prod(shape[:2]), np.prod(shape[2:])
+            kernel = tf.reshape(kernel, [1, receptors, 1, filters])
+            scale, offset = tf.ones([filters], dtype=self.dtype), tf.zeros([filters], dtype=self.dtype)
+            kernel, _, _ = tf.compat.v1.nn.fused_batch_norm(kernel, scale, offset, epsilon=1e-5, data_format='NHWC')
+            kernel = tf.reshape(kernel, shape)
 
         return kernel
 
