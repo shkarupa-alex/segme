@@ -138,8 +138,6 @@ class StandardizedConv(FixedConv):
         self.standardize_l1 = standardize_l1
 
     def _standardize_kernel(self, kernel, dtype=None):
-        kernel = tf.cast(kernel, self.dtype)
-
         # Non-fused implementation
         # mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
         # kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
@@ -150,8 +148,6 @@ class StandardizedConv(FixedConv):
         scale, offset = tf.ones([filters], dtype=self.dtype), tf.zeros([filters], dtype=self.dtype)
         kernel, _, _ = tf.compat.v1.nn.fused_batch_norm(kernel, scale, offset, epsilon=1e-5, data_format='NHWC')
         kernel = tf.reshape(kernel, shape)
-
-        kernel = tf.cast(kernel, dtype or self.compute_dtype)
 
         return kernel
 
@@ -202,8 +198,6 @@ class StandardizedDepthwiseConv(FixedDepthwiseConv):
         self.standardize_l1 = standardize_l1
 
     def _standardize_kernel(self, kernel, dtype=None):
-        kernel = tf.cast(kernel, self.dtype)
-
         # Non-fused implementation
         # mean, var = tf.nn.moments(kernel, axes=[0, 1], keepdims=True)
         # kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
@@ -214,8 +208,6 @@ class StandardizedDepthwiseConv(FixedDepthwiseConv):
         scale, offset = tf.ones([filters], dtype=self.dtype), tf.zeros([filters], dtype=self.dtype)
         kernel, _, _ = tf.compat.v1.nn.fused_batch_norm(kernel, scale, offset, epsilon=1e-5, data_format='NHWC')
         kernel = tf.reshape(kernel, shape)
-
-        kernel = tf.cast(kernel, dtype or self.compute_dtype)
 
         return kernel
 
