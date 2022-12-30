@@ -44,7 +44,7 @@ class AtrousSpatialPyramidPooling(layers.Layer):
         self.pool = Sequential([
             layers.GlobalAveragePooling2D(keepdims=True),
             # TODO: wait for https://github.com/tensorflow/tensorflow/issues/48845
-            # Or use fused=False with BatchNormalization
+            # Or use fused=False with BatchNormalization or set drop_remainder=True in Dataset batching
             ConvNormAct(self.filters, 1, name='pool_cna')
         ], name='pool')
         self.intnear = NearestInterpolation()
