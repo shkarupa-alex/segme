@@ -58,3 +58,18 @@ class TLU(layers.Layer):
         })
 
         return config
+
+
+@ACTIVATIONS.register('approxgelu')
+@register_keras_serializable(package='SegMe>Policy>Activation')
+class ApproxGELU(layers.Layer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.supports_masking = True
+
+    def call(self, inputs, *args, **kwargs):
+        return tf.nn.gelu(inputs, approximate=True)
+
+    @shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape
