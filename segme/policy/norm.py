@@ -3,7 +3,7 @@ import tensorflow as tf
 from keras import constraints, initializers, layers, regularizers
 from keras.utils.conv_utils import normalize_data_format
 from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion, validate_axis
+from keras.utils.tf_utils import shape_type_conversion
 from segme.policy.registry import LayerRegistry
 
 NORMALIZATIONS = LayerRegistry()
@@ -21,8 +21,8 @@ class BatchNorm(layers.BatchNormalization):
                  beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None,
                  renorm=False, renorm_clipping=None, renorm_momentum=0.99, fused=None, trainable=True,
                  virtual_batch_size=None, adjustment=None, name=None, **kwargs):
-        self.data_format = normalize_data_format(data_format)
-        axis = -1 if 'channels_last' == self.data_format else 1
+        data_format = normalize_data_format(data_format)
+        axis = -1 if 'channels_last' == data_format else 1
         super().__init__(
             axis=axis, momentum=momentum, epsilon=epsilon, center=center, scale=scale,
             beta_initializer=beta_initializer, gamma_initializer=gamma_initializer,
@@ -31,6 +31,7 @@ class BatchNorm(layers.BatchNormalization):
             gamma_constraint=gamma_constraint, renorm=renorm, renorm_clipping=renorm_clipping,
             renorm_momentum=renorm_momentum, fused=fused, trainable=trainable, virtual_batch_size=virtual_batch_size,
             adjustment=adjustment, name=name, **kwargs)
+        self.data_format = data_format
 
     def _raise_if_fused_cannot_be_used(self):
         if self.epsilon < 1.001e-5:
@@ -56,12 +57,13 @@ class LayerNorm(layers.LayerNormalization):
     def __init__(self, data_format=None, epsilon=1e-3, center=True, scale=True, beta_initializer='zeros',
                  gamma_initializer='ones', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None,
                  gamma_constraint=None, fused=None, **kwargs):
-        self.data_format = normalize_data_format(data_format)
-        axis = -1 if 'channels_last' == self.data_format else 1
+        data_format = normalize_data_format(data_format)
+        axis = -1 if 'channels_last' == data_format else 1
         super().__init__(
             axis=axis, epsilon=epsilon, center=center, scale=scale, beta_initializer=beta_initializer,
             gamma_initializer=gamma_initializer, beta_regularizer=beta_regularizer, gamma_regularizer=gamma_regularizer,
             beta_constraint=beta_constraint, gamma_constraint=gamma_constraint, **kwargs)
+        self.data_format = data_format
         self.fused = fused
 
     def _fused_can_be_used(self, ndims):
@@ -108,6 +110,64 @@ class LayerNorm(layers.LayerNormalization):
         return config
 
 
+@NORMALIZATIONS.register('tln')
+@register_keras_serializable(package='SegMe>Policy>Normalization')
+class TrueLayerNorm(layers.LayerNormalization):
+    """Overload for exact paper implementation, data_format understanding and fused implementation"""
+
+    def __init__(self, data_format=None, epsilon=1e-3, center=True, scale=True, beta_initializer='zeros',
+                 gamma_initializer='ones', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None,
+                 gamma_constraint=None, fused=None, **kwargs):
+        super().__init__(
+            axis=-1, epsilon=epsilon, center=center, scale=scale, beta_initializer=beta_initializer,
+            gamma_initializer=gamma_initializer, beta_regularizer=beta_regularizer, gamma_regularizer=gamma_regularizer,
+            beta_constraint=beta_constraint, gamma_constraint=gamma_constraint, **kwargs)
+        self.data_format = normalize_data_format(data_format)
+        self.fused = fused
+
+    def _fused_can_be_used(self, ndims):
+        if self.fused is False:
+            return False
+
+        if 'float32' != self.dtype:
+            if self.fused is None:
+                return False
+            raise ValueError(
+                f'Fused layer normalization is only supported when the variables dtype is '
+                f'float32. Got dtype: {self.dtype}.')
+
+        if self._compute_dtype not in ('float16', 'float16', 'float32', None):
+            if self.fused is None:
+                return False
+            raise ValueError(
+                f'Fused layer normalization is only supported when the compute dtype is '
+                f'float16, bfloat16, or float32. Got dtype: {self._compute_dtype}.')
+
+        if self.epsilon < 1.001e-5:
+            if self.fused is None:
+                return False
+            raise ValueError(
+                f'Fused layer normalization is not supported for epsilon {self.epsilon} (<1.001e-5).')
+
+        return True
+
+    @shape_type_conversion
+    def build(self, input_shape):
+        self.axis = list(range(1, len(input_shape)))
+        super().build(input_shape)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'data_format': self.data_format,
+            'fused': self.fused
+        })
+
+        del config['axis']
+
+        return config
+
+
 @NORMALIZATIONS.register('gn')
 @register_keras_serializable(package='SegMe>Policy>Normalization')
 class GroupNorm(layers.GroupNormalization):
@@ -116,15 +176,15 @@ class GroupNorm(layers.GroupNormalization):
     def __init__(self, groups=None, data_format=None, epsilon=1e-3, center=True, scale=True, beta_initializer='zeros',
                  gamma_initializer='ones', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None,
                  gamma_constraint=None, **kwargs):
-        self.data_format = normalize_data_format(data_format)
-        axis = -1 if 'channels_last' == self.data_format else 1
+        data_format = normalize_data_format(data_format)
+        axis = -1 if 'channels_last' == data_format else 1
         kwargs['autocast'] = False
         kwargs['dtype'] = 'float32'
         super().__init__(
             groups=-1, axis=axis, epsilon=epsilon, center=center, scale=scale, beta_initializer=beta_initializer,
             gamma_initializer=gamma_initializer, beta_regularizer=beta_regularizer, gamma_regularizer=gamma_regularizer,
             beta_constraint=beta_constraint, gamma_constraint=gamma_constraint, **kwargs)
-
+        self.data_format = data_format
         self._groups = groups
 
     @shape_type_conversion
