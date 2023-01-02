@@ -110,9 +110,9 @@ class LayerNorm(layers.LayerNormalization):
         return config
 
 
-@NORMALIZATIONS.register('tln')
+@NORMALIZATIONS.register('lwn')
 @register_keras_serializable(package='SegMe>Policy>Normalization')
-class TrueLayerNorm(layers.LayerNormalization):
+class LayerwiseNorm(layers.LayerNormalization):
     """Overload for exact paper implementation, data_format understanding and fused implementation"""
 
     def __init__(self, data_format=None, epsilon=1e-3, center=True, scale=True, beta_initializer='zeros',

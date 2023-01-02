@@ -6,7 +6,7 @@ from keras import layers
 from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tensorflow_addons import layers as add_layers
-from segme.policy.norm import NORMALIZATIONS, BatchNorm, LayerNorm, TrueLayerNorm, GroupNorm, FilterResponseNorm
+from segme.policy.norm import NORMALIZATIONS, BatchNorm, LayerNorm, LayerwiseNorm, GroupNorm, FilterResponseNorm
 
 
 class TestNormalizationsRegistry(unittest.TestCase):
@@ -187,18 +187,18 @@ class TestLayerNorm(test_combinations.TestCase):
 
 
 @test_combinations.run_all_keras_modes
-class TestTrueLayerNorm(test_combinations.TestCase):
+class TestLayerwiseNorm(test_combinations.TestCase):
     def setUp(self):
-        super(TestTrueLayerNorm, self).setUp()
+        super(TestLayerwiseNorm, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestTrueLayerNorm, self).tearDown()
+        super(TestLayerwiseNorm, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         test_utils.layer_test(
-            TrueLayerNorm,
+            LayerwiseNorm,
             kwargs={'data_format': 'channels_last'},
             input_shape=[2, 8, 16, 3],
             input_dtype='float32',
@@ -206,7 +206,7 @@ class TestTrueLayerNorm(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            TrueLayerNorm,
+            LayerwiseNorm,
             kwargs={'data_format': 'channels_first'},
             input_shape=[2, 8, 16, 3],
             input_dtype='float32',
@@ -218,7 +218,7 @@ class TestTrueLayerNorm(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
 
         result = test_utils.layer_test(
-            TrueLayerNorm,
+            LayerwiseNorm,
             kwargs={'data_format': 'channels_last'},
             input_shape=[2, 8, 16, 3],
             input_dtype='float16',
@@ -228,7 +228,7 @@ class TestTrueLayerNorm(test_combinations.TestCase):
         self.assertTrue(np.all(np.isfinite(result)))
 
         result = test_utils.layer_test(
-            TrueLayerNorm,
+            LayerwiseNorm,
             kwargs={'data_format': 'channels_first'},
             input_shape=[2, 8, 16, 3],
             input_dtype='float16',
@@ -255,7 +255,7 @@ class TestTrueLayerNorm(test_combinations.TestCase):
             inputs = inputs.transpose(0, 3, 1, 2)
             expected = expected.transpose(0, 3, 1, 2)
 
-        custom = TrueLayerNorm(data_format=dformat)
+        custom = LayerwiseNorm(data_format=dformat)
         result = custom(inputs)
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
@@ -263,7 +263,7 @@ class TestTrueLayerNorm(test_combinations.TestCase):
 
     def test_batch(self):
         inputs = np.random.normal(size=(32, 16, 16, 64)) * 10.
-        layer = TrueLayerNorm()
+        layer = LayerwiseNorm()
 
         expected = layer(inputs, training=True)
         expected = self.evaluate(expected)
