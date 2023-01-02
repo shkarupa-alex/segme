@@ -2,9 +2,10 @@ import tensorflow as tf
 from functools import partial
 from keras import backend, layers, models
 from keras.applications import imagenet_utils
-from keras.utils import data_utils, layer_utils
 from keras.applications.resnet_rs import BASE_WEIGHTS_URL, WEIGHT_HASHES, DEPTH_TO_WEIGHT_VARIANTS, BLOCK_ARGS, \
     CONV_KERNEL_INITIALIZER, get_survival_probability, allow_bigger_recursion
+from keras.mixed_precision import global_policy
+from keras.utils import data_utils, layer_utils
 from segme.common.convnormact import Conv, Norm, Act
 from segme.policy import cnapol
 from segme.policy.backbone.utils import patch_config, wrap_bone
@@ -159,11 +160,12 @@ def ResNetRS(depth, input_shape=None, dropout_rate=0.25, drop_connect_rate=0.2, 
         require_flatten=include_top,
         weights=weights,
     )
+    input_dtype = global_policy().compute_dtype
     if input_tensor is None:
-        img_input = layers.Input(shape=input_shape)
+        img_input = layers.Input(shape=input_shape, dtype=input_dtype)
     else:
         if not backend.is_keras_tensor(input_tensor):
-            img_input = layers.Input(tensor=input_tensor, shape=input_shape)
+            img_input = layers.Input(tensor=input_tensor, shape=input_shape, dtype=input_dtype)
         else:
             img_input = input_tensor
 
