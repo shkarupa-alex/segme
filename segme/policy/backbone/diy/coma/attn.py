@@ -7,7 +7,8 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNorm, Conv, Act
 from segme.common.pad import with_divisible_pad
 from segme.common.sequent import Sequential
-from segme.policy.backbone.diy.coma.part import partition_apply, partition_reverse, with_partition
+from segme.policy.backbone.diy.coma.part import partition_apply, partition_apply_fused, partition_reverse_fused
+from segme.policy.backbone.diy.coma.part import with_partition_fused, halo_partition, halo_partition_fused
 
 
 @register_keras_serializable(package='SegMe>Policy>Backbone>DIY>CoMA')
@@ -40,9 +41,6 @@ class DHMSA(layers.Layer):
         self.window_length = self.current_window ** 2
         self.halo_window = self.current_window * 2
         self.halo_length = self.halo_window ** 2
-        self.halo_kernel = [1, self.halo_window, self.halo_window, 1]
-        self.halo_stride = [1, self.current_window, self.current_window, 1]
-        self.halo_dirate = [1, self.dilation_rate, self.dilation_rate, 1]
 
         self.qkv = Sequential([
             ConvNorm(None, 3, name='qkv_dw'),  # From CvT
@@ -82,55 +80,36 @@ class DHMSA(layers.Layer):
 
         return outputs
 
-    def qkv_part(self, qkv, with_pad, pad_size, pad_val):
-        _, height, width = pad_size
-        halo_size = height * 2, width * 2
+    def qkv_part(self, qkv, pad_size, pad_val):
+        _, pad_height, pad_width = pad_size
 
         q, kv = tf.split(qkv, [self.channels, self.channels * 2], axis=-1)
-        q_part = partition_apply(q, height, width, 'window_size', self.current_window, self.dilation_rate)
-        kv_part = self.halo_part(kv, halo_size)
+        q_part = partition_apply_fused(
+            q, pad_height, pad_width, 'window_size', self.current_window, 1, self.num_heads, self.dilation_rate)
+        kv_part = halo_partition_fused(
+            kv, pad_height, pad_width, self.current_window, self.current_window * 2, 2, self.num_heads,
+            self.dilation_rate)
 
-        parted = self.qkv_attn(
-            q_part, kv_part, with_pad=with_pad, pad_size=pad_size, pad_val=pad_val, halo_size=halo_size)
-        parted = partition_reverse(parted, height, width, 'window_size', self.current_window, self.dilation_rate)
+        parted = self.qkv_attn(q_part, kv_part, pad_size=pad_size, pad_val=pad_val)
+        parted = partition_reverse_fused(
+            parted, pad_height, pad_width, 'window_size', self.current_window, self.num_heads, self.dilation_rate)
 
         return parted
 
-    def halo_part(self, x, halo_size):
-        # From HaloNet
-        halo_height, halo_width = halo_size
-        halo_blocks = [halo_height // self.halo_window, halo_width // self.halo_window]
-        channel_size = x.shape[-1]
-
-        x = tf.image.extract_patches(x, self.halo_kernel, self.halo_stride, self.halo_dirate, padding='SAME')
-        x = tf.reshape(x, [-1, *halo_blocks, self.halo_window, self.halo_window, channel_size])
-        x = tf.transpose(x, [0, 1, 3, 2, 4, 5])
-        x = tf.reshape(x, [-1, halo_height, halo_width, channel_size])
-        x = partition_apply(x, halo_height, halo_width, 'window_size', self.halo_window, self.dilation_rate)
-
-        return x
-
-    def qkv_attn(self, q, kv, with_pad, pad_size, pad_val, halo_size):
-        del with_pad
-
-        q = tf.reshape(q, [-1, self.window_length, self.num_heads, self.channels // self.num_heads])
-        q = tf.transpose(q, [0, 2, 1, 3])
-
-        kv = tf.reshape(kv, [-1, self.halo_length, 2, self.num_heads, self.channels // self.num_heads])
-        kv = tf.transpose(kv, [2, 0, 3, 1, 4])
-        k, v = tf.unstack(kv, 2, axis=0)
+    def qkv_attn(self, q, kv, pad_size, pad_val):
+        q = tf.squeeze(q, axis=-2)
+        k, v = tf.unstack(kv, 2, axis=-2)
 
         q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
         k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
         attn = self.rel_bias(attn)
-        attn = self.pad_mask(attn, pad_size, pad_val, halo_size)
+        attn = self.pad_mask(attn, pad_size, pad_val)
         attn = tf.nn.softmax(attn)
         attn = self.drop_attn(attn)
 
-        outputs = tf.transpose(tf.matmul(attn, v), perm=[0, 2, 1, 3])
-        outputs = tf.reshape(outputs, [-1, self.window_length, self.channels])
+        outputs = tf.matmul(attn, v)
 
         return outputs
 
@@ -164,14 +143,15 @@ class DHMSA(layers.Layer):
 
         return attn
 
-    def pad_mask(self, attn, pad_size, pad_val, halo_size):
+    def pad_mask(self, attn, pad_size, pad_val):
         batch_size, pad_height, pad_width = pad_size
         src_height, src_width = pad_height - pad_val[0], pad_width - pad_val[1]
 
-        mask = tf.ones((1, src_height, src_width, 1), dtype='int64')
+        mask = tf.ones((1, src_height, src_width, 1), dtype='float32')
         mask = tf.pad(mask, [(0, 0), (0, pad_val[0]), (0, pad_val[1]), (0, 0)])
-        mask = self.halo_part(mask, halo_size)
-        mask = tf.squeeze(mask == 0, axis=-1)[None, :, None, None]
+        mask = halo_partition(
+            mask, pad_height, pad_width, self.current_window, self.current_window * 2, self.dilation_rate)
+        mask = tf.squeeze(mask == 0., axis=-1)[None, :, None, None]
         mask = -100. * tf.cast(mask, self.compute_dtype)
 
         num_windows = pad_height * pad_width // self.window_length
@@ -245,9 +225,9 @@ class CHMSA(layers.Layer):
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
 
-        qkv = tf.reshape(qkv, [batch, height * width, 3, self.num_heads, self.channels // self.num_heads])
-        qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
-        q, k, v = tf.unstack(qkv, 3)
+        qkv = tf.reshape(qkv, [batch, height * width, self.num_heads, 3, self.channels // self.num_heads])
+        qkv = tf.transpose(qkv, [0, 2, 1, 3, 4])
+        q, k, v = tf.unstack(qkv, 3, axis=-2)
 
         q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
         k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
@@ -340,17 +320,15 @@ class GGMSA(layers.Layer):
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
 
-        outputs = with_partition(self.qkv_attn, qkv, 'grid_size', self.current_window)
+        outputs = with_partition_fused(self.qkv_attn, qkv, 'grid_size', self.current_window, 3, self.num_heads)
 
         outputs = self.proj(outputs)
         outputs = self.drop_proj(outputs)
 
         return outputs
 
-    def qkv_attn(self, qkv, with_pad, pad_size, pad_val):
-        qkv = tf.reshape(qkv, [-1, self.window_length, 3, self.num_heads, self.channels // self.num_heads])
-        qkv = tf.transpose(qkv, [2, 0, 3, 1, 4])
-        q, k, v = tf.unstack(qkv, 3, axis=0)
+    def qkv_attn(self, qkv, pad_size, pad_val):
+        q, k, v = tf.unstack(qkv, 3, axis=-2)
 
         q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
         k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
@@ -358,14 +336,13 @@ class GGMSA(layers.Layer):
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
         attn = self.rel_bias(attn)
         attn = smart_cond(
-            with_pad,
+            sum(pad_val) > 0,
             lambda: self.pad_mask(attn, pad_size, pad_val),
             lambda: tf.identity(attn))
         attn = tf.nn.softmax(attn)
         attn = self.drop_attn(attn)
 
-        outputs = tf.transpose(tf.matmul(attn, v), perm=[0, 2, 1, 3])
-        outputs = tf.reshape(outputs, [-1, self.window_length, self.channels])
+        outputs = tf.matmul(attn, v)
 
         return outputs
 
