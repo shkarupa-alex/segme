@@ -1,6 +1,5 @@
 import tensorflow as tf
 from keras import backend, layers
-from keras.utils.control_flow_util import smart_cond
 from keras.utils.conv_utils import normalize_tuple
 from keras.saving.object_registration import register_keras_serializable
 
@@ -56,15 +55,11 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
             None if inputs_width_ is None else inputs_width_ + w_pad_,
             inputs.shape[3])
 
-        with_pad = h_pad + w_pad > 0
-        outputs = smart_cond(
-            with_pad,
-            lambda: tf.pad(inputs, paddings, mode=mode, constant_values=constant_values),
-            lambda: tf.identity(inputs))
+        outputs = tf.pad(inputs, paddings, mode=mode, constant_values=constant_values)
         outputs.set_shape(padded_shape_)
 
         pad_size = (inputs_batch, inputs_height + h_pad, inputs_width + w_pad)
-        outputs = op(outputs, with_pad=with_pad, pad_size=pad_size, pad_val=(h_pad, w_pad))
+        outputs = op(outputs, pad_size=pad_size, pad_val=(h_pad, w_pad))
 
         outputs_shape = tf.unstack(tf.shape(outputs))
         outputs_batch, outputs_height, outputs_width, _ = outputs_shape
@@ -75,10 +70,7 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
         with tf.control_dependencies([assert_batch, assert_height, assert_width]):
             outputs = tf.identity(outputs)
 
-        outputs = smart_cond(
-            with_pad,
-            lambda: outputs[:, hb_pad:inputs_height + hb_pad, wb_pad: inputs_width + wb_pad],
-            lambda: tf.identity(outputs))
+        outputs = outputs[:, hb_pad:inputs_height + hb_pad, wb_pad: inputs_width + wb_pad]
         outputs.set_shape(inputs.shape[:-1] + outputs.shape[-1:])
 
         return outputs
