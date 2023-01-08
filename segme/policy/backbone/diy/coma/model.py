@@ -190,6 +190,8 @@ def CoMA(
         weights=None, input_tensor=None, classes=1000, classifier_activation='softmax', include_preprocessing=False):
     """ Inspired with:
 
+    02.01.2023 ConvNeXt V2: Co-designing and Scaling ConvNets with Masked Autoencoders
+        ? global response normalization
     15.11.2022 Focal Modulation Networks
         + overlapped patch embedding
         + deeper but thinner

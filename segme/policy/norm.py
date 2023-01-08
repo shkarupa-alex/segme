@@ -283,7 +283,7 @@ class FilterResponseNorm(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        channels = input_shape[-1]
+        channels = input_shape[-1]  # TODO: data format
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
