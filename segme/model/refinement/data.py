@@ -382,6 +382,10 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                     if training == bool(re.search(self.test_re, image_path)):
                         continue
 
+                    # Do not use super resolution image to make task harder
+                    # if file.replace(image_ext, '-image_super.jpg') in filenames:
+                    #     image_path = image_path.replace(image_ext, '-image_super.jpg')
+
                     mask = file.replace(image_ext, '-mask.png')
                     assert mask in filenames, image_path
 
