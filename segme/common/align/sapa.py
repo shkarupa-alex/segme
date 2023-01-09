@@ -3,7 +3,8 @@ from keras import layers
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.interrough import NearestInterpolation
-from segme.policy.norm import LayerNormalization
+from segme.common.patchxla import extract_patches_xla
+from segme.policy.norm import LayerNorm
 
 
 @register_keras_serializable(package='SegMe>Common>Align>SAPA')
@@ -25,8 +26,8 @@ class SapaFeatureAlignment(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.norm_fine = LayerNormalization()
-        self.norm_coarse = LayerNormalization()
+        self.norm_fine = LayerNorm()
+        self.norm_coarse = LayerNorm()
 
         self.intnear = NearestInterpolation(None)
 
@@ -124,10 +125,10 @@ class LocalAttention(layers.Layer):
 
         query = tf.reshape(query, [q_batch, k_height, h_scale, k_width, w_scale, self.channels[0]])
 
-        key = tf.image.extract_patches(key, **self.patch_kwargs)
+        key = extract_patches_xla(key, **self.patch_kwargs)
         key = tf.reshape(key, [k_batch, k_height, k_width, self.kernel_size ** 2, self.channels[1]])
 
-        value = tf.image.extract_patches(value, **self.patch_kwargs)
+        value = extract_patches_xla(value, **self.patch_kwargs)
         value = tf.reshape(value, [v_batch, v_height, v_width, self.kernel_size ** 2, self.channels[2]])
 
         attention = tf.einsum('ijklmn,ijlon->ijklmo', query, key)

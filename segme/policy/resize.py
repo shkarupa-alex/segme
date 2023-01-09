@@ -7,6 +7,7 @@ from segme.common.align.impf import SpatialEncoding
 from segme.common.convnormact import ConvNormAct
 from segme.common.impfunc import make_coords, query_features
 from segme.common.interrough import NearestInterpolation, BilinearInterpolation
+from segme.common.patchxla import extract_patches_xla
 from segme.common.sequent import Sequential
 from segme.policy.registry import LayerRegistry
 
@@ -123,7 +124,7 @@ class GrIIFInterpolation(NearestInterpolation):
 
         pad_mode = 'SYMMETRIC' if self.symmetric_pad else 'CONSTANT'
         feature_patches = tf.pad(inputs, [(0, 0), (1, 1), (1, 1), (0, 0)], mode=pad_mode)
-        feature_patches = tf.image.extract_patches(
+        feature_patches = extract_patches_xla(
             feature_patches, sizes=[1, 3, 3, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='VALID')
         feature_patches = tf.image.resize(feature_patches, (targets_height, targets_width), method='nearest')
         feature_patches = tf.reshape(feature_patches, [target_volume, 3, 3, inputs.shape[-1]])
@@ -223,7 +224,7 @@ class LGrIIFInterpolation(NearestInterpolation):
 
         pad_mode = 'SYMMETRIC' if self.symmetric_pad else 'CONSTANT'
         feature_patches = tf.pad(inputs, [(0, 0), (1, 1), (1, 1), (0, 0)], mode=pad_mode)
-        feature_patches = tf.image.extract_patches(
+        feature_patches = extract_patches_xla(
             feature_patches, sizes=[1, 3, 3, 1], strides=[1, 1, 1, 1], rates=[1, 1, 1, 1], padding='VALID')
         feature_patches = tf.image.resize(feature_patches, (targets_height, targets_width), method='nearest')
         feature_patches = tf.reshape(feature_patches, [target_volume, 3, 3, inputs.shape[-1]])

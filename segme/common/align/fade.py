@@ -3,6 +3,7 @@ from keras import layers
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.interrough import NearestInterpolation
+from segme.common.patchxla import extract_patches_xla
 
 
 @register_keras_serializable(package='SegMe>Common>Align>FADE')
@@ -156,7 +157,7 @@ class CarafeConvolution(layers.Layer):
         batch, height, width, _ = tf.unstack(tf.shape(masks))
         output_shape = self.compute_output_shape([features.shape, masks.shape])
 
-        features = tf.image.extract_patches(
+        features = extract_patches_xla(
             features, [1, self.kernel_size, self.kernel_size, 1], [1, 1, 1, 1], [1, 1, 1, 1], 'SAME')
         features = self.internear([features, masks])
 
