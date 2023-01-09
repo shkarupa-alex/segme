@@ -8,7 +8,7 @@ from keras.utils.tf_utils import shape_type_conversion
 class GRN(layers.Layer):
     """ Proposed in: https://arxiv.org/pdf/2301.00808.pdf """
 
-    def __init__(self, beta_initializer='zeros', gamma_initializer='zeros', beta_regularizer=None,
+    def __init__(self, beta_initializer='zeros', gamma_initializer='ones', beta_regularizer=None,
                  gamma_regularizer=None, beta_constraint=None, gamma_constraint=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
@@ -43,7 +43,7 @@ class GRN(layers.Layer):
         # nx = gx / (tf.reduce_mean(gx, axis=-1, keepdims=True) + backend.epsilon())
         # though standardization (||Xi|| − µ)/σ yields similar results.
 
-        # Here we will use standardization due to faster fused implementation.
+        # Here we will use standardization due to faster/stabler fused implementation.
         batch = tf.shape(inputs)[0]
         scale = tf.ones([batch], dtype=self.dtype)
         offset = tf.zeros([batch], dtype=self.dtype)
