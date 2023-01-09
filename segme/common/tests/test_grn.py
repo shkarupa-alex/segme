@@ -61,7 +61,7 @@ class TestGRN(test_combinations.TestCase):
             -1.0526916, 4.7490506, 10.706818, -1.0947993, 4.9365134, 11.123966, -1.136907, 5.1239758, 11.541115,
             -1.1790146, 5.311438, 11.958263, -1.2211223, 5.498901, 12.375412, -1.26323, 5.686363, 12.792561, -1.3053375,
             5.873826, 13.209709], 'float32').reshape(2, 4, 4, 3)
-        layer = GRN(gamma_initializer='ones')
+        layer = GRN()
 
         result = layer(inputs)
         result = self.evaluate(result)
