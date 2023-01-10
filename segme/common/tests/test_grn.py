@@ -18,7 +18,31 @@ class TestGRN(test_combinations.TestCase):
     def test_layer(self):
         test_utils.layer_test(
             GRN,
-            kwargs={},
+            kwargs={'center': True, 'scale': True},
+            input_shape=[2, 4, 4, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 4, 4, 3],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            GRN,
+            kwargs={'center': True, 'scale': False},
+            input_shape=[2, 4, 4, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 4, 4, 3],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            GRN,
+            kwargs={'center': False, 'scale': True},
+            input_shape=[2, 4, 4, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 4, 4, 3],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            GRN,
+            kwargs={'center': False, 'scale': False},
             input_shape=[2, 4, 4, 3],
             input_dtype='float32',
             expected_output_shape=[None, 4, 4, 3],
@@ -29,7 +53,7 @@ class TestGRN(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             GRN,
-            kwargs={},
+            kwargs={'center': True, 'scale': True},
             input_shape=[2, 4, 4, 3],
             input_dtype='float16',
             expected_output_shape=[None, 4, 4, 3],
@@ -46,9 +70,10 @@ class TestGRN(test_combinations.TestCase):
         #     4.7981195, 4.999711, 5.2061176, 5.167206, 5.374689, 5.5870533, 5.536292, 5.7496676, 5.9679885, 5.9595585,
         #     6.124993, 6.2921333, 6.3320312, 6.4999924, 6.6696615, 6.704503, 6.874992, 7.0471897, 7.076976, 7.2499914,
         #     7.4247174, 7.449448, 7.6249914, 7.802245, 7.8219204, 7.9999905, 8.179773, 8.194393, 8.37499, 8.5573015,
-        #     8.566866, 8.74999, 8.93483, 8.939338, 9.1249895, 9.312357, 9.31181, 9.499989, 9.689886, 9.684282, 9.874989,
-        #     10.067413, 10.056755, 10.249989, 10.4449415, 10.429228, 10.624988, 10.82247, 10.8017, 10.999987, 11.199997,
-        #     11.174172, 11.374987, 11.577526, 11.546644, 11.749987, 11.955053], 'float32').reshape(2, 4, 4, 3)
+        #     8.566866, 8.74999, 8.93483, 8.939338, 9.1249895, 9.312357, 9.31181, 9.499989, 9.689886, 9.684282,
+        #     9.874989, 10.067413, 10.056755, 10.249989, 10.4449415, 10.429228, 10.624988, 10.82247, 10.8017, 10.999987,
+        #     11.199997, 11.174172, 11.374987, 11.577526, 11.546644, 11.749987, 11.955053],
+        #     'float32').reshape(2, 4, 4, 3)
         expected = np.array([  # standardization
             0.0, 0.0622203, 0.2783629, -0.0417066, 0.2488811, 0.6959072, -0.0834133, 0.435542, 1.1134515, -0.12512,
             0.6222028, 1.5309958, -0.1668266, 0.8088636, 1.94854, -0.2085333, 0.9955245, 2.3660843, -0.2502399,
@@ -61,7 +86,7 @@ class TestGRN(test_combinations.TestCase):
             -1.0526916, 4.7490506, 10.706818, -1.0947993, 4.9365134, 11.123966, -1.136907, 5.1239758, 11.541115,
             -1.1790146, 5.311438, 11.958263, -1.2211223, 5.498901, 12.375412, -1.26323, 5.686363, 12.792561, -1.3053375,
             5.873826, 13.209709], 'float32').reshape(2, 4, 4, 3)
-        layer = GRN()
+        layer = GRN(epsilon=1.001e-5)
 
         result = layer(inputs)
         result = self.evaluate(result)
