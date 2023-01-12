@@ -365,9 +365,10 @@ def CoMA(
 
         for j in range(stage_depth):
             if i < 2:  # From CoAtNet
+                kernel_size = 3 if 0 == i else 5
                 x = ConvBlock(
-                    fused, expand_ratio=expand_ratio, path_gamma=stage_gammas[j], path_drop=stage_drops[j],
-                    name=f'stage_{i}_conv_{j}')(x)
+                    fused, kernel_size=kernel_size, expand_ratio=expand_ratio, path_gamma=stage_gammas[j],
+                    path_drop=stage_drops[j], name=f'stage_{i}_conv_{j}')(x)
                 continue
 
             current_size = pretrain_size // 2 ** (i + 2)
@@ -424,25 +425,25 @@ def CoMA(
 
 
 def CoMATiny(embed_dim=64, stem_depth=2, stage_depths=(3, 4, 19, 3), path_drop=0.1, **kwargs):
-    # 26.8 M, 18.4 G
+    # 26.6 M, 18.5 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
         model_name='coma-tiny', **kwargs)
 
 
 def CoMASmall(embed_dim=96, stem_depth=2, stage_depths=(3, 4, 19, 3), **kwargs):
-    # 58.9 M, 39.3 G
+    # 58.9 M, 39.4 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-small', **kwargs)
 
 
 def CoMABase(embed_dim=128, stem_depth=3, stage_depths=(4, 5, 21, 3), **kwargs):
-    # 110.2 M, 78.4 G
+    # 110.2 M, 78.6 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-base', **kwargs)
 
 
 def CoMALarge(embed_dim=160, stem_depth=4, stage_depths=(5, 6, 21, 5), **kwargs):
-    # 205.8 M, 136.4 G
+    # 205.9 M, 136.3 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-large', **kwargs)
