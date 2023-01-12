@@ -8,7 +8,7 @@ import resource
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from segme.policy.backbone.diy.coma.prep import preprocess_input
-from segme.policy.backbone.diy.coma.tree import synsets_21k1k
+from segme.policy.backbone.diy.coma.tree import synsets_1k_21k, tree_class_map
 from segme.utils.common import augment_onthefly
 
 
@@ -44,7 +44,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                 'size': tfds.features.Text(),
                 'label': tfds.features.Text(),
                 'synset': tfds.features.Text(),
-                'class': tfds.features.ClassLabel(names=synsets_21k1k())
+                'class': tfds.features.ClassLabel(names=synsets_1k_21k())
             })
         )
 
@@ -210,9 +210,8 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
         return image, size
 
 
-@tf.function()
-def _transform_examples(examples, augment, hsmax):
-    images = examples['image']
+@tf.function(jit_compile=True)
+def _transform_examples(images, labels, augment):
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
         images, _ = augment_onthefly(images, [])
@@ -220,24 +219,30 @@ def _transform_examples(examples, augment, hsmax):
         images = tf.cast(tf.round(tf.clip_by_value(images, 0., 1.) * 255.), 'uint8')
     images = preprocess_input(images)
 
-    labels = examples['class']
-
-    if hsmax:
-        return {'images': images, 'labels': labels}, labels
-
     return images, labels
 
 
-def make_dataset(data_dir, split_name, batch_size, hsmax_out=False, shuffle_files=True, drop_remainder=True):
+def make_dataset(
+        data_dir, split_name, batch_size, remap_classes=False, just_1k=False, shuffle_files=True, drop_remainder=True):
     apply_aug = tfds.Split.TRAIN == split_name
 
     builder = Imagenet21k1k(data_dir=data_dir)
     builder.download_and_prepare()
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
+    if just_1k:
+        dataset = dataset.filter(lambda ex: ex['in1k'])
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
     dataset = dataset.map(
-        lambda ex: _transform_examples(ex, apply_aug, hsmax_out), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        lambda ex: _transform_examples(ex['image'], ex['class'], apply_aug),
+        num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    if remap_classes:
+        map_keys, map_values = zip(*tree_class_map().items())
+        map_init = tf.lookup.KeyValueTensorInitializer(map_keys, map_values, 'int64', 'int64')
+        class_map = tf.lookup.StaticHashTable(map_init, -1)
+        dataset = dataset.map(
+            lambda images, labels: (images, class_map.lookup(labels)),
+            num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return dataset

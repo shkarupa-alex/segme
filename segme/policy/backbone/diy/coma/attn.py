@@ -13,8 +13,7 @@ from segme.policy.backbone.diy.coma.part import with_partition_fused, halo_parti
 
 @register_keras_serializable(package='SegMe>Policy>Backbone>DIY>CoMA')
 class DHMSA(layers.Layer):
-    def __init__(self, current_window, pretrain_window, num_heads, dilation_rate=1, qkv_bias=True, attn_drop=0.,
-                 proj_drop=0., **kwargs):
+    def __init__(self, current_window, pretrain_window, num_heads, dilation_rate=1, use_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -28,9 +27,7 @@ class DHMSA(layers.Layer):
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
         self.dilation_rate = dilation_rate
-        self.qkv_bias = qkv_bias
-        self.attn_drop = attn_drop
-        self.proj_drop = proj_drop
+        self.use_bias = use_bias
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -42,11 +39,10 @@ class DHMSA(layers.Layer):
         self.halo_window = self.current_window * 2
         self.halo_length = self.halo_window ** 2
 
-        self.qkv = Sequential([
-            ConvNorm(None, 3, name='qkv_dw'),  # From CvT
-            Conv(self.channels * 3, 1, use_bias=False, name='qkv_pw')], name='qkv')
+        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+        self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
 
-        if self.qkv_bias:
+        if self.use_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
@@ -60,23 +56,22 @@ class DHMSA(layers.Layer):
             Act(name='cpb_act'),
             layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name='cpb_fc1')], name='cpb')
 
-        self.drop_attn = layers.Dropout(self.attn_drop, name='attn_drop')
-        self.proj = Conv(self.channels, 1, name='proj')
-        self.drop_proj = layers.Dropout(self.proj_drop, name='proj_drop')
+        self.proj = Conv(self.channels, 1, use_bias=False, name='proj')
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
-        if self.qkv_bias:
+        qkv = self.qkv_dw(qkv)
+
+        if self.use_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
-            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, qkv_bias)
+            use_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
+            qkv = tf.nn.bias_add(qkv, use_bias)
 
         outputs = with_divisible_pad(self.qkv_part, qkv, self.current_window * self.dilation_rate)
 
         outputs = self.proj(outputs)
-        outputs = self.drop_proj(outputs)
 
         return outputs
 
@@ -107,7 +102,6 @@ class DHMSA(layers.Layer):
         attn = self.rel_bias(attn)
         attn = self.pad_mask(attn, pad_size, pad_val)
         attn = tf.nn.softmax(attn)
-        attn = self.drop_attn(attn)
 
         outputs = tf.matmul(attn, v)
 
@@ -173,9 +167,7 @@ class DHMSA(layers.Layer):
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
             'dilation_rate': self.dilation_rate,
-            'qkv_bias': self.qkv_bias,
-            'attn_drop': self.attn_drop,
-            'proj_drop': self.proj_drop,
+            'use_bias': self.use_bias
         })
 
         return config
@@ -183,14 +175,12 @@ class DHMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Policy>Backbone>DIY>CoMA')
 class CHMSA(layers.Layer):
-    def __init__(self, num_heads, qkv_bias=True, attn_drop=0., proj_drop=0., **kwargs):
+    def __init__(self, num_heads, use_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
         self.num_heads = num_heads
-        self.qkv_bias = qkv_bias
-        self.attn_drop = attn_drop
-        self.proj_drop = proj_drop
+        self.use_bias = use_bias
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -198,10 +188,10 @@ class CHMSA(layers.Layer):
         if self.channels is None:
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
-        self.qkv = Sequential([
-            ConvNorm(None, 3, name='qkv_dw'),  # From CvT
-            Conv(self.channels * 3, 1, use_bias=False, name='qkv_pw')], name='qkv')
-        if self.qkv_bias:
+        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+        self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
+
+        if self.use_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
@@ -210,9 +200,7 @@ class CHMSA(layers.Layer):
             initializer=initializers.constant(np.log(10., dtype=self.dtype)),
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
-        self.drop_attn = layers.Dropout(self.attn_drop, name='attn_drop')
-        self.proj = layers.Dense(self.channels, name='proj')
-        self.drop_proj = layers.Dropout(self.proj_drop, name='proj_drop')
+        self.proj = layers.Dense(self.channels, use_bias=False, name='proj')
 
         super().build(input_shape)
 
@@ -220,10 +208,12 @@ class CHMSA(layers.Layer):
         batch, height, width, _ = tf.unstack(tf.shape(inputs))
 
         qkv = self.qkv(inputs)
-        if self.qkv_bias:
+        qkv = self.qkv_dw(qkv)
+
+        if self.use_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
-            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, qkv_bias)
+            use_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
+            qkv = tf.nn.bias_add(qkv, use_bias)
 
         qkv = tf.reshape(qkv, [batch, height * width, self.num_heads, 3, self.channels // self.num_heads])
         qkv = tf.transpose(qkv, [0, 2, 1, 3, 4])
@@ -234,13 +224,11 @@ class CHMSA(layers.Layer):
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_a=True)
         attn = tf.nn.softmax(attn)
-        attn = self.drop_attn(attn)
 
         outputs = tf.transpose(tf.matmul(attn, v, transpose_b=True), perm=[0, 3, 1, 2])
         outputs = tf.reshape(outputs, [batch, height, width, self.channels])
 
         outputs = self.proj(outputs)
-        outputs = self.drop_proj(outputs)
 
         outputs.set_shape(inputs.shape)
 
@@ -255,9 +243,7 @@ class CHMSA(layers.Layer):
 
         config.update({
             'num_heads': self.num_heads,
-            'qkv_bias': self.qkv_bias,
-            'attn_drop': self.attn_drop,
-            'proj_drop': self.proj_drop,
+            'use_bias': self.use_bias
         })
 
         return config
@@ -265,7 +251,7 @@ class CHMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Policy>Backbone>DIY>CoMA')
 class GGMSA(layers.Layer):
-    def __init__(self, current_window, pretrain_window, num_heads, qkv_bias=True, attn_drop=0., proj_drop=0., **kwargs):
+    def __init__(self, current_window, pretrain_window, num_heads, use_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -275,9 +261,7 @@ class GGMSA(layers.Layer):
         self.current_window = current_window
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
-        self.qkv_bias = qkv_bias
-        self.attn_drop = attn_drop
-        self.proj_drop = proj_drop
+        self.use_bias = use_bias
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -289,11 +273,10 @@ class GGMSA(layers.Layer):
 
         self.window_length = self.current_window ** 2
 
-        self.qkv = Sequential([
-            ConvNorm(None, 3, name='qkv_dw'),  # From CvT
-            Conv(self.channels * 3, 1, use_bias=False, name='qkv_pw')], name='qkv')
+        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+        self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
 
-        if self.qkv_bias:
+        if self.use_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
@@ -307,23 +290,22 @@ class GGMSA(layers.Layer):
             Act(name='cpb_act'),
             layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name='cpb_fc1')], name='cpb')
 
-        self.drop_attn = layers.Dropout(self.attn_drop, name='attn_drop')
-        self.proj = Conv(self.channels, 1, name='proj')
-        self.drop_proj = layers.Dropout(self.proj_drop, name='proj_drop')
+        self.proj = Conv(self.channels, 1, use_bias=False, name='proj')
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
-        if self.qkv_bias:
+        qkv = self.qkv_dw(qkv)
+
+        if self.use_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
-            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, qkv_bias)
+            use_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
+            qkv = tf.nn.bias_add(qkv, use_bias)
 
         outputs = with_partition_fused(self.qkv_attn, qkv, 'grid_size', self.current_window, 3, self.num_heads)
 
         outputs = self.proj(outputs)
-        outputs = self.drop_proj(outputs)
 
         return outputs
 
@@ -340,7 +322,6 @@ class GGMSA(layers.Layer):
             lambda: self.pad_mask(attn, pad_size, pad_val),
             lambda: tf.identity(attn))
         attn = tf.nn.softmax(attn)
-        attn = self.drop_attn(attn)
 
         outputs = tf.matmul(attn, v)
 
@@ -406,9 +387,7 @@ class GGMSA(layers.Layer):
             'current_window': self.current_window,
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
-            'qkv_bias': self.qkv_bias,
-            'attn_drop': self.attn_drop,
-            'proj_drop': self.proj_drop,
+            'use_bias': self.use_bias
         })
 
         return config
