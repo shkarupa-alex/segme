@@ -62,7 +62,7 @@ class TLU(layers.Layer):
 
 @ACTIVATIONS.register('approxgelu')
 @register_keras_serializable(package='SegMe>Policy>Activation')
-class ApproxGELU(layers.Layer):
+class ApproximateGELU(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.supports_masking = True

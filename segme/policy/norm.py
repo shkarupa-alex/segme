@@ -283,7 +283,7 @@ class FilterResponseNorm(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        channels = input_shape[-1]  # TODO: data format
+        channels = input_shape[-1] if 'channels_last' == self.data_format else input_shape[1]
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
@@ -293,12 +293,13 @@ class FilterResponseNorm(layers.Layer):
         else:
             self.axis = axis[1:]
 
+        weight_shape = [1, 1, 1, channels] if 'channels_last' == self.data_format else [1, channels, 1, 1]
         self.gamma = self.add_weight(
-            shape=[1, 1, 1, channels], name='gamma', initializer=self.gamma_initializer,
-            regularizer=self.gamma_regularizer, constraint=self.gamma_constraint)
+            shape=weight_shape, name='gamma', initializer=self.gamma_initializer, regularizer=self.gamma_regularizer,
+            constraint=self.gamma_constraint)
         self.beta = self.add_weight(
-            shape=[1, 1, 1, channels], name='beta', initializer=self.beta_initializer,
-            regularizer=self.beta_regularizer, constraint=self.beta_constraint)
+            shape=weight_shape, name='beta', initializer=self.beta_initializer, regularizer=self.beta_regularizer,
+            constraint=self.beta_constraint)
 
         if self.use_eps_learned:
             self.eps_learned = self.add_weight(
