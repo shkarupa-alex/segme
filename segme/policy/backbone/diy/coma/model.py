@@ -365,7 +365,7 @@ def CoMA(
 
         for j in range(stage_depth):
             if i < 2:  # From CoAtNet
-                kernel_size = 3 if 0 == i else 5
+                kernel_size = 3 if fused else 5
                 x = ConvBlock(
                     fused, kernel_size=kernel_size, expand_ratio=expand_ratio, path_gamma=stage_gammas[j],
                     path_drop=stage_drops[j], name=f'stage_{i}_conv_{j}')(x)
