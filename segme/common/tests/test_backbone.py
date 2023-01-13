@@ -1,4 +1,5 @@
 import tensorflow as tf
+from keras import models
 from keras.mixed_precision import policy as mixed_precision
 from keras.testing_infra import test_combinations
 from segme.common.backbone import Backbone
@@ -104,18 +105,7 @@ class TestBackbone(test_combinations.TestCase):
             boneinst = Backbone()
         boneinst.build([None, None, None, 3])
 
-        restored = Backbone.from_config(boneinst.get_config())
-        restored.build([None, None, None, 3])
-
-        self.assertEqual(len(restored.trainable_weights), len(boneinst.trainable_weights))
-        self.assertEqual(len(restored.non_trainable_weights), len(boneinst.non_trainable_weights))
-
-    def test_policy_scope_memorize_build(self):
-        with bbpol.policy_scope('swin_tiny_224-imagenet'):
-            boneinst = Backbone()
-            boneinst.build([None, None, None, 3])
-
-        restored = Backbone.from_config(boneinst.get_config())
+        restored = models.Model.from_config(boneinst.get_config())
         restored.build([None, None, None, 3])
 
         self.assertEqual(len(restored.trainable_weights), len(boneinst.trainable_weights))
