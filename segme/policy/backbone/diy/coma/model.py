@@ -10,6 +10,7 @@ from segme.common.drop import DropPath
 from segme.common.mbconv import MBConv
 from segme.common.grn import GRN
 from segme.policy.backbone.diy.coma.attn import DHMSA, CHMSA, GGMSA
+from segme.policy.backbone.diy.coma.data import tree_class_map
 
 WEIGHT_URLS = {}
 WEIGHT_HASHES = {}
@@ -304,9 +305,10 @@ def CoMA(
         raise ValueError('The `weights` argument should be either `None` (random initialization), `imagenet` '
                          '(pre-training on ImageNet), or the path to the weights file to be loaded.')
 
-    if weights == 'imagenet' and include_top and classes not in {1000, 14607}:
-        raise ValueError('If using `weights` as `"imagenet"` with `include_top` as true, '
-                         '`classes` should be 1000 or 21841 depending on pretrain dataset.')
+    tree_classes = len(set(tree_class_map().values()))
+    if weights == 'imagenet' and include_top and classes not in {1000, tree_classes}:
+        raise ValueError(f'If using `weights` as `"imagenet"` with `include_top` as true, `classes` should be '
+                         f'1000 or {tree_classes} depending on pretrain dataset.')
 
     if input_tensor is not None:
         try:

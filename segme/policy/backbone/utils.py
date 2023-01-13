@@ -43,7 +43,7 @@ def get_layer(model, name_idx):
     return get_layer(child, tail_name)
 
 
-def wrap_bone(model, prepr, init, channels, end_points):
+def wrap_bone(model, prepr, init, channels, end_points, name):
     input_image = layers.Input(name='image', shape=(None, None, channels))
 
     if prepr is not None:
@@ -54,7 +54,7 @@ def wrap_bone(model, prepr, init, channels, end_points):
     base_model = model(input_tensor=input_prep, include_top=False, weights=init)
     output_feats = [get_layer(base_model, name_idx) for name_idx in end_points]
 
-    down_stack = models.Model(inputs=input_image, outputs=output_feats)
+    down_stack = models.Model(inputs=input_image, outputs=output_feats, name=name)
     down_stack.trainable = init is None
 
     return down_stack

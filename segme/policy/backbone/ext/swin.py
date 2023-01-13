@@ -7,13 +7,13 @@ from segme.policy.backbone.backbone import BACKBONES
 SWIN_ENDPOINTS = [None, None, 'layers.0', 'layers.1', 'layers.2', 'norm']
 
 
-def wrap_bone_norm(model, prepr, init, channels, end_points):
-    base_model = wrap_bone(model, prepr, init, channels, end_points)
+def wrap_bone_norm(model, prepr, init, channels, end_points, name):
+    base_model = wrap_bone(model, prepr, init, channels, end_points, name)
 
     output_feats = [tfswin.norm.LayerNorm(name=f'features_{i}_norm')(out)
                     for i, out in enumerate(base_model.outputs[:-1])]
     output_feats.append(base_model.outputs[-1])
-    down_stack = models.Model(inputs=base_model.inputs, outputs=output_feats)
+    down_stack = models.Model(inputs=base_model.inputs, outputs=output_feats, name=name)
 
     return down_stack
 

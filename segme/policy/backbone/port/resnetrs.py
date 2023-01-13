@@ -300,18 +300,18 @@ def ResNetRS420(include_top=True, weights='imagenet', classes=1000, input_shape=
         include_preprocessing=include_preprocessing)
 
 
-def wrap_bone_policy(model, prepr, init, channels, end_points):
+def wrap_bone_policy(model, prepr, init, channels, end_points, name):
     if 'conv-bn-relu' == cnapol.global_policy().name or init is None:
-        return wrap_bone(model, prepr, init, channels, end_points)
+        return wrap_bone(model, prepr, init, channels, end_points, name)
 
     with cnapol.policy_scope('conv-bn-relu'):
-        base_model = wrap_bone(model, prepr, init, channels, end_points)
+        base_model = wrap_bone(model, prepr, init, channels, end_points, name)
 
     base_weights = {w.name: w for w in base_model.weights}
     if len(base_model.weights) != len(base_weights.keys()):
         raise ValueError('Some weights have equal names')
 
-    ext_model = wrap_bone(model, prepr, None, channels, end_points)
+    ext_model = wrap_bone(model, prepr, None, channels, end_points, name)
 
     ext_weights = []
     for random_weight in ext_model.weights:
@@ -373,8 +373,8 @@ BACKBONES.register('resnet_rs_420')((
         'BlockGroup4__block_86__output_act', 'BlockGroup5__block_3__output_act']))
 
 
-def wrap_bone_stride8(model, prepr, init, channels, end_points):
-    base_model = wrap_bone_policy(model, prepr, init, channels, end_points)
+def wrap_bone_stride8(model, prepr, init, channels, end_points, name):
+    base_model = wrap_bone_policy(model, prepr, init, channels, end_points, name)
     ext_config = base_model.get_config()
 
     stride_patches = []

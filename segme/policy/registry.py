@@ -132,4 +132,4 @@ class BackboneRegistry(Registry):
                 bad_scales = [scales[sc] for sc in bad_idxs]
                 raise ValueError(f'Some scales are unavailable: {bad_scales}')
 
-        return model_fn(init, channels, curr_endpoints)
+        return model_fn(init, channels, curr_endpoints, arch)
