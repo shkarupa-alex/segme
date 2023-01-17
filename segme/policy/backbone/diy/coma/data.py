@@ -67,7 +67,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
             yield key, features
 
-        if training:
+        if training and self.archive21k is not None:
             for key, features in self._generate_examples_21k(skip_files):
                 yield key, features
 
