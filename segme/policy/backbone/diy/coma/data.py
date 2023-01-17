@@ -224,17 +224,17 @@ def _transform_examples(images, labels, augment):
 
 def make_dataset(
         data_dir, split_name, batch_size, remap_classes=False, just_1k=False, shuffle_files=True, drop_remainder=True):
-    apply_aug = tfds.Split.TRAIN == split_name
+    train_split = tfds.Split.TRAIN == split_name
 
     builder = Imagenet21k1k(data_dir=data_dir)
     builder.download_and_prepare()
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
-    if just_1k:
+    if just_1k and train_split:
         dataset = dataset.filter(lambda ex: ex['in1k'])
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
     dataset = dataset.map(
-        lambda ex: _transform_examples(ex['image'], ex['class'], apply_aug),
+        lambda ex: _transform_examples(ex['image'], ex['class'], train_split),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if remap_classes:
         map_keys, map_values = zip(*tree_class_map().items())
