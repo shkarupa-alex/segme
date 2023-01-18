@@ -330,7 +330,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
         self.empty_samples = 0
         self.full_samples = 0
 
-    def _info(self) -> tfds.core.DatasetInfo:
+    def _info(self):
         return tfds.core.DatasetInfo(
             builder=self,
             description='Refine dataset',
@@ -510,7 +510,7 @@ def make_dataset(data_dir, split_name, batch_size, with_coord=False):
     dataset = dataset.batch(batch_size, drop_remainder=True)
 
     dataset = dataset.map(
-        lambda ex: _transform_examples(ex, 'train' == split_name, batch_size, with_coord),
+        lambda ex: _transform_examples(ex, tfds.Split.TRAIN == split_name, batch_size, with_coord),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
