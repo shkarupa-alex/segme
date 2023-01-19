@@ -3,7 +3,7 @@ from keras import layers
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
-from segme.common.interrough import NearestInterpolation
+from segme.common.gavg import GlobalAverage
 from segme.common.sequent import Sequential
 
 
@@ -47,7 +47,7 @@ class AtrousSpatialPyramidPooling(layers.Layer):
             # Or use fused=False with BatchNormalization or set drop_remainder=True in Dataset batching
             ConvNormAct(self.filters, 1, name='pool_cna')
         ], name='pool')
-        self.intnear = NearestInterpolation()
+        self.gavg = GlobalAverage()
 
         self.proj = Sequential([
             ConvNormAct(self.filters, 1, name='proj_cna'),
@@ -61,7 +61,7 @@ class AtrousSpatialPyramidPooling(layers.Layer):
             self.conv3r0(inputs),
             self.conv3r1(inputs),
             self.conv3r2(inputs),
-            self.intnear([self.pool(inputs), inputs])
+            self.gavg(inputs)
         ], axis=-1)
         outputs = self.proj(outputs)
 
