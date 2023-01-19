@@ -1,6 +1,6 @@
 import tensorflow as tf
 from functools import partial
-from keras import backend, layers, models
+from keras import backend, initializers, layers, models
 from keras.applications import imagenet_utils
 from keras.applications.resnet_rs import BASE_WEIGHTS_URL, WEIGHT_HASHES, DEPTH_TO_WEIGHT_VARIANTS, BLOCK_ARGS, \
     CONV_KERNEL_INITIALIZER, get_survival_probability, allow_bigger_recursion
@@ -17,11 +17,15 @@ CONV_KWARGS = {
 }
 
 
-def norm_kwargs():
+def norm_kwargs(zero_gamma=False):
+    kwargs = {}
     if 'bn' == cnapol.global_policy().norm_type:
-        return {'epsilon': 1e-5}
+        kwargs['epsilon'] = 1e-5
 
-    return {}
+    if zero_gamma:
+        kwargs['gamma_initializer'] = initializers.Constant(1e-5)
+
+    return kwargs
 
 
 def STEM(name=None):
@@ -98,7 +102,7 @@ def BottleneckBlock(filters, strides, use_projection, survival_probability=0.8, 
         x = Act(name=name + '_act_2')(x)
 
         x = Conv(filters * 4, 1, **CONV_KWARGS, name=name + '_conv_3')(x)
-        x = Norm(**norm_kwargs(), name=name + '_batch_norm_3')(x)
+        x = Norm(**norm_kwargs(zero_gamma=True), name=name + '_batch_norm_3')(x)
 
         x = SE(filters, name=name + '_se')(x)
 
