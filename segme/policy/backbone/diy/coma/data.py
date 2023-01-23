@@ -7,6 +7,8 @@ import os
 import resource
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from keras.applications import imagenet_utils
+from keras.mixed_precision import global_policy
 from segme.policy.backbone.diy.coma.prep import preprocess_input
 from segme.policy.backbone.diy.coma.tree import synsets_1k_21k, tree_class_map
 from segme.utils.common import augment_onthefly
@@ -211,30 +213,32 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
 
 @tf.function(jit_compile=True)
-def _transform_examples(images, labels, augment):
+def _transform_examples(images, labels, augment, preprocess):
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
         images, _ = augment_onthefly(images, [])
         # TODO: https://github.com/tensorflow/tensorflow/pull/54484
         images = tf.cast(tf.round(tf.clip_by_value(images, 0., 1.) * 255.), 'uint8')
-    images = preprocess_input(images)
+
+    images = tf.cast(images, global_policy().compute_dtype)
+    if preprocess is not None:
+        images = imagenet_utils.preprocess_input(images, preprocess)
 
     return images, labels
 
 
 def make_dataset(
-        data_dir, split_name, batch_size, remap_classes=False, just_1k=False, shuffle_files=True, drop_remainder=True):
+        data_dir, split_name, batch_size, preprocess_mode='torch', remap_classes=False, shuffle_files=True,
+        drop_remainder=True):
     train_split = tfds.Split.TRAIN == split_name
 
     builder = Imagenet21k1k(data_dir=data_dir)
     builder.download_and_prepare()
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
-    if just_1k and train_split:
-        dataset = dataset.filter(lambda ex: ex['in1k'])
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
     dataset = dataset.map(
-        lambda ex: _transform_examples(ex['image'], ex['class'], train_split),
+        lambda ex: _transform_examples(ex['image'], ex['class'], train_split, preprocess_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if remap_classes:
         map_keys, map_values = zip(*tree_class_map().items())
