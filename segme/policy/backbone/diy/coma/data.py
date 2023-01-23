@@ -222,7 +222,7 @@ def _transform_examples(images, labels, augment, preprocess):
 
     images = tf.cast(images, global_policy().compute_dtype)
     if preprocess is not None:
-        images = imagenet_utils.preprocess_input(images, preprocess)
+        images = imagenet_utils.preprocess_input(images, mode=preprocess)
 
     return images, labels
 
