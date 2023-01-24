@@ -17,15 +17,11 @@ CONV_KWARGS = {
 }
 
 
-def norm_kwargs(zero_gamma=False):
-    kwargs = {}
+def norm_kwargs():
     if 'bn' == cnapol.global_policy().norm_type:
-        kwargs['epsilon'] = 1e-5
+        return {'epsilon': 1e-5}
 
-    if zero_gamma:
-        kwargs['gamma_initializer'] = initializers.Constant(1e-5)
-
-    return kwargs
+    return {}
 
 
 def STEM(name=None):
@@ -102,7 +98,7 @@ def BottleneckBlock(filters, strides, use_projection, survival_probability=0.8, 
         x = Act(name=name + '_act_2')(x)
 
         x = Conv(filters * 4, 1, **CONV_KWARGS, name=name + '_conv_3')(x)
-        x = Norm(**norm_kwargs(zero_gamma=True), name=name + '_batch_norm_3')(x)
+        x = Norm(**norm_kwargs(), name=name + '_batch_norm_3')(x)
 
         x = SE(filters, name=name + '_se')(x)
 
