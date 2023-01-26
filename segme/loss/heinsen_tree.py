@@ -3,7 +3,6 @@ import tensorflow as tf
 from keras import losses
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
-from tensorflow.python.ops import data_flow_ops
 from segme.loss.common_loss import validate_input, to_logits, weighted_loss
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
@@ -53,8 +52,6 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, crossentropy, l
     y_pred_tree = tf.where(valid_mask, y_pred_tree, -100.)
 
     y_valid_tree = y_true_tree != -1
-    y_indices_tree = tf.range(tf.size(y_true_tree))
-
     y_true_tree = y_true_tree[y_valid_tree]
     y_pred_tree = y_pred_tree[y_valid_tree]
 
@@ -71,20 +68,13 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, crossentropy, l
     else:
         raise ValueError(f'Unsupported cross entropy type: {crossentropy}')
 
-    y_valid_flat = tf.reshape(y_valid_tree, [-1])
-    y_valid_indices = y_indices_tree[y_valid_flat]
-    y_invalid_flat = ~y_valid_flat
-    y_invalid_indices = y_indices_tree[y_invalid_flat]
-    loss = data_flow_ops.parallel_dynamic_stitch(
-        [y_valid_indices, y_invalid_indices],
-        [loss, tf.zeros_like(y_invalid_indices, dtype=loss.dtype)]
-    )
+    sample_segment = tf.cast(y_valid_tree, 'int32') * tf.range(0, tf.size(y_true))[:, None]
+    sample_segment = tf.reshape(sample_segment[y_valid_tree], [-1])
 
-    loss = tf.reshape(loss, [-1, num_levels])
-    loss = tf.reduce_sum(loss, axis=-1)
+    loss = tf.math.unsorted_segment_sum(loss, sample_segment, num_segments=tf.size(y_true))
     loss /= tf.reduce_sum(tf.cast(y_valid_tree, loss.dtype), axis=-1)
-
     loss = tf.reshape(loss, tf.shape(y_true))
+
     loss = weighted_loss(loss, sample_weight)
 
     return loss
