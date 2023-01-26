@@ -139,10 +139,11 @@ class DHMSA(layers.Layer):
 
     def pad_mask(self, attn, pad_size, pad_val):
         batch_size, pad_height, pad_width = pad_size
-        src_height, src_width = pad_height - pad_val[0], pad_width - pad_val[1]
+        src_height = pad_height - sum(pad_val[:2])
+        src_width = pad_width - sum(pad_val[2:])
 
-        mask = tf.ones((1, src_height, src_width, 1), dtype='float32')
-        mask = tf.pad(mask, [(0, 0), (0, pad_val[0]), (0, pad_val[1]), (0, 0)])
+        mask = tf.ones((1, src_height, src_width, 1), dtype=self.compute_dtype)
+        mask = tf.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)])
         mask = halo_partition(
             mask, pad_height, pad_width, self.current_window, self.current_window * 2, self.dilation_rate)
         mask = tf.squeeze(mask == 0., axis=-1)[None, :, None, None]
@@ -359,14 +360,11 @@ class GGMSA(layers.Layer):
 
     def pad_mask(self, attn, pad_size, pad_val):
         batch_size, pad_height, pad_width = pad_size
-        src_height, src_width = pad_height - pad_val[0], pad_width - pad_val[1]
-
-        hb_pad, wb_pad = pad_val[0] // 2, pad_val[1] // 2
-        ha_pad, wa_pad = pad_val[0] - hb_pad, pad_val[1] - wb_pad
-        paddings = [[0, 0], [hb_pad, ha_pad], [wb_pad, wa_pad], [0, 0]]
+        src_height = pad_height - sum(pad_val[:2])
+        src_width = pad_width - sum(pad_val[2:])
 
         mask = tf.ones((1, src_height, src_width, 1), dtype='int64')
-        mask = tf.pad(mask, paddings)
+        mask = tf.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)])
         mask = partition_apply(mask, pad_height, pad_width, 'grid_size', self.current_window, 1)
         mask = tf.squeeze(mask == 0, axis=-1)[None, :, None, None]
         mask = -100. * tf.cast(mask, self.compute_dtype)

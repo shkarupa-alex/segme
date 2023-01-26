@@ -44,7 +44,9 @@ class TestSymmetricPadding(test_combinations.TestCase):
 
 
 class OddConstrainedLayer(layers.Layer):
-    def constraned_op(self, inputs, **kwargs):
+    def constraned_op(self, inputs, pad_size, pad_val):
+        assert 3 == len(pad_size)
+        assert 4 == len(pad_val)
         outputs = tf.nn.space_to_depth(inputs, 2)
         outputs -= 1.
         outputs = tf.nn.depth_to_space(outputs, 2)

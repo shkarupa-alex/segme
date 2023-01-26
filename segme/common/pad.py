@@ -59,7 +59,7 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
         outputs.set_shape(padded_shape_)
 
         pad_size = (inputs_batch, inputs_height + h_pad, inputs_width + w_pad)
-        outputs = op(outputs, pad_size=pad_size, pad_val=(h_pad, w_pad))
+        outputs = op(outputs, pad_size=pad_size, pad_val=(hb_pad, ha_pad, wb_pad, wa_pad))
 
         outputs_shape = tf.unstack(tf.shape(outputs))
         outputs_batch, outputs_height, outputs_width, _ = outputs_shape
