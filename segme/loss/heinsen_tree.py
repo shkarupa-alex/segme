@@ -16,7 +16,7 @@ class HeinsenTreeLoss(WeightedLossFunctionWrapper):
     """
 
     def __init__(self, tree_paths, crossentropy='categorical', label_smoothing=0., from_logits=False,
-                 reduction=Reduction.AUTO, name='region_mutual_information_loss'):
+                 reduction=Reduction.AUTO, name='heinsen_tree_loss'):
         super().__init__(heinsen_tree_loss, reduction=reduction, name=name, tree_paths=tree_paths,
                          crossentropy=crossentropy, label_smoothing=label_smoothing, from_logits=from_logits)
 

@@ -17,9 +17,6 @@ WEIGHT_URLS = {}
 WEIGHT_HASHES = {}
 
 
-# TODO: use_attn_dw, use_mlp_dw
-
-
 def Stem(filters, depth, path_gamma=1., path_drop=0., name=None):
     if name is None:
         counter = backend.get_uid('stem')
