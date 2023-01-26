@@ -103,6 +103,22 @@ class TestHeinsenTreeLoss(test_combinations.TestCase):
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS, weights * 2.))
         self.assertAlmostEqual(result, 0.1588687 * 2., places=6)
 
+    def test_weight_2d(self):
+        targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
+        logits = tf.reshape(TREE_LOGITS, [2, 2, 6])
+        weights = tf.concat([tf.ones((1, 2)), tf.zeros((1, 2))], axis=0)
+
+        loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
+
+        result = self.evaluate(loss(targets[:1], logits[:1]))
+        self.assertAlmostEqual(result, 0.3177374)
+
+        result = self.evaluate(loss(targets, logits, weights))
+        self.assertAlmostEqual(result, 0.1588687)
+
+        result = self.evaluate(loss(targets, logits, weights * 2.))
+        self.assertAlmostEqual(result, 0.1588687 * 2., places=6)
+
     def test_multi_probs(self):
         probs = 1 / (1 + np.exp(-TREE_LOGITS))
         probs = tf.constant(probs)
