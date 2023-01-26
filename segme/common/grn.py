@@ -6,7 +6,7 @@ from keras.utils.tf_utils import shape_type_conversion
 
 @register_keras_serializable(package='SegMe>Common')
 class GRN(layers.Layer):
-    """ Proposed in: https://arxiv.org/pdf/2301.00808.pdf """
+    """ Inspired with : https://arxiv.org/pdf/2301.00808.pdf """
 
     def __init__(self, epsilon=1e-3, center=True, scale=True, beta_initializer='zeros', gamma_initializer='ones',
                  beta_regularizer=None,
@@ -57,13 +57,16 @@ class GRN(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
-        gx = tf.norm(inputs, axis=[1, 2], keepdims=True)
+        # Accumulating sum(x^2) in spatially large feature maps leads to Inf values
+        # gx = tf.norm(inputs, axis=[1, 2], keepdims=True)
 
-        # Simple divisive normalization works best,
+        # Here we will use response normalization method from https://arxiv.org/pdf/1911.09737.pdf
+        gx = tf.reduce_mean(tf.square(inputs), axis=[1, 2], keepdims=True)
+
+        # Simple divisive normalization works best, though standardization (||Xi|| − µ)/σ yields similar results.
         # nx = gx / (tf.reduce_mean(gx, axis=-1, keepdims=True) + self.epsilon)
-        # though standardization (||Xi|| − µ)/σ yields similar results.
 
-        # Here we will use standardization due to faster/stabler fused implementation.
+        # Here we will use standardization for better speed and fp16 stability
         batch = tf.shape(inputs)[0]
         scale = tf.ones([batch], dtype=self.dtype)
         offset = tf.zeros([batch], dtype=self.dtype)
