@@ -659,7 +659,8 @@ class TestRmiLowerBound(test_combinations.TestCase):
         result = self.evaluate(result)
 
         # self.assertAlmostEqual(np.mean(result).item(), -10.84033489227295, places=3)  # sum by channels
-        self.assertAlmostEqual(np.mean(result).item(), -3.6134753227233887, places=6)
+        # self.assertAlmostEqual(np.mean(result).item(), -3.6134753227233887, places=6) # nn resize for y_true
+        self.assertAlmostEqual(np.mean(result).item(), -3.6334142684936523, places=6)
 
 
 @test_combinations.run_all_keras_modes

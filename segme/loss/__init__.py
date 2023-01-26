@@ -6,6 +6,7 @@ from segme.loss.cross_entropy import CrossEntropyLoss
 from segme.loss.general_dice import GeneralizedDiceLoss
 from segme.loss.grad_mse import GradientMeanSquaredError
 from segme.loss.hard_grad import HardGradientMeanAbsoluteError
+from segme.loss.heinsen_tree import HeinsenTreeLoss
 from segme.loss.laplace_edge import LaplaceEdgeCrossEntropy
 from segme.loss.laplacian_pyramid import LaplacianPyramidLoss
 from segme.loss.mean_absolute import MeanAbsoluteClassificationError, MeanAbsoluteRegressionError

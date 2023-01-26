@@ -83,8 +83,8 @@ class SemiShift(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.coarse = layers.Conv2D(self.embedding_size, 1)
-        self.fine = layers.Conv2D(self.embedding_size, 1, use_bias=False)
+        self.fine = layers.Conv2D(self.embedding_size, 1)
+        self.coarse = layers.Conv2D(self.embedding_size, 1, use_bias=False)
         self.content = layers.Conv2D(self.filters, self.kernel_size, padding='same')
 
         self.internear = NearestInterpolation()
@@ -157,8 +157,7 @@ class CarafeConvolution(layers.Layer):
         batch, height, width, _ = tf.unstack(tf.shape(masks))
         output_shape = self.compute_output_shape([features.shape, masks.shape])
 
-        features = extract_patches_xla(
-            features, [1, self.kernel_size, self.kernel_size, 1], [1, 1, 1, 1], [1, 1, 1, 1], 'SAME')
+        features = extract_patches_xla(features, [1, self.kernel_size, self.kernel_size, 1], [1] * 4, [1] * 4, 'SAME')
         features = self.internear([features, masks])
 
         features = tf.reshape(
