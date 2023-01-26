@@ -215,12 +215,15 @@ class CHMSA(layers.Layer):
             use_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, use_bias)
 
-        qkv = tf.reshape(qkv, [batch, height * width, self.num_heads, 3, self.channels // self.num_heads])
-        qkv = tf.transpose(qkv, [0, 2, 1, 3, 4])
+        if 1 == self.num_heads:
+            qkv = tf.reshape(qkv, [batch, 1, height * width, 3, self.channels])
+        else:
+            qkv = tf.reshape(qkv, [batch, height * width, self.num_heads, 3, self.channels // self.num_heads])
+            qkv = tf.transpose(qkv, [0, 2, 1, 3, 4])
         q, k, v = tf.unstack(qkv, 3, axis=-2)
 
-        q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
-        k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
+        q = tf.math.l2_normalize(q, axis=-2, epsilon=1.55e-5)
+        k = tf.math.l2_normalize(k, axis=-2, epsilon=1.55e-5)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_a=True)
         attn = tf.nn.softmax(attn)

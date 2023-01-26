@@ -11,6 +11,7 @@ from segme.common.mbconv import MBConv
 from segme.common.grn import GRN
 from segme.policy.backbone.diy.coma.attn import DHMSA, CHMSA, GGMSA
 from segme.policy.backbone.diy.coma.data import tree_class_map
+from segme.policy import cnapol
 
 WEIGHT_URLS = {}
 WEIGHT_HASHES = {}
@@ -66,8 +67,7 @@ def Reduce(fused, kernel_size=3, expand_ratio=3., name=None):
 
         expand_filters = int(channels * expand_ratio)
 
-        # From EfficientNet2
-        if fused:
+        if fused:  # From EfficientNet2
             x = Conv(
                 expand_filters, kernel_size, strides=2, kernel_initializer=CONV_KERNEL_INITIALIZER,
                 name=f'{name}_expand')(inputs)
@@ -97,8 +97,7 @@ def MLPConv(fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initializ
 
         expand_filters = int(channels * expand_ratio)
 
-        # From EfficientNet2
-        if fused:
+        if fused:  # From EfficientNet2
             x = Conv(
                 expand_filters, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand')(inputs)
         else:
@@ -356,7 +355,8 @@ def CoMA(
     x = layers.Activation('linear', name='stem_out')(x)
 
     for i, stage_depth in enumerate(stage_depths):
-        fused = 0 == i
+        # fused = 0 == i  # From EfficientNet2
+        fused = False  # From MetaFormer
         num_heads = embed_dim // 2 ** (5 - i)
 
         stage_gammas, path_gammas = path_gammas[:stage_depth + 1], path_gammas[stage_depth + 1:]
@@ -366,8 +366,8 @@ def CoMA(
         x = Reduce(fused, expand_ratio=expand_ratio, name=f'stage_{i}_reduce')(x)
 
         for j in range(stage_depth):
-            if i < 2:  # From CoAtNet
-                kernel_size = 3 if fused else 5
+            if i < 2:  # From CoAtNet, MetaFormer
+                kernel_size = 3 if fused else 7  # From MetaFormer
                 x = ConvBlock(
                     fused, kernel_size=kernel_size, expand_ratio=expand_ratio, path_gamma=stage_gammas[j],
                     path_drop=stage_drops[j], name=f'stage_{i}_conv_{j}')(x)
@@ -385,7 +385,7 @@ def CoMA(
 
         # From DaViT, HAT
         x = ChanBlock(
-            num_heads, path_gamma=stage_gammas[stage_depth], expand_ratio=expand_ratio,
+            1, path_gamma=stage_gammas[stage_depth], expand_ratio=expand_ratio,
             path_drop=stage_drops[stage_depth], name=f'stage_{i}_attn_{stage_depth}')(x)
         x = layers.Activation('linear', name=f'stage_{i}_out')(x)
 
@@ -409,9 +409,10 @@ def CoMA(
 
     model = models.Model(inputs, x, name=model_name)
 
-    if 'imagenet' == weights and model_name in WEIGHT_URLS:
-        weights_url = WEIGHT_URLS[model_name]
-        weights_hash = WEIGHT_HASHES[model_name]
+    weights_key = f'{model_name}_{cnapol.global_policy()}'
+    if 'imagenet' == weights and weights_key in WEIGHT_URLS:
+        weights_url = WEIGHT_URLS[weights_key]
+        weights_hash = WEIGHT_HASHES[weights_key]
         weights_path = data_utils.get_file(origin=weights_url, file_hash=weights_hash, cache_subdir='coma')
         model.load_weights(weights_path)
     elif weights is not None:
@@ -426,26 +427,26 @@ def CoMA(
     return model
 
 
-def CoMATiny(embed_dim=64, stem_depth=2, stage_depths=(3, 4, 19, 3), path_drop=0.1, **kwargs):
-    # 26.6 M, 18.5 G
+def CoMATiny(embed_dim=64, stem_depth=2, stage_depths=(4, 6, 19, 3), path_drop=0.1, **kwargs):
+    # 26.6 M, 17.1 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
         model_name='coma-tiny', **kwargs)
 
 
-def CoMASmall(embed_dim=96, stem_depth=2, stage_depths=(3, 4, 19, 3), **kwargs):
-    # 58.9 M, 39.4 G
+def CoMASmall(embed_dim=96, stem_depth=3, stage_depths=(5, 7, 19, 3), **kwargs):
+    # 59.2 M, 38.1 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-small', **kwargs)
 
 
-def CoMABase(embed_dim=128, stem_depth=3, stage_depths=(4, 5, 21, 3), **kwargs):
-    # 110.2 M, 78.6 G
+def CoMABase(embed_dim=128, stem_depth=4, stage_depths=(6, 8, 23, 3), **kwargs):
+    # 115.6 M, 76.2 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-base', **kwargs)
 
 
-def CoMALarge(embed_dim=160, stem_depth=4, stage_depths=(5, 6, 21, 5), **kwargs):
-    # 205.9 M, 136.3 G
+def CoMALarge(embed_dim=160, stem_depth=5, stage_depths=(7, 9, 27, 3), **kwargs):
+    # 197.3 M, 133.0 G
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-large', **kwargs)
