@@ -283,7 +283,7 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
 
                 example = {
                     'image': image,
-                    'mask': (mask >= 128).astype('uint8')[..., None],
+                    'mask': mask[..., None],
                     'weight': weight[..., None]
                 }
                 if isinstance(self.fix_size, int):
@@ -338,12 +338,13 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
 
     def _transform_example(self, image_file, mask_file, alpha_file, depth_file, training):
         image = cv2.cvtColor(cv2.imread(image_file), cv2.COLOR_BGR2RGB)
-        image_ = None
-        if self.train_aug > 1 and '-image_super.' in image_file:
-            image_ = cv2.cvtColor(cv2.imread(image_file.replace('-image_super.', '-image.')), cv2.COLOR_BGR2RGB)
+
+        small = None
+        if '-image_super.' in image_file:
+            small = cv2.cvtColor(cv2.imread(image_file.replace('-image_super.', '-image.')), cv2.COLOR_BGR2RGB)
+            small = cv2.resize(small, image.shape[1::-1], interpolation=cv2.INTER_CUBIC)
 
         mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
-        alpha = None if alpha_file is None else cv2.imread(alpha_file, cv2.IMREAD_GRAYSCALE)
 
         depth = np.zeros_like(mask, dtype='uint8')
         if self.with_depth:
@@ -355,11 +356,11 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
         if self.with_trimap:
             size = trimap_size(mask, 384, 5)
             trimap = mask_trimap(mask, size)
-            assert 0 == len(set(trimap.ravel()) - {0, 128, 255})  # TODO
-            if alpha is not None:
+            if alpha_file is not None:
+                alpha = cv2.imread(alpha_file, cv2.IMREAD_GRAYSCALE)
+                alpha = cv2.resize(alpha, mask.shape[1::-1], interpolation=cv2.INTER_CUBIC)
                 atrimap = alpha_trimap_np(alpha, size)
                 trimap = np.where(128 == atrimap, 128, trimap)
-            assert 0 == len(set(trimap.ravel()) - {0, 128, 255})  # TODO
 
         if len(set(mask.reshape(-1)) - {0, 255}):
             raise ValueError(f'Wrong mask values: {mask_file}')
@@ -367,12 +368,21 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
         if training:
             train_aug = self.train_aug
 
-            if image_ is not None and train_aug > 1:
+            if small is not None and train_aug > 1:
                 train_aug -= 1
-                image0, mask0, depth0, trimap0 = apply_scale(image_, mask, depth, trimap, self.fix_size)
+                image0, mask0, depth0, trimap0 = apply_scale(small, mask, depth, trimap, self.fix_size)
                 image1, mask1, depth1, trimap1, weight1 = train_augment(image0, mask0, depth0, trimap0)
 
                 yield f'{mask_file}_source', image1, mask1, depth1, trimap1, weight1
+
+            if small is not None and train_aug > 1:
+                train_aug -= 1
+                half = image.astype('float32') + small.astype('float32')
+                half = np.round(half / 2).clip(0., 255.).astype('uint8')
+                image0, mask0, depth0, trimap0 = apply_scale(half, mask, depth, trimap, self.fix_size)
+                image1, mask1, depth1, trimap1, weight1 = train_augment(image0, mask0, depth0, trimap0)
+
+                yield f'{mask_file}_half', image1, mask1, depth1, trimap1, weight1
 
             image0, mask0, depth0, trimap0 = apply_scale(image, mask, depth, trimap, self.fix_size)
             for i in range(train_aug):
