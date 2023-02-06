@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import layers
+from keras import layers, models
 from keras.mixed_precision import policy as mixed_precision
 from keras.utils import custom_object_scope
 from keras.testing_infra import test_combinations, test_utils
@@ -44,10 +44,23 @@ class TestSymmetricPadding(test_combinations.TestCase):
 
 
 class OddConstrainedLayer(layers.Layer):
+    def __init__(self, use_proj=True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.use_proj = use_proj
+
+    def build(self, input_shape):
+        if self.use_proj:
+            self.proj = layers.Conv2D(input_shape[-1] * 4, 3, padding='same')
+
+        super().build(input_shape)
+
     def constraned_op(self, inputs, pad_size, pad_val):
         assert 3 == len(pad_size)
         assert 4 == len(pad_val)
         outputs = tf.nn.space_to_depth(inputs, 2)
+        if self.use_proj:
+            outputs = self.proj(outputs)
         outputs -= 1.
         outputs = tf.nn.depth_to_space(outputs, 2)
 
@@ -57,6 +70,12 @@ class OddConstrainedLayer(layers.Layer):
         outputs = with_divisible_pad(self.constraned_op, inputs, 2)
 
         return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({'use_proj': self.use_proj})
+
+        return config
 
 
 @test_combinations.run_all_keras_modes
@@ -73,19 +92,26 @@ class TestWithDivisiblePad(test_combinations.TestCase):
         with custom_object_scope({'OddConstrainedLayer': OddConstrainedLayer}):
             test_utils.layer_test(
                 OddConstrainedLayer,
-                kwargs={},
-                input_shape=[2, 4, 5, 3],
+                kwargs={'use_proj': True},
+                input_shape=[2, 8, 10, 3],
                 input_dtype='float32',
-                expected_output_shape=[None, 4, 5, 3],
+                expected_output_shape=[None, 8, 10, 3],
                 expected_output_dtype='float32'
             )
 
     def test_value(self):
         inputs = np.arange(2 * 3 * 5 * 4).astype('float32').reshape([2, 3, 5, 4])
 
-        result = OddConstrainedLayer()(inputs)
+        result = OddConstrainedLayer(use_proj=False)(inputs)
         result = self.evaluate(result)
         self.assertAllClose(result, inputs - 1.)
+
+    def test_grad(self):
+        inputs = layers.Input(shape=(None, None, 3))
+        outputs = OddConstrainedLayer(use_proj=True)(inputs)
+        model = models.Model(inputs=inputs, outputs=outputs)
+        model.compile('adam', 'mse', jit_compile=True)
+        model.fit(np.random.uniform(size=(16, 8, 10, 3)), np.random.uniform(size=(16, 8, 10, 3)))
 
 
 if __name__ == '__main__':

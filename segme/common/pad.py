@@ -1,5 +1,6 @@
 import tensorflow as tf
 from keras import backend, layers
+from keras.utils.control_flow_util import smart_cond
 from keras.utils.conv_utils import normalize_tuple
 from keras.saving.object_registration import register_keras_serializable
 
@@ -35,9 +36,8 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
         if 1 == max(dividers):
             raise ValueError('Nothing to pad: both multipliers equals to 1.')
 
-        inputs_shape = tf.unstack(tf.shape(inputs))
-        inputs_batch, inputs_height, inputs_width, _ = inputs_shape
-        inputs_height_, inputs_width_ = inputs.shape[1:3]
+        inputs_batch, inputs_height, inputs_width, _ = tf.unstack(tf.shape(inputs))
+        inputs_height_, inputs_width_, inputs_channel_ = inputs.shape[1:]
 
         h_pad = (dividers[0] - inputs_height % dividers[0]) % dividers[0]
         w_pad = (dividers[1] - inputs_width % dividers[1]) % dividers[1]
@@ -53,16 +53,21 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
             inputs.shape[0],
             None if inputs_height_ is None else inputs_height_ + h_pad_,
             None if inputs_width_ is None else inputs_width_ + w_pad_,
-            inputs.shape[3])
+            inputs_channel_)
 
-        outputs = tf.pad(inputs, paddings, mode=mode, constant_values=constant_values)
+        with_pad = h_pad + w_pad > 0
+        outputs = smart_cond(
+            with_pad,
+            lambda: tf.pad(inputs, paddings, mode=mode, constant_values=constant_values),
+            lambda: tf.identity(inputs))
+        # outputs = tf.pad(inputs, paddings, mode=mode, constant_values=constant_values)
         outputs.set_shape(padded_shape_)
 
         pad_size = (inputs_batch, inputs_height + h_pad, inputs_width + w_pad)
         outputs = op(outputs, pad_size=pad_size, pad_val=(hb_pad, ha_pad, wb_pad, wa_pad))
 
-        outputs_shape = tf.unstack(tf.shape(outputs))
-        outputs_batch, outputs_height, outputs_width, _ = outputs_shape
+        outputs_batch, outputs_height, outputs_width, _ = tf.unstack(tf.shape(outputs))
+        outputs_channel_ = outputs.shape[-1]
 
         assert_batch = tf.debugging.assert_equal(outputs_batch, inputs_batch)
         assert_height = tf.debugging.assert_equal(outputs_height, inputs_height + h_pad)
@@ -70,7 +75,13 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
         with tf.control_dependencies([assert_batch, assert_height, assert_width]):
             outputs = tf.identity(outputs)
 
-        outputs = outputs[:, hb_pad:inputs_height + hb_pad, wb_pad: inputs_width + wb_pad]
-        outputs.set_shape(inputs.shape[:-1] + outputs.shape[-1:])
+        # outputs = smart_cond(
+        #     with_pad,
+        #     # lambda: outputs[:, hb_pad:inputs_height + hb_pad, wb_pad: inputs_width + wb_pad],
+        #     lambda: tf.slice(outputs, [0, hb_pad, wb_pad, 0], [-1, inputs_height, inputs_width, -1]),
+        #     lambda: tf.identity(outputs))
+        # outputs = outputs[:, hb_pad:inputs_height + hb_pad, wb_pad: inputs_width + wb_pad]
+        outputs = tf.slice(outputs, [0, hb_pad, wb_pad, 0], [-1, inputs_height, inputs_width, -1])
+        outputs.set_shape(inputs.shape[:-1] + (outputs_channel_,))
 
         return outputs
