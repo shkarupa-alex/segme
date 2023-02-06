@@ -78,7 +78,7 @@ class DropBlock(layers.Layer):
         return outputs
 
     def drop(self, inputs):
-        gamma = (self.rate / self.size ** 2)
+        gamma = self.rate / self.size ** 2
 
         mask = tf.random.uniform(tf.shape(inputs), dtype=self.compute_dtype)
         mask = tf.cast(mask < gamma, self.compute_dtype)
