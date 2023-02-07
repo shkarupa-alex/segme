@@ -363,7 +363,7 @@ def CoMA(
 
         for j in range(stage_depth):
             if i < 2:  # From CoAtNet, MetaFormer
-                kernel_size = 3 if fused else 7  # From MetaFormer
+                kernel_size = 3 if fused else [5, 7][i]  # From MetaFormer
                 x = ConvBlock(
                     fused, kernel_size=kernel_size, expand_ratio=expand_ratio, path_gamma=stage_gammas[j],
                     path_drop=stage_drops[j], name=f'stage_{i}_conv_{j}')(x)
@@ -439,6 +439,6 @@ def CoMABase(embed_dim=128, stem_depth=4, stage_depths=(6, 8, 25, 3), **kwargs):
 
 
 def CoMALarge(embed_dim=160, stem_depth=5, stage_depths=(7, 9, 31, 3), **kwargs):
-    # 174.1 117.2
+    # 190.6 127.8
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-large', **kwargs)

@@ -213,7 +213,10 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
 
 @tf.function(jit_compile=True)
-def _transform_examples(images, labels, augment, preprocess):
+def _transform_examples(images, labels, augment, size, preprocess):
+    if 384 != size:
+        images = tf.image.resize(images, [size, size], method=tf.image.ResizeMethod.BICUBIC, antialias=True)
+
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
         images, _ = augment_onthefly(images, [])
@@ -228,8 +231,8 @@ def _transform_examples(images, labels, augment, preprocess):
 
 
 def make_dataset(
-        data_dir, split_name, batch_size, preprocess_mode='torch', remap_classes=False, shuffle_files=True,
-        drop_remainder=True):
+        data_dir, split_name, batch_size, image_size=384, preprocess_mode='torch', remap_classes=False,
+        shuffle_files=True, drop_remainder=True):
     train_split = tfds.Split.TRAIN == split_name
 
     builder = Imagenet21k1k(data_dir=data_dir)
@@ -238,7 +241,7 @@ def make_dataset(
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
     dataset = dataset.map(
-        lambda ex: _transform_examples(ex['image'], ex['class'], train_split, preprocess_mode),
+        lambda ex: _transform_examples(ex['image'], ex['class'], train_split, image_size, preprocess_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if remap_classes:
         map_keys, map_values = zip(*tree_class_map().items())
