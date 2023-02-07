@@ -5,9 +5,8 @@ from keras.applications import imagenet_utils
 from keras.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.mixed_precision import global_policy
 from keras.utils import data_utils, layer_utils
-from segme.common.convnormact import Norm, ConvNormAct, ConvNorm, Conv, Act
+from segme.common.convnormact import Norm, Conv, Act
 from segme.common.drop import DropPath
-from segme.common.mbconv import MBConv
 from segme.common.grn import GRN
 from segme.policy.backbone.diy.coma.attn import DHMSA, CHMSA, GGMSA
 from segme.policy.backbone.diy.coma.data import tree_class_map
@@ -100,7 +99,7 @@ def MLPConv(fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initializ
         else:
             x = Conv(
                 expand_filters, 1, use_bias=False, name=f'{name}_expand_pw')(inputs)
-            x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
+            # x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
         x = Act(name=f'{name}_act')(x)
         x = GRN(center=False, name=f'{name}_grn')(x)  # From ConvNeXt2
         x = Conv(channels, 1, use_bias=False, name=f'{name}_squeeze')(x)
@@ -251,14 +250,14 @@ def CoMA(
         - grid self-attention
     16.05.2022 Activating More Pixels in Image Super-Resolution Transformer
         + overlapping window cross-attention
-        ~ channel attention
+        - channel attention
         ! enlarging window size of self-attention
     11.04.2022 Swin Transformer V2: Scaling Up Capacity and Resolution
         + log-spaced continuous position bias
         + residual post normalization
         + scaled cosine attention
     07.04.2022 DaViT: Dual Attention Vision Transformers
-        + channel group self-attention
+        - channel group self-attention
     02.03.2022 A ConvNet for the 2020s
         + adding normalization layers wherever spatial resolution is changed
         ~ stage ratio 1:1:9:1
@@ -380,10 +379,6 @@ def CoMA(
                 current_window, pretrain_window, num_heads, dilation_rate=dilation_rate, expand_ratio=expand_ratio,
                 path_gamma=stage_gammas[j], path_drop=stage_drops[j], name=f'stage_{i}_attn_{j}')(x)
 
-        # From DaViT, HAT
-        x = ChanBlock(
-            1, path_gamma=stage_gammas[stage_depth], expand_ratio=expand_ratio,
-            path_drop=stage_drops[stage_depth], name=f'stage_{i}_attn_{stage_depth}')(x)
         x = layers.Activation('linear', name=f'stage_{i}_out')(x)
 
     x = Norm(name='norm')(x)
@@ -425,25 +420,25 @@ def CoMA(
 
 
 def CoMATiny(embed_dim=64, stem_depth=2, stage_depths=(4, 6, 19, 3), path_drop=0.1, **kwargs):
-    # 26.6 M, 17.1 G
+    # 22.7 14.5
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
         model_name='coma-tiny', **kwargs)
 
 
-def CoMASmall(embed_dim=96, stem_depth=3, stage_depths=(5, 7, 19, 3), **kwargs):
-    # 59.2 M, 38.1 G
+def CoMASmall(embed_dim=96, stem_depth=3, stage_depths=(5, 7, 21, 3), **kwargs):
+    # 53.7 34.6
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-small', **kwargs)
 
 
-def CoMABase(embed_dim=128, stem_depth=4, stage_depths=(6, 8, 23, 3), **kwargs):
-    # 115.6 M, 76.2 G
+def CoMABase(embed_dim=128, stem_depth=4, stage_depths=(6, 8, 25, 3), **kwargs):
+    # 106.0 69.7
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-base', **kwargs)
 
 
-def CoMALarge(embed_dim=160, stem_depth=5, stage_depths=(7, 9, 27, 3), **kwargs):
-    # 197.3 M, 133.0 G
+def CoMALarge(embed_dim=160, stem_depth=5, stage_depths=(7, 9, 31, 3), **kwargs):
+    # 174.1 117.2
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-large', **kwargs)
