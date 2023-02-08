@@ -2,7 +2,7 @@ from keras import layers
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct, Conv, Norm, Act
-from segme.common.interrough import BilinearInterpolation
+from segme.common.resize import BilinearInterpolation
 
 
 @register_keras_serializable(package='SegMe>Model>SOD>MINet')

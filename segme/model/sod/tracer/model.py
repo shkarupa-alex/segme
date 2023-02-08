@@ -3,7 +3,7 @@ from keras import layers, models
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.head import ClassificationActivation
-from segme.common.interrough import BilinearInterpolation
+from segme.common.resize import BilinearInterpolation
 from segme.model.sod.tracer.aggr import Aggregation
 from segme.model.sod.tracer.encoder import Encoder
 from segme.model.sod.tracer.objatt import ObjectAttention

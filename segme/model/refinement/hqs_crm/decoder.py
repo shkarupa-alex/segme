@@ -4,7 +4,7 @@ from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct, ConvAct, Conv
 from segme.common.impfunc import query_features
-from segme.common.interrough import BilinearInterpolation
+from segme.common.resize import BilinearInterpolation
 from segme.common.sequent import Sequential
 
 

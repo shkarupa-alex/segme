@@ -4,7 +4,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.common.backbone import Backbone
 from segme.common.convnormact import ConvNormAct
 from segme.common.head import ClassificationHead
-from segme.common.interrough import BilinearInterpolation
+from segme.common.resize import BilinearInterpolation
 from segme.model.sod.minet.aim import AIM
 from segme.model.sod.minet.sim import SIM
 

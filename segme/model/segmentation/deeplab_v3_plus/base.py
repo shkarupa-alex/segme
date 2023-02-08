@@ -4,7 +4,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.common.backbone import Backbone
 from segme.model.segmentation.deeplab_v3_plus.decoder import Decoder
 from segme.common.head import HeadProjection, ClassificationActivation
-from segme.common.interrough import BilinearInterpolation
+from segme.common.resize import BilinearInterpolation
 
 
 @register_keras_serializable(package='SegMe>Model>Segmentation>DeepLabV3Plus')

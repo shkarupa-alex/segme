@@ -7,7 +7,7 @@ from segme.common.convnormact import Conv, Act
 from segme.common.ppm import PyramidPooling
 from segme.common.sequent import Sequential
 from segme.common.head import HeadProjection, ClassificationActivation
-from segme.common.interrough import BilinearInterpolation
+from segme.common.resize import BilinearInterpolation
 from segme.model.refinement.cascade_psp.upsample import Upsample
 from segme.model.refinement.cascade_psp.encoder import Encoder
 

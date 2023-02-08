@@ -5,8 +5,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.common.adppool import AdaptiveAveragePooling
 from segme.common.convnormact import ConvNormAct
 from segme.common.sequent import Sequential
-from segme.common.interrough import NearestInterpolation
-from segme.common.intersmooth import SmoothInterpolation
+from segme.common.resize import NearestInterpolation, BilinearInterpolation
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -25,7 +24,7 @@ class PyramidPooling(layers.Layer):
             ConvNormAct(self.filters, 1, name=f'stage_{size}_cna')], name=f'stage_{size}')
             for size in self.sizes]
         self.interpolations = [
-            NearestInterpolation(None) if 1 == size else SmoothInterpolation(None) for size in self.sizes]
+            NearestInterpolation(None) if 1 == size else BilinearInterpolation(None) for size in self.sizes]
         self.bottleneck = ConvNormAct(self.filters, 3, name='bottleneck')
 
         super().build(input_shape)

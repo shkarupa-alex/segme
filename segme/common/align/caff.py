@@ -5,7 +5,7 @@ from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from segme.common.adppool import AdaptiveAveragePooling
 from segme.common.align.fade import CarafeConvolution
-from segme.common.intersmooth import SmoothInterpolation
+from segme.common.resize import BilinearInterpolation
 from segme.common.convnormact import ConvNormAct, ConvAct
 from segme.common.sequent import Sequential
 
@@ -207,7 +207,7 @@ class ImplicitKernelPrediction(layers.Layer):
         self.input_spec = [
             layers.InputSpec(ndim=4, axes={-1: channels[0]}), layers.InputSpec(ndim=4, axes={-1: channels[1]})]
 
-        self.intbysample = SmoothInterpolation(None)
+        self.intbysample = BilinearInterpolation(None)
         self.content = layers.Conv2D(self.filters, self.kernel_size, padding='same')
 
         super().build(input_shape)

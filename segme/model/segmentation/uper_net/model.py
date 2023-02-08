@@ -3,7 +3,7 @@ from segme.common.backbone import Backbone
 from segme.common.head import HeadProjection, ClassificationActivation
 from segme.common.convnormact import ConvNormAct
 from segme.common.ppm import PyramidPooling
-from segme.common.interrough import BilinearInterpolation
+from segme.common.resize import BilinearInterpolation
 
 
 def UPerNet(classes, decoder_filters=256, head_dropout=0.1, return_logits=False):

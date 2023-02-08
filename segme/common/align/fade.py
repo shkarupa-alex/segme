@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import layers
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
-from segme.common.interrough import NearestInterpolation
+from segme.common.resize import NearestInterpolation
 from segme.common.patchxla import extract_patches_xla
 
 

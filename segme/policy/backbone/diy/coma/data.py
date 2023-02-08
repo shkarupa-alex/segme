@@ -213,10 +213,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
 
 @tf.function(jit_compile=True)
-def _transform_examples(images, labels, augment, size, preprocess):
-    if 384 != size:
-        images = tf.image.resize(images, [size, size], method=tf.image.ResizeMethod.BICUBIC, antialias=True)
-
+def _transform_examples(images, labels, augment, preprocess):
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
         images, _ = augment_onthefly(images, [])
@@ -243,6 +240,11 @@ def make_dataset(
     dataset = dataset.map(
         lambda ex: _transform_examples(ex['image'], ex['class'], train_split, image_size, preprocess_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    if 384 != size:
+        dataset = dataset.map(
+            lambda images, labels: (
+                tf.image.resize(images, [size, size], method=tf.image.ResizeMethod.BICUBIC, antialias=True), labels),
+            num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if remap_classes:
         map_keys, map_values = zip(*tree_class_map().items())
         map_init = tf.lookup.KeyValueTensorInitializer(map_keys, map_values, 'int64', 'int64')

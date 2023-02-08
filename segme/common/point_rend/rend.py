@@ -7,7 +7,7 @@ from keras.utils.tf_utils import shape_type_conversion
 from segme.common.point_rend.head import PointHead
 from segme.common.point_rend.sample import PointSample, UncertainPointsWithRandomness, UncertainPointsCoordsOnGrid
 from segme.common.head import ClassificationActivation
-from segme.common.interrough import BilinearInterpolation
+from segme.common.resize import BilinearInterpolation
 
 
 @register_keras_serializable(package='SegMe>Common>PointRend')
