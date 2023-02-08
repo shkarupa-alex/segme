@@ -17,6 +17,9 @@ class Registry:
 
         return wrapper
 
+    def keys(self):
+        return self.__registry.keys()
+
     def _validate(self, key, value):
         if not isinstance(key, str):
             raise ValueError(f'Expected key be a string, got {key}')
