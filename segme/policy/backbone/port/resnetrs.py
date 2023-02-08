@@ -379,7 +379,9 @@ def wrap_bone_stride8(model, prepr, init, channels, end_points, name):
 
     stride_patches = []
     for layer in ext_config['layers']:
-        if 'SegMe>Common>ConvNormAct>Conv' != layer['class_name']:
+        if 'SegMe>Policy>Conv>' not in layer['class_name']:
+            continue
+        if 'kernel_size' not in layer['config']:
             continue
         if layer['config']['kernel_size'] in {1, (1, 1)}:
             continue
