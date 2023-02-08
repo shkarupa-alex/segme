@@ -2,8 +2,252 @@ import tensorflow as tf
 from keras import layers
 from keras.mixed_precision import policy as mixed_precision
 from keras.testing_infra import test_combinations, test_utils
-from segme.common.convnormact import ConvNormAct, ConvNorm, ConvAct
+from segme.common.convnormact import Conv, Norm, Act, ConvNormAct, ConvNorm, ConvAct
 from segme.policy import cnapol, conv, norm
+
+
+@test_combinations.run_all_keras_modes
+class TestConv(test_combinations.TestCase):
+    def setUp(self):
+        super(TestConv, self).setUp()
+        self.default_convnormact = cnapol.global_policy()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestConv, self).tearDown()
+        cnapol.set_global_policy(self.default_convnormact)
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            Conv,
+            kwargs={'filters': 4, 'kernel_size': 3},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            Conv,
+            kwargs={'filters': None, 'kernel_size': 3},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 3],
+            expected_output_dtype='float32'
+        )
+
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
+            test_utils.layer_test(
+                Conv,
+                kwargs={'filters': 4, 'kernel_size': 3},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float32',
+                expected_output_shape=[None, 16, 16, 4],
+                expected_output_dtype='float32'
+            )
+            test_utils.layer_test(
+                Conv,
+                kwargs={'filters': None, 'kernel_size': 3},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float32',
+                expected_output_shape=[None, 16, 16, 3],
+                expected_output_dtype='float32'
+            )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        test_utils.layer_test(
+            Conv,
+            kwargs={'filters': 4, 'kernel_size': 3},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float16'
+        )
+        test_utils.layer_test(
+            Conv,
+            kwargs={'filters': None, 'kernel_size': 3},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 3],
+            expected_output_dtype='float16'
+        )
+
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
+            test_utils.layer_test(
+                Conv,
+                kwargs={'filters': 4, 'kernel_size': 3},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float16',
+                expected_output_shape=[None, 16, 16, 4],
+                expected_output_dtype='float16'
+            )
+            test_utils.layer_test(
+                Conv,
+                kwargs={'filters': None, 'kernel_size': 3},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float16',
+                expected_output_shape=[None, 16, 16, 3],
+                expected_output_dtype='float16'
+            )
+
+    def test_conv_bn_relu(self):
+        convinst = Conv(4, 3)
+        convinst.build([None, None, None, 3])
+
+        self.assertIsInstance(convinst, conv.FixedConv)
+        self.assertEqual(convinst.filters, 4)
+        self.assertTupleEqual(convinst.kernel_size, (3, 3))
+
+    def test_dwconv_bn_relu(self):
+        convinst = Conv(None, 3)
+        convinst.build([None, None, None, 3])
+
+        self.assertIsInstance(convinst, conv.FixedDepthwiseConv)
+        self.assertTupleEqual(convinst.kernel_size, (3, 3))
+
+    def test_policy_scope(self):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
+            convinst = Conv(4, 3)
+        convinst.build([None, None, None, 3])
+
+        self.assertIsInstance(convinst, conv.SpectralConv)
+        self.assertEqual(convinst.filters, 4)
+        self.assertTupleEqual(convinst.kernel_size, (3, 3))
+
+
+@test_combinations.run_all_keras_modes
+class TestNorm(test_combinations.TestCase):
+    def setUp(self):
+        super(TestNorm, self).setUp()
+        self.default_convnormact = cnapol.global_policy()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestNorm, self).tearDown()
+        cnapol.set_global_policy(self.default_convnormact)
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            Norm,
+            kwargs={},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 3],
+            expected_output_dtype='float32'
+        )
+
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
+            test_utils.layer_test(
+                Norm,
+                kwargs={},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float32',
+                expected_output_shape=[None, 16, 16, 3],
+                expected_output_dtype='float32'
+            )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        test_utils.layer_test(
+            Norm,
+            kwargs={},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 3],
+            expected_output_dtype='float16'
+        )
+
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
+            test_utils.layer_test(
+                Norm,
+                kwargs={},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float16',
+                expected_output_shape=[None, 16, 16, 3],
+                expected_output_dtype='float16'
+            )
+
+    def test_conv_bn_relu(self):
+        norminst = Norm()
+        norminst.build([None, None, None, 3])
+
+        self.assertIsInstance(norminst, norm.BatchNorm)
+
+    def test_policy_scope(self):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
+            norminst = Norm()
+        norminst.build([None, None, None, 3])
+
+        self.assertIsInstance(norminst, norm.GroupNorm)
+
+
+@test_combinations.run_all_keras_modes
+class TestAct(test_combinations.TestCase):
+    def setUp(self):
+        super(TestAct, self).setUp()
+        self.default_convnormact = cnapol.global_policy()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestAct, self).tearDown()
+        cnapol.set_global_policy(self.default_convnormact)
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            Act,
+            kwargs={},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 3],
+            expected_output_dtype='float32'
+        )
+
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
+            test_utils.layer_test(
+                Act,
+                kwargs={},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float32',
+                expected_output_shape=[None, 16, 16, 3],
+                expected_output_dtype='float32'
+            )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        test_utils.layer_test(
+            Act,
+            kwargs={},
+            input_shape=[2, 16, 16, 3],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 3],
+            expected_output_dtype='float16'
+        )
+
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
+            test_utils.layer_test(
+                Act,
+                kwargs={},
+                input_shape=[2, 16, 16, 3],
+                input_dtype='float16',
+                expected_output_shape=[None, 16, 16, 3],
+                expected_output_dtype='float16'
+            )
+
+    def test_conv_bn_relu(self):
+        actinst = Act()
+        actinst.build([None, None, None, 3])
+
+        self.assertIsInstance(actinst, layers.ReLU)
+
+    def test_policy_scope(self):
+        with cnapol.policy_scope('snconv-gn-leakyrelu'):
+            actinst = Act()
+        actinst.build([None, None, None, 3])
+
+        self.assertIsInstance(actinst, layers.LeakyReLU)
 
 
 @test_combinations.run_all_keras_modes
