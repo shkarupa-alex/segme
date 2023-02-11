@@ -36,52 +36,47 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
         if 1 == max(dividers):
             raise ValueError('Nothing to pad: both multipliers equals to 1.')
 
-        inputs_batch, inputs_height, inputs_width, _ = tf.unstack(tf.shape(inputs))
-        inputs_height_, inputs_width_, inputs_channel_ = inputs.shape[1:]
+        inputs_batch, inputs_height, inputs_width, inputs_channel = inputs.shape
+        static_size = inputs_height is not None and inputs_width is not None
+        if not static_size:
+            inputs_batch, inputs_height, inputs_width = tf.unstack(tf.shape(inputs)[:3])
+        else:
+            inputs_batch = tf.shape(inputs)[0]
 
         h_pad = (dividers[0] - inputs_height % dividers[0]) % dividers[0]
         w_pad = (dividers[1] - inputs_width % dividers[1]) % dividers[1]
-
-        h_pad_ = None if inputs_height_ is None else (dividers[0] - inputs_height_ % dividers[0]) % dividers[0]
-        w_pad_ = None if inputs_width_ is None else (dividers[1] - inputs_width_ % dividers[1]) % dividers[1]
-
         hb_pad, wb_pad = h_pad // 2, w_pad // 2
         ha_pad, wa_pad = h_pad - hb_pad, w_pad - wb_pad
+
         paddings = [[0, 0], [hb_pad, ha_pad], [wb_pad, wa_pad], [0, 0]]
-
-        padded_shape_ = (
-            inputs.shape[0],
-            None if inputs_height_ is None else inputs_height_ + h_pad_,
-            None if inputs_width_ is None else inputs_width_ + w_pad_,
-            inputs_channel_)
-
         with_pad = h_pad + w_pad > 0
+
         outputs = smart_cond(
             with_pad,
             lambda: tf.pad(inputs, paddings, mode=mode, constant_values=constant_values),
             lambda: tf.identity(inputs))
-        # outputs = tf.pad(inputs, paddings, mode=mode, constant_values=constant_values)
-        outputs.set_shape(padded_shape_)
+        padded_shape = (inputs.shape[0], None, None, inputs_channel)
+        if static_size:
+            padded_shape = (inputs.shape[0], inputs_height + h_pad, inputs_width + w_pad, inputs_channel)
+        outputs.set_shape(padded_shape)
 
         pad_size = (inputs_batch, inputs_height + h_pad, inputs_width + w_pad)
-        outputs = op(outputs, pad_size=pad_size, pad_val=(hb_pad, ha_pad, wb_pad, wa_pad))
+        pad_val = (hb_pad, ha_pad, wb_pad, wa_pad)
+        outputs = op(outputs, pad_size=pad_size, pad_val=pad_val)
 
-        outputs_batch, outputs_height, outputs_width, _ = tf.unstack(tf.shape(outputs))
-        outputs_channel_ = outputs.shape[-1]
+        outputs_batch, outputs_height, outputs_width = tf.unstack(tf.shape(outputs)[:3])
+        outputs_channel = outputs.shape[-1]
 
-        assert_batch = tf.debugging.assert_equal(outputs_batch, inputs_batch)
-        assert_height = tf.debugging.assert_equal(outputs_height, inputs_height + h_pad)
-        assert_width = tf.debugging.assert_equal(outputs_width, inputs_width + w_pad)
+        assert_batch = tf.debugging.assert_equal(outputs_batch, pad_size[0])
+        assert_height = tf.debugging.assert_equal(outputs_height, pad_size[1])
+        assert_width = tf.debugging.assert_equal(outputs_width, pad_size[2])
         with tf.control_dependencies([assert_batch, assert_height, assert_width]):
             outputs = tf.identity(outputs)
 
-        # outputs = smart_cond(
-        #     with_pad,
-        #     # lambda: outputs[:, hb_pad:inputs_height + hb_pad, wb_pad: inputs_width + wb_pad],
-        #     lambda: tf.slice(outputs, [0, hb_pad, wb_pad, 0], [-1, inputs_height, inputs_width, -1]),
-        #     lambda: tf.identity(outputs))
-        # outputs = outputs[:, hb_pad:inputs_height + hb_pad, wb_pad: inputs_width + wb_pad]
-        outputs = tf.slice(outputs, [0, hb_pad, wb_pad, 0], [-1, inputs_height, inputs_width, -1])
-        outputs.set_shape(inputs.shape[:-1] + (outputs_channel_,))
+        outputs = smart_cond(
+            with_pad,
+            lambda: tf.slice(outputs, [0, hb_pad, wb_pad, 0], [-1, inputs_height, inputs_width, -1]),
+            lambda: tf.identity(outputs))
+        outputs.set_shape(inputs.shape[:-1] + (outputs_channel,))
 
         return outputs
