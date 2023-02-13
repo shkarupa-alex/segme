@@ -64,8 +64,8 @@ class DHMSA(layers.Layer):
 
         if self.use_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
-            use_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, use_bias)
+            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
+            qkv = tf.nn.bias_add(qkv, qkv_bias)
 
         outputs = with_divisible_pad(self.qkv_part, qkv, self.current_window * self.dilation_rate)
 
@@ -186,8 +186,8 @@ class GGMSA(layers.Layer):
 
         if self.use_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
-            use_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, use_bias)
+            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
+            qkv = tf.nn.bias_add(qkv, qkv_bias)
 
         outputs = with_partition_fused(self.qkv_attn, qkv, 'grid_size', self.current_window, 3, self.num_heads)
 
@@ -359,8 +359,8 @@ class CHMSA(layers.Layer):
 
         if self.use_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
-            use_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, use_bias)
+            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
+            qkv = tf.nn.bias_add(qkv, qkv_bias)
 
         if 1 == self.num_heads:
             qkv = tf.reshape(qkv, [batch, 1, height * width, 3, self.channels])
