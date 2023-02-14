@@ -237,14 +237,14 @@ def make_dataset(
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
-    dataset = dataset.map(
-        lambda ex: _transform_examples(ex['image'], ex['class'], train_split, image_size, preprocess_mode),
-        num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if 384 != size:
         dataset = dataset.map(
             lambda images, labels: (
                 tf.image.resize(images, [size, size], method=tf.image.ResizeMethod.BICUBIC, antialias=True), labels),
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.map(
+        lambda ex: _transform_examples(ex['image'], ex['class'], train_split, preprocess_mode),
+        num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if remap_classes:
         map_keys, map_values = zip(*tree_class_map().items())
         map_init = tf.lookup.KeyValueTensorInitializer(map_keys, map_values, 'int64', 'int64')
