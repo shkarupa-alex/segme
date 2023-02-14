@@ -8,8 +8,8 @@ from keras.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.drop import DropPath
 from segme.common.grn import GRN
-from segme.policy.backbone.diy.coma.attn import DHMSA, CHMSA, GGMSA
-from segme.policy.backbone.diy.coma.data import tree_class_map
+from segme.common.attn import DHMSA
+from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
 
 WEIGHT_URLS = {}
@@ -133,7 +133,7 @@ def ConvBlock(fused, kernel_size=3, expand_ratio=3., path_gamma=1., path_drop=0.
     return apply
 
 
-def WindBlock(current_window, pretrain_window, num_heads, dilation_rate=1, kernel_size=3, path_drop=0., expand_ratio=3.,
+def AttnBlock(current_window, pretrain_window, num_heads, dilation_rate=1, kernel_size=3, path_drop=0., expand_ratio=3.,
               path_gamma=1., name=None):
     if name is None:
         counter = backend.get_uid('attn_block')
@@ -161,59 +161,6 @@ def WindBlock(current_window, pretrain_window, num_heads, dilation_rate=1, kerne
     return apply
 
 
-def ChanBlock(num_heads, kernel_size=3, path_drop=0., expand_ratio=3., path_gamma=1., name=None):
-    if name is None:
-        counter = backend.get_uid('attn_block')
-        name = f'attn_block_{counter}'
-
-    gamma_initializer = initializers.Constant(path_gamma)
-
-    def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-
-        x = CHMSA(num_heads, name=f'{name}_chmsa_attn')(inputs)
-        x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_chmsa_norm')(x)
-        x = DropPath(path_drop, name=f'{name}_chmsa_drop')(x)
-        x = layers.add([x, inputs], name=f'{name}_chmsa_add')
-
-        x = MLPConv(
-            False, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,
-            gamma_initializer=gamma_initializer, name=f'{name}_mlpconv')(x)
-
-        return x
-
-    return apply
-
-
-def GridBlock(current_window, pretrain_window, num_heads, kernel_size=3, path_drop=0., expand_ratio=3., path_gamma=1.,
-              name=None):
-    if name is None:
-        counter = backend.get_uid('attn_block')
-        name = f'attn_block_{counter}'
-
-    gamma_initializer = initializers.Constant(path_gamma)
-
-    def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-
-        x = GGMSA(current_window, pretrain_window, num_heads, name=f'{name}_ggmsa_attn')(inputs)
-        x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_ggmsa_norm')(x)
-        x = DropPath(path_drop, name=f'{name}_ggmsa_drop')(x)
-        x = layers.add([x, inputs], name=f'{name}_ggmsa_add')
-
-        x = MLPConv(
-            False, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,
-            gamma_initializer=gamma_initializer, name=f'{name}_mlp')(x)
-
-        return x
-
-    return apply
-
-
 def CoMA(
         embed_dim, stem_depth, stage_depths, current_window=8, pretrain_window=8, expand_ratio=3, path_gamma=0.01,
         path_drop=0.2, pretrain_size=384, input_shape=None, include_top=True, model_name='coma', pooling=None,
@@ -231,10 +178,10 @@ def CoMA(
         + overlapped patch embedding and reduction
         + haloing for local-attention spatial token mixer
     24.10.2022 MetaFormer Baselines for Vision
-        + stage architecture CCTT
         ~ disable all biases
         ~ scaling the residual branch
         ~ stage ratio 1:4:6:1
+        - stage architecture CCTT
         - convolutional block with separated spatial mixer & MLP
         - StarReLU with learnable scale and bias
     01.10.2022 Global Context Vision Transformers
@@ -270,13 +217,13 @@ def CoMA(
         - BN in MLP
         - BN in attention
     15.09.2021 CoAtNet: Marrying Convolution and Attention for All Data Sizes
-        + stage architecture CCTT
         ~ MBConv for reduction and as convolutional block
         + stride-2 stem
         ~ stage ratio 1:3:7:1
+        - stage architecture CCTT
     07.06.2021 Scaling Local Self-Attention for Parameter Efficient Visual Backbones
         + overlapping window with halo = 1/2 of window size
-        + stage architecture CCTT
+        - stage architecture CCTT
         ! accuracy consistently improves as the window size increases
     29.03.2021 CvT: Introducing Convolutions to Vision Transformers
         + depthwise convolution in attention projection
@@ -342,8 +289,8 @@ def CoMA(
         x = layers.Normalization(
             mean=[0.485, 0.456, 0.406], variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2], name='normalize')(x)
 
-    path_gammas = np.linspace(path_gamma, 1e-5, stem_depth + sum(stage_depths) + len(stage_depths)).tolist()
-    path_drops = np.linspace(0., path_drop, stem_depth + sum(stage_depths) + len(stage_depths)).tolist()
+    path_gammas = np.linspace(path_gamma, 1e-5, stem_depth + sum(stage_depths)).tolist()
+    path_drops = np.linspace(0., path_drop, stem_depth + sum(stage_depths)).tolist()
 
     stem_gammas, path_gammas = path_gammas[:stem_depth], path_gammas[stem_depth:]
     stem_drops, path_drops = path_drops[:stem_depth], path_drops[stem_depth:]
@@ -351,31 +298,23 @@ def CoMA(
     x = layers.Activation('linear', name='stem_out')(x)
 
     for i, stage_depth in enumerate(stage_depths):
-        # fused = 0 == i  # From EfficientNet2
-        fused = False  # From MetaFormer
+        fused = 0 == i  # From EfficientNet2
         num_heads = embed_dim // 2 ** (5 - i)
 
-        stage_gammas, path_gammas = path_gammas[:stage_depth + 1], path_gammas[stage_depth + 1:]
-        stage_drops, path_drops = path_drops[:stage_depth + 1], path_drops[stage_depth + 1:]
+        stage_gammas, path_gammas = path_gammas[:stage_depth], path_gammas[stage_depth:]
+        stage_drops, path_drops = path_drops[:stage_depth], path_drops[stage_depth:]
 
-        # From GCViT
+        # From EfficientNet2
         x = Reduce(fused, expand_ratio=expand_ratio, name=f'stage_{i}_reduce')(x)
 
         for j in range(stage_depth):
-            if i < 2:  # From CoAtNet, MetaFormer
-                kernel_size = 3 if fused else [5, 7][i]  # From MetaFormer
-                x = ConvBlock(
-                    fused, kernel_size=kernel_size, expand_ratio=expand_ratio, path_gamma=stage_gammas[j],
-                    path_drop=stage_drops[j], name=f'stage_{i}_conv_{j}')(x)
-                continue
-
             current_size = pretrain_size // 2 ** (i + 2)
             dilation_max = current_size * 2 // (3 * current_window)
             dilation_rate = 1 + (j % 2) * (j // 2 % max(1, dilation_max - 1) + 1)
             dilation_rate = min(dilation_rate, dilation_max)
             dilation_rate = max(dilation_rate, 1)
 
-            x = WindBlock(
+            x = AttnBlock(
                 current_window, pretrain_window, num_heads, dilation_rate=dilation_rate, expand_ratio=expand_ratio,
                 path_gamma=stage_gammas[j], path_drop=stage_drops[j], name=f'stage_{i}_attn_{j}')(x)
 
@@ -419,26 +358,26 @@ def CoMA(
     return model
 
 
-def CoMATiny(embed_dim=64, stem_depth=2, stage_depths=(4, 6, 19, 3), path_drop=0.1, **kwargs):
+def CoMATiny(embed_dim=64, stem_depth=2, stage_depths=(3, 3, 21, 3), path_drop=0.1, **kwargs):
     # 22.7 14.5
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
         model_name='coma-tiny', **kwargs)
 
 
-def CoMASmall(embed_dim=96, stem_depth=3, stage_depths=(5, 7, 21, 3), **kwargs):
+def CoMASmall(embed_dim=96, stem_depth=2, stage_depths=(3, 3, 21, 3), **kwargs):
     # 53.7 34.6
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-small', **kwargs)
 
 
-def CoMABase(embed_dim=128, stem_depth=4, stage_depths=(6, 8, 25, 3), **kwargs):
+def CoMABase(embed_dim=128, stem_depth=2, stage_depths=(3, 3, 21, 3), **kwargs):
     # 106.0 69.7
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-base', **kwargs)
 
 
-def CoMALarge(embed_dim=160, stem_depth=5, stage_depths=(7, 9, 31, 3), **kwargs):
+def CoMALarge(embed_dim=160, stem_depth=2, stage_depths=(3, 3, 21, 3), **kwargs):
     # 190.6 127.8
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-large', **kwargs)

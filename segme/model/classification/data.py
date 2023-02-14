@@ -9,8 +9,8 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from keras.applications import imagenet_utils
 from keras.mixed_precision import global_policy
-from segme.policy.backbone.diy.coma.prep import preprocess_input
-from segme.policy.backbone.diy.coma.tree import synsets_1k_21k, tree_class_map
+from segme.model.classification.prep import preprocess_input
+from segme.model.classification.tree import synsets_1k_21k, tree_class_map
 from segme.utils.common import augment_onthefly
 
 

@@ -20,7 +20,7 @@ class TestPartitionApply(tf.test.TestCase):
     def test_window(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype='float32').reshape([1, 8, 12, 1])
         height, width = inputs.shape[1:3]
-        size, dilation_rate = 4, 1
+        size, dilation_rate, shift_size = 4, 1, None
 
         expected = np.array([
             0, 1, 2, 3, 12, 13, 14, 15, 24, 25, 26, 27, 36, 37, 38, 39, 4, 5, 6, 7, 16, 17, 18, 19, 28, 29, 30, 31, 40,
@@ -28,7 +28,7 @@ class TestPartitionApply(tf.test.TestCase):
             72, 73, 74, 75, 84, 85, 86, 87, 52, 53, 54, 55, 64, 65, 66, 67, 76, 77, 78, 79, 88, 89, 90, 91, 56, 57, 58,
             59, 68, 69, 70, 71, 80, 81, 82, 83, 92, 93, 94, 95], 'int64').reshape([1, 6, 16, 1])
 
-        result = partition_apply(inputs, height, width, 'window_size', size, dilation_rate)
+        result = partition_apply(inputs, height, width, 'window_size', size, dilation_rate, shift_size)
         result = self.evaluate(result)
 
         self.assertAllEqual(expected, result)
@@ -36,7 +36,7 @@ class TestPartitionApply(tf.test.TestCase):
     def test_dilation(self):
         inputs = np.arange(1 * 8 * 16 * 1, dtype='float32').reshape([1, 8, 16, 1])
         height, width = inputs.shape[1:3]
-        size, dilation_rate = 4, 2
+        size, dilation_rate, shift_size = 4, 2, None
 
         expected = np.array([
             0, 2, 4, 6, 32, 34, 36, 38, 64, 66, 68, 70, 96, 98, 100, 102, 1, 3, 5, 7, 33, 35, 37, 39, 65, 67, 69, 71,
@@ -46,7 +46,23 @@ class TestPartitionApply(tf.test.TestCase):
             90, 92, 94, 120, 122, 124, 126, 25, 27, 29, 31, 57, 59, 61, 63, 89, 91, 93, 95, 121, 123, 125, 127],
             'int64').reshape([1, 8, 16, 1])
 
-        result = partition_apply(inputs, height, width, 'window_size', size, dilation_rate)
+        result = partition_apply(inputs, height, width, 'window_size', size, dilation_rate, shift_size)
+        result = self.evaluate(result)
+
+        self.assertAllEqual(expected, result)
+
+    def test_shift(self):
+        inputs = np.arange(1 * 8 * 12 * 1, dtype='float32').reshape([1, 8, 12, 1])
+        height, width = inputs.shape[1:3]
+        size, dilation_rate, shift_size = 4, 1, 2
+
+        expected = np.array([
+            26, 27, 28, 29, 38, 39, 40, 41, 50, 51, 52, 53, 62, 63, 64, 65, 30, 31, 32, 33, 42, 43, 44, 45, 54, 55, 56,
+            57, 66, 67, 68, 69, 34, 35, 24, 25, 46, 47, 36, 37, 58, 59, 48, 49, 70, 71, 60, 61, 74, 75, 76, 77, 86, 87,
+            88, 89, 2, 3, 4, 5, 14, 15, 16, 17, 78, 79, 80, 81, 90, 91, 92, 93, 6, 7, 8, 9, 18, 19, 20, 21, 82, 83, 72,
+            73, 94, 95, 84, 85, 10, 11, 0, 1, 22, 23, 12, 13], 'int64').reshape([1, 6, 16, 1])
+
+        result = partition_apply(inputs, height, width, 'window_size', size, dilation_rate, [shift_size, shift_size])
         result = self.evaluate(result)
 
         self.assertAllEqual(expected, result)
@@ -54,7 +70,7 @@ class TestPartitionApply(tf.test.TestCase):
     def test_grid(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype='float32').reshape([1, 8, 12, 1])
         height, width = inputs.shape[1:3]
-        size, dilation_rate = 4, 1
+        size, dilation_rate, shift_size = 4, 1, None
 
         expected = np.array([
             0, 3, 6, 9, 24, 27, 30, 33, 48, 51, 54, 57, 72, 75, 78, 81, 1, 4, 7, 10, 25, 28, 31, 34, 49, 52, 55, 58, 73,
@@ -62,7 +78,7 @@ class TestPartitionApply(tf.test.TestCase):
             63, 66, 69, 84, 87, 90, 93, 13, 16, 19, 22, 37, 40, 43, 46, 61, 64, 67, 70, 85, 88, 91, 94, 14, 17, 20, 23,
             38, 41, 44, 47, 62, 65, 68, 71, 86, 89, 92, 95], 'int64').reshape([1, 6, 16, 1])
 
-        result = partition_apply(inputs, height, width, 'grid_size', size, dilation_rate)
+        result = partition_apply(inputs, height, width, 'grid_size', size, dilation_rate, shift_size)
         result = self.evaluate(result)
 
         self.assertAllEqual(expected, result)
@@ -73,9 +89,10 @@ class TestPartitionApply(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                result = with_partition(lambda x, **kwargs: x, inputs, part_type, size, dilation_rate)
-                result = self.evaluate(result)
-                self.assertAllEqual(inputs, result)
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    result = with_partition(lambda x, **kwargs: x, inputs, part_type, size, dilation_rate, shift_size)
+                    result = self.evaluate(result)
+                    self.assertAllEqual(inputs, result)
 
     def test_pad(self):
         inputs = np.arange(3 * 23 * 37 * 3, dtype='float32').reshape([3, 23, 37, 3])
@@ -83,9 +100,11 @@ class TestPartitionApply(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                result = with_partition(lambda x, **kwargs: x + 1., inputs, part_type, size, dilation_rate)
-                result = self.evaluate(result)
-                self.assertAllEqual(inputs + 1., result)
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    result = with_partition(
+                        lambda x, **kwargs: x + 1., inputs, part_type, size, dilation_rate, shift_size)
+                    result = self.evaluate(result)
+                    self.assertAllEqual(inputs + 1., result)
 
     def test_channel(self):
         inputs = np.arange(3 * 24 * 36 * 3, dtype='float32').reshape([3, 24, 36, 3])
@@ -93,11 +112,12 @@ class TestPartitionApply(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                result = with_partition(
-                    lambda x, **kwargs: tf.reduce_mean(x, axis=-1, keepdims=True), inputs, part_type, size,
-                    dilation_rate)
-                result = self.evaluate(result)
-                self.assertAllEqual(inputs.mean(-1, keepdims=True), result)
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    result = with_partition(
+                        lambda x, **kwargs: tf.reduce_mean(x, axis=-1, keepdims=True), inputs, part_type, size,
+                        dilation_rate, shift_size)
+                    result = self.evaluate(result)
+                    self.assertAllEqual(inputs.mean(-1, keepdims=True), result)
 
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
@@ -106,9 +126,10 @@ class TestPartitionApply(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                result = with_partition(lambda x, **kwargs: x, inputs, part_type, size, dilation_rate)
-                result = self.evaluate(result)
-                self.assertAllEqual(inputs, result)
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    result = with_partition(lambda x, **kwargs: x, inputs, part_type, size, dilation_rate, shift_size)
+                    result = self.evaluate(result)
+                    self.assertAllEqual(inputs, result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -128,16 +149,18 @@ class TestPartitionApplyFused(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                for num_heads in [1, 2, 4]:
-                    expected = partition_apply(inputs, height, width, part_type, size, dilation_rate)
-                    expected = tf.reshape(expected, expected.shape[:-1] + (num_heads, 3, channels // num_heads))
-                    expected = tf.transpose(expected, [0, 1, 3, 2, 4, 5])
-                    expected = self.evaluate(expected)
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    for num_heads in [1, 2, 4]:
+                        expected = partition_apply(inputs, height, width, part_type, size, dilation_rate, shift_size)
+                        expected = tf.reshape(expected, expected.shape[:-1] + (num_heads, 3, channels // num_heads))
+                        expected = tf.transpose(expected, [0, 1, 3, 2, 4, 5])
+                        expected = self.evaluate(expected)
 
-                    result = partition_apply_fused(inputs, height, width, part_type, size, 3, num_heads, dilation_rate)
-                    result = self.evaluate(result)
+                        result = partition_apply_fused(
+                            inputs, height, width, part_type, size, 3, num_heads, dilation_rate, shift_size)
+                        result = self.evaluate(result)
 
-                    self.assertAllEqual(expected, result)
+                        self.assertAllEqual(expected, result)
 
     def test_reverse(self):
         inputs = np.arange(216 * 4 * 16 * 5, dtype='float32')
@@ -146,28 +169,31 @@ class TestPartitionApplyFused(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                win_size = size ** 2
-                num_wind = height * width // (size * dilation_rate) ** 2
-                if part_type not in {'window_size', 'grid_size'}:
-                    win_size, num_wind = num_wind, win_size
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    win_size = size ** 2
+                    num_wind = height * width // (size * dilation_rate) ** 2
+                    if part_type not in {'window_size', 'grid_size'}:
+                        win_size, num_wind = num_wind, win_size
 
-                for num_heads in [1, 2, 4]:
-                    expected = inputs.reshape([-1, num_wind, num_heads, win_size, channels // num_heads])
-                    expected = tf.transpose(expected, perm=[0, 1, 3, 2, 4])
-                    expected = tf.reshape(expected, [-1, num_wind, win_size, channels])
-                    expected = partition_reverse(expected, height, width, part_type, size, dilation_rate)
-                    expected = self.evaluate(expected)
+                    for num_heads in [1, 2, 4]:
+                        expected = inputs.reshape([-1, num_wind, num_heads, win_size, channels // num_heads])
+                        expected = tf.transpose(expected, perm=[0, 1, 3, 2, 4])
+                        expected = tf.reshape(expected, [-1, num_wind, win_size, channels])
+                        expected = partition_reverse(
+                            expected, height, width, part_type, size, dilation_rate, shift_size)
+                        expected = self.evaluate(expected)
 
-                    result = inputs.reshape([-1, num_wind, num_heads, win_size, channels // num_heads])
-                    result = partition_reverse_fused(result, height, width, part_type, size, num_heads, dilation_rate)
-                    result = self.evaluate(result)
+                        result = inputs.reshape([-1, num_wind, num_heads, win_size, channels // num_heads])
+                        result = partition_reverse_fused(
+                            result, height, width, part_type, size, num_heads, dilation_rate, shift_size)
+                        result = self.evaluate(result)
 
-                    self.assertAllEqual(expected, result)
+                        self.assertAllEqual(expected, result)
 
     def test_window(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype='float32').reshape([1, 8, 12, 1])
         height, width = inputs.shape[1:3]
-        size, dilation_rate = 4, 1
+        size, dilation_rate, shift_size = 4, 1, None
 
         expected = np.array([
             0, 1, 2, 3, 12, 13, 14, 15, 24, 25, 26, 27, 36, 37, 38, 39, 4, 5, 6, 7, 16, 17, 18, 19, 28, 29, 30, 31, 40,
@@ -175,7 +201,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
             72, 73, 74, 75, 84, 85, 86, 87, 52, 53, 54, 55, 64, 65, 66, 67, 76, 77, 78, 79, 88, 89, 90, 91, 56, 57, 58,
             59, 68, 69, 70, 71, 80, 81, 82, 83, 92, 93, 94, 95], 'int64').reshape([1, 6, 1, 16, 1, 1])
 
-        result = partition_apply_fused(inputs, height, width, 'window_size', size, 1, 1, dilation_rate)
+        result = partition_apply_fused(inputs, height, width, 'window_size', size, 1, 1, dilation_rate, shift_size)
         result = self.evaluate(result)
 
         self.assertAllEqual(expected, result)
@@ -183,7 +209,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
     def test_dilation(self):
         inputs = np.arange(1 * 8 * 24 * 1, dtype='float32').reshape([1, 8, 24, 1])
         height, width = inputs.shape[1:3]
-        size, dilation_rate = 4, 2
+        size, dilation_rate, shift_size = 4, 2, None
 
         expected = np.array([
             0, 2, 4, 6, 48, 50, 52, 54, 96, 98, 100, 102, 144, 146, 148, 150, 1, 3, 5, 7, 49, 51, 53, 55, 97, 99, 101,
@@ -196,7 +222,24 @@ class TestPartitionApplyFused(tf.test.TestCase):
             142, 184, 186, 188, 190, 41, 43, 45, 47, 89, 91, 93, 95, 137, 139, 141, 143, 185, 187, 189, 191],
             'int64').reshape([1, 12, 1, 16, 1, 1])
 
-        result = partition_apply_fused(inputs, height, width, 'window_size', size, 1, 1, dilation_rate)
+        result = partition_apply_fused(inputs, height, width, 'window_size', size, 1, 1, dilation_rate, shift_size)
+        result = self.evaluate(result)
+
+        self.assertAllEqual(expected, result)
+
+    def test_shift(self):
+        inputs = np.arange(1 * 8 * 12 * 1, dtype='float32').reshape([1, 8, 12, 1])
+        height, width = inputs.shape[1:3]
+        size, dilation_rate, shift_size = 4, 1, 2
+
+        expected = np.array([
+            26, 27, 28, 29, 38, 39, 40, 41, 50, 51, 52, 53, 62, 63, 64, 65, 30, 31, 32, 33, 42, 43, 44, 45, 54, 55, 56,
+            57, 66, 67, 68, 69, 34, 35, 24, 25, 46, 47, 36, 37, 58, 59, 48, 49, 70, 71, 60, 61, 74, 75, 76, 77, 86, 87,
+            88, 89, 2, 3, 4, 5, 14, 15, 16, 17, 78, 79, 80, 81, 90, 91, 92, 93, 6, 7, 8, 9, 18, 19, 20, 21, 82, 83, 72,
+            73, 94, 95, 84, 85, 10, 11, 0, 1, 22, 23, 12, 13], 'int64').reshape([1, 6, 1, 16, 1, 1])
+
+        result = partition_apply_fused(
+            inputs, height, width, 'window_size', size, 1, 1, dilation_rate, [shift_size, shift_size])
         result = self.evaluate(result)
 
         self.assertAllEqual(expected, result)
@@ -204,7 +247,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
     def test_grid(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype='float32').reshape([1, 8, 12, 1])
         height, width = inputs.shape[1:3]
-        size, dilation_rate = 4, 1
+        size, dilation_rate, shift_size = 4, 1, None
 
         expected = np.array([
             0, 3, 6, 9, 24, 27, 30, 33, 48, 51, 54, 57, 72, 75, 78, 81, 1, 4, 7, 10, 25, 28, 31, 34, 49, 52, 55, 58, 73,
@@ -212,7 +255,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
             63, 66, 69, 84, 87, 90, 93, 13, 16, 19, 22, 37, 40, 43, 46, 61, 64, 67, 70, 85, 88, 91, 94, 14, 17, 20, 23,
             38, 41, 44, 47, 62, 65, 68, 71, 86, 89, 92, 95], 'int64').reshape([1, 6, 1, 16, 1, 1])
 
-        result = partition_apply_fused(inputs, height, width, 'grid_size', size, 1, 1, dilation_rate)
+        result = partition_apply_fused(inputs, height, width, 'grid_size', size, 1, 1, dilation_rate, shift_size)
         result = self.evaluate(result)
 
         self.assertAllEqual(expected, result)
@@ -223,10 +266,11 @@ class TestPartitionApplyFused(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                result = with_partition_fused(
-                    lambda x, **kwargs: tf.squeeze(x, -2), inputs, part_type, size, 1, 1, dilation_rate)
-                result = self.evaluate(result)
-                self.assertAllEqual(inputs, result)
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    result = with_partition_fused(
+                        lambda x, **kwargs: tf.squeeze(x, -2), inputs, part_type, size, 1, 1, dilation_rate, shift_size)
+                    result = self.evaluate(result)
+                    self.assertAllEqual(inputs, result)
 
     def test_pad(self):
         inputs = np.arange(3 * 23 * 37 * 3, dtype='float32').reshape([3, 23, 37, 3])
@@ -234,10 +278,12 @@ class TestPartitionApplyFused(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                result = with_partition_fused(
-                    lambda x, **kwargs: tf.squeeze(x, -2) + 1., inputs, part_type, size, 1, 1, dilation_rate)
-                result = self.evaluate(result)
-                self.assertAllEqual(inputs + 1., result)
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    result = with_partition_fused(
+                        lambda x, **kwargs: tf.squeeze(x, -2) + 1., inputs, part_type, size, 1, 1, dilation_rate,
+                        shift_size)
+                    result = self.evaluate(result)
+                    self.assertAllEqual(inputs + 1., result)
 
     def test_channel(self):
         inputs = np.arange(3 * 24 * 36 * 3, dtype='float32').reshape([3, 24, 36, 3])
@@ -245,11 +291,12 @@ class TestPartitionApplyFused(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                result = with_partition_fused(
-                    lambda x, **kwargs: tf.reduce_mean(tf.squeeze(x, -2), axis=-1, keepdims=True),
-                    inputs, part_type, size, 1, 1, dilation_rate)
-                result = self.evaluate(result)
-                self.assertAllEqual(inputs.mean(-1, keepdims=True), result)
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    result = with_partition_fused(
+                        lambda x, **kwargs: tf.reduce_mean(tf.squeeze(x, -2), axis=-1, keepdims=True),
+                        inputs, part_type, size, 1, 1, dilation_rate, shift_size)
+                    result = self.evaluate(result)
+                    self.assertAllEqual(inputs.mean(-1, keepdims=True), result)
 
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
@@ -258,10 +305,11 @@ class TestPartitionApplyFused(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                result = with_partition_fused(
-                    lambda x, **kwargs: tf.squeeze(x, -2), inputs, part_type, size, 1, 1, dilation_rate)
-                result = self.evaluate(result)
-                self.assertAllEqual(inputs, result)
+                for shift_size in [None, np.array([2, 2], 'int32')]:
+                    result = with_partition_fused(
+                        lambda x, **kwargs: tf.squeeze(x, -2), inputs, part_type, size, 1, 1, dilation_rate, shift_size)
+                    result = self.evaluate(result)
+                    self.assertAllEqual(inputs, result)
 
 
 @test_util.run_all_in_graph_and_eager_modes

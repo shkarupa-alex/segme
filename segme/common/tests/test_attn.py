@@ -53,7 +53,7 @@ class TestDHMSA(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             DHMSA,
-            kwargs={'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'dilation_rate': 2, 'use_bias': False},
+            kwargs={'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'dilation_rate': 2, 'use_bias': False},
             input_shape=[2, 16, 16, 4],
             input_dtype='float16',
             expected_output_shape=[None, 16, 16, 4],

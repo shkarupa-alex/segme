@@ -41,29 +41,25 @@ class TestModel(test_combinations.TestCase):
             input_shape=(None, None, 3)).get_config()
 
         expected_drops = [
-            ('stem_1_drop', 0.0), ('stem_2_drop', 0.010526315789473684),
+            ('stem_1_drop', 0.0), ('stem_2_drop', 0.013333333333333334),
 
-            ('stage_0_conv_0_mlpconv_drop', 0.021052631578947368),
-            ('stage_0_conv_1_mlpconv_drop', 0.031578947368421054),
-            ('stage_0_attn_2_chmsa_drop', 0.042105263157894736), ('stage_0_attn_2_mlpconv_drop', 0.042105263157894736),
+            ('stage_0_attn_0_dhmsa_drop', 0.02666666666666667), ('stage_0_attn_0_mlpconv_drop', 0.02666666666666667),
+            ('stage_0_attn_1_dhmsa_drop', 0.04), ('stage_0_attn_1_mlpconv_drop', 0.04),
 
-            ('stage_1_conv_0_mlpconv_drop', 0.05263157894736842),
-            ('stage_1_conv_1_mlpconv_drop', 0.06315789473684211),
-            ('stage_1_attn_2_chmsa_drop', 0.07368421052631578), ('stage_1_attn_2_mlpconv_drop', 0.07368421052631578),
+            ('stage_1_attn_0_dhmsa_drop', 0.05333333333333334), ('stage_1_attn_0_mlpconv_drop', 0.05333333333333334),
+            ('stage_1_attn_1_dhmsa_drop', 0.06666666666666667), ('stage_1_attn_1_mlpconv_drop', 0.06666666666666667),
 
-            ('stage_2_attn_0_dhmsa_drop', 0.08421052631578947), ('stage_2_attn_0_mlpconv_drop', 0.08421052631578947),
-            ('stage_2_attn_1_dhmsa_drop', 0.09473684210526316), ('stage_2_attn_1_mlpconv_drop', 0.09473684210526316),
-            ('stage_2_attn_2_dhmsa_drop', 0.10526315789473684), ('stage_2_attn_2_mlpconv_drop', 0.10526315789473684),
-            ('stage_2_attn_3_dhmsa_drop', 0.11578947368421053), ('stage_2_attn_3_mlpconv_drop', 0.11578947368421053),
-            ('stage_2_attn_4_dhmsa_drop', 0.12631578947368421), ('stage_2_attn_4_mlpconv_drop', 0.12631578947368421),
-            ('stage_2_attn_5_dhmsa_drop', 0.1368421052631579), ('stage_2_attn_5_mlpconv_drop', 0.1368421052631579),
-            ('stage_2_attn_6_chmsa_drop', 0.14736842105263157), ('stage_2_attn_6_mlpconv_drop', 0.14736842105263157),
+            ('stage_2_attn_0_dhmsa_drop', 0.08), ('stage_2_attn_0_mlpconv_drop', 0.08),
+            ('stage_2_attn_1_dhmsa_drop', 0.09333333333333334), ('stage_2_attn_1_mlpconv_drop', 0.09333333333333334),
+            ('stage_2_attn_2_dhmsa_drop', 0.10666666666666667), ('stage_2_attn_2_mlpconv_drop', 0.10666666666666667),
+            ('stage_2_attn_3_dhmsa_drop', 0.12000000000000001), ('stage_2_attn_3_mlpconv_drop', 0.12000000000000001),
+            ('stage_2_attn_4_dhmsa_drop', 0.13333333333333333), ('stage_2_attn_4_mlpconv_drop', 0.13333333333333333),
+            ('stage_2_attn_5_dhmsa_drop', 0.14666666666666667), ('stage_2_attn_5_mlpconv_drop', 0.14666666666666667),
 
-            ('stage_3_attn_0_dhmsa_drop', 0.15789473684210525), ('stage_3_attn_0_mlpconv_drop', 0.15789473684210525),
-            ('stage_3_attn_1_dhmsa_drop', 0.16842105263157894), ('stage_3_attn_1_mlpconv_drop', 0.16842105263157894),
-            ('stage_3_attn_2_dhmsa_drop', 0.17894736842105263), ('stage_3_attn_2_mlpconv_drop', 0.17894736842105263),
-            ('stage_3_attn_3_dhmsa_drop', 0.18947368421052632), ('stage_3_attn_3_mlpconv_drop', 0.18947368421052632),
-            ('stage_3_attn_4_chmsa_drop', 0.2), ('stage_3_attn_4_mlpconv_drop', 0.2)]
+            ('stage_3_attn_0_dhmsa_drop', 0.16), ('stage_3_attn_0_mlpconv_drop', 0.16),
+            ('stage_3_attn_1_dhmsa_drop', 0.17333333333333334), ('stage_3_attn_1_mlpconv_drop', 0.17333333333333334),
+            ('stage_3_attn_2_dhmsa_drop', 0.18666666666666668), ('stage_3_attn_2_mlpconv_drop', 0.18666666666666668),
+            ('stage_3_attn_3_dhmsa_drop', 0.2), ('stage_3_attn_3_mlpconv_drop', 0.2)]
 
         actual_drops = TestModel._values_from_config(config, 'SegMe>Common>DropPath', 'rate')
         self.assertListEqual(expected_drops, actual_drops)
@@ -74,36 +70,27 @@ class TestModel(test_combinations.TestCase):
             input_shape=(None, None, 3)).get_config()
 
         expected_gammas = [
-            ('stem_1_norm', 0.01),
-            ('stem_2_norm', 0.00947421052631579),
+            ('stem_1_norm', 0.01), ('stem_2_norm', 0.009334), ('stage_0_attn_0_dhmsa_norm', 0.008668),
 
-            ('stage_0_conv_0_mlpconv_norm', 0.00894842105263158),
-            ('stage_0_conv_1_mlpconv_norm', 0.008422631578947369),
-            ('stage_0_attn_2_chmsa_norm', 0.007896842105263157), ('stage_0_attn_2_mlpconv_norm', 0.007896842105263157),
+            ('stage_0_attn_0_mlpconv_norm', 0.008668), ('stage_0_attn_1_dhmsa_norm', 0.008002),
+            ('stage_0_attn_1_mlpconv_norm', 0.008002), ('stage_1_attn_0_dhmsa_norm', 0.0073360000000000005),
 
-            ('stage_1_conv_0_mlpconv_norm', 0.0073710526315789475),
-            ('stage_1_conv_1_mlpconv_norm', 0.006845263157894736),
-            ('stage_1_attn_2_chmsa_norm', 0.006319473684210526), ('stage_1_attn_2_mlpconv_norm', 0.006319473684210526),
+            ('stage_1_attn_0_mlpconv_norm', 0.0073360000000000005), ('stage_1_attn_1_dhmsa_norm', 0.006670000000000001),
+            ('stage_1_attn_1_mlpconv_norm', 0.006670000000000001), ('stage_2_attn_0_dhmsa_norm', 0.006004),
+            ('stage_2_attn_0_mlpconv_norm', 0.006004), ('stage_2_attn_1_dhmsa_norm', 0.005338),
 
-            ('stage_2_attn_0_dhmsa_norm', 0.0057936842105263155),
-            ('stage_2_attn_0_mlpconv_norm', 0.0057936842105263155),
-            ('stage_2_attn_1_dhmsa_norm', 0.005267894736842105), ('stage_2_attn_1_mlpconv_norm', 0.005267894736842105),
-            ('stage_2_attn_2_dhmsa_norm', 0.004742105263157895), ('stage_2_attn_2_mlpconv_norm', 0.004742105263157895),
-            ('stage_2_attn_3_dhmsa_norm', 0.0042163157894736835),
-            ('stage_2_attn_3_mlpconv_norm', 0.0042163157894736835),
-            ('stage_2_attn_4_dhmsa_norm', 0.003690526315789473), ('stage_2_attn_4_mlpconv_norm', 0.003690526315789473),
-            ('stage_2_attn_5_dhmsa_norm', 0.0031647368421052627),
-            ('stage_2_attn_5_mlpconv_norm', 0.0031647368421052627),
-            ('stage_2_attn_6_chmsa_norm', 0.0026389473684210515),
-            ('stage_2_attn_6_mlpconv_norm', 0.0026389473684210515),
+            ('stage_2_attn_1_mlpconv_norm', 0.005338), ('stage_2_attn_2_dhmsa_norm', 0.004672),
+            ('stage_2_attn_2_mlpconv_norm', 0.004672), ('stage_2_attn_3_dhmsa_norm', 0.004006),
+            ('stage_2_attn_3_mlpconv_norm', 0.004006), ('stage_2_attn_4_dhmsa_norm', 0.00334),
+            ('stage_2_attn_4_mlpconv_norm', 0.00334), ('stage_2_attn_5_dhmsa_norm', 0.002674),
+            ('stage_2_attn_5_mlpconv_norm', 0.002674), ('stage_3_attn_0_dhmsa_norm', 0.0020079999999999994),
 
-            ('stage_3_attn_0_dhmsa_norm', 0.002113157894736841), ('stage_3_attn_0_mlpconv_norm', 0.002113157894736841),
-            ('stage_3_attn_1_dhmsa_norm', 0.0015873684210526307),
-            ('stage_3_attn_1_mlpconv_norm', 0.0015873684210526307),
-            ('stage_3_attn_2_dhmsa_norm', 0.0010615789473684203),
-            ('stage_3_attn_2_mlpconv_norm', 0.0010615789473684203),
-            ('stage_3_attn_3_dhmsa_norm', 0.00053578947368421), ('stage_3_attn_3_mlpconv_norm', 0.00053578947368421),
-            ('stage_3_attn_4_chmsa_norm', 1e-05), ('stage_3_attn_4_mlpconv_norm', 1e-05)]
+            ('stage_3_attn_0_mlpconv_norm', 0.0020079999999999994),
+            ('stage_3_attn_1_dhmsa_norm', 0.0013419999999999994),
+            ('stage_3_attn_1_mlpconv_norm', 0.0013419999999999994),
+            ('stage_3_attn_2_dhmsa_norm', 0.0006759999999999995),
+            ('stage_3_attn_2_mlpconv_norm', 0.0006759999999999995), ('stage_3_attn_3_dhmsa_norm', 1e-05),
+            ('stage_3_attn_3_mlpconv_norm', 1e-05)]
 
         actual_gammas = TestModel._values_from_config(
             config, 'SegMe>Policy>Normalization>BatchNorm', 'gamma_initializer')
@@ -118,36 +105,53 @@ class TestModel(test_combinations.TestCase):
 
         expected_dilations = {
             112: [
+                ('stage_0_attn_0_dhmsa_attn', 1), ('stage_0_attn_1_dhmsa_attn', 2),
+
+                ('stage_1_attn_0_dhmsa_attn', 1), ('stage_1_attn_1_dhmsa_attn', 1),
+
                 ('stage_2_attn_0_dhmsa_attn', 1), ('stage_2_attn_1_dhmsa_attn', 1), ('stage_2_attn_2_dhmsa_attn', 1),
                 ('stage_2_attn_3_dhmsa_attn', 1), ('stage_2_attn_4_dhmsa_attn', 1), ('stage_2_attn_5_dhmsa_attn', 1),
-                ('stage_3_attn_0_dhmsa_attn', 1), ('stage_3_attn_1_dhmsa_attn', 1),
 
-                ('stage_3_attn_2_dhmsa_attn', 1), ('stage_3_attn_3_dhmsa_attn', 1)],
+                ('stage_3_attn_0_dhmsa_attn', 1), ('stage_3_attn_1_dhmsa_attn', 1), ('stage_3_attn_2_dhmsa_attn', 1),
+                ('stage_3_attn_3_dhmsa_attn', 1)
+            ],
             384: [
+                ('stage_0_attn_0_dhmsa_attn', 1), ('stage_0_attn_1_dhmsa_attn', 2),
+
+                ('stage_1_attn_0_dhmsa_attn', 1), ('stage_1_attn_1_dhmsa_attn', 2),
+
                 ('stage_2_attn_0_dhmsa_attn', 1), ('stage_2_attn_1_dhmsa_attn', 2),
                 ('stage_2_attn_2_dhmsa_attn', 1), ('stage_2_attn_3_dhmsa_attn', 2),
                 ('stage_2_attn_4_dhmsa_attn', 1), ('stage_2_attn_5_dhmsa_attn', 2),
 
-                ('stage_3_attn_0_dhmsa_attn', 1), ('stage_3_attn_1_dhmsa_attn', 1),
-                ('stage_3_attn_2_dhmsa_attn', 1), ('stage_3_attn_3_dhmsa_attn', 1)],
+                ('stage_3_attn_0_dhmsa_attn', 1), ('stage_3_attn_1_dhmsa_attn', 1), ('stage_3_attn_2_dhmsa_attn', 1),
+                ('stage_3_attn_3_dhmsa_attn', 1)],
             512: [
+                ('stage_0_attn_0_dhmsa_attn', 1), ('stage_0_attn_1_dhmsa_attn', 2),
+
+                ('stage_1_attn_0_dhmsa_attn', 1), ('stage_1_attn_1_dhmsa_attn', 2),
+
                 ('stage_2_attn_0_dhmsa_attn', 1), ('stage_2_attn_1_dhmsa_attn', 2),
                 ('stage_2_attn_2_dhmsa_attn', 1), ('stage_2_attn_3_dhmsa_attn', 2),
                 ('stage_2_attn_4_dhmsa_attn', 1), ('stage_2_attn_5_dhmsa_attn', 2),
 
-                ('stage_3_attn_0_dhmsa_attn', 1), ('stage_3_attn_1_dhmsa_attn', 1),
-                ('stage_3_attn_2_dhmsa_attn', 1), ('stage_3_attn_3_dhmsa_attn', 1)],
+                ('stage_3_attn_0_dhmsa_attn', 1), ('stage_3_attn_1_dhmsa_attn', 1), ('stage_3_attn_2_dhmsa_attn', 1),
+                ('stage_3_attn_3_dhmsa_attn', 1)],
             576: [
+                ('stage_0_attn_0_dhmsa_attn', 1), ('stage_0_attn_1_dhmsa_attn', 2),
+
+                ('stage_1_attn_0_dhmsa_attn', 1), ('stage_1_attn_1_dhmsa_attn', 2),
+
                 ('stage_2_attn_0_dhmsa_attn', 1), ('stage_2_attn_1_dhmsa_attn', 2),
                 ('stage_2_attn_2_dhmsa_attn', 1), ('stage_2_attn_3_dhmsa_attn', 3),
                 ('stage_2_attn_4_dhmsa_attn', 1), ('stage_2_attn_5_dhmsa_attn', 2),
 
-                ('stage_3_attn_0_dhmsa_attn', 1), ('stage_3_attn_1_dhmsa_attn', 1),
-                ('stage_3_attn_2_dhmsa_attn', 1), ('stage_3_attn_3_dhmsa_attn', 1)]
+                ('stage_3_attn_0_dhmsa_attn', 1), ('stage_3_attn_1_dhmsa_attn', 1), ('stage_3_attn_2_dhmsa_attn', 1),
+                ('stage_3_attn_3_dhmsa_attn', 1)]
         }
 
         actual_dilations = TestModel._values_from_config(
-            config, 'SegMe>Policy>Backbone>DIY>CoMA>DHMSA', 'dilation_rate')
+            config, 'SegMe>Common>DHMSA', 'dilation_rate')
         self.assertListEqual(expected_dilations[size], actual_dilations)
 
     @parameterized.parameters((False,), (True,))

@@ -37,10 +37,10 @@ class DHMSA(layers.Layer):
 
         self.window_length = self.current_window ** 2
         self.halo_window = self.current_window * 2
-        self.halo_length = self.halo_window ** 2
 
         self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
-        self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
+        self.q_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
+        self.kv_dw = ConvNorm(None, 3, strides=2, use_bias=False, name='qkv_dw')  # From PVTv2
 
         if self.use_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
@@ -52,7 +52,7 @@ class DHMSA(layers.Layer):
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
         self.rel_bias = RelativeBias(
-            self.current_window, self.pretrain_window, self.halo_window, self.num_heads, name='rel_bias')
+            self.current_window, self.pretrain_window, self.halo_window // 2, self.num_heads, name='rel_bias')
 
         self.proj = Conv(self.channels, 1, use_bias=False, name='proj')
 
@@ -60,15 +60,8 @@ class DHMSA(layers.Layer):
 
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
-        qkv = self.qkv_dw(qkv)
-
-        if self.use_bias:
-            k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
-            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, qkv_bias)
 
         outputs = with_divisible_pad(self.qkv_part, qkv, self.current_window * self.dilation_rate)
-
         outputs = self.proj(outputs)
 
         return outputs
@@ -77,10 +70,21 @@ class DHMSA(layers.Layer):
         _, pad_height, pad_width = pad_size
 
         q, kv = tf.split(qkv, [self.channels, self.channels * 2], axis=-1)
+        q = self.q_dw(q)
+        kv = self.kv_dw(kv)
+
+        if self.use_bias:
+            q = tf.nn.bias_add(q, self.q_bias)
+
+            k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
+            kv_bias = tf.concat([k_bias, self.v_bias], axis=0)
+            kv = tf.nn.bias_add(kv, kv_bias)
+
         q_part = partition_apply_fused(
             q, pad_height, pad_width, 'window_size', self.current_window, 1, self.num_heads, self.dilation_rate)
         kv_part = halo_partition_fused(
-            kv, pad_height, pad_width, self.current_window, self.halo_window, 2, self.num_heads, self.dilation_rate)
+            kv, pad_height // 2, pad_width // 2, self.current_window // 2, self.halo_window // 2, 2, self.num_heads,
+            self.dilation_rate)
 
         parted = self.qkv_attn(q_part, kv_part, pad_size=pad_size, pad_val=pad_val)
         parted = partition_reverse_fused(
@@ -113,7 +117,9 @@ class DHMSA(layers.Layer):
 
         mask = tf.ones((1, src_height, src_width, 1), dtype=self.compute_dtype)
         mask = tf.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)])
-        mask = halo_partition(mask, pad_height, pad_width, self.current_window, self.halo_window, self.dilation_rate)
+        mask = -tf.nn.max_pool2d(-mask, ksize=2, strides=2, padding='SAME')  # min pooling
+        mask = halo_partition(
+            mask, pad_height // 2, pad_width // 2, self.current_window // 2, self.halo_window // 2, self.dilation_rate)
         mask = tf.squeeze(mask == 0., axis=-1)[:, :, None, None]
         mask = -100. * tf.cast(mask, self.compute_dtype)
 
@@ -135,6 +141,148 @@ class DHMSA(layers.Layer):
         })
 
         return config
+
+
+# @register_keras_serializable(package='SegMe>Common')
+# class SWMSA(layers.Layer):
+#     def __init__(self, current_window, pretrain_window, num_heads, shift_mode, use_bias=True, **kwargs):
+#         super().__init__(**kwargs)
+#         self.input_spec = layers.InputSpec(ndim=4)
+#
+#         if current_window < pretrain_window:
+#             raise ValueError('Actual window size should not be less then pretrain one.')
+#
+#         self.current_window = current_window
+#         self.pretrain_window = pretrain_window
+#         self.num_heads = num_heads
+#         self.shift_mode = shift_mode % 5
+#         self.use_bias = use_bias
+#
+#     @shape_type_conversion
+#     def build(self, input_shape):
+#         self.channels = input_shape[-1]
+#         if self.channels is None:
+#             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
+#         if self.channels % self.num_heads:
+#             raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
+#
+#         self.window_length = self.current_window ** 2
+#
+#         self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+#         self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
+#
+#         if self.use_bias:
+#             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
+#             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
+#
+#         self.shift_size = self.current_window // 2
+#         self.shift_dir = {0: None, 1: [1, 1], 2: [1, -1], 3: [-1, -1], 4: [-1, 1]}[self.shift_mode]
+#
+#         self.scale = self.add_weight(
+#             'scale', shape=[self.num_heads, 1, 1],
+#             initializer=initializers.constant(np.log(10., dtype=self.dtype)),
+#             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
+#
+#         self.rel_bias = RelativeBias(
+#             self.current_window, self.pretrain_window, self.current_window, self.num_heads, name='rel_bias')
+#
+#         self.proj = Conv(self.channels, 1, use_bias=False, name='proj')
+#
+#         super().build(input_shape)
+#
+#     def call(self, inputs, **kwargs):
+#         qkv = self.qkv(inputs)
+#         qkv = self.qkv_dw(qkv)
+#
+#         if self.use_bias:
+#             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
+#             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
+#             qkv = tf.nn.bias_add(qkv, qkv_bias)
+#
+#         if self.shift_dir is None:
+#             shift_size = None
+#         else:
+#             curr_size = tf.shape(inputs)[1:3]
+#             with_shift = curr_size > self.current_window
+#             shift_size = self.shift_size * tf.cast(with_shift, curr_size.dtype) * self.shift_dir
+#
+#         outputs = with_partition_fused(
+#             self.qkv_attn, qkv, 'grid_size', self.current_window, 3, self.num_heads, shift_size=shift_size)
+#
+#         outputs = self.proj(outputs)
+#
+#         return outputs
+#
+#     def qkv_attn(self, qkv, pad_size, pad_val):
+#         q, k, v = tf.unstack(qkv, 3, axis=-2)
+#
+#         q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
+#         k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
+#
+#         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
+#         attn += self.attn_mask(pad_size, pad_val)
+#         attn = tf.nn.softmax(attn)
+#
+#         outputs = tf.matmul(attn, v)
+#
+#         return outputs
+#
+#     def attn_mask(self, pad_size, pad_val):
+#         mask = self.rel_bias(None)
+#
+#         mask = smart_cond(
+#             self.shift_dir is None & sum(pad_val) > 0,
+#             lambda: mask + self.pad_mask(pad_size, pad_val),
+#             lambda: tf.identity(mask))
+#
+#         return mask
+#
+#     def pad_mask(self, pad_size, pad_val):
+#         _, pad_height, pad_width = pad_size
+#         src_height = pad_height - sum(pad_val[:2])
+#         src_width = pad_width - sum(pad_val[2:])
+#
+#         if self.shift_dir is None:
+#             shift_size = None
+#         else:
+#             with_shift = [src_height > self.current_window, src_width > self.current_window]
+#             shift_size = self.shift_size * tf.cast(with_shift, 'int32') * self.shift_dir
+#
+#         mask = tf.ones((1, src_height, src_width, 1), dtype='int64')
+#         mask = tf.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)])
+#         mask = partition_apply(
+#             mask, pad_height, pad_width, 'grid_size', self.current_window, 1, shift_size=shift_size)
+#         mask = tf.squeeze(mask == 0, axis=-1)[:, :, None, None]
+#         mask = -100. * tf.cast(mask, self.compute_dtype)
+#
+#         last_repeats = [window_size - shift_size, shift_size]
+#         shift_mask = np.arange(9, dtype='int32').reshape((3, 3))
+#         shift_mask = tf.repeat(shift_mask, [padded_height - window_size] + last_repeats, axis=0)
+#         shift_mask = tf.repeat(shift_mask, [padded_width - window_size] + last_repeats, axis=1)
+#         shift_mask = shift_mask[None, ..., None]
+#         shift_windows = window_partition(shift_mask, padded_height, padded_width, window_size, 'int32')
+#         shift_windows = tf.squeeze(shift_windows, axis=-1)
+#         shift_windows = shift_windows[:, None] - shift_windows[:, :, None]
+#
+#
+#         return mask
+#
+#     @shape_type_conversion
+#     def compute_output_shape(self, input_shape):
+#         return input_shape
+#
+#     def get_config(self):
+#         config = super().get_config()
+#
+#         config.update({
+#             'current_window': self.current_window,
+#             'pretrain_window': self.pretrain_window,
+#             'num_heads': self.num_heads,
+#             'shift_mode': self.shift_mode,
+#             'use_bias': self.use_bias
+#         })
+#
+#         return config
 
 
 @register_keras_serializable(package='SegMe>Common')
