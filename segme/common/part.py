@@ -5,8 +5,7 @@ from segme.common.patchxla import extract_patches_xla
 _PARTITION_TYPES = {'window_size', 'window_count', 'grid_size', 'grid_count'}
 
 
-def partition_apply(inputs, height, width, part_type, size_count, dilation_rate=1, shift_size=None, dtype=None,
-                    name=None):
+def partition_apply(inputs, height, width, part_type, size_count, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'partition_apply'):
         inputs = tf.convert_to_tensor(inputs, dtype)
         height = tf.convert_to_tensor(height)
@@ -25,17 +24,11 @@ def partition_apply(inputs, height, width, part_type, size_count, dilation_rate=
         height_blocks = height // (size_count * dilation_rate)
         width_blocks = width // (size_count * dilation_rate)
 
-        if shift_size is None:
-            outputs = inputs
-        else:
-            shift_size = tf.convert_to_tensor(shift_size)
-            outputs = tf.roll(inputs, -shift_size, [1, 2])
-
         if part_type in {'window_size', 'grid_count'}:
-            outputs = tf.reshape(outputs, [
+            outputs = tf.reshape(inputs, [
                 -1, height_blocks, size_count, dilation_rate, width_blocks, size_count, dilation_rate, channels])
         else:
-            outputs = tf.reshape(outputs, [
+            outputs = tf.reshape(inputs, [
                 -1, size_count, height_blocks, dilation_rate, size_count, width_blocks, dilation_rate, channels])
 
         if part_type in {'window_size', 'window_count'}:
@@ -53,7 +46,7 @@ def partition_apply(inputs, height, width, part_type, size_count, dilation_rate=
         return outputs
 
 
-def partition_reverse(inputs, height, width, part_type, size_count, dilation_rate=1, shift_size=None, dtype=None,
+def partition_reverse(inputs, height, width, part_type, size_count, dilation_rate=1, dtype=None,
                       name=None):
     with tf.name_scope(name or 'partition_reverse'):
         inputs = tf.convert_to_tensor(inputs, dtype)
@@ -88,13 +81,10 @@ def partition_reverse(inputs, height, width, part_type, size_count, dilation_rat
         outputs = tf.reshape(outputs, [
             -1, height_blocks * size_count * dilation_rate, width_blocks * size_count * dilation_rate, channels])
 
-        if shift_size is not None:
-            outputs = tf.roll(outputs, shift_size, [1, 2])
-
         return outputs
 
 
-def with_partition(op, inputs, part_type, size_count, dilation_rate=1, shift_size=None, dtype=None, name=None):
+def with_partition(op, inputs, part_type, size_count, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'with_partition'):
         inputs = tf.convert_to_tensor(inputs, dtype)
 
@@ -111,9 +101,9 @@ def with_partition(op, inputs, part_type, size_count, dilation_rate=1, shift_siz
         def _op(padded, pad_size, pad_val):
             _, height, width = pad_size
 
-            parted = partition_apply(padded, height, width, part_type, size_count, dilation_rate, shift_size, dtype)
+            parted = partition_apply(padded, height, width, part_type, size_count, dilation_rate, dtype)
             parted = op(parted, pad_size=pad_size, pad_val=pad_val)
-            parted = partition_reverse(parted, height, width, part_type, size_count, dilation_rate, shift_size, dtype)
+            parted = partition_reverse(parted, height, width, part_type, size_count, dilation_rate, dtype)
 
             return parted
 
@@ -170,7 +160,7 @@ def halo_partition(inputs, height, width, window_size, halo_size, dilation_rate=
 
 
 def partition_apply_fused(inputs, height, width, part_type, size_count, qkv_size, num_heads, dilation_rate=1,
-                          shift_size=None, dtype=None, name=None):
+                          dtype=None, name=None):
     with tf.name_scope(name or 'partition_apply_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
         height = tf.convert_to_tensor(height)
@@ -190,18 +180,12 @@ def partition_apply_fused(inputs, height, width, part_type, size_count, qkv_size
         width_blocks = width // (size_count * dilation_rate)
         head_channels = full_channels // (qkv_size * num_heads)
 
-        if shift_size is None:
-            outputs = inputs
-        else:
-            shift_size = tf.convert_to_tensor(shift_size)
-            outputs = tf.roll(inputs, -shift_size, [1, 2])
-
         if part_type in {'window_size', 'grid_count'}:
-            outputs = tf.reshape(outputs, [
+            outputs = tf.reshape(inputs, [
                 -1, height_blocks, size_count, dilation_rate, width_blocks, size_count, dilation_rate,
                 num_heads, qkv_size, head_channels])
         else:
-            outputs = tf.reshape(outputs, [
+            outputs = tf.reshape(inputs, [
                 -1, size_count, height_blocks, dilation_rate, size_count, width_blocks, dilation_rate,
                 num_heads, qkv_size, head_channels])
 
@@ -223,7 +207,7 @@ def partition_apply_fused(inputs, height, width, part_type, size_count, qkv_size
 
 
 def partition_reverse_fused(inputs, height, width, part_type, size_count, num_heads, dilation_rate=1,
-                            shift_size=None, dtype=None, name=None):
+                            dtype=None, name=None):
     with tf.name_scope(name or 'partition_reverse_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
         height = tf.convert_to_tensor(height)
@@ -260,14 +244,11 @@ def partition_reverse_fused(inputs, height, width, part_type, size_count, num_he
         outputs = tf.reshape(outputs, [
             -1, height_blocks * size_count * dilation_rate, width_blocks * size_count * dilation_rate, full_channels])
 
-        if shift_size is not None:
-            outputs = tf.roll(outputs, shift_size, [1, 2])
-
         return outputs
 
 
 def with_partition_fused(op, inputs, part_type, size_count, qkv_size, num_heads, dilation_rate=1,
-                         shift_size=None, dtype=None, name=None):
+                         dtype=None, name=None):
     with tf.name_scope(name or 'with_partition_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
 
@@ -285,10 +266,10 @@ def with_partition_fused(op, inputs, part_type, size_count, qkv_size, num_heads,
             _, height, width = pad_size
 
             parted = partition_apply_fused(
-                padded, height, width, part_type, size_count, qkv_size, num_heads, dilation_rate, shift_size, dtype)
+                padded, height, width, part_type, size_count, qkv_size, num_heads, dilation_rate, dtype)
             parted = op(parted, pad_size=pad_size, pad_val=pad_val)
             parted = partition_reverse_fused(
-                parted, height, width, part_type, size_count, num_heads, dilation_rate, shift_size, dtype)
+                parted, height, width, part_type, size_count, num_heads, dilation_rate, dtype)
 
             return parted
 
