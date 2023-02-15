@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from keras.mixed_precision import policy as mixed_precision
 from keras.testing_infra import test_combinations, test_utils
-from segme.common.attn import DHMSA, GGMSA, RelativeBias, CHMSA
+from segme.common.attn import DHMSA, SWMSA, GGMSA, RelativeBias, CHMSA
 
 
 @test_combinations.run_all_keras_modes
@@ -59,6 +59,120 @@ class TestDHMSA(test_combinations.TestCase):
             expected_output_shape=[None, 16, 16, 4],
             expected_output_dtype='float16'
         )
+
+
+@test_combinations.run_all_keras_modes
+class TestSWMSA(test_combinations.TestCase):
+    def setUp(self):
+        super(TestSWMSA, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestSWMSA, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            SWMSA,
+            kwargs={'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'use_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            SWMSA,
+            kwargs={'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'use_bias': True},
+            input_shape=[2, 14, 18, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 14, 18, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            SWMSA,
+            kwargs={'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'shift_mode': 0, 'use_bias': True},
+            input_shape=[2, 16, 16, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            SWMSA,
+            kwargs={'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 1, 'use_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            SWMSA,
+            kwargs={'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 2, 'use_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            SWMSA,
+            kwargs={'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 3, 'use_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            SWMSA,
+            kwargs={'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 4, 'use_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        test_utils.layer_test(
+            SWMSA,
+            kwargs={'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'use_bias': False},
+            input_shape=[2, 16, 16, 4],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float16'
+        )
+
+    def test_shift_mask_0(self):
+        inputs = np.zeros([2, 16, 16, 3])
+        layer = SWMSA(4, 4, 1, 0)
+        _ = layer(inputs)
+
+        mask = layer.shift_mask([1, 16, 16], [0, 0])
+        mask = self.evaluate(mask)
+
+        self.assertTrue((mask == 0.).all())
+
+    def test_shift_mask_1(self):
+        inputs = np.zeros([2, 7, 9, 3])
+        layer = SWMSA(4, 4, 1, 1)
+        _ = layer(inputs)
+
+        mask = layer.shift_mask([1, 8, 12], [2, 2])
+        mask = self.evaluate(mask)
+        mask = (mask == 0.).astype('int32')[0, :, 0]
+
+        self.assertTrue((mask[0, 0] == 1).all())
+        self.assertAllEqual(mask[-1, 0], [1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+    def test_shift_mask_2(self):
+        inputs = np.zeros([2, 7, 9, 3])
+        layer = SWMSA(4, 4, 1, 2)
+        _ = layer(inputs)
+
+        mask = layer.shift_mask([1, 8, 12], [2, -2])
+        mask = self.evaluate(mask)
+        mask = (mask == 0.).astype('int32')[0, :, 0]
+
+        self.assertAllEqual(mask[0, 0], [1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0])
+        self.assertAllEqual(mask[-1, 0], [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
 
 
 @test_combinations.run_all_keras_modes
