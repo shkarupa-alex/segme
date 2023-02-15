@@ -99,34 +99,13 @@ def MLPConv(fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initializ
         else:
             x = Conv(
                 expand_filters, 1, use_bias=False, name=f'{name}_expand_pw')(inputs)
-            # x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
+            x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
         x = Act(name=f'{name}_act')(x)
         x = GRN(center=False, name=f'{name}_grn')(x)  # From ConvNeXt2
         x = Conv(channels, 1, use_bias=False, name=f'{name}_squeeze')(x)
         x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_norm')(x)
         x = DropPath(path_drop, name=f'{name}_drop')(x)
         x = layers.add([x, inputs], name=f'{name}_add')
-
-        return x
-
-    return apply
-
-
-def ConvBlock(fused, kernel_size=3, expand_ratio=3., path_gamma=1., path_drop=0., name=None):
-    if name is None:
-        counter = backend.get_uid('conv_block')
-        name = f'conv_block_{counter}'
-
-    gamma_initializer = initializers.Constant(path_gamma)
-
-    def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-
-        x = MLPConv(
-            fused, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,
-            gamma_initializer=gamma_initializer, name=f'{name}_mlpconv')(inputs)
 
         return x
 
@@ -359,25 +338,25 @@ def CoMA(
 
 
 def CoMATiny(embed_dim=64, stem_depth=2, stage_depths=(3, 3, 21, 3), path_drop=0.1, **kwargs):
-    # 22.7 14.5
+    # 24.3 28.5
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
         model_name='coma-tiny', **kwargs)
 
 
 def CoMASmall(embed_dim=96, stem_depth=2, stage_depths=(3, 3, 21, 3), **kwargs):
-    # 53.7 34.6
+    # 53.7 62.0
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-small', **kwargs)
 
 
 def CoMABase(embed_dim=128, stem_depth=2, stage_depths=(3, 3, 21, 3), **kwargs):
-    # 106.0 69.7
+    # 94.7 108.3
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-base', **kwargs)
 
 
 def CoMALarge(embed_dim=160, stem_depth=2, stage_depths=(3, 3, 21, 3), **kwargs):
-    # 190.6 127.8
+    # 147.2 167.4
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-large', **kwargs)
