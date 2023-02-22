@@ -24,6 +24,11 @@ class FixedConv(layers.Conv2D):
                          activity_regularizer=activity_regularizer, kernel_constraint=kernel_constraint,
                          bias_constraint=bias_constraint, **kwargs)
 
+        if max(self.strides) > 1 and max(self.dilation_rate) > 1:
+            raise ValueError(
+                f'`strides > 1` not supported in conjunction with `dilation_rate > 1`. '
+                f'Received: strides={self.strides} and dilation_rate={self.dilation_rate}')
+
     @shape_type_conversion
     def build(self, input_shape):
         if max(self.strides) > 1 and max(self.dilation_rate) > 1:
@@ -34,18 +39,20 @@ class FixedConv(layers.Conv2D):
     def convolution_op(self, inputs, kernel):
         paddings = 'VALID' if 'same' != self.padding else 'SAME'
 
-        if 'SAME' == paddings and max(self.kernel_size) > 1 and max(self.strides) > 1:
+        if 'SAME' == paddings and max(self.strides) > 1:
             pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
             pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
             paddings = ((0, 0), (pad_h // 2, pad_h - pad_h // 2), (pad_w // 2, pad_w - pad_w // 2))
             paddings = ((0, 0),) + paddings if self.data_format == 'channels_first' else paddings + ((0, 0),)
 
-            return tf.nn.conv2d(
-                inputs, kernel, strides=list(self.strides), padding=list(paddings), dilations=list(self.dilation_rate),
+        if not tf.test.is_gpu_available() and max(self.dilation_rate) > 1:
+            # Current libxsmm and customized CPU implementations do not yet support dilation rates > 1
+            return tf.nn.convolution(
+                inputs, kernel, strides=self.strides, padding=paddings, dilations=self.dilation_rate,
                 data_format=self._tf_data_format, name=self.__class__.__name__)
 
-        return tf.nn.convolution(
-            inputs, kernel, strides=list(self.strides), padding=paddings, dilations=list(self.dilation_rate),
+        return tf.nn.conv2d(
+            inputs, kernel, strides=self.strides, padding=paddings, dilations=self.dilation_rate,
             data_format=self._tf_data_format, name=self.__class__.__name__)
 
     def get_config(self):
