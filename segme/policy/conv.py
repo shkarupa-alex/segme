@@ -39,7 +39,7 @@ class FixedConv(layers.Conv2D):
     def convolution_op(self, inputs, kernel):
         paddings = 'VALID' if 'same' != self.padding else 'SAME'
 
-        if 'SAME' == paddings and max(self.strides) > 1:
+        if 'SAME' == paddings and max(self.kernel_size) > 1 and max(self.strides) > 1:
             pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
             pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
             paddings = ((0, 0), (pad_h // 2, pad_h - pad_h // 2), (pad_w // 2, pad_w - pad_w // 2))
