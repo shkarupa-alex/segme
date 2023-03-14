@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from segme.utils.common.augs.autocontrast import autocontrast
+from segme.utils.common.augs.autocontrast import _autocontrast
 from segme.utils.common.augs.tests.testing_utils import aug_samples, max_diff
 
 
@@ -8,17 +8,16 @@ from segme.utils.common.augs.tests.testing_utils import aug_samples, max_diff
 class TestAutoContrast(tf.test.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples('autocontrast')
-        augmented = autocontrast(inputs)
+        augmented = _autocontrast(inputs)
         difference = max_diff(expected, augmented)
         difference = self.evaluate(difference)
         self.assertLessEqual(difference, 1)
 
     def test_float(self):
         inputs, expected = aug_samples('autocontrast', 'float32')
-        augmented = autocontrast(inputs)
+        augmented = _autocontrast(inputs)
         difference = max_diff(expected, augmented)
         difference = self.evaluate(difference)
-
         self.assertLessEqual(difference, 1 / 255)
 
 

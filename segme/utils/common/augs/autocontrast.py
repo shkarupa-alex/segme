@@ -1,23 +1,29 @@
 import tensorflow as tf
+from segme.utils.common.augs.common import apply, convert, validate
 
 
-def autocontrast(images, name=None):
+def autocontrast(image, masks, weight, prob, name=None):
     with tf.name_scope(name or 'autocontrast'):
-        images = tf.convert_to_tensor(images, name='images')
-        if 4 != images.shape.rank:
-            raise ValueError('Expecting `images` rank to be 4.')
-        if 3 != images.shape[-1]:
-            raise ValueError('Expecting `images` channels size to be 3.')
+        return apply(
+            image, masks, weight, prob,
+            lambda x: _autocontrast(x),
+            lambda x: tf.identity(x),
+            lambda x: tf.identity(x))
 
-        dtype = images.dtype
-        images = images if dtype in {tf.float16, tf.float32} else tf.image.convert_image_dtype(images, 'float32')
 
-        lo = tf.reduce_min(images, axis=[1, 2], keepdims=True)
-        hi = tf.reduce_max(images, axis=[1, 2], keepdims=True)
+def _autocontrast(image, name=None):
+    with tf.name_scope(name or 'autocontrast_'):
+        image, _, _ = validate(image, None, None)
 
-        images_ = tf.math.divide_no_nan(images - lo, hi - lo)
+        dtype = image.dtype
+        image = convert(image, 'float32')
 
-        apply = tf.cast(hi > lo, images.dtype)
-        images = images_ * apply + images * (1 - apply)
+        lo = tf.reduce_min(image, axis=[1, 2], keepdims=True)
+        hi = tf.reduce_max(image, axis=[1, 2], keepdims=True)
 
-        return tf.image.convert_image_dtype(images, dtype, saturate=True)
+        image_ = tf.math.divide_no_nan(image - lo, hi - lo)
+
+        mask = tf.cast(hi > lo, image.dtype)
+        image = image_ * mask + image * (1 - mask)
+
+        return convert(image, dtype, saturate=True)
