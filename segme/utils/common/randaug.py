@@ -20,52 +20,6 @@ from segme.utils.common.augs.shuffle import shuffle
 from segme.utils.common.augs.solarize import solarize
 from segme.utils.common.augs.translate import translate_x, translate_y
 
-_MAX_LEVEL = 10
-
-_AUG_FUNC = {
-    'AutoContrast': autocontrast,
-    'Brightness': brightness,
-    'Contrast': contrast,
-    'Equalize': equalize,
-    'FlipLR': flip_lr,
-    'FlipUD': flip_ud,
-    'Gamma': gamma,
-    'Grayscale': grayscale,
-    'Hue': hue,
-    'Invert': invert,
-    'Jpeg': jpeg,
-    'Mix': mix,
-    'Posterize': posterize,
-    'Rotate': rotate,
-    'RotateCW': rotate_cw,
-    'RotateCCW': rotate_ccw,
-    'Saturation': saturation,
-    'Sharpness': sharpness,
-    'ShearX': shear_x,
-    'ShearY': shear_y,
-    'Shuffle': shuffle,
-    'Solarize': solarize,
-    'TranslateX': translate_x,
-    'TranslateY': translate_y
-}
-
-
-# rotate 1.3
-# shear-x 0.9
-# shear-y 0.9
-# translate-y 0.4
-# translate-x 0.4
-# autoContrast 0.1
-# sharpness 0.1
-# identity 0.1
-# contrast 0.0
-# color 0.0
-# brightness 0.0
-# equalize -0.0
-# solarize -0.1
-# posterize -0.3
-
-# TODO: blend - gray, mix, sharp
 
 def _autocontrast_args(magnitude, batch, channel, replace, reduce=1.):
     prob = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / reduce)
@@ -159,9 +113,9 @@ def _mix_args(magnitude, batch, channel, replace, reduce=1.):
     return [prob, factor]
 
 
-def _posterize_args(magnitude, batch, channel, replace, reduce=1.):
+def _posterize_args(magnitude, batch, channel, replace, reduce=2.):
     prob = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / reduce)
-    bits = tf.cast(tf.random.uniform([], minval=1, maxval=round(magnitude * 8), dtype='int32'), 'uint8')
+    bits = tf.cast(tf.random.uniform([], minval=1, maxval=round(1 + magnitude * 7 + 1e-5), dtype='int32'), 'uint8')
 
     return [prob, bits]
 
@@ -209,7 +163,7 @@ def _shuffle_args(magnitude, batch, channel, replace, reduce=1.):
     return [prob]
 
 
-def _solarize_args(magnitude, batch, channel, replace, reduce=1.):
+def _solarize_args(magnitude, batch, channel, replace, reduce=2.):
     prob = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / reduce)
 
     return [prob]
@@ -221,6 +175,33 @@ def _translate_x_y_args(magnitude, batch, channel, replace, reduce=1.):
 
     return [prob, factor, replace]
 
+
+_AUG_FUNC = {
+    'AutoContrast': autocontrast,
+    'Brightness': brightness,
+    'Contrast': contrast,
+    'Equalize': equalize,
+    'FlipLR': flip_lr,
+    'FlipUD': flip_ud,
+    'Gamma': gamma,
+    'Grayscale': grayscale,
+    'Hue': hue,
+    'Invert': invert,
+    'Jpeg': jpeg,
+    'Mix': mix,
+    'Posterize': posterize,
+    'Rotate': rotate,
+    'RotateCW': rotate_cw,
+    'RotateCCW': rotate_ccw,
+    'Saturation': saturation,
+    'Sharpness': sharpness,
+    'ShearX': shear_x,
+    'ShearY': shear_y,
+    'Shuffle': shuffle,
+    'Solarize': solarize,
+    'TranslateX': translate_x,
+    'TranslateY': translate_y
+}
 
 _AUG_ARGS = {
     'AutoContrast': _autocontrast_args,
@@ -250,7 +231,7 @@ _AUG_ARGS = {
 }
 
 
-def rand_augment(image, masks, weight, levels, magnitude=0.5, ops=None, name=None):
+def rand_augment(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=None):
     with tf.name_scope(name or 'rand_augment'):
         image, masks, weight = validate(image, masks, weight)
         image = convert(image, 'float32')
