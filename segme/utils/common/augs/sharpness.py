@@ -12,7 +12,7 @@ def sharpness(image, masks, weight, prob, factor, name=None):
             lambda x: tf.identity(x))
 
 
-def _sharpness(image, factor, name=None):  # TODO pad, compare
+def _sharpness(image, factor, name=None):
     with tf.name_scope(name or 'sharpness_'):
         image, _, _ = validate(image, None, None)
 

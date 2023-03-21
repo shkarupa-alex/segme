@@ -90,6 +90,27 @@ def blend(original, augmented, factor, name=None):
         return convert(blended, dtype, saturate=True)
 
 
+def transform(images, transforms, fill_mode='reflect', fill_value=0.0, interpolation='bilinear', name=None):
+    with tf.name_scope(name or 'transform'):
+        output_shape = tf.shape(images)[1:3]
+        if not tf.executing_eagerly():
+            output_shape_value = tf.get_static_value(output_shape)
+            if output_shape_value is not None:
+                output_shape = output_shape_value
+
+        output_shape = tf.convert_to_tensor(output_shape, 'int32', name='output_shape')
+        fill_value = tf.convert_to_tensor(fill_value, 'float32', name='fill_value')
+
+        return tf.raw_ops.ImageProjectiveTransformV3(
+            images=images,
+            output_shape=output_shape,
+            fill_value=fill_value,
+            transforms=transforms,
+            fill_mode=fill_mode.upper(),
+            interpolation=interpolation.upper(),
+        )
+
+
 def wrap(image, name=None):
     with tf.name_scope(name or 'wrap'):
         image, _, _ = validate(image, None, None)

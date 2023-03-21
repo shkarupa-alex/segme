@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras_cv.utils import preprocessing
-from segme.utils.common.augs.common import apply, validate, wrap, unwrap
+from segme.utils.common.augs.common import apply, transform, validate, wrap, unwrap
 
 
 def shear_x(image, masks, weight, prob, factor, replace=None, name=None):
@@ -26,10 +25,10 @@ def _shear_x(image, factor, interpolation, replace=None, name=None):
     with tf.name_scope(name or 'shear_x_'):
         image, _, _ = validate(image, None, None)
 
-        transform = tf.stack([1., factor, 0., 0., 1., 0., 0., 0.])[None]
+        matrix = tf.stack([1., factor, 0., 0., 1., 0., 0., 0.])[None]
 
         image = wrap(image)
-        image = preprocessing.transform(image, transform, fill_mode='constant', interpolation=interpolation)
+        image = transform(image, matrix, fill_mode='constant', interpolation=interpolation)
         image = unwrap(image, replace)
 
         return image
@@ -39,10 +38,10 @@ def _shear_y(image, factor, interpolation, replace=None, name=None):
     with tf.name_scope(name or 'shear_y_'):
         image, _, _ = validate(image, None, None)
 
-        transform = tf.stack([1., 0., 0., factor, 1., 0., 0., 0.])[None]
+        matrix = tf.stack([1., 0., 0., factor, 1., 0., 0., 0.])[None]
 
         image = wrap(image)
-        image = preprocessing.transform(image, transform, fill_mode='constant', interpolation=interpolation)
+        image = transform(image, matrix, fill_mode='constant', interpolation=interpolation)
         image = unwrap(image, replace)
 
         return image

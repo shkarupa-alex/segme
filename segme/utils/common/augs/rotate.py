@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras_cv.utils import preprocessing
-from segme.utils.common.augs.common import apply, wrap, unwrap, validate
+from segme.utils.common.augs.common import apply, transform, wrap, unwrap, validate
 
 
 def rotate(image, masks, weight, prob, degrees, replace=None, name=None):
@@ -37,10 +36,16 @@ def _rotate(image, degrees, interpolation, replace=None, name=None):
 
         radians = tf.cast(-degrees * np.pi / 180., 'float32')[None]
         height, width = tf.unstack(tf.cast(tf.shape(image)[1:3], 'float32'))
-        transform = preprocessing.get_rotation_matrix(radians, height, width)
+
+        h_offset = ((width - 1) - (tf.cos(radians) * (width - 1) - tf.sin(radians) * (height - 1))) / 2.0
+        v_offset = ((height - 1) - (tf.sin(radians) * (width - 1) + tf.cos(radians) * (height - 1))) / 2.0
+        matrix = tf.concat(
+            [tf.cos(radians)[:, None], -tf.sin(radians)[:, None], h_offset[:, None], tf.sin(radians)[:, None],
+             tf.cos(radians)[:, None], v_offset[:, None], tf.zeros((1, 2), 'float32')],
+            axis=1)
 
         image = wrap(image)
-        image = preprocessing.transform(image, transform, fill_mode='constant', interpolation=interpolation)
+        image = transform(image, matrix, fill_mode='constant', interpolation=interpolation)
         image = unwrap(image, replace)
 
         return image
