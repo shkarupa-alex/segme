@@ -18,6 +18,6 @@ def _contrast(image, factor, name=None):
         dtype = image.dtype
         image = convert(image, 'float32')
 
-        image = tf.image.adjust_contrast(image, factor + 1.)
+        image = tf.image.adjust_contrast(image, factor)
 
         return convert(image, dtype, saturate=True)

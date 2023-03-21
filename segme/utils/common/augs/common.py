@@ -5,9 +5,10 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
     with tf.name_scope(name or 'apply'):
         def _select_some(x, x_, s, h, w, h_, w_):
             with tf.name_scope(name or 'select_some'):
-                m = tf.reduce_max([h, w, h_, w_])
-                x = tf.pad(x, [(0, 0), (0, m - h), (0, m - w), (0, 0)])
-                x_ = tf.pad(x_, [(0, 0), (0, m - h_), (0, m - w_), (0, 0)])
+                mh = tf.maximum(h, h_)
+                mw = tf.maximum(w, w_)
+                x = tf.pad(x, [(0, 0), (0, mh - h), (0, mw - w), (0, 0)])
+                x_ = tf.pad(x_, [(0, 0), (0, mh - h_), (0, mw - w_), (0, 0)])
                 s = tf.cast(s, x.dtype)
 
                 x = x * (1 - s) + x_ * s
@@ -23,7 +24,7 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
 
         batch, height, width = tf.unstack(tf.shape(image)[:3])
         height_, width_ = tf.unstack(tf.shape(image_)[1:3])
-        same = tf.equal(height, height_) & tf.equal(width, width_)
+        same = tf.logical_and(tf.equal(height, height_), tf.equal(width, width_))
 
         switch = tf.random.uniform([batch, 1, 1, 1]) < prob
         switch, switch0 = tf.cast(switch, 'float32'), switch[0]

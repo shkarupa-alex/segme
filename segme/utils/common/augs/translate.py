@@ -4,26 +4,26 @@ from keras_cv.utils import preprocessing
 from segme.utils.common.augs.common import apply, validate, wrap, unwrap
 
 
-def translatex(image, masks, weight, factor, prob, replace=None, name=None):
-    with tf.name_scope(name or 'translatex'):
+def translate_x(image, masks, weight, prob, factor, replace=None, name=None):
+    with tf.name_scope(name or 'translate_x'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _translatex(x, factor, 'bilinear', replace),
-            lambda x: _translatex(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])),
-            lambda x: _translatex(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])))
+            lambda x: _translate_x(x, factor, 'bilinear', replace),
+            lambda x: _translate_x(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])),
+            lambda x: _translate_x(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])))
 
 
-def translatey(image, masks, weight, factor, prob, replace=None, name=None):
-    with tf.name_scope(name or 'translatey'):
+def translate_y(image, masks, weight, prob, factor, replace=None, name=None):
+    with tf.name_scope(name or 'translate_y'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _translatey(x, factor, 'bilinear', replace),
-            lambda x: _translatey(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])),
-            lambda x: _translatey(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])))
+            lambda x: _translate_y(x, factor, 'bilinear', replace),
+            lambda x: _translate_y(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])),
+            lambda x: _translate_y(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])))
 
 
-def _translatex(image, factor, interpolation, replace=None, name=None):
-    with tf.name_scope(name or 'translatex_'):
+def _translate_x(image, factor, interpolation, replace=None, name=None):
+    with tf.name_scope(name or 'translate_x_'):
         image, _, _ = validate(image, None, None)
 
         width = tf.cast(tf.shape(image)[2], 'float32')
@@ -37,8 +37,8 @@ def _translatex(image, factor, interpolation, replace=None, name=None):
         return image
 
 
-def _translatey(image, factor, interpolation, replace=None, name=None):
-    with tf.name_scope(name or 'translatey_'):
+def _translate_y(image, factor, interpolation, replace=None, name=None):
+    with tf.name_scope(name or 'translate_y_'):
         image, _, _ = validate(image, None, None)
 
         height = tf.cast(tf.shape(image)[1], 'float32')

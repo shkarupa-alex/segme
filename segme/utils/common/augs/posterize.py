@@ -14,7 +14,7 @@ def posterize(image, masks, weight, prob, bits, name=None):
 def _posterize(image, bits, name=None):
     with tf.name_scope(name or 'posterize_'):
         image, _, _ = validate(image, None, None)
-        if bits > 8 or bits < 0:
+        if not tf.is_tensor(bits) and (bits > 8 or bits < 0):
             raise ValueError('Expecting `bits` to be in range [0, 8).')
 
         dtype = image.dtype

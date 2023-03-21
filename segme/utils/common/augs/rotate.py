@@ -4,7 +4,7 @@ from keras_cv.utils import preprocessing
 from segme.utils.common.augs.common import apply, wrap, unwrap, validate
 
 
-def rotate(image, masks, weight, degrees, prob, replace=None, name=None):
+def rotate(image, masks, weight, prob, degrees, replace=None, name=None):
     with tf.name_scope(name or 'rotate'):
         return apply(
             image, masks, weight, prob,

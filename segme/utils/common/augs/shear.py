@@ -4,26 +4,26 @@ from keras_cv.utils import preprocessing
 from segme.utils.common.augs.common import apply, validate, wrap, unwrap
 
 
-def shearx(image, masks, weight, factor, prob, replace=None, name=None):
-    with tf.name_scope(name or 'shearx'):
+def shear_x(image, masks, weight, prob, factor, replace=None, name=None):
+    with tf.name_scope(name or 'shear_x'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _shearx(x, factor, 'bilinear', replace),
-            lambda x: _shearx(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])),
-            lambda x: _shearx(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])))
+            lambda x: _shear_x(x, factor, 'bilinear', replace),
+            lambda x: _shear_x(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])),
+            lambda x: _shear_x(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])))
 
 
-def sheary(image, masks, weight, factor, prob, replace=None, name=None):
-    with tf.name_scope(name or 'sheary'):
+def shear_y(image, masks, weight, prob, factor, replace=None, name=None):
+    with tf.name_scope(name or 'shear_y'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _sheary(x, factor, 'bilinear', replace),
-            lambda x: _sheary(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])),
-            lambda x: _sheary(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])))
+            lambda x: _shear_y(x, factor, 'bilinear', replace),
+            lambda x: _shear_y(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])),
+            lambda x: _shear_y(x, factor, 'nearest', replace=np.zeros([1, 1, 1, x.shape[-1]])))
 
 
-def _shearx(image, factor, interpolation, replace=None, name=None):
-    with tf.name_scope(name or 'shearx_'):
+def _shear_x(image, factor, interpolation, replace=None, name=None):
+    with tf.name_scope(name or 'shear_x_'):
         image, _, _ = validate(image, None, None)
 
         transform = tf.stack([1., factor, 0., 0., 1., 0., 0., 0.])[None]
@@ -35,8 +35,8 @@ def _shearx(image, factor, interpolation, replace=None, name=None):
         return image
 
 
-def _sheary(image, factor, interpolation, replace=None, name=None):
-    with tf.name_scope(name or 'sheary_'):
+def _shear_y(image, factor, interpolation, replace=None, name=None):
+    with tf.name_scope(name or 'shear_y_'):
         image, _, _ = validate(image, None, None)
 
         transform = tf.stack([1., 0., 0., factor, 1., 0., 0., 0.])[None]

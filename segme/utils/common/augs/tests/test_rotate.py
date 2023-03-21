@@ -32,7 +32,7 @@ class TestRotate(tf.test.TestCase):
         masks_expected = [_rotate(m, 45, 'nearest', [[[[0, 0]]]]) for m in masks]
         weights_expected = _rotate(weights, 45, 'nearest', [[[[0, 0, 0]]]])
 
-        actual = rotate(images, masks, weights, 45, 0.5, [[[[0, 128, 255]]]])
+        actual = rotate(images, masks, weights, 0.5, 45, [[[[0, 128, 255]]]])
         images_actual, masks_actual, weights_actual = self.evaluate(actual)
         self.assertSetEqual({0, 1}, set(masks_actual[1].ravel()))
 
