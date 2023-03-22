@@ -348,7 +348,7 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
 
         depth = np.zeros_like(mask, dtype='uint8')
         if self.with_depth:
-            depth = cv2.imread(depth_file, cv2.IMREAD_ANYDEPTH)
+            depth = cv2.imread(depth_file, cv2.IMREAD_GRAYSCALE)
             if depth is None or np.uint8 != depth.dtype:
                 raise ValueError(f'Wrong depth values: {depth_file}')
 
