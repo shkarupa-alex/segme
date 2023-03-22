@@ -1,6 +1,7 @@
 import tensorflow as tf
 from segme.utils.common.augs.common import convert, validate
 from segme.utils.common.augs.autocontrast import autocontrast
+from segme.utils.common.augs.blur import gaussblur
 from segme.utils.common.augs.brightness import brightness
 from segme.utils.common.augs.contrast import contrast
 from segme.utils.common.augs.equalize import equalize
@@ -72,6 +73,14 @@ def _gamma_args(magnitude, batch, channel, replace, reduce=1., max_pow=3.):
     factor = direction * factor + (1. - direction) / factor
 
     return [prob, factor]
+
+
+def _gaussblur_args(magnitude, batch, channel, replace, reduce=1.):
+    prob = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / reduce)
+    size = tf.random.uniform([], minval=3. - 1.49, maxval=3. + 4 * magnitude + 0.49)
+    size = tf.round(size) // 2 * 2 + 1
+
+    return [prob, size]
 
 
 def _grayscale_args(magnitude, batch, channel, replace, reduce=2.):
@@ -184,6 +193,7 @@ _AUG_FUNC = {
     'FlipLR': flip_lr,
     'FlipUD': flip_ud,
     'Gamma': gamma,
+    'Gaussblur': gaussblur,
     'Grayscale': grayscale,
     'Hue': hue,
     'Invert': invert,
@@ -211,6 +221,7 @@ _AUG_ARGS = {
     'FlipLR': _flip_lr_args,
     'FlipUD': _flip_ud_args,
     'Gamma': _gamma_args,
+    'Gaussblur': _gaussblur_args,
     'Grayscale': _grayscale_args,
     'Hue': _hue_args,
     'Invert': _invert_args,
@@ -250,8 +261,9 @@ def rand_augment(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=N
             raise ValueError(
                 f'Number of levels ({levels}) must be greater or equal to number of augmentations {len(ops)}.')
 
-        selected = tf.random.shuffle(list(range(levels)))[:levels]
-        selected = tf.unstack(selected)
+        selected = tf.range(0, len(ops), dtype='int32')
+        selected = tf.random.shuffle(selected)
+        selected = tf.unstack(selected[:levels])
 
         for i in range(levels):
             with tf.name_scope(f'level_{i}'):
