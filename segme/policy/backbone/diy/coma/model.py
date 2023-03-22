@@ -341,22 +341,22 @@ def CoMATiny(embed_dim=64, stem_depth=2, stage_depths=(3, 3, 21, 3), path_drop=0
     # 24.3 28.5
     return CoMA(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
-        model_name='coma-tiny', **kwargs)
+        model_name='coma_tiny', **kwargs)
 
 
 def CoMASmall(embed_dim=96, stem_depth=2, stage_depths=(3, 3, 21, 3), **kwargs):
     # 53.7 62.0
     return CoMA(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-small', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma_small', **kwargs)
 
 
 def CoMABase(embed_dim=128, stem_depth=2, stage_depths=(3, 3, 21, 3), **kwargs):
     # 94.7 108.3
     return CoMA(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-base', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma_base', **kwargs)
 
 
 def CoMALarge(embed_dim=160, stem_depth=2, stage_depths=(3, 3, 21, 3), **kwargs):
     # 147.2 167.4
     return CoMA(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma-large', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='coma_large', **kwargs)
