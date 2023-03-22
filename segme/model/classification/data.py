@@ -237,16 +237,19 @@ def make_dataset(
         data_dir, split_name, batch_size, image_size=384, preprocess_mode='torch', aug_levels=0, aug_magnitude=0.,
         remap_classes=False, shuffle_files=True, drop_remainder=True):
     train_split = tfds.Split.TRAIN == split_name
+    with_rebatch = train_split and aug_levels > 0 and aug_magnitude > 0.
 
     builder = Imagenet21k1k(data_dir=data_dir)
     builder.download_and_prepare()
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
-    dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
+    dataset = dataset.batch(8 if with_rebatch else batch_size, drop_remainder=drop_remainder)
     dataset = dataset.map(
         lambda example: _transform_examples(
             example['image'], example['class'], train_split, preprocess_mode, aug_levels, aug_magnitude),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    if with_rebatch:
+        dataset = dataset.rebatch(batch_size, drop_remainder=drop_remainder)
     if 384 != image_size:
         dataset = dataset.map(
             lambda images, labels: _resize_examples(images, labels, image_size),
