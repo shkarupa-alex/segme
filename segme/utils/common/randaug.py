@@ -245,14 +245,12 @@ _AUG_ARGS = {
 def rand_augment(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=None):
     with tf.name_scope(name or 'rand_augment'):
         image, masks, weight = validate(image, masks, weight)
-        image = convert(image, 'float32')
+
+        if 0 == levels or 0. == magnitude:
+            return image, masks, weight
 
         if magnitude < 0. or magnitude > 1.:
             raise ValueError('Wrong magnitude value')
-
-        batch = tf.shape(image)[0]
-        channel = image.shape[-1]
-        replace = tf.random.uniform([batch, 1, 1, channel])
 
         if ops is None:
             ops = _AUG_FUNC.keys()
@@ -260,6 +258,12 @@ def rand_augment(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=N
         if len(ops) < levels:
             raise ValueError(
                 f'Number of levels ({levels}) must be greater or equal to number of augmentations {len(ops)}.')
+
+        image = convert(image, 'float32')
+
+        batch = tf.shape(image)[0]
+        channel = image.shape[-1]
+        replace = tf.random.uniform([batch, 1, 1, channel])
 
         selected = tf.range(0, len(ops), dtype='int32')
         selected = tf.random.shuffle(selected)

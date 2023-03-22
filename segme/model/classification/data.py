@@ -9,9 +9,8 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from keras.applications import imagenet_utils
 from keras.mixed_precision import global_policy
-from segme.model.classification.prep import preprocess_input
 from segme.model.classification.tree import synsets_1k_21k, tree_class_map
-from segme.utils.common import augment_onthefly
+from segme.utils.common import rand_augment
 
 
 class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
@@ -213,10 +212,10 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
 
 @tf.function(jit_compile=True)
-def _transform_examples(images, labels, augment, preprocess):
+def _transform_examples(images, labels, augment, levels, magnitude, preprocess):
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
-        images, _ = augment_onthefly(images, [])
+        images, _, _ = rand_augment(images, None, None, levels, magnitude)
         # TODO: https://github.com/tensorflow/tensorflow/pull/54484
         images = tf.cast(tf.round(tf.clip_by_value(images, 0., 1.) * 255.), 'uint8')
 
@@ -235,8 +234,8 @@ def _resize_examples(images, labels, size):
 
 
 def make_dataset(
-        data_dir, split_name, batch_size, image_size=384, preprocess_mode='torch', remap_classes=False,
-        shuffle_files=True, drop_remainder=True):
+        data_dir, split_name, batch_size, image_size=384, preprocess_mode='torch', aug_levels=0, aug_magnitude=0.,
+        remap_classes=False, shuffle_files=True, drop_remainder=True):
     train_split = tfds.Split.TRAIN == split_name
 
     builder = Imagenet21k1k(data_dir=data_dir)
@@ -245,7 +244,8 @@ def make_dataset(
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
     dataset = dataset.map(
-        lambda example: _transform_examples(example['image'], example['class'], train_split, preprocess_mode),
+        lambda example: _transform_examples(
+            example['image'], example['class'], train_split, preprocess_mode, aug_levels, aug_magnitude),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if 384 != image_size:
         dataset = dataset.map(
