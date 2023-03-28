@@ -246,7 +246,7 @@ def make_dataset(
     dataset = dataset.batch(8 if with_rebatch else batch_size, drop_remainder=drop_remainder)
     dataset = dataset.map(
         lambda example: _transform_examples(
-            example['image'], example['class'], train_split, preprocess_mode, aug_levels, aug_magnitude),
+            example['image'], example['class'], train_split, aug_levels, aug_magnitude, preprocess_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     if with_rebatch:
         dataset = dataset.rebatch(batch_size, drop_remainder=drop_remainder)

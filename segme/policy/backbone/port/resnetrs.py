@@ -30,7 +30,7 @@ def STEM(name=None):
         name = f'stem_{counter}'
 
     def apply(inputs):
-        x = Conv(32, 3, strides=2, **CONV_KWARGS, name=name + '_stem_conv_1')(inputs)
+        x = Conv(32, 3, strides=2, **CONV_KWARGS, policy=cnapol.default_policy(), name=name + '_stem_conv_1')(inputs)
         x = Norm(**norm_kwargs(), name=name + '_stem_batch_norm_1')(x)
         x = Act(name=name + '_stem_act_1')(x)
 
