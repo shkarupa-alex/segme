@@ -45,7 +45,7 @@ class FixedConv(layers.Conv2D):
             paddings = ((0, 0), (pad_h // 2, pad_h - pad_h // 2), (pad_w // 2, pad_w - pad_w // 2))
             paddings = ((0, 0),) + paddings if self.data_format == 'channels_first' else paddings + ((0, 0),)
 
-        if not tf.test.is_gpu_available() and max(self.dilation_rate) > 1:
+        if not tf.config.list_physical_devices('GPU') and max(self.dilation_rate) > 1:
             # Current libxsmm and customized CPU implementations do not yet support dilation rates > 1
             return tf.nn.convolution(
                 inputs, kernel, strides=self.strides, padding=paddings, dilations=self.dilation_rate,
