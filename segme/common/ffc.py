@@ -22,7 +22,7 @@ class FourierUnit(layers.Layer):
         if self.channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        nchw_support = tf.test.is_gpu_available() or enclosing_tpu_context() is not None
+        nchw_support = tf.config.list_physical_devices('GPU') or enclosing_tpu_context() is not None
         self.data_format = 'channels_first' if nchw_support else 'channels_last'
         self.cna = ConvNormAct(self.filters * 2, 1, data_format=self.data_format, dtype='float32', name='cna')
 
