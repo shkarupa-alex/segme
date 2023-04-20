@@ -1,11 +1,10 @@
 import tensorflow as tf
 from functools import partial
-from keras import backend, initializers, layers, models
-from keras.applications import imagenet_utils
-from keras.applications.resnet_rs import BASE_WEIGHTS_URL, WEIGHT_HASHES, DEPTH_TO_WEIGHT_VARIANTS, BLOCK_ARGS, \
+from keras import backend, layers, mixed_precision, models
+from keras.src.applications import imagenet_utils
+from keras.src.applications.resnet_rs import BASE_WEIGHTS_URL, WEIGHT_HASHES, DEPTH_TO_WEIGHT_VARIANTS, BLOCK_ARGS, \
     CONV_KERNEL_INITIALIZER, get_survival_probability, allow_bigger_recursion
-from keras.mixed_precision import global_policy
-from keras.utils import data_utils, layer_utils
+from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Conv, Norm, Act
 from segme.policy import cnapol
 from segme.policy.backbone.utils import patch_config, wrap_bone
@@ -160,7 +159,7 @@ def ResNetRS(depth, input_shape=None, dropout_rate=0.25, drop_connect_rate=0.2, 
         require_flatten=include_top,
         weights=weights,
     )
-    input_dtype = global_policy().compute_dtype
+    input_dtype = mixed_precision.global_policy().compute_dtype
     if input_tensor is None:
         img_input = layers.Input(shape=input_shape, dtype=input_dtype)
     else:
@@ -379,8 +378,6 @@ def wrap_bone_stride8(model, prepr, init, channels, end_points, name):
 
     stride_patches = []
     for layer in ext_config['layers']:
-        if 'SegMe>Policy>Conv>' not in layer['class_name']:
-            continue
         if 'kernel_size' not in layer['config']:
             continue
         if layer['config']['kernel_size'] in {1, (1, 1)}:
@@ -394,8 +391,9 @@ def wrap_bone_stride8(model, prepr, init, channels, end_points, name):
             continue
 
         if layer['config']['strides'] not in {1, (1, 1)}:
-            assert layer['config']['strides'] in {2, (2, 2)}
-            dilation = dilation // 2
+            if layer['config']['strides'] not in {2, (2, 2)}:
+                raise ValueError('Unexpected strides.')
+            dilation //= 2
 
         stride_patches.append((layer['config']['name'], dilation))
 

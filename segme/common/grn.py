@@ -1,7 +1,7 @@
 import tensorflow as tf
-from keras import backend, constraints, initializers, layers, regularizers
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras import constraints, initializers, layers, regularizers
+from keras.saving import register_keras_serializable
+from keras.src.utils.tf_utils import shape_type_conversion
 
 
 @register_keras_serializable(package='SegMe>Common')

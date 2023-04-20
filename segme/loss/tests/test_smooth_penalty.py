@@ -4,14 +4,14 @@ import tensorflow as tf
 from keras import layers, models
 from keras.src.testing_infra import test_combinations, test_utils
 from keras.src.utils.losses_utils import ReductionV2 as Reduction
-from segme.loss.grad_mse import GradientMeanSquaredError
-from segme.loss.grad_mse import gradient_mean_squared_error
+from segme.loss.smooth_penalty import SmoothGradientPenalty
+from segme.loss.smooth_penalty import smooth_gradient_penalty
 
 
 @test_combinations.run_all_keras_modes
-class TestGradientMeanSquaredError(test_combinations.TestCase):
+class TestSmoothGradientPenalty(test_combinations.TestCase):
     def test_config(self):
-        loss = GradientMeanSquaredError(reduction=Reduction.NONE, name='loss1')
+        loss = SmoothGradientPenalty(reduction=Reduction.NONE, name='loss1')
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 
@@ -19,7 +19,7 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
         probs = tf.zeros((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = gradient_mean_squared_error(y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4)
+        result = smooth_gradient_penalty(y_true=targets, y_pred=probs, sample_weight=None, strength=0.01)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -28,7 +28,7 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
         probs = tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = gradient_mean_squared_error(y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4)
+        result = smooth_gradient_penalty(y_true=targets, y_pred=probs, sample_weight=None, strength=0.01)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -37,7 +37,7 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
         probs = tf.zeros((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = gradient_mean_squared_error(y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4)
+        result = smooth_gradient_penalty(y_true=targets, y_pred=probs, sample_weight=None, strength=0.01)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -46,7 +46,7 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
         probs = tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = gradient_mean_squared_error(y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4)
+        result = smooth_gradient_penalty(y_true=targets, y_pred=probs, sample_weight=None, strength=0.01)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -67,10 +67,10 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
         probs = (targets * 1.9921875) ** 2 / 3.97
         trim = np.where(cv2.dilate(targets, np.ones((2, 2), 'float32')) > 0, 1., 0.)
 
-        loss = GradientMeanSquaredError()
+        loss = SmoothGradientPenalty()
         result = self.evaluate(loss(targets[None, ..., None], probs[None, ..., None], trim[None, ..., None]))
 
-        self.assertAlmostEqual(result, 0.023772128)
+        self.assertAlmostEqual(result, 0.004459782)
 
     def test_weight(self):
         logits = tf.constant([
@@ -87,16 +87,16 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
         weights = tf.concat([tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2)
 
-        loss = GradientMeanSquaredError()
+        loss = SmoothGradientPenalty()
 
         result = self.evaluate(loss(targets[:, :, :2], logits[:, :, :2]))
-        self.assertAlmostEqual(result, 0.20074403)
+        self.assertAlmostEqual(result, 0.053591512, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 0.11476261)
+        self.assertAlmostEqual(result, 0.053591512, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 0.11476261 * 2.)
+        self.assertAlmostEqual(result, 0.053591512 * 2., places=5)
 
     def test_multi(self):
         logits = tf.constant([
@@ -114,24 +114,24 @@ class TestGradientMeanSquaredError(test_combinations.TestCase):
             [[[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]], [[1, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]],
              [[0, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1]], [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]]], 'float32')
 
-        loss = GradientMeanSquaredError()
+        loss = SmoothGradientPenalty()
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 0.32215714)
+        self.assertAlmostEqual(result, 0.053490277, places=5)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
         targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype('int32')
 
-        loss = GradientMeanSquaredError()
+        loss = SmoothGradientPenalty()
         result0 = self.evaluate(loss(targets, probs))
         result1 = sum([self.evaluate(loss(targets[i:i + 1], probs[i:i + 1])) for i in range(2)]) / 2
 
-        self.assertAlmostEqual(result0, result1)
+        self.assertAlmostEqual(result0, result1, places=6)
 
     def test_model(self):
         model = models.Sequential([layers.Dense(1, activation='sigmoid')])
-        model.compile(loss='SegMe>Loss>GradientMeanSquaredError', run_eagerly=test_utils.should_run_eagerly())
+        model.compile(loss='SegMe>Loss>SmoothGradientPenalty', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), 'int32'))
         models.Sequential.from_config(model.get_config())
 

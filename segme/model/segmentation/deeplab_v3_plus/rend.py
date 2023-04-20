@@ -1,8 +1,8 @@
 import tensorflow as tf
 from keras import Model, layers
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.losses_utils import ReductionV2 as Reduction
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
+from keras.src.utils.tf_utils import shape_type_conversion
 from segme.model.segmentation.deeplab_v3_plus.base import DeepLabV3PlusBase
 from segme.common.point_rend import PointRend, PointLoss
 

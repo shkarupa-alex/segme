@@ -1,7 +1,6 @@
 import tensorflow as tf
-from keras.mixed_precision import policy as mixed_precision
-from keras.testing_infra import test_combinations, test_utils
-from tensorflow.python.framework import test_util
+from keras import mixed_precision
+from keras.src.testing_infra import test_combinations, test_utils
 from segme.policy.align.impf import ImplicitFeatureAlignment, SpatialEncoding
 from segme.testing_utils import layer_multi_io_test
 

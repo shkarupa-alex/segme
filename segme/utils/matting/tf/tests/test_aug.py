@@ -1,28 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from segme.utils.matting.tf.aug import augment_inverse, augment_alpha, augment_trimap
-
-
-@test_util.run_all_in_graph_and_eager_modes
-class TestAugmentInverse(tf.test.TestCase):
-    def setUp(self):
-        super().setUp()
-        self.foreground = np.random.uniform(0., 255., (2, 16, 16, 3)).astype('uint8')
-
-    def test_no_aug(self):
-        foreground = augment_inverse(self.foreground, prob=0.)
-        self.assertListEqual(foreground.shape.as_list(), list(self.foreground.shape))
-
-        foreground = self.evaluate(foreground)
-        self.assertDTypeEqual(foreground, 'uint8')
-        self.assertTupleEqual(foreground.shape, self.foreground.shape)
-        self.assertAllEqual(self.foreground, foreground)
-
-    def test_aug_inv(self):
-        foreground = augment_inverse(self.foreground, prob=1.)
-        foreground = self.evaluate(foreground)
-        self.assertAllEqual(self.foreground, (255. - foreground.astype('float32')).astype('uint8'))
+from segme.utils.matting.tf.aug import augment_alpha, augment_trimap
 
 
 @test_util.run_all_in_graph_and_eager_modes

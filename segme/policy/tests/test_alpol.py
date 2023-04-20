@@ -1,8 +1,5 @@
-import numpy as np
 import tensorflow as tf
 import unittest
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
 from segme.policy.alpol import AlignPolicy, default_policy, global_policy, set_global_policy, policy_scope, \
     serialize, deserialize
 
@@ -49,7 +46,9 @@ class TestAlignPolicy(unittest.TestCase):
         policy = AlignPolicy('linear')
 
         config = serialize(policy)
-        self.assertDictEqual(config, {'class_name': 'AlignPolicy', 'config': {'name': 'linear'}})
+        self.assertDictEqual(config, {
+            'module': 'segme.policy.alpol', 'class_name': 'AlignPolicy', 'config': {'name': 'linear'},
+            'registered_name': 'AlignPolicy'})
 
         instance = deserialize(config)
         self.assertDictEqual(policy.get_config(), instance.get_config())

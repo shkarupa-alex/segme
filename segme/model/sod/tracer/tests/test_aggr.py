@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.testing_infra import test_combinations
+from keras.src.testing_infra import test_combinations
 from segme.model.sod.tracer.aggr import Aggregation
 from segme.testing_utils import layer_multi_io_test
 

@@ -1,8 +1,8 @@
 import tensorflow as tf
 from keras import layers, models
 from keras.applications.imagenet_utils import preprocess_input
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.utils.tf_utils import shape_type_conversion
 from segme.model.matting.fba_matting.decoder import Decoder
 from segme.model.matting.fba_matting.fusion import Fusion
 from segme.model.matting.fba_matting.encoder import Encoder

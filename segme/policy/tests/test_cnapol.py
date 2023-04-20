@@ -1,8 +1,5 @@
-import numpy as np
 import tensorflow as tf
 import unittest
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
 from segme.policy.cnapol import ConvNormActPolicy, default_policy, global_policy, set_global_policy, policy_scope, \
     serialize, deserialize
 
@@ -52,7 +49,9 @@ class TestConvNormActPolicy(unittest.TestCase):
         policy = ConvNormActPolicy('conv-bn-relu')
 
         config = serialize(policy)
-        self.assertDictEqual(config, {'class_name': 'ConvNormActPolicy', 'config': {'name': 'conv-bn-relu'}})
+        self.assertDictEqual(config, {
+            'module': 'segme.policy.cnapol', 'class_name': 'ConvNormActPolicy', 'config': {'name': 'conv-bn-relu'},
+            'registered_name': 'ConvNormActPolicy'})
 
         instance = deserialize(config)
         self.assertDictEqual(policy.get_config(), instance.get_config())

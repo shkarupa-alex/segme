@@ -1,12 +1,10 @@
 import tensorflow as tf
 from keras import layers, models
 from keras.applications.imagenet_utils import preprocess_input
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.head import HeadProjection, ClassificationActivation, ClassificationHead
-from segme.common.pad import SymmetricPadding
 from segme.common.resize import BilinearInterpolation
-from segme.common.sequent import Sequential
 from segme.model.sod.u2_net.rsu7 import RSU7
 from segme.model.sod.u2_net.rsu6 import RSU6
 from segme.model.sod.u2_net.rsu5 import RSU5

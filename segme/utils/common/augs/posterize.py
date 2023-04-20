@@ -6,9 +6,7 @@ def posterize(image, masks, weight, prob, bits, name=None):
     with tf.name_scope(name or 'posterize'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _posterize(x, bits),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _posterize(x, bits), tf.identity, tf.identity)
 
 
 def _posterize(image, bits, name=None):

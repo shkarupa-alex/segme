@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras import layers, models
-from keras.testing_infra import test_combinations, test_utils
-from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras.src.testing_infra import test_combinations, test_utils
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.structural_similarity import StructuralSimilarityLoss
 from segme.loss.structural_similarity import _ssim_kernel, _ssim_level, structural_similarity_loss
 

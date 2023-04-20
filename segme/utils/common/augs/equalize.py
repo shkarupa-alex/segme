@@ -6,9 +6,7 @@ def equalize(image, masks, weight, prob, name=None):
     with tf.name_scope(name or 'equalize'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _equalize(x),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            _equalize, tf.identity, tf.identity)
 
 
 def _equalize(image, name=None):

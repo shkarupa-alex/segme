@@ -4,7 +4,7 @@ from keras import backend, initializers, layers, models
 from keras.applications import imagenet_utils
 from keras.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.mixed_precision import global_policy
-from keras.utils import data_utils, layer_utils
+from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.drop import DropPath
 from segme.common.grn import GRN

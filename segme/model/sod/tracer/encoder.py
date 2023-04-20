@@ -1,6 +1,6 @@
 from keras import models, layers
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.utils.tf_utils import shape_type_conversion
 from segme.policy import bbpol
 from segme.policy.backbone.utils import get_layer
 from segme.model.sod.tracer.edge import FrequencyEdge

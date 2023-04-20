@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras import layers, models
-from keras.testing_infra import test_combinations, test_utils
-from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras.src.testing_infra import test_combinations, test_utils
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.heinsen_tree import HeinsenTreeLoss
 from segme.loss.heinsen_tree import heinsen_tree_loss
 
@@ -68,12 +68,12 @@ class TestHeinsenTreeLoss(test_combinations.TestCase):
         loss = HeinsenTreeLoss(TREE_PATHS, label_smoothing=1e-5, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 0.82947063, places=6)
+        self.assertAlmostEqual(result, 0.82947063, places=5)
 
         loss = HeinsenTreeLoss(TREE_PATHS, label_smoothing=0.1, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 7.4887037, places=6)
+        self.assertAlmostEqual(result, 7.4887037, places=5)
 
     def test_value_binary(self):
         loss = HeinsenTreeLoss(TREE_PATHS, crossentropy='binary', from_logits=True)

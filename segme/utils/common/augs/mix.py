@@ -6,9 +6,7 @@ def mix(image, masks, weight, prob, factor, color=None, name=None):
     with tf.name_scope(name or 'mix'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _mix(x, factor, color),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _mix(x, factor, color), tf.identity, tf.identity)
 
 
 def _mix(image, factor, color=None, name=None):

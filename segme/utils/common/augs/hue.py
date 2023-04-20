@@ -6,9 +6,7 @@ def hue(image, masks, weight, prob, quality, name=None):
     with tf.name_scope(name or 'hue'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _hue(x, quality),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _hue(x, quality), tf.identity, tf.identity)
 
 
 def _hue(image, quality, name=None):

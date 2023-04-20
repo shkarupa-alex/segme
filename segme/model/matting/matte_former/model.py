@@ -1,9 +1,9 @@
 import tensorflow as tf
 from keras import backend, layers, models
-from keras.utils.control_flow_util import smart_cond
-from keras.utils.conv_utils import normalize_tuple
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.utils.control_flow_util import smart_cond
+from keras.src.utils.conv_utils import normalize_tuple
+from keras.src.utils.tf_utils import shape_type_conversion
 from segme.model.matting.matte_former.decoder import Decoder
 from segme.model.matting.matte_former.encoder import Encoder
 from segme.utils.matting.tf import alpha_trimap

@@ -1,5 +1,5 @@
 from keras import backend, layers, models
-from keras.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
+from keras.src.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from segme.common.align import Align
 from segme.common.backbone import Backbone
 from segme.common.convnormact import Conv, Norm, Act

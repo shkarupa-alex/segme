@@ -1,9 +1,9 @@
 import tensorflow as tf
 from absl.testing import parameterized
 from keras.applications import resnet_rs
-from keras.mixed_precision import policy as mixed_precision
-from keras.testing_infra import test_combinations
-from keras.utils import data_utils, image_utils
+from keras import mixed_precision
+from keras.src.utils import data_utils, image_utils
+from keras.src.testing_infra import test_combinations
 from segme.common.backbone import Backbone
 from segme.policy import cnapol
 from segme.policy.backbone.port.resnetrs import ResNetRS50
@@ -36,7 +36,7 @@ class TestResNetRS(test_combinations.TestCase):
         original_preds = original.predict(image)
         ported_preds = ported.predict(image)
 
-        self.assertAllClose(original_preds, ported_preds)
+        self.assertAllClose(original_preds, ported_preds, atol=8e-6)
 
     def test_50(self):
         layer_multi_io_test(

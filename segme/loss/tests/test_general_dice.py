@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras import layers, models
-from keras.testing_infra import test_combinations, test_utils
-from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras.src.testing_infra import test_combinations, test_utils
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.general_dice import GeneralizedDiceLoss
 from segme.loss.general_dice import generalized_dice_loss
 from segme.loss.tests.test_common_loss import BINARY_LOGITS, BINARY_TARGETS, BINARY_WEIGHTS, MULTI_LOGITS, MULTI_TARGETS

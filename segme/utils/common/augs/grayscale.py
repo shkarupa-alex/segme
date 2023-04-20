@@ -6,9 +6,7 @@ def grayscale(image, masks, weight, prob, factor, name=None):
     with tf.name_scope(name or 'grayscale'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _grayscale(x, factor),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _grayscale(x, factor), tf.identity, tf.identity)
 
 
 def _grayscale(image, factor, name=None):

@@ -1,8 +1,5 @@
-import numpy as np
 import tensorflow as tf
 import unittest
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
 from segme.policy.bbpol import BackbonePolicy, default_policy, global_policy, set_global_policy, policy_scope, \
     serialize, deserialize
 
@@ -51,7 +48,9 @@ class TestBackbonePolicy(unittest.TestCase):
         policy = BackbonePolicy('resnet_rs_50-imagenet')
 
         config = serialize(policy)
-        self.assertDictEqual(config, {'class_name': 'BackbonePolicy', 'config': {'name': 'resnet_rs_50-imagenet'}})
+        self.assertDictEqual(config, {
+            'module': 'segme.policy.bbpol', 'class_name': 'BackbonePolicy', 'config': {'name': 'resnet_rs_50-imagenet'},
+            'registered_name': 'BackbonePolicy'})
 
         instance = deserialize(config)
         self.assertDictEqual(policy.get_config(), instance.get_config())

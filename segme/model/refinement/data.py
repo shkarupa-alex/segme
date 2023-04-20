@@ -9,9 +9,10 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from segme.common.impfunc import make_coords
 from segme.utils.albumentations import drop_unapplied
-from segme.utils.common import augment_onthefly
+from segme.utils.common import rand_augment_safe
 
 CROP_SIZE = 384
+IOU_MIN = 0.8
 INTERPOLATIONS = [cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_AREA, cv2.INTER_LANCZOS4]
 
 
@@ -51,7 +52,7 @@ def compute_iou(seg, gt):
     return (np.count_nonzero(intersection) + 1e-6) / (np.count_nonzero(union) + 1e-6)
 
 
-def perturb_segmentation(gt, iou_target=0.6):
+def perturb_segmentation(gt, iou_target):
     h, w = gt.shape
     seg = gt.copy()
 
@@ -115,13 +116,14 @@ def perturb_segmentation(gt, iou_target=0.6):
 #     return combined
 
 
-def modify_boundary(image, regional_sample_rate=0.1, sample_rate=0.1, move_rate=0.0, iou_min=0.8, iou_max=1.0):
+def modify_boundary(image, regional_sample_rate=0.1, sample_rate=0.1, move_rate=0.0):
     # Modifies boundary of the given mask:
     # - remove consecutive vertice of the boundary by regional sample rate
     # - remove any vertice by sample rate
     # - move vertice by distance between vertice and center of the mask by move rate
 
-    iou_target = np.random.rand() * (iou_max - iou_min) + iou_min
+    iou_max = 1.
+    iou_target = np.random.rand() * (iou_max - IOU_MIN) + IOU_MIN
 
     # Get boundaries
     contours, _ = cv2.findContours(image, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
@@ -212,10 +214,10 @@ def train_augment(image, mask, replay=False):
             alb.OneOf([
                 alb.Equalize(by_channels=value) for value in [True, False]]),
             alb.FancyPCA(),
-            # alb.HueSaturationValue(), # on-the-fly
+            alb.HueSaturationValue(),
             alb.PixelDropout(),
             alb.RGBShift(),
-            # alb.RandomBrightnessContrast(), # on-the-fly
+            alb.RandomBrightnessContrast(),
             alb.RandomGamma(),
             alb.RandomToneCurve(),
             alb.Sharpen(),
@@ -286,7 +288,7 @@ def train_augment(image, mask, replay=False):
     return augmented['image'], modify_boundary(augmented['mask']), augmented['mask'], augmented['weight']
 
 
-def test_augment(image, mask):
+def valid_augment(image, mask):
     trg_size = (CROP_SIZE, CROP_SIZE)
 
     aug = alb.Compose([
@@ -387,8 +389,6 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                     #     image_path = image_path.replace(image_ext, '-image_super.jpg')
 
                     mask = file.replace(image_ext, '-mask.png')
-                    assert mask in filenames, image_path
-
                     if mask.replace('-mask.', '-mask_manfix.') in filenames:
                         mask = mask.replace('-mask.', '-mask_manfix.')
 
@@ -413,7 +413,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
             raise ValueError(f'Wrong mask values in {mask_file}')
 
         repeats = self.train_aug if training else 1
-        do_aug = train_augment if training else test_augment
+        do_aug = train_augment if training else valid_augment
         image_, mask_ = image, mask
 
         min_size = min(image_.shape[:2])
@@ -454,13 +454,13 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                 size0 = (mask == 255).mean()
                 if 1. == size0:
                     self.full_samples += 1
-                    if self.full_samples % 200:
+                    if self.full_samples % 4000:
                         coarse0 = np.ones_like(coarse0) * 255
                     else:
                         continue
                 elif 0. == size0:
                     self.empty_samples += 1
-                    if self.empty_samples % 200:
+                    if self.empty_samples % 4000:
                         coarse0 = np.zeros_like(coarse0)
                     else:
                         continue
@@ -478,14 +478,14 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                 yield '{}_{}_{}'.format(mask_file, s, i), image0, coarse0, mask0, weight0
 
 
-@tf.function(jit_compile=True)
+@tf.function(jit_compile=False)
 def _transform_examples(examples, augment, batch_size, with_coord):
     images, masks, labels, weights = examples['image'], examples['mask'], examples['label'], examples['weight']
     masks = tf.cast(masks > 127, 'uint8') * 255
 
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
-        images, [masks, labels, weights] = augment_onthefly(images, [masks, labels, weights])
+        images, [masks, labels], weights = rand_augment_safe(images, [masks, labels], weights, levels=3)
         # TODO: https://github.com/tensorflow/tensorflow/pull/54484
         images = tf.cast(tf.round(tf.clip_by_value(images, 0., 1.) * 255.), 'uint8')
 

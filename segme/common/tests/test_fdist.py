@@ -1,9 +1,8 @@
 import numpy as np
 import tempfile
 import tensorflow as tf
-from keras import applications, backend, layers, models
-from keras.mixed_precision import policy as mixed_precision
-from keras.testing_infra import test_combinations
+from keras import applications, backend, layers, mixed_precision, models
+from keras.src.testing_infra import test_combinations
 from segme.common.fdist import FeatureDistillation
 
 

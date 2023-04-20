@@ -2,14 +2,14 @@ from tensorflow.python.autograph.core import ag_ctx
 from tensorflow.python.autograph.impl import api as autograph
 from tensorflow.python.eager import context
 from tensorflow.python.framework import tensor_util
-from keras import backend, losses
-from keras.utils import losses_utils
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import graph_context_for_symbolic_tensors
+from keras import backend
+from keras.saving import register_keras_serializable
+from keras.src.losses import LossFunctionWrapper
+from keras.src.utils import losses_utils, tf_utils
 
 
 @register_keras_serializable(package='SegMe>Loss')
-class WeightedLossFunctionWrapper(losses.LossFunctionWrapper):
+class WeightedLossFunctionWrapper(LossFunctionWrapper):
     def call(self, y_true, y_pred, sample_weight=None):
         if tensor_util.is_tensor(y_pred) and tensor_util.is_tensor(y_true):
             if sample_weight is None:
@@ -22,7 +22,7 @@ class WeightedLossFunctionWrapper(losses.LossFunctionWrapper):
 
     def __call__(self, y_true, y_pred, sample_weight=None):
         # If we are wrapping a lambda function strip '<>' from the name as it is not accepted in scope name.
-        graph_ctx = graph_context_for_symbolic_tensors(y_true, y_pred, sample_weight)
+        graph_ctx = tf_utils.graph_context_for_symbolic_tensors(y_true, y_pred, sample_weight)
         with backend.name_scope(self._name_scope), graph_ctx:
             if context.executing_eagerly():
                 call_fn = self.call

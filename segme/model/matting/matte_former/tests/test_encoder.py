@@ -1,8 +1,8 @@
 import tensorflow as tf
 from keras import layers
-from keras.testing_infra import test_combinations
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.testing_infra import test_combinations
+from keras.src.utils.tf_utils import shape_type_conversion
 from segme.model.matting.matte_former.encoder import Encoder
 from segme.testing_utils import layer_multi_io_test
 

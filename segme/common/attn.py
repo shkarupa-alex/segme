@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
 from keras import initializers, layers
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.control_flow_util import smart_cond
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.utils.control_flow_util import smart_cond
+from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNorm, Conv, Act
 from segme.common.pad import with_divisible_pad
 from segme.common.part import partition_apply, partition_apply_fused, partition_reverse_fused

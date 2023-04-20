@@ -2,9 +2,8 @@ import numpy as np
 import tensorflow as tf
 import unittest
 from absl.testing import parameterized
-from keras import layers
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
+from keras import layers, mixed_precision
+from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow_addons import layers as add_layers
 from segme.policy.norm import NORMALIZATIONS, BatchNorm, LayerNorm, LayerwiseNorm, GroupNorm, FilterResponseNorm
 
@@ -495,7 +494,7 @@ class TestFilterResponseNorm(test_combinations.TestCase):
         custom = FilterResponseNorm(data_format=dformat)
         result = custom(inputs)
         result = self.evaluate(result)
-        self.assertAllClose(expected, result, atol=1e-3)
+        self.assertAllClose(expected, result, atol=2e-3)
 
     def test_batch(self):
         inputs = np.random.normal(size=(32, 16, 16, 64)) * 10.

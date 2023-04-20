@@ -7,9 +7,7 @@ def solarize(image, masks, weight, prob, threshold=None, name=None):
     with tf.name_scope(name or 'solarize'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _solarize(x, threshold),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _solarize(x, threshold), tf.identity, tf.identity)
 
 
 def _solarize(image, threshold=None, name=None):

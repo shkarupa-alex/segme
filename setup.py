@@ -19,7 +19,7 @@ setup(
     author_email='shkarupa.alex@gmail.com',
     license='MIT',
     packages=find_packages(),
-    install_requires=Path("requirements.txt").read_text().splitlines(),
+    # install_requires=Path("requirements.txt").read_text().splitlines(),
     python_requires='>=3.6.0',
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],

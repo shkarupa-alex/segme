@@ -6,9 +6,7 @@ def brightness(image, masks, weight, prob, factor, name=None):
     with tf.name_scope(name or 'brightness'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _brightness(x, factor),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _brightness(x, factor), tf.identity, tf.identity)
 
 
 def _brightness(image, factor, name=None):

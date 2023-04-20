@@ -6,9 +6,7 @@ def saturation(image, masks, weight, prob, factor, name=None):
     with tf.name_scope(name or 'saturation'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _saturation(x, factor),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _saturation(x, factor), tf.identity, tf.identity)
 
 
 def _saturation(image, factor, name=None):

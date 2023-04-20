@@ -72,7 +72,9 @@ def _gamma_args(magnitude, batch, channel, replace, reduce=1., max_pow=3.):
     factor = tf.random.uniform([], minval=1., maxval=magnitude * max_pow)
     factor = direction * factor + (1. - direction) / factor
 
-    return [prob, factor]
+    invert = tf.cast(tf.random.uniform([batch, 1, 1, 1]) > 0.5, 'float32')
+
+    return [prob, factor, invert]
 
 
 def _gaussblur_args(magnitude, batch, channel, replace, reduce=1.):
@@ -100,7 +102,7 @@ def _hue_args(magnitude, batch, channel, replace, reduce=1., min_val=-0.8, max_v
     return [prob, factor]
 
 
-def _invert_args(magnitude, batch, channel, replace, reduce=8.):
+def _invert_args(magnitude, batch, channel, replace, reduce=12.):
     prob = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / reduce)
 
     return [prob]
@@ -124,7 +126,7 @@ def _mix_args(magnitude, batch, channel, replace, reduce=1.):
 
 def _posterize_args(magnitude, batch, channel, replace, reduce=2.):
     prob = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / reduce)
-    bits = tf.cast(tf.random.uniform([], minval=1, maxval=round(1 + magnitude * 7 + 1e-5), dtype='int32'), 'uint8')
+    bits = tf.cast(tf.random.uniform([], minval=1, maxval=round(1 + magnitude * 6 + 1e-5), dtype='int32'), 'uint8')
 
     return [prob, bits]
 
@@ -172,7 +174,7 @@ def _shuffle_args(magnitude, batch, channel, replace, reduce=1.):
     return [prob]
 
 
-def _solarize_args(magnitude, batch, channel, replace, reduce=2.):
+def _solarize_args(magnitude, batch, channel, replace, reduce=4.):
     prob = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / reduce)
 
     return [prob]
@@ -242,7 +244,23 @@ _AUG_ARGS = {
 }
 
 
-def rand_augment(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=None):
+def _no_op(image, masks, weight):
+    _image = tf.identity(image)
+
+    if masks is not None:
+        _masks = [tf.identity(m) for m in masks]
+    else:
+        _masks = None
+
+    if weight is not None:
+        _weight = tf.identity(weight)
+    else:
+        _weight = None
+
+    return _image, _masks, _weight
+
+
+def rand_augment_full(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=None):
     with tf.name_scope(name or 'rand_augment'):
         image, masks, weight = validate(image, masks, weight)
 
@@ -253,12 +271,13 @@ def rand_augment(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=N
             raise ValueError('Wrong magnitude value')
 
         if ops is None:
-            ops = _AUG_FUNC.keys()
+            ops = list(_AUG_FUNC.keys())
 
         if len(ops) < levels:
             raise ValueError(
                 f'Number of levels ({levels}) must be greater or equal to number of augmentations {len(ops)}.')
 
+        dtype = image.dtype
         image = convert(image, 'float32')
 
         batch = tf.shape(image)[0]
@@ -280,22 +299,15 @@ def rand_augment(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=N
                         lambda f=func, a=args: f(image, masks, weight, *a),
                         lambda: _no_op(image, masks, weight))
 
-        image = convert(image, 'uint8')
+        image = convert(image, dtype)
 
         return image, masks, weight
 
 
-def _no_op(image, masks, weight):
-    _image = tf.identity(image)
+def rand_augment_safe(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=None):
+    if ops is None:
+        ops = list(_AUG_FUNC.keys())
 
-    if masks is not None:
-        _masks = [tf.identity(m) for m in masks]
-    else:
-        _masks = None
+    ops = list(set(ops) - {'Invert', 'Rotate', 'ShearX', 'ShearY', 'TranslateX', 'TranslateY'})
 
-    if weight is not None:
-        _weight = tf.identity(weight)
-    else:
-        _weight = None
-
-    return _image, _masks, _weight
+    return rand_augment_full(image, masks, weight, levels=levels, magnitude=magnitude, ops=ops, name=name)

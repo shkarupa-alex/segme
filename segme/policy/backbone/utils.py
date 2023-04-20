@@ -46,10 +46,14 @@ def get_layer(model, name_idx):
 def wrap_bone(model, prepr, init, channels, end_points, name):
     input_image = layers.Input(name='image', shape=(None, None, channels))
 
-    if prepr is not None:
-        input_prep = layers.Lambda(prepr, name='preprocess')(input_image)
-    else:
+    if prepr is None:
         input_prep = input_image
+    elif 'torch' == prepr:
+        input_prep = layers.Rescaling(scale=1 / 255, name='rescale')(input_image)
+        input_prep = layers.Normalization(
+            mean=[0.485, 0.456, 0.406], variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2], name='normalize')(input_prep)
+    else:
+        input_prep = layers.Lambda(prepr, name='preprocess')(input_image)
 
     base_model = model(input_tensor=input_prep, include_top=False, weights=init)
     output_feats = [get_layer(base_model, name_idx) for name_idx in end_points]

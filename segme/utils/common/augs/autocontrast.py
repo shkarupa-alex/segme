@@ -6,9 +6,7 @@ def autocontrast(image, masks, weight, prob, name=None):
     with tf.name_scope(name or 'autocontrast'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _autocontrast(x),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            _autocontrast, tf.identity, tf.identity)
 
 
 def _autocontrast(image, name=None):

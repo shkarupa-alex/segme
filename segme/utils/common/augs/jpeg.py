@@ -6,9 +6,7 @@ def jpeg(image, masks, weight, prob, factor, name=None):
     with tf.name_scope(name or 'jpeg'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _jpeg(x, factor),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _jpeg(x, factor), tf.identity, tf.identity)
 
 
 def _jpeg(image, factor, name=None):

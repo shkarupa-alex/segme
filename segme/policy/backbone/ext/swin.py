@@ -19,37 +19,37 @@ def wrap_bone_norm(model, prepr, init, channels, end_points, name):
 
 
 BACKBONES.register('swin_tiny_224')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerTiny224, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerTiny224, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_small_224')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerSmall224, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerSmall224, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_base_224')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerBase224, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerBase224, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_base_384')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerBase384, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerBase384, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_large_224')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerLarge224, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerLarge224, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_large_384')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerLarge384, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerLarge384, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_v2_tiny_256')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerV2Tiny256, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerV2Tiny256, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_v2_small_256')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerV2Small256, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerV2Small256, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_v2_base_256')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerV2Base256, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerV2Base256, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_v2_base_384')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerV2Base384, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerV2Base384, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_v2_large_256')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerV2Large256, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerV2Large256, 'torch'), SWIN_ENDPOINTS))
 
 BACKBONES.register('swin_v2_large_384')((
-    partial(wrap_bone_norm, tfswin.SwinTransformerV2Large384, tfswin.preprocess_input), SWIN_ENDPOINTS))
+    partial(wrap_bone_norm, tfswin.SwinTransformerV2Large384, 'torch'), SWIN_ENDPOINTS))

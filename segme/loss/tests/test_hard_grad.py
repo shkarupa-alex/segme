@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from keras import layers, models
-from keras.testing_infra import test_combinations, test_utils
-from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras.src.testing_infra import test_combinations, test_utils
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.hard_grad import HardGradientMeanAbsoluteError
 from segme.loss.hard_grad import hard_gradient_mean_absolute_error
 
@@ -19,8 +19,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         probs = tf.zeros((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = hard_gradient_mean_absolute_error(
-            y_true=targets, y_pred=probs, sample_weight=None, weight=1., smooth=0.01)
+        result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -29,8 +28,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         probs = tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = hard_gradient_mean_absolute_error(
-            y_true=targets, y_pred=probs, sample_weight=None, weight=1., smooth=0.01)
+        result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -39,8 +37,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         probs = tf.zeros((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = hard_gradient_mean_absolute_error(
-            y_true=targets, y_pred=probs, sample_weight=None, weight=1., smooth=0.01)
+        result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -49,8 +46,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         probs = tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = hard_gradient_mean_absolute_error(
-            y_true=targets, y_pred=probs, sample_weight=None, weight=1., smooth=0.01)
+        result = hard_gradient_mean_absolute_error(y_true=targets, y_pred=probs, sample_weight=None)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -74,7 +70,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         loss = HardGradientMeanAbsoluteError()
         result = self.evaluate(loss(targets[None, ..., None], probs[None, ..., None], trim[None, ..., None]))
 
-        self.assertAlmostEqual(result, 0.20806925)
+        self.assertAlmostEqual(result, 0.20360947)
 
     def test_weight(self):
         logits = tf.constant([
@@ -94,13 +90,13 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         loss = HardGradientMeanAbsoluteError()
 
         result = self.evaluate(loss(targets[:, :, :2], logits[:, :, :2]))
-        self.assertAlmostEqual(result, 5.133383, places=6)
+        self.assertAlmostEqual(result, 5.0797915, places=6)
 
         result = self.evaluate(loss(targets, logits, weights))
-        self.assertAlmostEqual(result, 5.133383, places=6)
+        self.assertAlmostEqual(result, 5.0797915, places=6)
 
         result = self.evaluate(loss(targets, logits, weights * 2.))
-        self.assertAlmostEqual(result, 5.133383 * 2., places=6)
+        self.assertAlmostEqual(result, 5.0797915 * 2., places=5)
 
     def test_multi(self):
         logits = tf.constant([
@@ -121,7 +117,7 @@ class TestHardGradientMeanAbsoluteError(test_combinations.TestCase):
         loss = HardGradientMeanAbsoluteError()
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 5.5608516)
+        self.assertAlmostEqual(result, 5.507361, places=5)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

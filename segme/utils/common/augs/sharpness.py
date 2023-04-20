@@ -7,9 +7,7 @@ def sharpness(image, masks, weight, prob, factor, name=None):
     with tf.name_scope(name or 'sharpness'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _sharpness(x, factor),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _sharpness(x, factor), tf.identity, tf.identity)
 
 
 def _sharpness(image, factor, name=None):

@@ -1,8 +1,7 @@
 import tensorflow as tf
-from keras import layers
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
-from keras.saving.object_registration import custom_object_scope
+from keras import layers, mixed_precision
+from keras.saving import custom_object_scope
+from keras.src.testing_infra import test_combinations, test_utils
 from segme.common.hmsattn import HierarchicalMultiScaleAttention
 
 

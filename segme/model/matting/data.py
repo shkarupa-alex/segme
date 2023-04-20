@@ -14,7 +14,7 @@ from segme.model.matting.fba_matting.distance import distance_transform
 from segme.model.matting.fba_matting.twomap import twomap_transform
 from segme.utils.albumentations import drop_unapplied
 from segme.utils.matting import np as matting_np, tf as matting_tf
-from segme.utils.common import augment_onthefly
+from segme.utils.common import rand_augment_safe
 
 TRIMAP_SIZE = (3, 25)
 CROP_SIZE = 512
@@ -22,17 +22,17 @@ TOTAL_BOXES = 50
 MIN_TRIMAP = 0.05
 
 
-# def smart_pad(fg, alpha, size=CROP_SIZE):
-#     # TODO: add some context
-#     left = size * (1 - alpha[:, 0].any().astype('int32'))
-#     right = size * (1 - alpha[:, -1].any().astype('int32'))
-#     top = size * (1 - alpha[0].any().astype('int32'))
-#     bottom = size * (1 - alpha[-1].any().astype('int32'))
-#
-#     fg_ = cv2.copyMakeBorder(fg, top, bottom, left, right, cv2.BORDER_REPLICATE)
-#     alpha_ = cv2.copyMakeBorder(alpha, top, bottom, left, right, cv2.BORDER_CONSTANT)
-#
-#     return fg_, alpha_
+def smart_pad(fg, alpha, size=CROP_SIZE):
+    # TODO: add some context
+    left = size * (1 - alpha[:, 0].any().astype('int32'))
+    right = size * (1 - alpha[:, -1].any().astype('int32'))
+    top = size * (1 - alpha[0].any().astype('int32'))
+    bottom = size * (1 - alpha[-1].any().astype('int32'))
+
+    fg_ = cv2.copyMakeBorder(fg, top, bottom, left, right, cv2.BORDER_REPLICATE)
+    alpha_ = cv2.copyMakeBorder(alpha, top, bottom, left, right, cv2.BORDER_CONSTANT)
+
+    return fg_, alpha_
 
 
 def scale_augment(fg, alpha, scale):
@@ -491,12 +491,12 @@ def _augment_examples(examples, tri_bord, min_unk):
     background = examples['background']
 
     # alpha = matting_tf.augment_alpha(alpha)
-    foreground, [alpha] = augment_onthefly(foreground, [alpha])
-    # foreground = matting_tf.augment_inverse(foreground)
+    foreground, [alpha], _ = rand_augment_safe(foreground, [alpha], None)  # TODO
     background = tf.random.shuffle(background)
     # foreground, alpha, [background] = matting_tf.compose_two(foreground, alpha, [background], solve=True, prob=2/3)
 
     trimap = matting_tf.alpha_trimap(alpha, size=tri_bord)
+    # TODO: random trimap erosion like in hqs_crm
 
     # unk_frac = tf.cast(trimap == 128, 'float32')
     unk_frac = tf.ones_like(trimap, 'float32') * 0.5

@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
-from segme.policy.backbone.diy.coma.model import CoMA
+from keras import mixed_precision
+from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
+from segme.policy.backbone.diy.coma.model import CoMA
 
 
 @test_combinations.run_all_keras_modes

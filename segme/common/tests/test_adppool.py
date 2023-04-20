@@ -1,8 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from keras import layers, models
-from keras.mixed_precision import policy as mixed_precision
-from keras.testing_infra import test_combinations, test_utils
+from keras import layers, mixed_precision, models
+from keras.src.testing_infra import test_combinations, test_utils
 from segme.common.adppool import AdaptiveAveragePooling, AdaptiveMaxPooling
 
 

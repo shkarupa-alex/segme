@@ -1,9 +1,9 @@
 import tensorflow as tf
 from keras import backend, layers
-from keras.utils.control_flow_util import smart_cond
-from keras.utils.conv_utils import normalize_tuple
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.utils.control_flow_util import smart_cond
+from keras.src.utils.conv_utils import normalize_tuple
+from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.point_rend.head import PointHead
 from segme.common.point_rend.sample import PointSample, UncertainPointsWithRandomness, UncertainPointsCoordsOnGrid
 from segme.common.head import ClassificationActivation

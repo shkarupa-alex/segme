@@ -1,7 +1,7 @@
 import copy
 import inspect
-from keras import layers
-from keras.saving.object_registration import get_registered_object
+from keras.saving import get_registered_object
+from keras.src import layers
 
 
 class Registry:

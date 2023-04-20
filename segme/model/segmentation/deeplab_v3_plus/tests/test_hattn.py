@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
+from keras import mixed_precision
+from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.training.tracking import util as trackable_util
 from tensorflow.python.util import object_identity
 from segme.model.segmentation.deeplab_v3_plus.hattn import DeepLabV3PlusWithHierarchicalAttention, \

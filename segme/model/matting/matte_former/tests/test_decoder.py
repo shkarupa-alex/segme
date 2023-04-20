@@ -1,6 +1,6 @@
 import tensorflow as tf
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
+from keras import mixed_precision
+from keras.src.testing_infra import test_combinations, test_utils
 from segme.model.matting.matte_former.decoder import Block, Decoder
 from segme.testing_utils import layer_multi_io_test
 

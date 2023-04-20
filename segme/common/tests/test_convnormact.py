@@ -1,7 +1,6 @@
 import tensorflow as tf
-from keras import layers
-from keras.mixed_precision import policy as mixed_precision
-from keras.testing_infra import test_combinations, test_utils
+from keras import layers, mixed_precision
+from keras.src.testing_infra import test_combinations, test_utils
 from segme.common.convnormact import Conv, Norm, Act, ConvNormAct, ConvNorm, ConvAct
 from segme.policy import cnapol, conv, norm
 

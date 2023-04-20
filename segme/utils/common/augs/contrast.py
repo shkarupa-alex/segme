@@ -6,9 +6,7 @@ def contrast(image, masks, weight, prob, factor, name=None):
     with tf.name_scope(name or 'contrast'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _contrast(x, factor),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _contrast(x, factor), tf.identity, tf.identity)
 
 
 def _contrast(image, factor, name=None):

@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras import layers, losses, models
-from keras.engine.data_adapter import unpack_x_y_sample_weight
-from keras.saving.object_registration import register_keras_serializable
+from keras.saving import register_keras_serializable
+from keras.src.engine.data_adapter import unpack_x_y_sample_weight
 from tensorflow.python.framework import convert_to_constants
 
 

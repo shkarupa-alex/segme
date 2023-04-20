@@ -1,27 +1,8 @@
 import tensorflow as tf
+from segme.utils.common.augs.common import convert
 
 
-def augment_inverse(image, prob=0.05, seed=None):
-    with tf.name_scope('augment_foreground'):
-        image = tf.convert_to_tensor(image, 'uint8')
-
-        if 4 != image.shape.rank:
-            raise ValueError('Expecting `alpha` rank to be 4.')
-
-        if 3 != image.shape[-1]:
-            raise ValueError('Expecting `foreground` channels size to be 3.')
-
-        if 'uint8' != image.dtype:
-            raise ValueError('Expecting `foreground` dtype to be `uint8`.')
-
-        batch = tf.shape(image)[0]
-        apply = tf.random.uniform([batch, 1, 1, 1], 0., 1., seed=seed)
-        apply = tf.cast(apply < prob, image.dtype)
-
-        return (255 - image) * apply + image * (1 - apply)
-
-
-def augment_alpha(alpha, prob=0.3, seed=None):
+def augment_alpha(alpha, prob=0.3, max_pow=2., seed=None):
     with tf.name_scope('augment_alpha'):
         alpha = tf.convert_to_tensor(alpha, 'uint8')
 
@@ -34,22 +15,25 @@ def augment_alpha(alpha, prob=0.3, seed=None):
         if 'uint8' != alpha.dtype:
             raise ValueError('Expecting `alpha` dtype to be `uint8`.')
 
+        alpha = convert(alpha, 'float32')
+
         batch = tf.shape(alpha)[0]
-        apply, gamma_switch, gamma, alpha_switch = tf.split(
+        gamma, direction, apply, invert = tf.split(
             tf.random.uniform([batch, 1, 1, 4], 0., 1., seed=seed), 4, axis=-1)
 
+        direction = tf.cast(direction > 0.5, direction.dtype)
+        gamma = gamma * (max_pow - 1.) + 1.
+        gamma = direction * gamma + (1. - direction) / gamma
+
+        invert = tf.cast(invert > 0.5, invert.dtype)
+        alpha_ = (1. - alpha) * invert + alpha * (1. - invert)
+        alpha_ = tf.pow(alpha_, gamma)
+        alpha_ = (1. - alpha_) * invert + alpha_ * (1. - invert)
+
         apply = tf.cast(apply < prob, alpha.dtype)
+        alpha = alpha_ * apply + alpha * (1 - apply)
 
-        gamma_switch = tf.cast(gamma_switch > 0.5, gamma_switch.dtype)
-        gamma = (gamma / 2 + 0.5) * gamma_switch + (gamma + 1.) * (1 - gamma_switch)
-
-        orig_dtype = alpha.dtype
-        alpha_ = alpha if orig_dtype in {tf.float16, tf.float32} else tf.image.convert_image_dtype(alpha, 'float32')
-
-        alpha_switch = tf.cast(alpha_switch > 0.5, alpha_switch.dtype)
-        alpha_ = tf.pow(alpha_, gamma) * alpha_switch + (1 - tf.pow(1 - alpha_, gamma)) * (1 - alpha_switch)
-
-        return tf.image.convert_image_dtype(alpha_, orig_dtype, saturate=True) * apply + alpha * (1 - apply)
+        return convert(alpha, 'uint8', saturate=True)
 
 
 def augment_trimap(trimap, prob=0.1, seed=None):
@@ -69,7 +53,6 @@ def augment_trimap(trimap, prob=0.1, seed=None):
         apply = tf.random.uniform([batch, 1, 1, 1], 0., 1., seed=seed)
         apply = tf.cast(apply < prob, trimap.dtype)
 
-        fg = tf.convert_to_tensor(255, 'uint8')
-        un = tf.convert_to_tensor(128, 'uint8')
+        trimap_ = tf.minimum(trimap, 128)
 
-        return tf.where(tf.equal(trimap, fg), un, trimap) * apply + trimap * (1 - apply)
+        return trimap_ * apply + trimap * (1 - apply)

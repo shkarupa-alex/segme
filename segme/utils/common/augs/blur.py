@@ -6,9 +6,7 @@ def gaussblur(image, masks, weight, prob, size, name=None):
     with tf.name_scope(name or 'gaussblur'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _gaussblur(x, size),
-            lambda x: tf.identity(x),
-            lambda x: tf.identity(x))
+            lambda x: _gaussblur(x, size), tf.identity, tf.identity)
 
 
 def _gaussblur(image, size, name=None):

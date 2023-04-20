@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras.testing_infra import test_combinations
+from keras.src.testing_infra import test_combinations
 from segme.model.matting.fba_matting.fusion import Fusion
 from segme.testing_utils import layer_multi_io_test
 

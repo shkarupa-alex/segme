@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
+from keras import mixed_precision
+from keras.src.testing_infra import test_combinations, test_utils
 from segme.common.point_rend.sample import ClassificationUncertainty, PointSample, UncertainPointsWithRandomness, \
     UncertainPointsCoordsOnGrid
 from segme.testing_utils import layer_multi_io_test

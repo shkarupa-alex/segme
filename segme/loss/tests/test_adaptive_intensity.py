@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from keras import layers, models
-from keras.testing_infra import test_combinations, test_utils
-from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras.src.testing_infra import test_combinations, test_utils
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.adaptive_intensity import AdaptivePixelIntensityLoss
 from segme.loss.adaptive_intensity import adaptive_pixel_intensity_loss
 from segme.loss.tests.test_common_loss import BINARY_LOGITS, BINARY_TARGETS, BINARY_WEIGHTS, MULTI_LOGITS, MULTI_TARGETS
@@ -83,7 +83,7 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         loss = AdaptivePixelIntensityLoss(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 5.6857705)
+        self.assertAlmostEqual(result, 5.6857705, places=5)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

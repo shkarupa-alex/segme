@@ -17,7 +17,8 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
 
         def _select_all(x, x_, s):
             with tf.name_scope(name or 'select_all'):
-                return tf.cond(s, lambda: tf.identity(x_), lambda: tf.identity(x))
+                r = tf.cond(s, lambda: tf.identity(x_), lambda: tf.identity(x))
+                return r
 
         image, masks, weight = validate(image, masks, weight)
         image_ = image_fn(image)
@@ -26,13 +27,14 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
         height_, width_ = tf.unstack(tf.shape(image_)[1:3])
         same = tf.logical_and(tf.equal(height, height_), tf.equal(width, width_))
 
-        switch = tf.random.uniform([batch, 1, 1, 1]) < prob
-        switch, switch0 = tf.cast(switch, 'float32'), switch[0]
+        switch_full = tf.random.uniform([batch, 1, 1, 1]) < prob
+        switch_all = switch_full[0]
+        switch_part = tf.cast(switch_full[..., :1], 'float32')
 
         image = tf.cond(
             same,
-            lambda: _select_some(image, image_, switch, height, width, height_, width_),
-            lambda: _select_all(image, image_, switch0))
+            lambda: _select_some(image, image_, switch_part, height, width, height_, width_),
+            lambda: _select_all(image, image_, switch_all))
 
         if masks is not None:
             temp = []
@@ -40,8 +42,8 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
                 mask_ = mask_fn(mask)
                 mask = tf.cond(
                     same,
-                    lambda: _select_some(mask, mask_, switch, height, width, height_, width_),
-                    lambda: _select_all(mask, mask_, switch0))
+                    lambda: _select_some(mask, mask_, switch_part, height, width, height_, width_),
+                    lambda: _select_all(mask, mask_, switch_all))
                 temp.append(mask)
             masks = temp
 
@@ -49,8 +51,8 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
             weight_ = weight_fn(weight)
             weight = tf.cond(
                 same,
-                lambda: _select_some(weight, weight_, switch, height, width, height_, width_),
-                lambda: _select_all(weight, weight_, switch0))
+                lambda: _select_some(weight, weight_, switch_part, height, width, height_, width_),
+                lambda: _select_all(weight, weight_, switch_all))
 
         return image, masks, weight
 

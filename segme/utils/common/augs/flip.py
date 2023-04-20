@@ -6,18 +6,14 @@ def flip_ud(image, masks, weight, prob, name=None):
     with tf.name_scope(name or 'flip_ud'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _flip_ud(x),
-            lambda x: _flip_ud(x),
-            lambda x: _flip_ud(x))
+            _flip_ud, _flip_ud, _flip_ud)
 
 
 def flip_lr(image, masks, weight, prob, name=None):
     with tf.name_scope(name or 'flip_lr'):
         return apply(
             image, masks, weight, prob,
-            lambda x: _flip_lr(x),
-            lambda x: _flip_lr(x),
-            lambda x: _flip_lr(x))
+            _flip_lr, _flip_lr, _flip_lr)
 
 
 def _flip_ud(image, name=None):

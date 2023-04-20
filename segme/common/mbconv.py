@@ -1,7 +1,7 @@
 from keras import initializers, layers
-from keras.utils.conv_utils import normalize_tuple
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.utils.conv_utils import normalize_tuple
+from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct, ConvNorm
 from segme.common.drop import DropPath
 from segme.common.se import SE

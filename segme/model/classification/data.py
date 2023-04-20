@@ -10,7 +10,7 @@ import tensorflow_datasets as tfds
 from keras.applications import imagenet_utils
 from keras.mixed_precision import global_policy
 from segme.model.classification.tree import synsets_1k_21k, tree_class_map
-from segme.utils.common import rand_augment
+from segme.utils.common import rand_augment_full
 
 
 class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
@@ -215,7 +215,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 def _transform_examples(images, labels, augment, levels, magnitude, preprocess):
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
-        images, _, _ = rand_augment(images, None, None, levels, magnitude)
+        images, _, _ = rand_augment_full(images, None, None, levels, magnitude)
         # TODO: https://github.com/tensorflow/tensorflow/pull/54484
         images = tf.cast(tf.round(tf.clip_by_value(images, 0., 1.) * 255.), 'uint8')
 

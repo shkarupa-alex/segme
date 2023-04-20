@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.testing_infra import test_combinations
+from keras.src.testing_infra import test_combinations
 from segme.model.refinement.cascade_psp.upsample import Upsample
 from segme.testing_utils import layer_multi_io_test
 

@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-from keras.testing_infra import test_combinations
+from keras.src.testing_infra import test_combinations
 from segme.metric.matting.grad import Grad
 
 
