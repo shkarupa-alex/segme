@@ -1,7 +1,6 @@
 import itertools
 import tensorflow as tf
 from keras.mixed_precision import global_policy
-from segme.common.patchxla import extract_patches_xla
 
 
 def grid_sample(features, grid, mode='bilinear', align_corners=False, symmetric_pad=False):
@@ -123,7 +122,8 @@ def query_features(features, coords, imnet, posnet=None, cells=None, feat_unfold
             raise ValueError('Unfold kernel size must be an integer greater or equal to 3')
         if not feat_unfold % 2:
             raise ValueError('Unfold kernel size must be odd')
-        features = extract_patches_xla(features, [1, feat_unfold, feat_unfold, 1], [1] * 4, [1] * 4, padding='SAME')
+        features = tf.image.extract_patches(
+            features, [1, feat_unfold, feat_unfold, 1], [1] * 4, [1] * 4, padding='SAME')
 
     if local_ensemble:
         vxvy = itertools.product([-1., 1.], [-1., 1.])

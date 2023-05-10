@@ -2,7 +2,6 @@ import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
-from segme.common.patchxla import extract_patches_xla
 from segme.common.resize import NearestInterpolation
 
 
@@ -42,7 +41,8 @@ class CarafeConvolution(layers.Layer):
         batch, height, width, _ = tf.unstack(tf.shape(masks))
         output_shape = self.compute_output_shape([features.shape, masks.shape])
 
-        features = extract_patches_xla(features, [1, self.kernel_size, self.kernel_size, 1], [1] * 4, [1] * 4, 'SAME')
+        features = tf.image.extract_patches(
+            features, [1, self.kernel_size, self.kernel_size, 1], [1] * 4, [1] * 4, 'SAME')
         features = self.internear([features, masks])
 
         features = tf.reshape(

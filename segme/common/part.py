@@ -1,6 +1,5 @@
 import tensorflow as tf
 from segme.common.pad import with_divisible_pad
-from segme.common.patchxla import extract_patches_xla
 
 _PARTITION_TYPES = {'window_size', 'window_count', 'grid_size', 'grid_count'}
 
@@ -136,7 +135,7 @@ def halo_partition(inputs, height, width, window_size, halo_size, dilation_rate=
         width_blocks = width // (window_size * dilation_rate)
         num_windows = height_blocks * width_blocks * tf.square(dilation_rate)
 
-        outputs = extract_patches_xla(inputs, halo_kernel, halo_stride, [1] * 4, padding='SAME')
+        outputs = tf.image.extract_patches(inputs, halo_kernel, halo_stride, [1] * 4, padding='SAME')
 
         # Non-fused implementation with window partition step
         # halo_factor = halo_size / window_size
@@ -311,7 +310,7 @@ def halo_partition_fused(inputs, height, width, window_size, halo_size, qkv_size
         else:
             halo_height, halo_width = height * int(halo_factor), width * int(halo_factor)
 
-        outputs = extract_patches_xla(inputs, halo_kernel, halo_stride, [1] * 4, padding='SAME')
+        outputs = tf.image.extract_patches(inputs, halo_kernel, halo_stride, [1] * 4, padding='SAME')
 
         outputs = tf.reshape(outputs, [
             -1, height_blocks, width_blocks, halo_size, dilation_rate, halo_size, dilation_rate, num_heads, qkv_size,
