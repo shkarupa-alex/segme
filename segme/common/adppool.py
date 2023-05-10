@@ -24,7 +24,7 @@ from keras.src.utils.conv_utils import normalize_tuple
 
 @register_keras_serializable(package='SegMe>Common')
 class AdaptivePooling(layers.Layer):
-    # TODO: wait for https://github.com/tensorflow/addons/pull/2322
+    # With workaround for https://github.com/tensorflow/addons/pull/2322
 
     def __init__(self, reduce_function, output_size, **kwargs):
         super().__init__(**kwargs)

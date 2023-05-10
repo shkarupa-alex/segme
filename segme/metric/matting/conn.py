@@ -3,7 +3,7 @@ import tensorflow as tf
 from keras.saving import register_keras_serializable
 from keras.src.metrics import SumOverBatchSize
 from keras.src.utils import losses_utils, metrics_utils
-from tensorflow_addons.image import connected_components
+from tfmiss.image import connected_components
 
 
 @register_keras_serializable(package='SegMe>Metric>Matting')
@@ -58,29 +58,32 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
 
     true_shape = tf.shape(y_true)
     batch_size = true_shape[0]
-    squezed_shape = true_shape[:3]
-    pred_squezed = tf.reshape(y_pred, squezed_shape)
-    true_squezed = tf.reshape(y_true, squezed_shape)
+    channel_size = y_true.shape[-1]
+    if channel_size is None:
+        raise ValueError('Channel dimension of the labels must be defined.')
 
     thresh_map = []
     for threshold in thresh_steps:
-        combined_input = (true_squezed >= threshold) & (pred_squezed >= threshold)
-        component_labels = connected_components(combined_input)
+        combined_input = (y_true >= threshold) & (y_pred >= threshold)
+        component_labels = connected_components(combined_input, normalize=False)
 
-        squezed_labels = tf.reshape(component_labels, [batch_size, -1])
-        squezed_weights = tf.cast(squezed_labels != 0, y_true.dtype)
+        squezed_labels = tf.transpose(component_labels, [0, 3, 1, 2])
+        squezed_labels = tf.reshape(squezed_labels, [batch_size * channel_size, -1])
 
-        # Workaround for XLA issue: "Input 1 to node `bincount/DenseBincount` must be a compile-time constant."
-        if tf.executing_eagerly():
-            component_sizes = tf.math.bincount(squezed_labels, axis=-1, weights=squezed_weights)
-        else:
-            with tf.xla.experimental.jit_scope(compile_ops=False):
-                component_sizes = tf.math.bincount(squezed_labels, axis=-1, weights=squezed_weights)
-        component_max = tf.argmax(component_sizes, axis=-1, output_type='int32')[:, None, None]
+        component_sizes = tf.math.bincount(squezed_labels, axis=-1)
+        component_sizes = tf.reshape(component_sizes, [batch_size, channel_size, -1])
+        component_sizes *= tf.concat([
+            tf.zeros([batch_size, channel_size, 1], dtype=component_sizes.dtype),
+            tf.ones_like(component_sizes)[..., 1:]
+        ], axis=-1)
+
+        component_max = tf.argmax(component_sizes, axis=-1)[..., None, None]
+        component_max = tf.transpose(component_max, [0, 2, 3, 1])
 
         component_back = component_labels != component_max
         thresh_map.append(component_back)
-    thresh_map.append(tf.ones(squezed_shape, dtype='bool'))
+
+    thresh_map.append(tf.ones_like(y_true, dtype='bool'))
 
     thresh_map = tf.stack(thresh_map, axis=-1)
     thresh_map = tf.reshape(thresh_map, [batch_size, -1, len(thresh_steps) + 1])

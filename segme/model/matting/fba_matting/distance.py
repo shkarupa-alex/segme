@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
-from tensorflow_addons.image import euclidean_dist_transform
+from tfmiss.image import euclidean_distance
 
 
 @register_keras_serializable(package='SegMe>Model>Matting>FBAMatting')
@@ -26,7 +26,7 @@ def distance_transform(trimap, length=320):
     clicks = []
     for value in [0, 255]:
         twomap = tf.cast(trimap != value, 'uint8') * 255
-        distance = -euclidean_dist_transform(twomap, dtype='float32') ** 2
+        distance = -euclidean_distance(twomap, dtype='float32') ** 2
         clicks.extend([
             tf.exp(distance / (2 * (0.02 * length) ** 2)),
             tf.exp(distance / (2 * (0.08 * length) ** 2)),
