@@ -102,7 +102,6 @@ class SemiShift(layers.Layer):
         coarse = self.internear([coarse, fine])
 
         outputs = fine + coarse
-        outputs = tf.nn.softmax(outputs, axis=-1)
 
         return outputs
 

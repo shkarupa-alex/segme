@@ -49,6 +49,7 @@ class CarafeConvolution(layers.Layer):
             features,
             (batch, height, width, self.group_size, self.channels[0] // self.group_size, self.kernel_size ** 2))
         masks = tf.reshape(masks, (batch, height, width, self.group_size, 1, self.kernel_size ** 2))
+        masks = tf.nn.softmax(masks)
 
         outputs = tf.matmul(features, masks, transpose_b=True)
 
