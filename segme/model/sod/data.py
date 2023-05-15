@@ -469,7 +469,7 @@ def make_dataset(data_dir, split_name, with_depth, with_trimap, batch_pixels, sq
 
     dataset = dataset.map(
         lambda ex: _transform_examples(
-            ex, tfds.Split.TRAIN == split_name, False, False, max_weight),
+            ex, tfds.Split.TRAIN == split_name, with_depth, with_trimap, max_weight),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
