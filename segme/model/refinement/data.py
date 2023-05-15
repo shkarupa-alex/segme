@@ -452,19 +452,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                     continue
 
                 size0 = (mask == 255).mean()
-                if 1. == size0:
-                    self.full_samples += 1
-                    if self.full_samples % 4000:
-                        coarse0 = np.ones_like(coarse0) * 255
-                    else:
-                        continue
-                elif 0. == size0:
-                    self.empty_samples += 1
-                    if self.empty_samples % 4000:
-                        coarse0 = np.zeros_like(coarse0)
-                    else:
-                        continue
-                elif size0 < 0.05 or size0 > 0.95:
+                if size0 < 0.05 or size0 > 0.95:
                     continue
 
                 weight0 = weight0.astype('float32') * min(sample_weight * curr_weight * 20., 255.)
