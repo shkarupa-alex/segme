@@ -43,15 +43,29 @@ class CarafeConvolution(layers.Layer):
 
         features = tf.image.extract_patches(
             features, [1, self.kernel_size, self.kernel_size, 1], [1] * 4, [1] * 4, 'SAME')
-        features = self.internear([features, masks])
 
-        features = tf.reshape(
-            features,
-            (batch, height, width, self.group_size, self.channels[0] // self.group_size, self.kernel_size ** 2))
-        masks = tf.reshape(masks, (batch, height, width, self.group_size, 1, self.kernel_size ** 2))
-        masks = tf.nn.softmax(masks)
+        if False and 1 == self.group_size:
+            features = self.internear([features, masks])
+            features = tf.reshape(features, (batch, height, width, self.kernel_size ** 2, self.channels[0]))
 
-        outputs = tf.matmul(features, masks, transpose_b=True)
+            masks = tf.nn.softmax(masks)[..., None]
+
+            outputs = tf.matmul(features, masks, transpose_a=True)
+        else:
+            features_shape = tf.shape(features)
+            features_shape_ = tf.concat([features_shape[:-1], [self.kernel_size ** 2, self.channels[0]]], axis=-1)
+            features = tf.reshape(features, features_shape_)
+            features = tf.transpose(features, [0, 1, 2, 4, 3])
+            features = tf.reshape(features, features_shape)
+            features = self.internear([features, masks])
+            features = tf.reshape(
+                features,
+                (batch, height, width, self.group_size, self.channels[0] // self.group_size, self.kernel_size ** 2))
+
+            masks = tf.reshape(masks, (batch, height, width, self.group_size, self.kernel_size ** 2))
+            masks = tf.nn.softmax(masks)[..., None]
+
+            outputs = tf.matmul(features, masks)
 
         outputs = tf.reshape(outputs, (batch, height, width, self.channels[0]))
         outputs.set_shape(output_shape)
