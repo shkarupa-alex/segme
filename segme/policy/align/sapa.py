@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
-from segme.common.convnormact import Norm
+from segme.common.convnormact import Conv, Norm
 from segme.common.resize import NearestInterpolation
 
 
@@ -25,16 +25,16 @@ class SapaFeatureAlignment(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.norm_fine = Norm()  # LayerNorm in original implementation
-        self.norm_coarse = Norm()  # LayerNorm in original implementation
+        self.norm_fine = Norm(policy='conv-ln-relu')
+        self.norm_coarse = Norm(policy='conv-ln-relu')
 
         self.intnear = NearestInterpolation(None)
 
         self.query_gate = layers.Conv2D(1, 1, activation='sigmoid')
-        self.query_fine = layers.Conv2D(self.embedding_size, 1)
-        self.query_coarse = layers.Conv2D(self.embedding_size, 1)
-        self.key = layers.Conv2D(self.embedding_size, 1)
-        self.value = layers.Conv2D(self.filters, 1)
+        self.query_fine = Conv(self.embedding_size, 1)
+        self.query_coarse = Conv(self.embedding_size, 1)
+        self.key = Conv(self.embedding_size, 1)
+        self.value = Conv(self.filters, 1)
 
         self.attend = LocalAttention(self.kernel_size)
 
@@ -49,7 +49,7 @@ class SapaFeatureAlignment(layers.Layer):
         gate = self.query_gate(coarse)
         gate = self.intnear([gate, fine])
 
-        query = self.query_fine(fine) * gate + self.query_coarse(self.intnear([coarse, fine])) * (1. - gate)
+        query = self.query_fine(fine) * gate + self.intnear([self.query_coarse(coarse), fine]) * (1. - gate)
         key = self.key(coarse)
         value = self.value(coarse)
 
