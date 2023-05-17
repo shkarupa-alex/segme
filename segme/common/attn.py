@@ -144,8 +144,7 @@ class DHMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class SWMSA(layers.Layer):
-    def __init__(self, current_window, pretrain_window, num_heads, shift_mode, use_bias=True,
-                 **kwargs):
+    def __init__(self, current_window, pretrain_window, num_heads, shift_mode, use_dw=False, use_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -156,6 +155,7 @@ class SWMSA(layers.Layer):
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
         self.shift_mode = shift_mode % 5
+        self.use_dw = use_dw
         self.use_bias = use_bias
 
     @shape_type_conversion
@@ -167,7 +167,8 @@ class SWMSA(layers.Layer):
             raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
 
         self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
-        self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
+        if self.use_dw:
+            self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
 
         if self.use_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
@@ -190,7 +191,8 @@ class SWMSA(layers.Layer):
 
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
-        qkv = self.qkv_dw(qkv)
+        if self.use_dw:
+            qkv = self.qkv_dw(qkv)
 
         if self.use_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
@@ -258,16 +260,12 @@ class SWMSA(layers.Layer):
         mask = self.rel_bias(None)
 
         mask = smart_cond(
-            sum(pad_val) > 0,
-            lambda: mask + self.pad_mask(pad_size, pad_val),
-            lambda: tf.identity(mask))
-
-        mask = smart_cond(
             apply_shift,
-            lambda: mask + self.shift_mask(pad_size, shift_size),
-            lambda: tf.identity(mask))
-
-        mask = tf.maximum(mask, -100.)
+            lambda: mask + self.shift_mask(pad_size, pad_val, shift_size),
+            lambda: smart_cond(
+                sum(pad_val) > 0,
+                lambda: mask + self.pad_mask(pad_size, pad_val),
+                lambda: tf.identity(mask)))
 
         return mask
 
@@ -276,26 +274,42 @@ class SWMSA(layers.Layer):
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
-        mask = tf.ones((1, src_height, src_width, 1), dtype='int64')
-        mask = tf.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)])
+        mask = tf.zeros((1, src_height, src_width, 1), dtype='int64')
+        mask = tf.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)], constant_values=-100)
         mask = partition_apply(
             mask, pad_height, pad_width, 'window_size', self.current_window, 1)
-        mask = tf.squeeze(mask == 0, axis=-1)[:, :, None, None]
-        mask = -100. * tf.cast(mask, self.compute_dtype)
+        mask = tf.squeeze(mask, axis=-1)[:, :, None, None]
+        mask = tf.cast(mask, self.compute_dtype)
 
         return mask
 
-    def shift_mask(self, pad_size, shift_size):
+    def shift_mask(self, pad_size, pad_val, shift_size):
         _, pad_height, pad_width = pad_size
+        src_height = pad_height - sum(pad_val[:2])
+        src_width = pad_width - sum(pad_val[2:])
 
         height_shift, width_shift = tf.unstack(tf.abs(shift_size))
-        height_repeats = [pad_height - self.current_window, self.current_window - height_shift, height_shift]
-        width_repeats = [pad_width - self.current_window, self.current_window - width_shift, width_shift]
+        shift_height = tf.cast(src_height > self.current_window, height_shift.dtype)
+        shift_width = tf.cast(src_width > self.current_window, width_shift.dtype)
+
+        height_repeats = (
+            src_height + (pad_val[1] - self.current_window) * shift_height,
+            (self.current_window - height_shift - pad_val[1]) * shift_height,
+            height_shift * shift_height)
+        width_repeats = (
+            src_width + (pad_val[3] - self.current_window) * shift_width,
+            (self.current_window - width_shift - pad_val[3]) * shift_width,
+            width_shift * shift_width)
+
         if self.shift_dir is not None:
             height_repeats = height_repeats[::self.shift_dir[0]]
             width_repeats = width_repeats[::self.shift_dir[1]]
 
-        mask = np.arange(9, dtype='int32').reshape((3, 3))[None, ..., None]
+        height_repeats = pad_val[:1] + height_repeats + pad_val[1:2]
+        width_repeats = pad_val[2:3] + width_repeats + pad_val[3:]
+
+        mask = np.arange(9, dtype='int32').reshape((3, 3)) + 1
+        mask = tf.pad(mask, [(1, 1), (1, 1)])[None, ..., None]
         mask = tf.repeat(mask, height_repeats, axis=1)
         mask = tf.repeat(mask, width_repeats, axis=2)
         mask = partition_apply(mask, pad_height, pad_width, 'window_size', self.current_window, 1)
@@ -319,6 +333,7 @@ class SWMSA(layers.Layer):
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
             'shift_mode': self.shift_mode,
+            'use_dw': self.use_dw,
             'use_bias': self.use_bias
         })
 
@@ -327,7 +342,7 @@ class SWMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class GGMSA(layers.Layer):
-    def __init__(self, current_window, pretrain_window, num_heads, use_bias=True, **kwargs):
+    def __init__(self, current_window, pretrain_window, num_heads, use_dw=False, use_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -337,6 +352,7 @@ class GGMSA(layers.Layer):
         self.current_window = current_window
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
+        self.use_dw = use_dw
         self.use_bias = use_bias
 
     @shape_type_conversion
@@ -348,7 +364,8 @@ class GGMSA(layers.Layer):
             raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
 
         self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
-        self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
+        if self.use_dw:
+            self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
 
         if self.use_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
@@ -368,7 +385,8 @@ class GGMSA(layers.Layer):
 
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
-        qkv = self.qkv_dw(qkv)
+        if self.use_dw:
+            qkv = self.qkv_dw(qkv)
 
         if self.use_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
@@ -410,11 +428,12 @@ class GGMSA(layers.Layer):
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
-        mask = tf.ones((1, src_height, src_width, 1), dtype='int64')
-        mask = tf.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)])
-        mask = partition_apply(mask, pad_height, pad_width, 'grid_size', self.current_window, 1)
-        mask = tf.squeeze(mask == 0, axis=-1)[:, :, None, None]
-        mask = -100. * tf.cast(mask, self.compute_dtype)
+        mask = tf.zeros((1, src_height, src_width, 1), dtype='int64')
+        mask = tf.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)], constant_values=-100)
+        mask = partition_apply(
+            mask, pad_height, pad_width, 'grid_size', self.current_window, 1)
+        mask = tf.squeeze(mask, axis=-1)[:, :, None, None]
+        mask = tf.cast(mask, self.compute_dtype)
 
         return mask
 
@@ -429,6 +448,7 @@ class GGMSA(layers.Layer):
             'current_window': self.current_window,
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
+            'use_dw': self.use_dw,
             'use_bias': self.use_bias
         })
 
@@ -508,11 +528,12 @@ class RelativeBias(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class CHMSA(layers.Layer):
-    def __init__(self, num_heads, use_bias=True, **kwargs):
+    def __init__(self, num_heads, use_dw=False, use_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
         self.num_heads = num_heads
+        self.use_dw = use_dw
         self.use_bias = use_bias
 
     @shape_type_conversion
@@ -522,7 +543,8 @@ class CHMSA(layers.Layer):
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
         self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
-        self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
+        if self.use_dw:
+            self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
 
         if self.use_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
@@ -538,16 +560,16 @@ class CHMSA(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        batch, height, width, _ = tf.unstack(tf.shape(inputs))
-
         qkv = self.qkv(inputs)
-        qkv = self.qkv_dw(qkv)
+        if self.use_dw:
+            qkv = self.qkv_dw(qkv)
 
         if self.use_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
 
+        batch, height, width, _ = tf.unstack(tf.shape(qkv))
         if 1 == self.num_heads:
             qkv = tf.reshape(qkv, [batch, 1, height * width, 3, self.channels])
         else:
@@ -555,7 +577,7 @@ class CHMSA(layers.Layer):
             qkv = tf.transpose(qkv, [0, 2, 1, 3, 4])
         q, k, v = tf.unstack(qkv, 3, axis=-2)
 
-        q = tf.math.l2_normalize(q, axis=-2, epsilon=1.55e-5)  # TODO
+        q = tf.math.l2_normalize(q, axis=-2, epsilon=1.55e-5)
         k = tf.math.l2_normalize(k, axis=-2, epsilon=1.55e-5)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_a=True)
@@ -565,7 +587,6 @@ class CHMSA(layers.Layer):
         outputs = tf.reshape(outputs, [batch, height, width, self.channels])
 
         outputs = self.proj(outputs)
-
         outputs.set_shape(inputs.shape)
 
         return outputs
@@ -579,6 +600,7 @@ class CHMSA(layers.Layer):
 
         config.update({
             'num_heads': self.num_heads,
+            'use_dw': self.use_dw,
             'use_bias': self.use_bias
         })
 
