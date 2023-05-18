@@ -13,7 +13,8 @@ from segme.common.sequent import Sequential
 
 @register_keras_serializable(package='SegMe>Common')
 class DHMSA(layers.Layer):
-    def __init__(self, current_window, pretrain_window, num_heads, dilation_rate=1, use_bias=True, **kwargs):
+    def __init__(
+            self, current_window, pretrain_window, num_heads, dilation_rate=1, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -27,7 +28,8 @@ class DHMSA(layers.Layer):
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
         self.dilation_rate = dilation_rate
-        self.use_bias = use_bias
+        self.qkv_bias = qkv_bias
+        self.proj_bias = proj_bias
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -41,7 +43,7 @@ class DHMSA(layers.Layer):
         self.q_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
         self.kv_dw = ConvNorm(None, 3, strides=2, use_bias=False, name='qkv_dw')  # From PVTv2
 
-        if self.use_bias:
+        if self.qkv_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
@@ -53,7 +55,7 @@ class DHMSA(layers.Layer):
         self.rel_bias = RelativeBias(
             self.current_window, self.pretrain_window, self.halo_window // 2, self.num_heads, name='rel_bias')
 
-        self.proj = Conv(self.channels, 1, use_bias=False, name='proj')
+        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
         super().build(input_shape)
 
@@ -72,7 +74,7 @@ class DHMSA(layers.Layer):
         q = self.q_dw(q)
         kv = self.kv_dw(kv)
 
-        if self.use_bias:
+        if self.qkv_bias:
             q = tf.nn.bias_add(q, self.q_bias)
 
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
@@ -136,7 +138,8 @@ class DHMSA(layers.Layer):
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
             'dilation_rate': self.dilation_rate,
-            'use_bias': self.use_bias
+            'qkv_bias': self.qkv_bias,
+            'proj_bias': self.proj_bias
         })
 
         return config
@@ -144,7 +147,9 @@ class DHMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class SWMSA(layers.Layer):
-    def __init__(self, current_window, pretrain_window, num_heads, shift_mode, use_dw=False, use_bias=True, **kwargs):
+    def __init__(
+            self, current_window, pretrain_window, num_heads, shift_mode, use_dw=False, qkv_bias=True, proj_bias=True,
+            **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -156,7 +161,8 @@ class SWMSA(layers.Layer):
         self.num_heads = num_heads
         self.shift_mode = shift_mode % 5
         self.use_dw = use_dw
-        self.use_bias = use_bias
+        self.qkv_bias = qkv_bias
+        self.proj_bias = proj_bias
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -170,7 +176,7 @@ class SWMSA(layers.Layer):
         if self.use_dw:
             self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
 
-        if self.use_bias:
+        if self.qkv_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
@@ -185,7 +191,7 @@ class SWMSA(layers.Layer):
         self.rel_bias = RelativeBias(
             self.current_window, self.pretrain_window, self.current_window, self.num_heads, name='rel_bias')
 
-        self.proj = Conv(self.channels, 1, use_bias=False, name='proj')
+        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
         super().build(input_shape)
 
@@ -194,7 +200,7 @@ class SWMSA(layers.Layer):
         if self.use_dw:
             qkv = self.qkv_dw(qkv)
 
-        if self.use_bias:
+        if self.qkv_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
@@ -334,7 +340,8 @@ class SWMSA(layers.Layer):
             'num_heads': self.num_heads,
             'shift_mode': self.shift_mode,
             'use_dw': self.use_dw,
-            'use_bias': self.use_bias
+            'qkv_bias': self.qkv_bias,
+            'proj_bias': self.proj_bias
         })
 
         return config
@@ -342,7 +349,8 @@ class SWMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class GGMSA(layers.Layer):
-    def __init__(self, current_window, pretrain_window, num_heads, use_dw=False, use_bias=True, **kwargs):
+    def __init__(
+            self, current_window, pretrain_window, num_heads, use_dw=False, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -353,7 +361,8 @@ class GGMSA(layers.Layer):
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
         self.use_dw = use_dw
-        self.use_bias = use_bias
+        self.qkv_bias = qkv_bias
+        self.proj_bias = proj_bias
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -367,7 +376,7 @@ class GGMSA(layers.Layer):
         if self.use_dw:
             self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
 
-        if self.use_bias:
+        if self.qkv_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
@@ -379,7 +388,7 @@ class GGMSA(layers.Layer):
         self.rel_bias = RelativeBias(
             self.current_window, self.pretrain_window, self.current_window, self.num_heads, name='rel_bias')
 
-        self.proj = Conv(self.channels, 1, use_bias=False, name='proj')
+        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
         super().build(input_shape)
 
@@ -388,7 +397,7 @@ class GGMSA(layers.Layer):
         if self.use_dw:
             qkv = self.qkv_dw(qkv)
 
-        if self.use_bias:
+        if self.qkv_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
@@ -449,7 +458,8 @@ class GGMSA(layers.Layer):
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
             'use_dw': self.use_dw,
-            'use_bias': self.use_bias
+            'qkv_bias': self.qkv_bias,
+            'proj_bias': self.proj_bias
         })
 
         return config
@@ -528,13 +538,14 @@ class RelativeBias(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class CHMSA(layers.Layer):
-    def __init__(self, num_heads, use_dw=False, use_bias=True, **kwargs):
+    def __init__(self, num_heads, use_dw=False, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
         self.num_heads = num_heads
         self.use_dw = use_dw
-        self.use_bias = use_bias
+        self.qkv_bias = qkv_bias
+        self.proj_bias = proj_bias
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -546,7 +557,7 @@ class CHMSA(layers.Layer):
         if self.use_dw:
             self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
 
-        if self.use_bias:
+        if self.qkv_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
@@ -555,7 +566,7 @@ class CHMSA(layers.Layer):
             initializer=initializers.constant(np.log(10., dtype=self.dtype)),
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
-        self.proj = layers.Dense(self.channels, use_bias=False, name='proj')
+        self.proj = layers.Dense(self.channels, use_bias=self.proj_bias, name='proj')
 
         super().build(input_shape)
 
@@ -564,7 +575,7 @@ class CHMSA(layers.Layer):
         if self.use_dw:
             qkv = self.qkv_dw(qkv)
 
-        if self.use_bias:
+        if self.qkv_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
@@ -601,7 +612,8 @@ class CHMSA(layers.Layer):
         config.update({
             'num_heads': self.num_heads,
             'use_dw': self.use_dw,
-            'use_bias': self.use_bias
+            'qkv_bias': self.qkv_bias,
+            'proj_bias': self.proj_bias
         })
 
         return config
