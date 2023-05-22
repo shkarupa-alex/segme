@@ -66,7 +66,7 @@ def LMPP(kernel_size=3, expand_ratio=3., name=None):
     return apply
 
 
-def Head(unfold, stride, dtype, name=None):
+def Head(unfold, stride, name=None):
     if name is None:
         counter = backend.get_uid('head')
         name = f'head_{counter}'
@@ -83,25 +83,25 @@ def Head(unfold, stride, dtype, name=None):
             x = HeadProjection(1, name=f'{name}_logits')(inputs)
             x = BilinearInterpolation(stride, name=f'{name}_resize')(x)
 
-        x = ClassificationActivation(dtype=dtype, name=f'{name}_act')(x)
+        x = ClassificationActivation(name=f'{name}_act')(x)
 
         return x
 
     return apply
 
 
-def ExpRef(sup_unfold=False, dtype='float32'):
+def ExpRef(sup_unfold=False):
     inputs = layers.Input(name='image', shape=[None, None, 4], dtype='uint8')
     feats2, feats4, feats8 = Encoder()(inputs)
 
     outputs8 = LMPP(name='lmpp')(feats8)
-    probs8 = Head(sup_unfold, 8, dtype=dtype, name='head8')(outputs8)
+    probs8 = Head(sup_unfold, 8, name='head8')(outputs8)
 
     outputs4 = Align(feats4.shape[-1], name='merge4')([feats4, outputs8])
-    probs4 = Head(sup_unfold, 4, dtype=dtype, name='head4')(outputs4)
+    probs4 = Head(sup_unfold, 4, name='head4')(outputs4)
 
     outputs2 = Align(feats2.shape[-1], name='merge2')([feats2, outputs4])
-    probs2 = Head(sup_unfold, 2, dtype=dtype, name='head2')(outputs2)
+    probs2 = Head(sup_unfold, 2, name='head2')(outputs2)
 
     model = models.Model(inputs=inputs, outputs=[probs2, probs4, probs8], name='exp_sod')
 

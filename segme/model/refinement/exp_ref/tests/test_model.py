@@ -40,19 +40,19 @@ class TestExpRef(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             ExpRef,
-            kwargs={'sup_unfold': False, 'dtype': 'float16'},
+            kwargs={'sup_unfold': False},
             input_shapes=[(2, 240, 240, 4)],
             input_dtypes=['uint8'],
             expected_output_shapes=[(None, 240, 240, 1)] * 3,
-            expected_output_dtypes=['float16'] * 3
+            expected_output_dtypes=['float32'] * 3
         )
         layer_multi_io_test(
             ExpRef,
-            kwargs={'sup_unfold': True, 'dtype': 'float16'},
+            kwargs={'sup_unfold': True},
             input_shapes=[(2, 240, 240, 4)],
             input_dtypes=['uint8'],
             expected_output_shapes=[(None, 240, 240, 1)] * 3,
-            expected_output_dtypes=['float16'] * 3
+            expected_output_dtypes=['float32'] * 3
         )
 
     def test_model(self):
