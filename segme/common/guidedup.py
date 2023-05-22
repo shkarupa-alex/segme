@@ -72,8 +72,8 @@ class GuidedFilter(layers.Layer):
 
         self.intbysample = BilinearInterpolation(None)
         self.guide = Sequential([
-            ConvNormAct(self.filters, self.kernel_size, name='guide_cna'),
-            layers.Conv2D(channels[1], self.kernel_size, padding='same', name='guide_proj')
+            ConvNormAct(self.filters, self.kernel_size, name='cna'),
+            layers.Conv2D(channels[1], self.kernel_size, padding='same', name='proj')
         ], name='guide')
         self.box = BoxFilter(self.radius, name='box')
 
@@ -148,15 +148,15 @@ class ConvGuidedFilter(layers.Layer):
         self.interpolate = BilinearInterpolation(None)
 
         self.guide = Sequential([
-            ConvNormAct(self.filters, self.kernel_size, name='guide_cna'),
-            layers.Conv2D(channels[1], self.kernel_size, padding='same', name='guide_proj')
+            ConvNormAct(self.filters, self.kernel_size, name='cna'),
+            layers.Conv2D(channels[1], self.kernel_size, padding='same', name='proj')
         ], name='guide')
         self.box = layers.DepthwiseConv2D(
             3, padding='same', dilation_rate=self.radius, use_bias=False, kernel_initializer='ones', name='box')
         self.conva = Sequential([
-            ConvNormAct(self.filters, 1, name='conva_cna0'),
-            ConvNormAct(self.filters, 1, name='conva_cna1'),
-            layers.Conv2D(channels[1], 1, use_bias=False, name='conva_proj')
+            ConvNormAct(self.filters, 1, name='cna0'),
+            ConvNormAct(self.filters, 1, name='cna1'),
+            layers.Conv2D(channels[1], 1, use_bias=False, name='proj')
         ], name='conva')
 
         super().build(input_shape)

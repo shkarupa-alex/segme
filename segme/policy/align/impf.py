@@ -29,7 +29,9 @@ class ImplicitFeatureAlignment(layers.Layer):
 
         self.posemb = [SpatialEncoding() for _ in input_shape]
         self.imnet = Sequential([
-            ConvNormAct(self.filters * 2, 1), ConvNormAct(self.filters, 1), ConvNormAct(self.filters, 1)])
+            ConvNormAct(self.filters * 2, 1),
+            ConvNormAct(self.filters, 1),
+            ConvNormAct(self.filters, 1)])
 
         super().build(input_shape)
 

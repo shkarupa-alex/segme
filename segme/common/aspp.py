@@ -32,26 +32,30 @@ class AtrousSpatialPyramidPooling(layers.Layer):
 
         rate0, rate1, rate2 = self._stride_rates[self.stride]
         self.conv3r0 = Sequential([
-            ConvNormAct(None, 3, dilation_rate=rate0, name='conv3r0_dna'),
-            ConvNormAct(self.filters, 1, name='conv3r0_pna')], name='conv3r0')
+            ConvNormAct(None, 3, dilation_rate=rate0, name='dna'),
+            ConvNormAct(self.filters, 1, name='pna')
+        ], name='conv3r0')
         self.conv3r1 = Sequential([
-            ConvNormAct(None, 3, dilation_rate=rate1, name='conv3r1_dna'),
-            ConvNormAct(self.filters, 1, name='conv3r1_pna')], name='conv3r1')
+            ConvNormAct(None, 3, dilation_rate=rate1, name='dna'),
+            ConvNormAct(self.filters, 1, name='pna')
+        ], name='conv3r1')
         self.conv3r2 = Sequential([
-            ConvNormAct(None, 3, dilation_rate=rate2, name='conv3r2_dna'),
-            ConvNormAct(self.filters, 1, name='conv3r2_pna')], name='conv3r2')
+            ConvNormAct(None, 3, dilation_rate=rate2, name='dna'),
+            ConvNormAct(self.filters, 1, name='pna')
+        ], name='conv3r2')
 
         self.pool = Sequential([
             layers.GlobalAveragePooling2D(keepdims=True),
             # TODO: wait for https://github.com/tensorflow/tensorflow/issues/48845
             # Or use fused=False with BatchNormalization or set drop_remainder=True in Dataset batching
-            ConvNormAct(self.filters, 1, name='pool_cna')
+            ConvNormAct(self.filters, 1, name='cna')
         ], name='pool')
         self.gavg = GlobalAverage()
 
         self.proj = Sequential([
-            ConvNormAct(self.filters, 1, name='proj_cna'),
-            layers.Dropout(self.dropout, name='proj_drop')], name='pool')
+            ConvNormAct(self.filters, 1, name='cna'),
+            layers.Dropout(self.dropout, name='drop')
+        ], name='pool')
 
         super().build(input_shape)
 

@@ -26,7 +26,6 @@ class Decoder(layers.Layer):
         self.resize = BilinearInterpolation(None)
 
         self.ppm = PyramidPooling(256)
-        self.ppm.build(input_shape[2])
 
         self.conv_up1 = ConvNormAct(256, 3)
         self.conv_up2 = ConvNormAct(256, 3)

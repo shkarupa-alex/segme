@@ -23,7 +23,8 @@ class ChannelAttention(layers.Layer):
         self.avg = Sequential([
             layers.GlobalAvgPool2D(keepdims=True),
             Norm(),
-            layers.Dropout(self.confidence)])
+            layers.Dropout(self.confidence)
+        ])
         self.qkv = Conv(self.channels * 3, 1, use_bias=False)
         self.proj = Conv(self.channels, 1, use_bias=False, activation='sigmoid')
 

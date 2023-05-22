@@ -24,7 +24,7 @@ class SE(layers.Layer):
 
         filters = max(1, int(channels * self.ratio))
         self.se = Sequential([
-            layers.GlobalAvgPool2D(keepdims=True, name='glob_avg'),
+            layers.GlobalAvgPool2D(keepdims=True, name='pool'),
             ConvAct(filters, 1, kernel_initializer='variance_scaling', name='fc0'),
             layers.Conv2D(channels, 1, activation='sigmoid', kernel_initializer='variance_scaling', name='fc1')
         ], name='se')

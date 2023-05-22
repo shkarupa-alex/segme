@@ -26,11 +26,26 @@ class FrequencyEdge(layers.Layer):
 
         self.chatt = ChannelAttention(self.confidence)
 
-        self.conv_in = Sequential([ConvNormAct(None, 3), ConvNormAct(self.channels, 1)])
-        self.conv_mid0 = Sequential([ConvNormAct(None, 1), ConvNormAct(self.channels // 4, 1)])
-        self.conv_mid1 = Sequential([ConvNormAct(None, 3), ConvNormAct(self.channels // 4, 1)])
-        self.conv_mid2 = Sequential([ConvNormAct(None, 3, dilation_rate=3), ConvNormAct(self.channels // 4, 1)])
-        self.conv_mid3 = Sequential([ConvNormAct(None, 3, dilation_rate=5), ConvNormAct(self.channels // 4, 1)])
+        self.conv_in = Sequential([
+            ConvNormAct(None, 3),
+            ConvNormAct(self.channels, 1)
+        ])
+        self.conv_mid0 = Sequential([
+            ConvNormAct(None, 1),
+            ConvNormAct(self.channels // 4, 1)
+        ])
+        self.conv_mid1 = Sequential([
+            ConvNormAct(None, 3),
+            ConvNormAct(self.channels // 4, 1)
+        ])
+        self.conv_mid2 = Sequential([
+            ConvNormAct(None, 3, dilation_rate=3),
+            ConvNormAct(self.channels // 4, 1)
+        ])
+        self.conv_mid3 = Sequential([
+            ConvNormAct(None, 3, dilation_rate=5),
+            ConvNormAct(self.channels // 4, 1)
+        ])
         self.conv_out = ConvNormAct(1, 1)
 
         super().build(input_shape)

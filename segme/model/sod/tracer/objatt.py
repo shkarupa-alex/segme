@@ -25,11 +25,26 @@ class ObjectAttention(layers.Layer):
         if not self.channels // 8:
             raise ValueError('Channel dimension should be greater then 8.')
 
-        self.conv_in = Sequential([ConvNormAct(None, 3), ConvNormAct(self.channels // 2, 1)])
-        self.conv_mid0 = Sequential([ConvNormAct(None, 1), ConvNormAct(self.channels // 8, 1)])
-        self.conv_mid1 = Sequential([ConvNormAct(None, 3), ConvNormAct(self.channels // 8, 1)])
-        self.conv_mid2 = Sequential([ConvNormAct(None, 3, dilation_rate=3), ConvNormAct(self.channels // 8, 1)])
-        self.conv_mid3 = Sequential([ConvNormAct(None, 3, dilation_rate=5), ConvNormAct(self.channels // 8, 1)])
+        self.conv_in = Sequential([
+            ConvNormAct(None, 3),
+            ConvNormAct(self.channels // 2, 1)
+        ])
+        self.conv_mid0 = Sequential([
+            ConvNormAct(None, 1),
+            ConvNormAct(self.channels // 8, 1)
+        ])
+        self.conv_mid1 = Sequential([
+            ConvNormAct(None, 3),
+            ConvNormAct(self.channels // 8, 1)
+        ])
+        self.conv_mid2 = Sequential([
+            ConvNormAct(None, 3, dilation_rate=3),
+            ConvNormAct(self.channels // 8, 1)
+        ])
+        self.conv_mid3 = Sequential([
+            ConvNormAct(None, 3, dilation_rate=5),
+            ConvNormAct(self.channels // 8, 1)
+        ])
         self.conv_out = ConvNormAct(1, 1)
 
         super().build(input_shape)
