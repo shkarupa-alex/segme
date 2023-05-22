@@ -1,13 +1,12 @@
 import numpy as np
 import tensorflow as tf
 from keras import backend, initializers, layers, models
-from keras.applications import imagenet_utils
-from keras.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.mixed_precision import global_policy
+from keras.src.applications import imagenet_utils
+from keras.src.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.drop import DropPath
-from segme.common.grn import GRN
 from segme.common.attn import SWMSA
 from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
@@ -36,13 +35,14 @@ def Stem(filters, depth, path_gamma=1., path_drop=0., name=None):
     def apply(inputs):
         x = Conv(filters, 3, strides=2, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_0_conv')(inputs)
         x = Act(name=f'{name}_0_act')(x)
-        x = Norm(center=False, name=f'{name}_0_norm')(x)
+        x = Norm(center=False, policy='conv-gn-relu', name=f'{name}_0_norm')(x)
 
         for i in range(depth):
             y = Conv(filters, 3, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_{i + 1}_conv')(x)
             y = Act(name=f'{name}_{i + 1}_act')(y)
             y = Norm(
-                center=False, gamma_initializer=initializers.Constant(path_gamma[i]), name=f'{name}_{i + 1}_norm')(y)
+                center=False, policy='conv-gn-relu', gamma_initializer=initializers.Constant(path_gamma[i]),
+                name=f'{name}_{i + 1}_norm')(y)
             y = DropPath(path_drop[i], name=f'{name}_{i + 1}_drop')(y)
             x = layers.add([y, x], name=f'{name}_{i + 1}_add')
 
@@ -51,7 +51,7 @@ def Stem(filters, depth, path_gamma=1., path_drop=0., name=None):
     return apply
 
 
-def Reduce(fused, kernel_size=3, expand_ratio=4., name=None):
+def Reduce(fused, kernel_size=3, expand_ratio=2., project_ratio=2., name=None):
     if name is None:
         counter = backend.get_uid('reduce')
         name = f'reduce_{counter}'
@@ -61,7 +61,8 @@ def Reduce(fused, kernel_size=3, expand_ratio=4., name=None):
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        expand_filters = int(channels * expand_ratio)
+        expand_filters = round(channels * expand_ratio)
+        project_filters = round(channels * project_ratio)
 
         if fused:  # From EfficientNet2
             x = Conv(
@@ -72,8 +73,7 @@ def Reduce(fused, kernel_size=3, expand_ratio=4., name=None):
             x = Conv(
                 None, kernel_size, strides=2, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
         x = Act(name=f'{name}_act')(x)
-        x = GRN(center=False, name=f'{name}_grn')(x)  # From ConvNeXt2
-        x = Conv(channels * 2, 1, use_bias=False, name=f'{name}_squeeze')(x)
+        x = Conv(project_filters, 1, use_bias=False, name=f'{name}_squeeze')(x)
         x = Norm(center=False, name=f'{name}_norm')(x)
 
         return x
@@ -81,10 +81,10 @@ def Reduce(fused, kernel_size=3, expand_ratio=4., name=None):
     return apply
 
 
-def MLPConv(fused, kernel_size=3, expand_ratio=4., path_drop=0., gamma_initializer='ones', name=None):
+def MLP(expand_ratio=4., path_drop=0., gamma_initializer='ones', name=None):
     if name is None:
-        counter = backend.get_uid('mlpconv')
-        name = f'mlpconv_{counter}'
+        counter = backend.get_uid('mlp')
+        name = f'mlp_{counter}'
 
     def apply(inputs):
         channels = inputs.shape[-1]
@@ -93,17 +93,10 @@ def MLPConv(fused, kernel_size=3, expand_ratio=4., path_drop=0., gamma_initializ
 
         expand_filters = int(channels * expand_ratio)
 
-        if fused:  # From EfficientNet2
-            x = Conv(
-                expand_filters, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand')(inputs)
-        else:
-            x = Conv(
-                expand_filters, 1, use_bias=False, name=f'{name}_expand_pw')(inputs)
-            x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
+        x = layers.Dense(expand_filters, name=f'{name}_expand')(inputs)
         x = Act(name=f'{name}_act')(x)
-        x = GRN(center=False, name=f'{name}_grn')(x)  # From ConvNeXt2
-        x = Conv(channels, 1, use_bias=False, name=f'{name}_squeeze')(x)
-        x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_norm')(x)
+        x = layers.Dense(channels, name=f'{name}_squeeze')(x)
+        x = Norm(gamma_initializer=gamma_initializer, name=f'{name}_norm')(x)
         x = DropPath(path_drop, name=f'{name}_drop')(x)
         x = layers.add([x, inputs], name=f'{name}_add')
 
@@ -112,7 +105,7 @@ def MLPConv(fused, kernel_size=3, expand_ratio=4., path_drop=0., gamma_initializ
     return apply
 
 
-def AttnBlock(current_window, pretrain_window, num_heads, shift_mode, kernel_size=3, path_drop=0., expand_ratio=4.,
+def AttnBlock(current_window, pretrain_window, num_heads, shift_mode, path_drop=0., expand_ratio=4.,
               path_gamma=1., name=None):
     if name is None:
         counter = backend.get_uid('attn_block')
@@ -127,13 +120,12 @@ def AttnBlock(current_window, pretrain_window, num_heads, shift_mode, kernel_siz
 
         x = SWMSA(
             current_window, pretrain_window, num_heads, shift_mode=shift_mode, name=f'{name}_swmsa_attn')(inputs)
-        x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_swmsa_norm')(x)
+        x = Norm(gamma_initializer=gamma_initializer, name=f'{name}_swmsa_norm')(x)
         x = DropPath(path_drop, name=f'{name}_swmsa_drop')(x)
         x = layers.add([x, inputs], name=f'{name}_swmsa_add')
 
-        x = MLPConv(
-            False, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,
-            gamma_initializer=gamma_initializer, name=f'{name}_mlpconv')(x)
+        x = MLP(
+            expand_ratio=expand_ratio, path_drop=path_drop, gamma_initializer=gamma_initializer, name=f'{name}_mlp')(x)
 
         return x
 
@@ -141,14 +133,17 @@ def AttnBlock(current_window, pretrain_window, num_heads, shift_mode, kernel_siz
 
 
 def SoftSwin(
-        embed_dim, stem_depth, stage_depths, current_window=12, pretrain_window=12, expand_ratio=4, path_gamma=0.01,
-        path_drop=0.2, pretrain_size=384, input_shape=None, include_top=True, model_name='soft_swin', pooling=None,
-        weights=None, input_tensor=None, classes=1000, classifier_activation='softmax', include_preprocessing=False):
+        embed_dim, stem_depth, stage_depths, pretrain_window, current_window=None, expand_ratio=4, path_gamma=0.01,
+        path_drop=0.2, pretrain_size=384, current_size=None, input_shape=None, include_top=True, model_name='soft_swin',
+        pooling=None, weights=None, input_tensor=None, classes=1000, classifier_activation='softmax',
+        include_preprocessing=False):
     if embed_dim % 32:
         raise ValueError('Embedding size should be a multiple of 32.')
 
     if len(stage_depths) < 4:
         raise ValueError('Number of stages should be greater then 4.')
+
+    current_window = current_window or pretrain_window
 
     if weights not in {'imagenet', None} and not tf.io.gfile.exists(weights):
         raise ValueError('The `weights` argument should be either `None` (random initialization), `imagenet` '
@@ -176,8 +171,9 @@ def SoftSwin(
     # Determine proper input shape
     min_size = 2 ** (len(stage_depths) + 1)
     pretrain_size = pretrain_size or pretrain_window * min_size
+    current_size = current_size or pretrain_size
     input_shape = imagenet_utils.obtain_input_shape(
-        input_shape, default_size=pretrain_size, min_size=min_size, data_format='channel_last', require_flatten=False,
+        input_shape, default_size=current_size, min_size=min_size, data_format='channel_last', require_flatten=False,
         weights=weights)
     input_dtype = global_policy().compute_dtype
 
@@ -189,98 +185,114 @@ def SoftSwin(
     else:
         image = layers.Input(shape=input_shape, name='images', dtype=input_dtype)
 
-    x = image
+    with cnapol.policy_scope('conv-ln-gelu'):
+        x = image
 
-    if include_preprocessing:
-        x = layers.Rescaling(scale=1.0 / 255, name='rescale')(x)
-        x = layers.Normalization(
-            mean=[0.485, 0.456, 0.406], variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2], name='normalize')(x)
+        if include_preprocessing:
+            x = layers.Rescaling(scale=1.0 / 255, name='rescale')(x)
+            x = layers.Normalization(
+                mean=[0.485, 0.456, 0.406], variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2], name='normalize')(x)
 
-    path_gammas = np.linspace(path_gamma, 1e-5, stem_depth + sum(stage_depths)).tolist()
-    path_drops = np.linspace(0., path_drop, stem_depth + sum(stage_depths)).tolist()
+        path_gammas = np.linspace(path_gamma, 1e-5, stem_depth + sum(stage_depths)).tolist()
+        path_drops = np.linspace(0., path_drop, stem_depth + sum(stage_depths)).tolist()
 
-    stem_gammas, path_gammas = path_gammas[:stem_depth], path_gammas[stem_depth:]
-    stem_drops, path_drops = path_drops[:stem_depth], path_drops[stem_depth:]
-    x = Stem(embed_dim // 2, stem_depth, path_gamma=stem_gammas, path_drop=stem_drops, name='stem')(x)
-    x = layers.Activation('linear', name='stem_out')(x)
+        stem_gammas, path_gammas = path_gammas[:stem_depth], path_gammas[stem_depth:]
+        stem_drops, path_drops = path_drops[:stem_depth], path_drops[stem_depth:]
 
-    shift_counter = -1
-    for i, stage_depth in enumerate(stage_depths):
-        num_heads = embed_dim // 2 ** (5 - i)
+        stem_filters = np.ceil(embed_dim / 6 / 8).astype('int32').item() * 8
+        x = Stem(stem_filters, stem_depth, path_gamma=stem_gammas, path_drop=stem_drops, name='stem')(x)
+        x = layers.Activation('linear', name='stem_out')(x)
 
-        stage_gammas, path_gammas = path_gammas[:stage_depth], path_gammas[stage_depth:]
-        stage_drops, path_drops = path_drops[:stage_depth], path_drops[stage_depth:]
+        shift_counter = -1
+        for i, stage_depth in enumerate(stage_depths):
+            stage_window = min(current_window, current_size // 2 ** (i + 2))
+            num_heads = embed_dim // 2 ** (5 - i)
 
-        fused = 0 == i  # From EfficientNet2
-        x = Reduce(fused, expand_ratio=expand_ratio, name=f'stage_{i}_reduce')(x)
+            stage_gammas, path_gammas = path_gammas[:stage_depth], path_gammas[stage_depth:]
+            stage_drops, path_drops = path_drops[:stage_depth], path_drops[stage_depth:]
 
-        for j in range(stage_depth):
-            shift_counter += j % 2
-            shift_mode = shift_counter % 4 + 1 if j % 2 else 0
-            x = AttnBlock(
-                current_window, pretrain_window, num_heads, shift_mode, expand_ratio=expand_ratio,
-                path_gamma=stage_gammas[j], path_drop=stage_drops[j], name=f'stage_{i}_attn_{j}')(x)
+            reduce_fused = 0 == i  # From EfficientNet2
+            reduce_ratio = embed_dim / stem_filters if 0 == i else 2
+            x = Reduce(
+                reduce_fused, expand_ratio=reduce_ratio, project_ratio=reduce_ratio, name=f'stage_{i}_reduce')(x)
 
-        x = layers.Activation('linear', name=f'stage_{i}_out')(x)
+            for j in range(stage_depth):
+                shift_counter += j % 2
+                shift_mode = shift_counter % 4 + 1 if j % 2 else 0
+                x = AttnBlock(
+                    stage_window, pretrain_window, num_heads, shift_mode, expand_ratio=expand_ratio,
+                    path_gamma=stage_gammas[j], path_drop=stage_drops[j], name=f'stage_{i}_attn_{j}')(x)
 
-    x = Norm(name='norm')(x)
+            x = layers.Activation('linear', name=f'stage_{i}_out')(x)
 
-    if include_top or pooling in {None, 'avg'}:
-        x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
-    elif pooling == 'max':
-        x = layers.GlobalMaxPooling2D(name='max_pool')(x)
-    else:
-        raise ValueError(f'Expecting pooling to be one of None/avg/max. Found: {pooling}')
+        x = Norm(name='norm')(x)
 
-    imagenet_utils.validate_activation(classifier_activation, weights)
-    x = layers.Dense(classes, name='head')(x)
-    x = layers.Activation(classifier_activation, dtype='float32', name='pred')(x)
+        if include_top or pooling in {None, 'avg'}:
+            x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
+        elif pooling == 'max':
+            x = layers.GlobalMaxPooling2D(name='max_pool')(x)
+        else:
+            raise ValueError(f'Expecting pooling to be one of None/avg/max. Found: {pooling}')
 
-    if input_tensor is not None:
-        inputs = layer_utils.get_source_inputs(input_tensor)
-    else:
-        inputs = image
+        imagenet_utils.validate_activation(classifier_activation, weights)
+        x = layers.Dense(classes, name='head')(x)
+        x = layers.Activation(classifier_activation, dtype='float32', name='pred')(x)
 
-    model = models.Model(inputs, x, name=model_name)
+        if input_tensor is not None:
+            inputs = layer_utils.get_source_inputs(input_tensor)
+        else:
+            inputs = image
 
-    weights_key = f'{model_name}_{cnapol.global_policy()}'
-    if 'imagenet' == weights and weights_key in WEIGHT_URLS:
-        weights_url = WEIGHT_URLS[weights_key]
-        weights_hash = WEIGHT_HASHES[weights_key]
-        weights_path = data_utils.get_file(origin=weights_url, file_hash=weights_hash, cache_subdir='soft_swin')
-        model.load_weights(weights_path)
-    elif weights is not None:
-        model.load_weights(weights)
+        model = models.Model(inputs, x, name=model_name)
 
-    if include_top:
+        weights_key = f'{model_name}_{cnapol.global_policy()}'
+        if 'imagenet' == weights and weights_key in WEIGHT_URLS:
+            weights_url = WEIGHT_URLS[weights_key]
+            weights_hash = WEIGHT_HASHES[weights_key]
+            weights_path = data_utils.get_file(origin=weights_url, file_hash=weights_hash, cache_subdir='soft_swin')
+            model.load_weights(weights_path)
+        elif weights is not None:
+            model.load_weights(weights)
+
+        if include_top:
+            return model
+
+        outputs = model.get_layer(name='norm').output
+        model = models.Model(inputs=inputs, outputs=outputs, name=model_name)
+
         return model
 
-    outputs = model.get_layer(name='norm').output
-    model = models.Model(inputs=inputs, outputs=outputs, name=model_name)
 
-    return model
-
-
-def SoftSwinTiny(embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 2), path_drop=0.1, **kwargs):
-    # 22.7 14.5
+def SoftSwinTiny(
+        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 6, 2), pretrain_window=16, path_drop=0.1, pretrain_size=256,
+        current_size=384, **kwargs):
+    # 28.0 14.2
     return SoftSwin(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, path_drop=path_drop,
-        model_name='soft_swin_tiny', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
+        path_drop=path_drop, pretrain_size=pretrain_size, current_size=current_size, model_name='soft_swin_tiny',
+        **kwargs)
 
 
-def SoftSwinSmall(embed_dim=96, stem_depth=2, stage_depths=(2, 2, 18, 2), **kwargs):
-    # 53.7 34.6
+def SoftSwinSmall(
+        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 18, 2), pretrain_window=16, pretrain_size=256, current_size=384,
+        **kwargs):
+    # 49.4 26.6
     return SoftSwin(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='soft_swin_small', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
+        pretrain_size=pretrain_size, current_size=current_size, model_name='soft_swin_small', **kwargs)
 
 
-def SoftSwinBase(embed_dim=128, stem_depth=2, stage_depths=(2, 2, 18, 2), **kwargs):
-    # 106.0 69.7
+def SoftSwinBase(
+        embed_dim=128, stem_depth=3, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, **kwargs):
+    # 87.3 39.6
     return SoftSwin(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='soft_swin_base', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
+        pretrain_window=pretrain_window, model_name='soft_swin_base', **kwargs)
 
 
-def SoftSwinLarge(embed_dim=160, stem_depth=2, stage_depths=(2, 2, 18, 2), **kwargs):
-    # 190.6 127.8
+def SoftSwinLarge(
+        embed_dim=192, stem_depth=4, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, **kwargs):
+    # 195.3 82.9
     return SoftSwin(
-        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, model_name='soft_swin_large', **kwargs)
+        embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
+        pretrain_window=pretrain_window, model_name='soft_swin_large', **kwargs)

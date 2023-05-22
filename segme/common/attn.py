@@ -53,7 +53,7 @@ class DHMSA(layers.Layer):
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
         self.rel_bias = RelativeBias(
-            self.current_window, self.pretrain_window, self.halo_window // 2, self.num_heads, name='rel_bias')
+            self.current_window, self.halo_window // 2, self.pretrain_window, self.num_heads, name='rel_bias')
 
         self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
@@ -153,9 +153,6 @@ class SWMSA(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
-        if current_window < pretrain_window:
-            raise ValueError('Actual window size should not be less then pretrain one.')
-
         self.current_window = current_window
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
@@ -189,7 +186,7 @@ class SWMSA(layers.Layer):
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
         self.rel_bias = RelativeBias(
-            self.current_window, self.pretrain_window, self.current_window, self.num_heads, name='rel_bias')
+            self.current_window, self.current_window, self.pretrain_window, self.num_heads, name='rel_bias')
 
         self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
@@ -386,7 +383,7 @@ class GGMSA(layers.Layer):
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
         self.rel_bias = RelativeBias(
-            self.current_window, self.pretrain_window, self.current_window, self.num_heads, name='rel_bias')
+            self.current_window, self.current_window, self.pretrain_window, self.num_heads, name='rel_bias')
 
         self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
@@ -467,11 +464,8 @@ class GGMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class RelativeBias(layers.Layer):
-    def __init__(self, query_window, pretrain_window, key_window, num_heads, **kwargs):
+    def __init__(self, query_window, key_window, pretrain_window, num_heads, **kwargs):
         super().__init__(**kwargs)
-        if query_window < pretrain_window:
-            raise ValueError('Actual window size should not be less then pretrain one.')
-
         if key_window < query_window:
             raise ValueError('Key window must be greater or equal to query one.')
 
@@ -479,8 +473,8 @@ class RelativeBias(layers.Layer):
             raise ValueError('Key window halo must be symmetric around query window.')
 
         self.query_window = query_window
-        self.pretrain_window = pretrain_window
         self.key_window = key_window
+        self.pretrain_window = pretrain_window
         self.num_heads = num_heads
 
     def build(self, input_shape):
@@ -490,7 +484,7 @@ class RelativeBias(layers.Layer):
         rel_tab = np.transpose(rel_tab, [1, 2, 0])[None]
         rel_tab *= 8. / (self.pretrain_window - 1.)
         rel_tab = np.sign(rel_tab) * np.log1p(np.abs(rel_tab)) / np.log(8)
-        rel_tab = rel_tab.reshape([-1, 2])
+        rel_tab = np.reshape(rel_tab, [-1, 2])
         self.rel_tab = tf.cast(rel_tab, self.compute_dtype)
 
         query_idx = np.arange(self.query_window)
@@ -503,12 +497,13 @@ class RelativeBias(layers.Layer):
         rel_idx = rel_idx + (self.key_window - 1)
         rel_idx = rel_idx[0] * (self.query_window + self.key_window - 1) + rel_idx[1]
         rel_idx = np.reshape(rel_idx, [-1])
-        self.rel_idx = tf.cast(rel_idx, 'int64')
+        self.rel_idx = tf.cast(rel_idx, 'int32')
 
         self.cpb = Sequential([
-            layers.Dense(512, name='cpb_expand'),
-            Act(name='cpb_act'),
-            layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name='cpb_squeeze')], name='cpb')
+            layers.Dense(512, name='expand'),
+            Act(name='act'),
+            layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name='squeeze')
+        ], name='cpb')
 
         super().build(input_shape)
 
@@ -528,8 +523,8 @@ class RelativeBias(layers.Layer):
 
         config.update({
             'query_window': self.query_window,
-            'pretrain_window': self.pretrain_window,
             'key_window': self.key_window,
+            'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads
         })
 
@@ -566,7 +561,7 @@ class CHMSA(layers.Layer):
             initializer=initializers.constant(np.log(10., dtype=self.dtype)),
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
-        self.proj = layers.Dense(self.channels, use_bias=self.proj_bias, name='proj')
+        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
         super().build(input_shape)
 

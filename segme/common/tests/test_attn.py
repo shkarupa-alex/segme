@@ -588,30 +588,30 @@ class TestRelativeBias(test_combinations.TestCase):
     def test_layer(self):
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 8, 'pretrain_window': 8, 'key_window': 8, 'num_heads': 2},
+            kwargs={'query_window': 8, 'key_window': 8, 'pretrain_window': 8, 'num_heads': 2},
             input_data=np.zeros([1]),
             expected_output_shape=[1, 1, 2, 64, 64],
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 7, 'pretrain_window': 7, 'key_window': 7, 'num_heads': 2},
+            kwargs={'query_window': 7, 'key_window': 7, 'pretrain_window': 7, 'num_heads': 2},
             input_data=np.zeros([1]),
             expected_output_shape=[1, 1, 2, 49, 49],
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 12, 'pretrain_window': 8, 'key_window': 12, 'num_heads': 2},
+            kwargs={'query_window': 8, 'key_window': 16, 'pretrain_window': 8, 'num_heads': 2},
             input_data=np.zeros([1]),
-            expected_output_shape=[1, 1, 2, 144, 144],
+            expected_output_shape=[1, 1, 2, 64, 256],
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 8, 'pretrain_window': 8, 'key_window': 16, 'num_heads': 2},
+            kwargs={'query_window': 12, 'key_window': 12, 'pretrain_window': 8, 'num_heads': 2},
             input_data=np.zeros([1]),
-            expected_output_shape=[1, 1, 2, 64, 256],
+            expected_output_shape=[1, 1, 2, 144, 144],
             expected_output_dtype='float32'
         )
 
@@ -619,7 +619,7 @@ class TestRelativeBias(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 8, 'pretrain_window': 8, 'key_window': 8, 'num_heads': 2},
+            kwargs={'query_window': 8, 'key_window': 8, 'pretrain_window': 8, 'num_heads': 2},
             input_data=np.zeros([1]),
             expected_output_shape=[1, 1, 2, 64, 64],
             expected_output_dtype='float16'
@@ -847,6 +847,22 @@ class TestRelativeBias(test_combinations.TestCase):
         result_index = self.evaluate(layer.rel_idx)
         self.assertAllClose(expected_index, result_index, atol=1e-3)
 
+    def test_reduce(self):
+        layer10 = RelativeBias(10, 10, 10, 1)
+        layer10.build(None)
+        expected = tf.gather(layer10.rel_tab, layer10.rel_idx)
+        expected = tf.reshape(expected, [10] * 4 + [2])
+        expected = expected[2:-2, 2:-2, 2:-2, 2:-2]
+        expected = self.evaluate(expected)
+
+        layer6 = RelativeBias(6, 6, 10, 1)
+        layer6.build(None)
+        result = tf.gather(layer6.rel_tab, layer6.rel_idx)
+        result = tf.reshape(result, [6] * 4 + [2])
+        result = self.evaluate(result)
+
+        self.assertAllClose(expected, result)
+
     def test_finetune(self):
         layer6 = RelativeBias(6, 6, 6, 1)
         layer6.build(None)
@@ -854,7 +870,7 @@ class TestRelativeBias(test_combinations.TestCase):
         expected = tf.reshape(expected, [6] * 4 + [2])
         expected = self.evaluate(expected)
 
-        layer10 = RelativeBias(10, 6, 10, 1)
+        layer10 = RelativeBias(10, 10, 6, 1)
         layer10.build(None)
         result = tf.gather(layer10.rel_tab, layer10.rel_idx)
         result = tf.reshape(result, [10] * 4 + [2])
@@ -870,7 +886,7 @@ class TestRelativeBias(test_combinations.TestCase):
         expected = tf.reshape(expected, [6] * 4 + [2])
         expected = self.evaluate(expected)
 
-        layer12 = RelativeBias(6, 6, 12, 1)
+        layer12 = RelativeBias(6, 12, 6, 1)
         layer12.build(None)
         result = tf.gather(layer12.rel_tab, layer12.rel_idx)
         result = tf.reshape(result, [6] * 2 + [12] * 2 + [2])
