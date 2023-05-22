@@ -200,7 +200,7 @@ def train_augment(image, mask, replay=False):
 
     compose_cls = alb.ReplayCompose if replay else alb.Compose
     aug = compose_cls([
-        alb.RandomCrop(start_crop, start_crop, p=1),
+        alb.CropNonEmptyMaskIfExists(start_crop, start_crop, p=1),
 
         # Color
         alb.OneOf([
@@ -274,7 +274,7 @@ def train_augment(image, mask, replay=False):
 
         # Pad & crop
         alb.PadIfNeeded(*trg_size, border_mode=cv2.BORDER_CONSTANT, p=1),
-        alb.RandomCrop(*trg_size, p=1),
+        alb.CropNonEmptyMaskIfExists(*trg_size, p=1),
     ], additional_targets={'weight': 'mask'})
 
     augmented = aug(image=image, mask=mask, weight=np.ones_like(mask))
@@ -294,7 +294,7 @@ def valid_augment(image, mask):
     aug = alb.Compose([
         # Crop
         alb.PadIfNeeded(*trg_size, border_mode=cv2.BORDER_CONSTANT, p=1),
-        alb.RandomCrop(*trg_size, p=1),
+        alb.CropNonEmptyMaskIfExists(*trg_size, p=1),
     ], additional_targets={'weight': 'mask'})
 
     augmented = aug(image=image, mask=mask, weight=np.ones_like(mask))
@@ -451,8 +451,12 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                     # Skip samples where > 1/3 of pixels are masked
                     continue
 
-                size0 = (mask == 255).mean()
+                size0 = (mask0 == 255).mean()
                 if size0 < 0.05 or size0 > 0.95:
+                    continue
+
+                iou0 = compute_iou(mask0, coarse0)
+                if iou0 < IOU_MIN * 0.9:
                     continue
 
                 weight0 = weight0.astype('float32') * min(sample_weight * curr_weight * 20., 255.)
