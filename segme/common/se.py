@@ -2,7 +2,7 @@ from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvAct
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -23,7 +23,7 @@ class SE(layers.Layer):
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
         filters = max(1, int(channels * self.ratio))
-        self.se = Sequential([
+        self.se = Sequenсe([
             layers.GlobalAvgPool2D(keepdims=True, name='pool'),
             ConvAct(filters, 1, kernel_initializer='variance_scaling', name='fc0'),
             layers.Conv2D(channels, 1, activation='sigmoid', kernel_initializer='variance_scaling', name='fc1')

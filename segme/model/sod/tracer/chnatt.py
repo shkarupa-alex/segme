@@ -3,7 +3,7 @@ from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import Conv, Norm
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Model>SOD>Tracer')
@@ -20,7 +20,7 @@ class ChannelAttention(layers.Layer):
         if self.channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.avg = Sequential([
+        self.avg = Sequenсe([
             layers.GlobalAvgPool2D(keepdims=True),
             Norm(),
             layers.Dropout(self.confidence)

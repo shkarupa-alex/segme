@@ -5,7 +5,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
 from segme.common.impfunc import make_coords, query_features
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Policy>Align>LIIF')
@@ -28,7 +28,7 @@ class ImplicitFeatureAlignment(layers.Layer):
         self.input_spec = [layers.InputSpec(ndim=4, axes={-1: c}) for c in self.channels]
 
         self.posemb = [SpatialEncoding() for _ in input_shape]
-        self.imnet = Sequential([
+        self.imnet = Sequenсe([
             ConvNormAct(self.filters * 2, 1),
             ConvNormAct(self.filters, 1),
             ConvNormAct(self.filters, 1)])

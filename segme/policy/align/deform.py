@@ -4,7 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from tfmiss.keras.layers import DCNv2
 from segme.common.convnormact import Conv, Act
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 from segme.common.resize import BilinearInterpolation
 
 
@@ -79,7 +79,7 @@ class FeatureSelection(layers.Layer):
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
         self.input_spec = layers.InputSpec(ndim=4, axes={-1: channels})
 
-        self.attend = Sequential([
+        self.attend = Sequenсe([
             layers.GlobalAvgPool2D(keepdims=True),
             layers.Conv2D(channels, 1, activation='sigmoid', use_bias=False, kernel_initializer='he_uniform'),
         ])

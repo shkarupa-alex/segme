@@ -4,7 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
 from segme.common.gavg import GlobalAverage
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -31,20 +31,20 @@ class AtrousSpatialPyramidPooling(layers.Layer):
         self.conv1 = ConvNormAct(self.filters, 1)
 
         rate0, rate1, rate2 = self._stride_rates[self.stride]
-        self.conv3r0 = Sequential([
+        self.conv3r0 = Sequenсe([
             ConvNormAct(None, 3, dilation_rate=rate0, name='dna'),
             ConvNormAct(self.filters, 1, name='pna')
         ], name='conv3r0')
-        self.conv3r1 = Sequential([
+        self.conv3r1 = Sequenсe([
             ConvNormAct(None, 3, dilation_rate=rate1, name='dna'),
             ConvNormAct(self.filters, 1, name='pna')
         ], name='conv3r1')
-        self.conv3r2 = Sequential([
+        self.conv3r2 = Sequenсe([
             ConvNormAct(None, 3, dilation_rate=rate2, name='dna'),
             ConvNormAct(self.filters, 1, name='pna')
         ], name='conv3r2')
 
-        self.pool = Sequential([
+        self.pool = Sequenсe([
             layers.GlobalAveragePooling2D(keepdims=True),
             # TODO: wait for https://github.com/tensorflow/tensorflow/issues/48845
             # Or use fused=False with BatchNormalization or set drop_remainder=True in Dataset batching
@@ -52,7 +52,7 @@ class AtrousSpatialPyramidPooling(layers.Layer):
         ], name='pool')
         self.gavg = GlobalAverage()
 
-        self.proj = Sequential([
+        self.proj = Sequenсe([
             ConvNormAct(self.filters, 1, name='cna'),
             layers.Dropout(self.dropout, name='drop')
         ], name='pool')

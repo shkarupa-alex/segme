@@ -1,9 +1,10 @@
 import tensorflow as tf
-from keras import Sequential, layers
+from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct, Act
 from segme.common.ppm import PyramidPooling
+from segme.common.sequence import Sequenсe
 from segme.common.resize import BilinearInterpolation
 from segme.common.head import HeadProjection
 
@@ -31,7 +32,7 @@ class Decoder(layers.Layer):
         self.conv_up2 = ConvNormAct(256, 3)
         self.conv_up3 = ConvNormAct(64, 3)
 
-        self.conv_up4 = Sequential([
+        self.conv_up4 = Sequenсe([
             layers.Conv2D(32, 3, padding='same'),
             Act(),
             layers.Conv2D(16, 3, padding='same'),

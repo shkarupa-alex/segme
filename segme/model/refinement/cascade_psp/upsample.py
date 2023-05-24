@@ -4,7 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct, Conv, Norm, Act
 from segme.common.resize import BilinearInterpolation
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Model>Refinement>CascadePSP')
@@ -17,13 +17,13 @@ class Upsample(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         self.resize = BilinearInterpolation(None)
-        self.conv1 = Sequential([
+        self.conv1 = Sequenсe([
             Norm(),
             Act(),
             ConvNormAct(self.filters, 3),
             Conv(self.filters, 3)
         ])
-        self.conv2 = Sequential([
+        self.conv2 = Sequenсe([
             Norm(),
             Act(),
             ConvNormAct(self.filters, 3),

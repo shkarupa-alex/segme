@@ -3,7 +3,7 @@ from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Model>SOD>Tracer')
@@ -25,23 +25,23 @@ class ObjectAttention(layers.Layer):
         if not self.channels // 8:
             raise ValueError('Channel dimension should be greater then 8.')
 
-        self.conv_in = Sequential([
+        self.conv_in = Sequenсe([
             ConvNormAct(None, 3),
             ConvNormAct(self.channels // 2, 1)
         ])
-        self.conv_mid0 = Sequential([
+        self.conv_mid0 = Sequenсe([
             ConvNormAct(None, 1),
             ConvNormAct(self.channels // 8, 1)
         ])
-        self.conv_mid1 = Sequential([
+        self.conv_mid1 = Sequenсe([
             ConvNormAct(None, 3),
             ConvNormAct(self.channels // 8, 1)
         ])
-        self.conv_mid2 = Sequential([
+        self.conv_mid2 = Sequenсe([
             ConvNormAct(None, 3, dilation_rate=3),
             ConvNormAct(self.channels // 8, 1)
         ])
-        self.conv_mid3 = Sequential([
+        self.conv_mid3 = Sequenсe([
             ConvNormAct(None, 3, dilation_rate=5),
             ConvNormAct(self.channels // 8, 1)
         ])

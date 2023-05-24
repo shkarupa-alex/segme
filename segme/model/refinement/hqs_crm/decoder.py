@@ -5,7 +5,7 @@ from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct, ConvAct, Conv
 from segme.common.impfunc import query_features
 from segme.common.resize import BilinearInterpolation
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Model>Refinement>HqsCrm')
@@ -28,7 +28,7 @@ class Decoder(layers.Layer):
         self.fuse = ConvNormAct(sum(self.aspp_filters), 3)
         self.drop = layers.Dropout(self.aspp_drop)
 
-        self.imnet = Sequential([ConvAct(u, 1) for u in self.mlp_units] + [Conv(1, 1)])
+        self.imnet = Sequenсe([ConvAct(u, 1) for u in self.mlp_units] + [Conv(1, 1)])
 
         super().build(input_shape)
 

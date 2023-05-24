@@ -1,8 +1,9 @@
-from keras import backend, layers, models
+from keras import backend, layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
+from segme.common.sequence import Sequenсe
 from segme.common.resize import BilinearInterpolation
 
 
@@ -31,7 +32,7 @@ class HierarchicalMultiScaleAttention(layers.Wrapper):
             raise ValueError('Expecting `scales` to have at least one more scale except `1`.')
 
     def build(self, input_shape=None):
-        self.attention = models.Sequential([
+        self.attention = Sequenсe([
             ConvNormAct(self.filters, 3, name='cna0'),
             ConvNormAct(self.filters, 3, name='cna1'),
             layers.Dropout(self.dropout, name='drop'),

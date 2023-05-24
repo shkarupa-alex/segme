@@ -5,7 +5,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
 from segme.common.resize import BilinearInterpolation
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -71,7 +71,7 @@ class GuidedFilter(layers.Layer):
         ]
 
         self.intbysample = BilinearInterpolation(None)
-        self.guide = Sequential([
+        self.guide = Sequenсe([
             ConvNormAct(self.filters, self.kernel_size, name='cna'),
             layers.Conv2D(channels[1], self.kernel_size, padding='same', name='proj')
         ], name='guide')
@@ -147,13 +147,13 @@ class ConvGuidedFilter(layers.Layer):
 
         self.interpolate = BilinearInterpolation(None)
 
-        self.guide = Sequential([
+        self.guide = Sequenсe([
             ConvNormAct(self.filters, self.kernel_size, name='cna'),
             layers.Conv2D(channels[1], self.kernel_size, padding='same', name='proj')
         ], name='guide')
         self.box = layers.DepthwiseConv2D(
             3, padding='same', dilation_rate=self.radius, use_bias=False, kernel_initializer='ones', name='box')
-        self.conva = Sequential([
+        self.conva = Sequenсe([
             ConvNormAct(self.filters, 1, name='cna0'),
             ConvNormAct(self.filters, 1, name='cna1'),
             layers.Conv2D(channels[1], 1, use_bias=False, name='proj')

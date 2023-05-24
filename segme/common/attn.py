@@ -8,7 +8,7 @@ from segme.common.convnormact import ConvNorm, Conv, Act
 from segme.common.pad import with_divisible_pad
 from segme.common.part import partition_apply, partition_apply_fused, partition_reverse_fused
 from segme.common.part import with_partition_fused, halo_partition, halo_partition_fused
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -499,7 +499,7 @@ class RelativeBias(layers.Layer):
         rel_idx = np.reshape(rel_idx, [-1])
         self.rel_idx = tf.cast(rel_idx, 'int32')
 
-        self.cpb = Sequential([
+        self.cpb = Sequenсe([
             layers.Dense(512, name='expand'),
             Act(name='act'),
             layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name='squeeze')
@@ -527,6 +527,145 @@ class RelativeBias(layers.Layer):
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads
         })
+
+        return config
+
+
+class SLMSA(layers.Layer):
+    def __init__(
+            self, current_window, pretrain_window, num_heads, use_dw=False, qkv_bias=True, proj_bias=True, **kwargs):
+        super().__init__(**kwargs)
+        self.input_spec = layers.InputSpec(ndim=4)
+
+        if current_window < pretrain_window:
+            raise ValueError('Actual window size should not be less then pretrain one.')
+
+        self.current_window = current_window
+        self.pretrain_window = pretrain_window
+        self.num_heads = num_heads
+        self.use_dw = use_dw
+        self.qkv_bias = qkv_bias
+        self.proj_bias = proj_bias
+
+    @shape_type_conversion
+    def build(self, input_shape):
+        if max(self.strides) > 1 and max(self.dilation_rate) > 1:
+            raise ValueError('Strides > 1 not supported in conjunction with dilations')
+
+        if len(input_shape) != self.rank + 2:
+            raise ValueError(
+                "Inputs to `DepthwiseConv` should have "
+                f"rank {self.rank + 2}. "
+                f"Received input_shape={input_shape}."
+            )
+        input_shape = tf.TensorShape(input_shape)
+        channel_axis = self._get_channel_axis()
+        if input_shape.dims[channel_axis].value is None:
+            raise ValueError(
+                "The channel dimension of the inputs to `DepthwiseConv` "
+                "should be defined. "
+                f"The input_shape received is {input_shape}, "
+                f"where axis {channel_axis} (0-based) "
+                "is the channel dimension, which found to be `None`."
+            )
+        input_dim = int(input_shape[channel_axis])
+        depthwise_kernel_shape = self.kernel_size + (
+            input_dim,
+            self.depth_multiplier,
+        )
+
+        self.depthwise_kernel = self.add_weight(
+            shape=depthwise_kernel_shape,
+            initializer=self.depthwise_initializer,
+            name="depthwise_kernel",
+            regularizer=self.depthwise_regularizer,
+            constraint=self.depthwise_constraint,
+        )
+
+        if self.use_bias:
+            self.bias = self.add_weight(
+                shape=(input_dim * self.depth_multiplier,),
+                initializer=self.bias_initializer,
+                name="bias",
+                regularizer=self.bias_regularizer,
+                constraint=self.bias_constraint,
+            )
+        else:
+            self.bias = None
+        # Set input spec.
+        self.input_spec = InputSpec(
+            min_ndim=self.rank + 2, axes={channel_axis: input_dim}
+        )
+
+        super().build(input_shape)
+
+    def _conv_op(self, inputs, kernel):
+        strides = (1, 1) + self.strides if self.data_format == 'channels_first' else (1,) + self.strides + (1,)
+        paddings = 'VALID' if 'same' != self.padding else 'SAME'
+
+        if 'SAME' == paddings and max(self.kernel_size) > 1 and max(self.strides) > 1:
+            pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
+            pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
+            paddings = ((0, 0), (pad_h // 2, pad_h - pad_h // 2), (pad_w // 2, pad_w - pad_w // 2))
+            paddings = ((0, 0),) + paddings if self.data_format == 'channels_first' else paddings + ((0, 0),)
+
+        return tf.nn.depthwise_conv2d(
+            inputs, kernel, strides=strides, padding=paddings, dilations=self.dilation_rate,
+            data_format=self._tf_data_format)
+
+    def call(self, inputs):
+        outputs = self._conv_op(inputs, self.depthwise_kernel)
+
+        if self.use_bias:
+            outputs = backend.bias_add(outputs, self.bias, data_format=self.data_format)
+
+        if self.activation is not None:
+            return self.activation(outputs)
+
+        return outputs
+
+    @tf_utils.shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        if self.data_format == "channels_first":
+            rows = input_shape[2]
+            cols = input_shape[3]
+            out_filters = input_shape[1] * self.depth_multiplier
+        elif self.data_format == "channels_last":
+            rows = input_shape[1]
+            cols = input_shape[2]
+            out_filters = input_shape[3] * self.depth_multiplier
+
+        rows = conv_utils.conv_output_length(
+            rows,
+            self.kernel_size[0],
+            self.padding,
+            self.strides[0],
+            self.dilation_rate[0],
+        )
+        cols = conv_utils.conv_output_length(
+            cols,
+            self.kernel_size[1],
+            self.padding,
+            self.strides[1],
+            self.dilation_rate[1],
+        )
+        if self.data_format == "channels_first":
+            return (input_shape[0], out_filters, rows, cols)
+        elif self.data_format == "channels_last":
+            return (input_shape[0], rows, cols, out_filters)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'kernel_initializer': config['depthwise_initializer'],
+            'kernel_regularizer': config['depthwise_regularizer'],
+            'kernel_constraint': config['depthwise_constraint']
+        })
+
+        del config['depth_multiplier']
+        del config['depthwise_initializer']
+        del config['depthwise_regularizer']
+        del config['depthwise_constraint']
 
         return config
 

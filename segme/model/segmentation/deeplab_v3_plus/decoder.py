@@ -5,7 +5,7 @@ from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.aspp import AtrousSpatialPyramidPooling
 from segme.common.convnormact import ConvNormAct
 from segme.common.resize import BilinearInterpolation
-from segme.common.sequent import Sequential
+from segme.common.sequence import Sequenсe
 
 
 @register_keras_serializable(package='SegMe>Model>Segmentation>DeepLabV3Plus')
@@ -26,7 +26,7 @@ class Decoder(layers.Layer):
         self.aspp = AtrousSpatialPyramidPooling(self.aspp_filters, self.aspp_stride)
         self.resize = BilinearInterpolation(None)
         self.fineproj = ConvNormAct(self.low_filters, 1)
-        self.outproj = Sequential([
+        self.outproj = Sequenсe([
             ConvNormAct(None, 3), ConvNormAct(self.decoder_filters, 1),
             ConvNormAct(None, 3), ConvNormAct(self.decoder_filters, 1)
         ])

@@ -69,7 +69,7 @@ class FadeFeatureAlignment(layers.Layer):
 
 
 @register_keras_serializable(package='SegMe>Policy>Align>FADE')
-class SemiShift(layers.Layer):
+class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
     def __init__(self, filters, kernel_size, embedding_size, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
