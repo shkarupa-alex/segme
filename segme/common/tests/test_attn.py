@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from keras import mixed_precision
 from keras.src.testing_infra import test_combinations, test_utils
-from segme.common.attn import DHMSA, SWMSA, GGMSA, RelativeBias, CHMSA
+from segme.common.attn import DHMSA, SWMSA, GGMSA, DLMSA, CHMSA, RelativeBias
 
 
 @test_combinations.run_all_keras_modes
@@ -94,8 +94,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': True},
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qkv_bias': True,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -104,8 +104,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': True},
+                'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qkv_bias': True,
+                'proj_bias': True},
             input_shape=[2, 14, 18, 4],
             input_dtype='float32',
             expected_output_shape=[None, 14, 18, 4],
@@ -114,8 +114,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'shift_mode': 0, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': True},
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'shift_mode': 0, 'qkv_bias': True,
+                'proj_bias': True},
             input_shape=[2, 16, 16, 4],
             input_dtype='float32',
             expected_output_shape=[None, 16, 16, 4],
@@ -124,8 +124,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 1, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': True},
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 1, 'qkv_bias': True,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -134,8 +134,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 2, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': True},
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 2, 'qkv_bias': True,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -144,8 +144,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 3, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': True},
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 3, 'qkv_bias': True,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -154,8 +154,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 4, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': True},
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 4, 'qkv_bias': True,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -164,18 +164,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'use_dw': True,
-                'qkv_bias': True, 'proj_bias': True},
-            input_shape=[2, 15, 17, 4],
-            input_dtype='float32',
-            expected_output_shape=[None, 15, 17, 4],
-            expected_output_dtype='float32'
-        )
-        test_utils.layer_test(
-            SWMSA,
-            kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'use_dw': False,
-                'qkv_bias': False, 'proj_bias': True},
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qkv_bias': False,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -187,8 +177,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': False},
+                'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qkv_bias': True,
+                'proj_bias': False},
             input_shape=[2, 16, 16, 4],
             input_dtype='float16',
             expected_output_shape=[None, 16, 16, 4],
@@ -199,8 +189,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 1, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': True},
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 1, 'qkv_bias': True,
+                'proj_bias': True},
             input_shape=[2, 14, 15, 4],
             input_dtype='float32',
             expected_output_shape=[None, 14, 15, 4],
@@ -211,8 +201,8 @@ class TestSWMSA(test_combinations.TestCase):
         test_utils.layer_test(
             SWMSA,
             kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 1, 'shift_mode': 3, 'use_dw': False,
-                'qkv_bias': True, 'proj_bias': True},
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 1, 'shift_mode': 3, 'qkv_bias': True,
+                'proj_bias': True},
             input_shape=[2, 1, 2, 4],
             input_dtype='float32',
             expected_output_shape=[None, 1, 2, 4],
@@ -512,9 +502,7 @@ class TestGGMSA(test_combinations.TestCase):
     def test_layer(self):
         test_utils.layer_test(
             GGMSA,
-            kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'use_dw': False, 'qkv_bias': True,
-                'proj_bias': True},
+            kwargs={'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qkv_bias': True, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -522,9 +510,7 @@ class TestGGMSA(test_combinations.TestCase):
         )
         test_utils.layer_test(
             GGMSA,
-            kwargs={
-                'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'use_dw': False, 'qkv_bias': True,
-                'proj_bias': True},
+            kwargs={'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'qkv_bias': True, 'proj_bias': True},
             input_shape=[2, 14, 18, 4],
             input_dtype='float32',
             expected_output_shape=[None, 14, 18, 4],
@@ -532,9 +518,7 @@ class TestGGMSA(test_combinations.TestCase):
         )
         test_utils.layer_test(
             GGMSA,
-            kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'use_dw': False, 'qkv_bias': True,
-                'proj_bias': True},
+            kwargs={'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'qkv_bias': True, 'proj_bias': True},
             input_shape=[2, 16, 16, 4],
             input_dtype='float32',
             expected_output_shape=[None, 16, 16, 4],
@@ -542,19 +526,7 @@ class TestGGMSA(test_combinations.TestCase):
         )
         test_utils.layer_test(
             GGMSA,
-            kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'use_dw': True, 'qkv_bias': True,
-                'proj_bias': True},
-            input_shape=[2, 16, 16, 4],
-            input_dtype='float32',
-            expected_output_shape=[None, 16, 16, 4],
-            expected_output_dtype='float32'
-        )
-        test_utils.layer_test(
-            GGMSA,
-            kwargs={
-                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'use_dw': False, 'qkv_bias': False,
-                'proj_bias': True},
+            kwargs={'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qkv_bias': False, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -565,9 +537,111 @@ class TestGGMSA(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             GGMSA,
-            kwargs={
-                'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'use_dw': False, 'qkv_bias': True,
-                'proj_bias': False},
+            kwargs={'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'qkv_bias': True, 'proj_bias': False},
+            input_shape=[2, 16, 16, 4],
+            input_dtype='float16',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float16'
+        )
+
+
+@test_combinations.run_all_keras_modes
+class TestDLMSA(test_combinations.TestCase):
+    def setUp(self):
+        super(TestDLMSA, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestDLMSA, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={'window_size': 5, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={'window_size': 3, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={'window_size': 3, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'proj_bias': False},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float16',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float16'
+        )
+
+
+@test_combinations.run_all_keras_modes
+class TestCHMSA(test_combinations.TestCase):
+    def setUp(self):
+        super(TestCHMSA, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(TestCHMSA, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            CHMSA,
+            kwargs={'num_heads': 2, 'qkv_bias': True, 'proj_bias': True},
+            input_shape=[2, 16, 16, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            CHMSA,
+            kwargs={'num_heads': 2, 'qkv_bias': False, 'proj_bias': True},
+            input_shape=[2, 16, 16, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 16, 16, 4],
+            expected_output_dtype='float32'
+        )
+
+    def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        test_utils.layer_test(
+            CHMSA,
+            kwargs={'num_heads': 4, 'qkv_bias': True, 'proj_bias': False},
             input_shape=[2, 16, 16, 4],
             input_dtype='float16',
             expected_output_shape=[None, 16, 16, 4],
@@ -588,30 +662,37 @@ class TestRelativeBias(test_combinations.TestCase):
     def test_layer(self):
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 8, 'key_window': 8, 'pretrain_window': 8, 'num_heads': 2},
+            kwargs={'query_window': 8, 'key_window': 8, 'pretrain_window': 8, 'num_heads': 2, 'cpb_units': 512},
             input_data=np.zeros([1]),
             expected_output_shape=[1, 1, 2, 64, 64],
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 7, 'key_window': 7, 'pretrain_window': 7, 'num_heads': 2},
+            kwargs={'query_window': 7, 'key_window': 7, 'pretrain_window': 7, 'num_heads': 2, 'cpb_units': 512},
             input_data=np.zeros([1]),
             expected_output_shape=[1, 1, 2, 49, 49],
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 8, 'key_window': 16, 'pretrain_window': 8, 'num_heads': 2},
+            kwargs={'query_window': 8, 'key_window': 16, 'pretrain_window': 8, 'num_heads': 2, 'cpb_units': 512},
             input_data=np.zeros([1]),
             expected_output_shape=[1, 1, 2, 64, 256],
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 12, 'key_window': 12, 'pretrain_window': 8, 'num_heads': 2},
+            kwargs={'query_window': 12, 'key_window': 12, 'pretrain_window': 8, 'num_heads': 2, 'cpb_units': 512},
             input_data=np.zeros([1]),
             expected_output_shape=[1, 1, 2, 144, 144],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            RelativeBias,
+            kwargs={'query_window': 12, 'key_window': 12, 'pretrain_window': 8, 'num_heads': 4, 'cpb_units': 512},
+            input_data=np.zeros([1]),
+            expected_output_shape=[1, 1, 4, 144, 144],
             expected_output_dtype='float32'
         )
 
@@ -619,7 +700,7 @@ class TestRelativeBias(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             RelativeBias,
-            kwargs={'query_window': 8, 'key_window': 8, 'pretrain_window': 8, 'num_heads': 2},
+            kwargs={'query_window': 8, 'key_window': 8, 'pretrain_window': 8, 'num_heads': 2, 'cpb_units': 256},
             input_data=np.zeros([1]),
             expected_output_shape=[1, 1, 2, 64, 64],
             expected_output_dtype='float16'
@@ -894,54 +975,6 @@ class TestRelativeBias(test_combinations.TestCase):
         result = self.evaluate(result)
 
         self.assertAllClose(expected, result)
-
-
-@test_combinations.run_all_keras_modes
-class TestCHMSA(test_combinations.TestCase):
-    def setUp(self):
-        super(TestCHMSA, self).setUp()
-        self.default_policy = mixed_precision.global_policy()
-
-    def tearDown(self):
-        super(TestCHMSA, self).tearDown()
-        mixed_precision.set_global_policy(self.default_policy)
-
-    def test_layer(self):
-        test_utils.layer_test(
-            CHMSA,
-            kwargs={'num_heads': 2, 'use_dw': False, 'qkv_bias': True, 'proj_bias': True},
-            input_shape=[2, 16, 16, 4],
-            input_dtype='float32',
-            expected_output_shape=[None, 16, 16, 4],
-            expected_output_dtype='float32'
-        )
-        test_utils.layer_test(
-            CHMSA,
-            kwargs={'num_heads': 2, 'use_dw': True, 'qkv_bias': True, 'proj_bias': True},
-            input_shape=[2, 16, 16, 4],
-            input_dtype='float32',
-            expected_output_shape=[None, 16, 16, 4],
-            expected_output_dtype='float32'
-        )
-        test_utils.layer_test(
-            CHMSA,
-            kwargs={'num_heads': 2, 'use_dw': False, 'qkv_bias': False, 'proj_bias': True},
-            input_shape=[2, 16, 16, 4],
-            input_dtype='float32',
-            expected_output_shape=[None, 16, 16, 4],
-            expected_output_dtype='float32'
-        )
-
-    def test_fp16(self):
-        mixed_precision.set_global_policy('mixed_float16')
-        test_utils.layer_test(
-            CHMSA,
-            kwargs={'num_heads': 4, 'use_dw': False, 'qkv_bias': True, 'proj_bias': False},
-            input_shape=[2, 16, 16, 4],
-            input_dtype='float16',
-            expected_output_shape=[None, 16, 16, 4],
-            expected_output_dtype='float16'
-        )
 
 
 if __name__ == '__main__':

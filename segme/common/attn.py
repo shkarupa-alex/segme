@@ -40,7 +40,6 @@ class DHMSA(layers.Layer):
         self.halo_window = self.current_window * 2
 
         self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
-        self.q_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
         self.kv_dw = ConvNorm(None, 3, strides=2, use_bias=False, name='qkv_dw')  # From PVTv2
 
         if self.qkv_bias:
@@ -71,7 +70,6 @@ class DHMSA(layers.Layer):
         _, pad_height, pad_width = pad_size
 
         q, kv = tf.split(qkv, [self.channels, self.channels * 2], axis=-1)
-        q = self.q_dw(q)
         kv = self.kv_dw(kv)
 
         if self.qkv_bias:
@@ -148,8 +146,7 @@ class DHMSA(layers.Layer):
 @register_keras_serializable(package='SegMe>Common')
 class SWMSA(layers.Layer):
     def __init__(
-            self, current_window, pretrain_window, num_heads, shift_mode, use_dw=False, qkv_bias=True, proj_bias=True,
-            **kwargs):
+            self, current_window, pretrain_window, num_heads, shift_mode, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -157,7 +154,6 @@ class SWMSA(layers.Layer):
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
         self.shift_mode = shift_mode % 5
-        self.use_dw = use_dw
         self.qkv_bias = qkv_bias
         self.proj_bias = proj_bias
 
@@ -170,9 +166,6 @@ class SWMSA(layers.Layer):
             raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
 
         self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
-        if self.use_dw:
-            self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
-
         if self.qkv_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
@@ -194,9 +187,6 @@ class SWMSA(layers.Layer):
 
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
-        if self.use_dw:
-            qkv = self.qkv_dw(qkv)
-
         if self.qkv_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
@@ -336,7 +326,6 @@ class SWMSA(layers.Layer):
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
             'shift_mode': self.shift_mode,
-            'use_dw': self.use_dw,
             'qkv_bias': self.qkv_bias,
             'proj_bias': self.proj_bias
         })
@@ -346,18 +335,13 @@ class SWMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class GGMSA(layers.Layer):
-    def __init__(
-            self, current_window, pretrain_window, num_heads, use_dw=False, qkv_bias=True, proj_bias=True, **kwargs):
+    def __init__(self, current_window, pretrain_window, num_heads, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
-
-        if current_window < pretrain_window:
-            raise ValueError('Actual window size should not be less then pretrain one.')
 
         self.current_window = current_window
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
-        self.use_dw = use_dw
         self.qkv_bias = qkv_bias
         self.proj_bias = proj_bias
 
@@ -370,9 +354,6 @@ class GGMSA(layers.Layer):
             raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
 
         self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
-        if self.use_dw:
-            self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
-
         if self.qkv_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
@@ -391,9 +372,6 @@ class GGMSA(layers.Layer):
 
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
-        if self.use_dw:
-            qkv = self.qkv_dw(qkv)
-
         if self.qkv_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
@@ -454,7 +432,6 @@ class GGMSA(layers.Layer):
             'current_window': self.current_window,
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
-            'use_dw': self.use_dw,
             'qkv_bias': self.qkv_bias,
             'proj_bias': self.proj_bias
         })
@@ -463,221 +440,124 @@ class GGMSA(layers.Layer):
 
 
 @register_keras_serializable(package='SegMe>Common')
-class RelativeBias(layers.Layer):
-    def __init__(self, query_window, key_window, pretrain_window, num_heads, **kwargs):
-        super().__init__(**kwargs)
-        if key_window < query_window:
-            raise ValueError('Key window must be greater or equal to query one.')
-
-        if (key_window - query_window) % 2:
-            raise ValueError('Key window halo must be symmetric around query window.')
-
-        self.query_window = query_window
-        self.key_window = key_window
-        self.pretrain_window = pretrain_window
-        self.num_heads = num_heads
-
-    def build(self, input_shape):
-        key_halo = (self.key_window - self.query_window) // 2
-        rel_tab = np.arange(1 - self.query_window - key_halo, self.query_window + key_halo).astype('float32')
-        rel_tab = np.stack(np.meshgrid(rel_tab, rel_tab, indexing='ij'))
-        rel_tab = np.transpose(rel_tab, [1, 2, 0])[None]
-        rel_tab *= 8. / (self.pretrain_window - 1.)
-        rel_tab = np.sign(rel_tab) * np.log1p(np.abs(rel_tab)) / np.log(8)
-        rel_tab = np.reshape(rel_tab, [-1, 2])
-        self.rel_tab = tf.cast(rel_tab, self.compute_dtype)
-
-        query_idx = np.arange(self.query_window)
-        query_idx = np.stack(np.meshgrid(query_idx, query_idx, indexing='ij'), axis=0)
-        query_idx = np.reshape(query_idx, [2, -1])
-        key_idx = np.arange(self.key_window)
-        key_idx = np.stack(np.meshgrid(key_idx, key_idx, indexing='ij'), axis=0)
-        key_idx = np.reshape(key_idx, [2, -1])
-        rel_idx = query_idx[:, :, None] - key_idx[:, None]
-        rel_idx = rel_idx + (self.key_window - 1)
-        rel_idx = rel_idx[0] * (self.query_window + self.key_window - 1) + rel_idx[1]
-        rel_idx = np.reshape(rel_idx, [-1])
-        self.rel_idx = tf.cast(rel_idx, 'int32')
-
-        self.cpb = Sequenсe([
-            layers.Dense(512, name='expand'),
-            Act(name='act'),
-            layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name='squeeze')
-        ], name='cpb')
-
-        super().build(input_shape)
-
-    def call(self, inputs, **kwargs):
-        outputs = self.cpb(self.rel_tab) * 16.
-        outputs = tf.gather(outputs, self.rel_idx)
-        outputs = tf.reshape(outputs, [self.query_window ** 2, self.key_window ** 2, self.num_heads])
-        outputs = tf.transpose(outputs, perm=[2, 0, 1])[None, None]
-
-        return outputs
-
-    def compute_output_shape(self, input_shape):
-        return tf.TensorShape([1, 1, self.num_heads, self.query_window ** 2, self.key_window ** 2])
-
-    def get_config(self):
-        config = super().get_config()
-
-        config.update({
-            'query_window': self.query_window,
-            'key_window': self.key_window,
-            'pretrain_window': self.pretrain_window,
-            'num_heads': self.num_heads
-        })
-
-        return config
-
-
-class SLMSA(layers.Layer):
-    def __init__(
-            self, current_window, pretrain_window, num_heads, use_dw=False, qkv_bias=True, proj_bias=True, **kwargs):
+class DLMSA(layers.Layer):
+    def __init__(self, window_size, num_heads, qk_units=None, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
-        if current_window < pretrain_window:
-            raise ValueError('Actual window size should not be less then pretrain one.')
+        if qk_units and qk_units % num_heads:
+            raise ValueError('QK units should be a multiple of the number of heads if set.')
 
-        self.current_window = current_window
-        self.pretrain_window = pretrain_window
+        self.window_size = window_size
         self.num_heads = num_heads
-        self.use_dw = use_dw
+        self.qk_units = qk_units
         self.qkv_bias = qkv_bias
         self.proj_bias = proj_bias
 
     @shape_type_conversion
     def build(self, input_shape):
-        if max(self.strides) > 1 and max(self.dilation_rate) > 1:
-            raise ValueError('Strides > 1 not supported in conjunction with dilations')
+        self.channels = input_shape[-1]
+        if self.channels is None:
+            raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
+        if self.channels % self.num_heads:
+            raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
 
-        if len(input_shape) != self.rank + 2:
-            raise ValueError(
-                "Inputs to `DepthwiseConv` should have "
-                f"rank {self.rank + 2}. "
-                f"Received input_shape={input_shape}."
-            )
-        input_shape = tf.TensorShape(input_shape)
-        channel_axis = self._get_channel_axis()
-        if input_shape.dims[channel_axis].value is None:
-            raise ValueError(
-                "The channel dimension of the inputs to `DepthwiseConv` "
-                "should be defined. "
-                f"The input_shape received is {input_shape}, "
-                f"where axis {channel_axis} (0-based) "
-                "is the channel dimension, which found to be `None`."
-            )
-        input_dim = int(input_shape[channel_axis])
-        depthwise_kernel_shape = self.kernel_size + (
-            input_dim,
-            self.depth_multiplier,
-        )
+        self.qk_units = self.qk_units or self.channels
 
-        self.depthwise_kernel = self.add_weight(
-            shape=depthwise_kernel_shape,
-            initializer=self.depthwise_initializer,
-            name="depthwise_kernel",
-            regularizer=self.depthwise_regularizer,
-            constraint=self.depthwise_constraint,
-        )
+        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+        if self.qkv_bias:
+            self.q_bias = self.add_weight('q_bias', shape=[self.qk_units], initializer='zeros')
+            self.v_bias = self.add_weight('v_bias', shape=[self.qk_units], initializer='zeros')
 
-        if self.use_bias:
-            self.bias = self.add_weight(
-                shape=(input_dim * self.depth_multiplier,),
-                initializer=self.bias_initializer,
-                name="bias",
-                regularizer=self.bias_regularizer,
-                constraint=self.bias_constraint,
-            )
-        else:
-            self.bias = None
-        # Set input spec.
-        self.input_spec = InputSpec(
-            min_ndim=self.rank + 2, axes={channel_axis: input_dim}
-        )
+        self.deformable_kernel = self.add_weight(
+            shape=(self.window_size, self.window_size, self.qk_units, self.window_size ** 2),
+            initializer='glorot_uniform', name='deformable_kernel')
+
+        self.static_kernel = np.zeros(self.deformable_kernel.shape, dtype=self.compute_dtype)
+        for i in range(self.window_size ** 2):
+            self.static_kernel[i // self.window_size, i % self.window_size, :, i] = 1.
+        self.static_kernel = tf.cast(self.static_kernel, self.compute_dtype)
+
+        self.scale = self.add_weight(
+            'scale', shape=[self.num_heads, 1, 1],
+            initializer=initializers.constant(np.log(10., dtype=self.dtype)),
+            constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
+
+        self.rel_bias = RelativeBias(1, self.window_size, self.window_size, self.num_heads, name='rel_bias')
+
+        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
         super().build(input_shape)
 
-    def _conv_op(self, inputs, kernel):
-        strides = (1, 1) + self.strides if self.data_format == 'channels_first' else (1,) + self.strides + (1,)
-        paddings = 'VALID' if 'same' != self.padding else 'SAME'
-
-        if 'SAME' == paddings and max(self.kernel_size) > 1 and max(self.strides) > 1:
-            pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
-            pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
-            paddings = ((0, 0), (pad_h // 2, pad_h - pad_h // 2), (pad_w // 2, pad_w - pad_w // 2))
-            paddings = ((0, 0),) + paddings if self.data_format == 'channels_first' else paddings + ((0, 0),)
-
-        return tf.nn.depthwise_conv2d(
-            inputs, kernel, strides=strides, padding=paddings, dilations=self.dilation_rate,
-            data_format=self._tf_data_format)
-
     def call(self, inputs):
-        outputs = self._conv_op(inputs, self.depthwise_kernel)
+        qkv = self.qkv(inputs)
+        if self.qkv_bias:
+            k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
+            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
+            qkv = tf.nn.bias_add(qkv, qkv_bias)
 
-        if self.use_bias:
-            outputs = backend.bias_add(outputs, self.bias, data_format=self.data_format)
+        q, k, v = tf.split(qkv, [self.qk_units, self.qk_units, self.channels], axis=-1)
 
-        if self.activation is not None:
-            return self.activation(outputs)
+        kernel = self.deformable_kernel + self.static_kernel
+        k = tf.nn.depthwise_conv2d(k, kernel, strides=[1] * 4, padding='SAME')
+        v = tf.nn.depthwise_conv2d(v, kernel, strides=[1] * 4, padding='SAME')
+
+        batch, height, width, _ = tf.unstack(tf.shape(inputs))
+        q = tf.reshape(q, [
+            batch, height, width, self.num_heads, 1, self.qk_units // self.num_heads])
+        k = tf.reshape(k, [
+            batch, height, width, self.num_heads, self.qk_units // self.num_heads, self.window_size ** 2])
+        v = tf.reshape(v, [
+            batch, height, width, self.num_heads, self.channels // self.num_heads, self.window_size ** 2])
+
+        q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
+        k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
+
+        attn = tf.matmul(q * tf.exp(self.scale), k)
+        attn += self.attn_mask(height, width)
+        attn = tf.nn.softmax(attn)
+
+        outputs = tf.matmul(attn, v, transpose_b=True)
+        outputs = tf.reshape(outputs, [batch, height, width, self.channels])
+
+        outputs = self.proj(outputs)
 
         return outputs
 
-    @tf_utils.shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        if self.data_format == "channels_first":
-            rows = input_shape[2]
-            cols = input_shape[3]
-            out_filters = input_shape[1] * self.depth_multiplier
-        elif self.data_format == "channels_last":
-            rows = input_shape[1]
-            cols = input_shape[2]
-            out_filters = input_shape[3] * self.depth_multiplier
+    def attn_mask(self, height, width):
+        mask = tf.ones((1, height, width, 1), dtype=self.compute_dtype)
+        mask = tf.nn.depthwise_conv2d(mask, self.static_kernel[:, :, :1], strides=[1] * 4, padding='SAME')
+        mask = tf.reshape(mask, [1, height, width, 1, 1, self.window_size ** 2])
+        mask = -100. * tf.cast(mask == 0., self.compute_dtype)
 
-        rows = conv_utils.conv_output_length(
-            rows,
-            self.kernel_size[0],
-            self.padding,
-            self.strides[0],
-            self.dilation_rate[0],
-        )
-        cols = conv_utils.conv_output_length(
-            cols,
-            self.kernel_size[1],
-            self.padding,
-            self.strides[1],
-            self.dilation_rate[1],
-        )
-        if self.data_format == "channels_first":
-            return (input_shape[0], out_filters, rows, cols)
-        elif self.data_format == "channels_last":
-            return (input_shape[0], rows, cols, out_filters)
+        mask += self.rel_bias(None)[None]
+
+        return mask
+
+    @shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
     def get_config(self):
         config = super().get_config()
         config.update({
-            'kernel_initializer': config['depthwise_initializer'],
-            'kernel_regularizer': config['depthwise_regularizer'],
-            'kernel_constraint': config['depthwise_constraint']
+            'window_size': self.window_size,
+            'num_heads': self.num_heads,
+            'qk_units': self.qk_units,
+            'qkv_bias': self.qkv_bias,
+            'proj_bias': self.proj_bias,
         })
-
-        del config['depth_multiplier']
-        del config['depthwise_initializer']
-        del config['depthwise_regularizer']
-        del config['depthwise_constraint']
 
         return config
 
 
 @register_keras_serializable(package='SegMe>Common')
 class CHMSA(layers.Layer):
-    def __init__(self, num_heads, use_dw=False, qkv_bias=True, proj_bias=True, **kwargs):
+    def __init__(self, num_heads, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
         self.num_heads = num_heads
-        self.use_dw = use_dw
         self.qkv_bias = qkv_bias
         self.proj_bias = proj_bias
 
@@ -688,9 +568,6 @@ class CHMSA(layers.Layer):
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
         self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
-        if self.use_dw:
-            self.qkv_dw = ConvNorm(None, 3, use_bias=False, name='qkv_dw')  # From CvT
-
         if self.qkv_bias:
             self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
@@ -706,9 +583,6 @@ class CHMSA(layers.Layer):
 
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
-        if self.use_dw:
-            qkv = self.qkv_dw(qkv)
-
         if self.qkv_bias:
             k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
@@ -745,9 +619,79 @@ class CHMSA(layers.Layer):
 
         config.update({
             'num_heads': self.num_heads,
-            'use_dw': self.use_dw,
             'qkv_bias': self.qkv_bias,
             'proj_bias': self.proj_bias
+        })
+
+        return config
+
+
+@register_keras_serializable(package='SegMe>Common')
+class RelativeBias(layers.Layer):
+    def __init__(self, query_window, key_window, pretrain_window, num_heads, cpb_units=512, **kwargs):
+        super().__init__(**kwargs)
+        if key_window < query_window:
+            raise ValueError('Key window must be greater or equal to query one.')
+
+        if (key_window - query_window) % 2:
+            raise ValueError('Key window halo must be symmetric around query window.')
+
+        self.query_window = query_window
+        self.key_window = key_window
+        self.pretrain_window = pretrain_window
+        self.num_heads = num_heads
+        self.cpb_units = cpb_units
+
+    def build(self, input_shape):
+        key_halo = (self.key_window - self.query_window) // 2
+        rel_tab = np.arange(1 - self.query_window - key_halo, self.query_window + key_halo).astype('float32')
+        rel_tab = np.stack(np.meshgrid(rel_tab, rel_tab, indexing='ij'))
+        rel_tab = np.transpose(rel_tab, [1, 2, 0])[None]
+        rel_tab *= 8. / (self.pretrain_window - 1.)
+        rel_tab = np.sign(rel_tab) * np.log1p(np.abs(rel_tab)) / np.log(8)
+        rel_tab = np.reshape(rel_tab, [-1, 2])
+        self.rel_tab = tf.cast(rel_tab, self.compute_dtype)
+
+        query_idx = np.arange(self.query_window)
+        query_idx = np.stack(np.meshgrid(query_idx, query_idx, indexing='ij'), axis=0)
+        query_idx = np.reshape(query_idx, [2, -1])
+        key_idx = np.arange(self.key_window)
+        key_idx = np.stack(np.meshgrid(key_idx, key_idx, indexing='ij'), axis=0)
+        key_idx = np.reshape(key_idx, [2, -1])
+        rel_idx = query_idx[:, :, None] - key_idx[:, None]
+        rel_idx = rel_idx + (self.key_window - 1)
+        rel_idx = rel_idx[0] * (self.query_window + self.key_window - 1) + rel_idx[1]
+        rel_idx = np.reshape(rel_idx, [-1])
+        self.rel_idx = tf.cast(rel_idx, 'int32')
+
+        self.cpb = Sequenсe([
+            layers.Dense(self.cpb_units, name='expand'),
+            Act(name='act'),
+            layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name='squeeze')
+        ], name='cpb')
+
+        super().build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        outputs = self.cpb(self.rel_tab) * 16.
+        outputs = tf.gather(outputs, self.rel_idx)
+        outputs = tf.reshape(outputs, [self.query_window ** 2, self.key_window ** 2, self.num_heads])
+        outputs = tf.transpose(outputs, perm=[2, 0, 1])[None, None]
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return tf.TensorShape([1, 1, self.num_heads, self.query_window ** 2, self.key_window ** 2])
+
+    def get_config(self):
+        config = super().get_config()
+
+        config.update({
+            'query_window': self.query_window,
+            'key_window': self.key_window,
+            'pretrain_window': self.pretrain_window,
+            'num_heads': self.num_heads,
+            'cpb_units': self.cpb_units
         })
 
         return config
