@@ -17,8 +17,8 @@ def Encoder():
     base_weights = base_model.get_weights()
 
     ext_config = patch_config(base_config, [0], 'batch_input_shape', lambda old: old[:-1] + (4,))
-    ext_config = patch_config(ext_config, [2], 'mean', lambda old: old + [0.345])
-    ext_config = patch_config(ext_config, [2], 'variance', lambda old: old + [0.475 ** 2])
+    ext_config = patch_config(ext_config, [2], 'mean', lambda old: old + [0.449])
+    ext_config = patch_config(ext_config, [2], 'variance', lambda old: old + [0.497 ** 2])
     ext_model = models.Model.from_config(ext_config)
 
     ext_weights = []
