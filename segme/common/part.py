@@ -45,8 +45,7 @@ def partition_apply(inputs, height, width, part_type, size_count, dilation_rate=
         return outputs
 
 
-def partition_reverse(inputs, height, width, part_type, size_count, dilation_rate=1, dtype=None,
-                      name=None):
+def partition_reverse(inputs, height, width, part_type, size_count, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'partition_reverse'):
         inputs = tf.convert_to_tensor(inputs, dtype)
         height = tf.convert_to_tensor(height)
@@ -89,10 +88,6 @@ def with_partition(op, inputs, part_type, size_count, dilation_rate=1, dtype=Non
 
         if 4 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 4.')
-
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
         if part_type not in _PARTITION_TYPES:
             raise ValueError('Unknown partition type.')
@@ -158,8 +153,8 @@ def halo_partition(inputs, height, width, window_size, halo_size, dilation_rate=
         return outputs
 
 
-def partition_apply_fused(inputs, height, width, part_type, size_count, qkv_size, num_heads, dilation_rate=1,
-                          dtype=None, name=None):
+def partition_apply_fused(
+        inputs, height, width, part_type, size_count, num_heads, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'partition_apply_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
         height = tf.convert_to_tensor(height)
@@ -168,8 +163,8 @@ def partition_apply_fused(inputs, height, width, part_type, size_count, qkv_size
         if 4 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 4.')
 
-        full_channels = inputs.shape[-1]
-        if full_channels is None:
+        channels = inputs.shape[-1]
+        if channels is None:
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
         if part_type not in _PARTITION_TYPES:
@@ -177,36 +172,35 @@ def partition_apply_fused(inputs, height, width, part_type, size_count, qkv_size
 
         height_blocks = height // (size_count * dilation_rate)
         width_blocks = width // (size_count * dilation_rate)
-        head_channels = full_channels // (qkv_size * num_heads)
 
         if part_type in {'window_size', 'grid_count'}:
             outputs = tf.reshape(inputs, [
                 -1, height_blocks, size_count, dilation_rate, width_blocks, size_count, dilation_rate,
-                num_heads, qkv_size, head_channels])
+                num_heads, channels // num_heads])
         else:
             outputs = tf.reshape(inputs, [
                 -1, size_count, height_blocks, dilation_rate, size_count, width_blocks, dilation_rate,
-                num_heads, qkv_size, head_channels])
+                num_heads, channels // num_heads])
 
         if part_type in {'window_size', 'window_count'}:
-            outputs = tf.transpose(outputs, [0, 1, 3, 4, 6, 7, 2, 5, 8, 9])
+            outputs = tf.transpose(outputs, [0, 1, 3, 4, 6, 7, 2, 5, 8])
         else:
-            outputs = tf.transpose(outputs, [0, 2, 3, 5, 6, 7, 1, 4, 8, 9])
+            outputs = tf.transpose(outputs, [0, 2, 3, 5, 6, 7, 1, 4, 8])
 
         if part_type in {'window_size', 'grid_size'}:
             num_windows = height_blocks * width_blocks * tf.square(dilation_rate)
             outputs = tf.reshape(
-                outputs, [-1, num_windows, num_heads, (size_count ** 2), qkv_size, head_channels])
+                outputs, [-1, num_windows, num_heads, (size_count ** 2), channels // num_heads])
         else:
             num_windows = tf.square(size_count * dilation_rate)
             outputs = tf.reshape(
-                outputs, [-1, num_windows, num_heads, height_blocks * width_blocks, qkv_size, head_channels])
+                outputs, [-1, num_windows, num_heads, height_blocks * width_blocks, channels // num_heads])
 
         return outputs
 
 
-def partition_reverse_fused(inputs, height, width, part_type, size_count, num_heads, dilation_rate=1,
-                            dtype=None, name=None):
+def partition_reverse_fused(
+        inputs, height, width, part_type, size_count, num_heads, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'partition_reverse_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
         height = tf.convert_to_tensor(height)
@@ -246,17 +240,12 @@ def partition_reverse_fused(inputs, height, width, part_type, size_count, num_he
         return outputs
 
 
-def with_partition_fused(op, inputs, part_type, size_count, qkv_size, num_heads, dilation_rate=1,
-                         dtype=None, name=None):
+def with_partition_fused(op, inputs, part_type, size_count, num_heads, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'with_partition_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
 
         if 4 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 4.')
-
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
         if part_type not in _PARTITION_TYPES:
             raise ValueError('Unknown partition type.')
@@ -265,7 +254,7 @@ def with_partition_fused(op, inputs, part_type, size_count, qkv_size, num_heads,
             _, height, width = pad_size
 
             parted = partition_apply_fused(
-                padded, height, width, part_type, size_count, qkv_size, num_heads, dilation_rate, dtype)
+                padded, height, width, part_type, size_count, num_heads, dilation_rate, dtype)
             parted = op(parted, pad_size=pad_size, pad_val=pad_val)
             parted = partition_reverse_fused(
                 parted, height, width, part_type, size_count, num_heads, dilation_rate, dtype)
@@ -275,8 +264,8 @@ def with_partition_fused(op, inputs, part_type, size_count, qkv_size, num_heads,
         return with_divisible_pad(_op, inputs, size_count * dilation_rate)
 
 
-def halo_partition_fused(inputs, height, width, window_size, halo_size, qkv_size, num_heads, dilation_rate=1,
-                         dtype=None, name=None):
+def halo_partition_fused(
+        inputs, height, width, window_size, halo_size, num_heads, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'halo_partition_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
         height = tf.convert_to_tensor(height)
@@ -285,8 +274,8 @@ def halo_partition_fused(inputs, height, width, window_size, halo_size, qkv_size
         if 4 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 4.')
 
-        full_channels = inputs.shape[-1]
-        if full_channels is None:
+        channels = inputs.shape[-1]
+        if channels is None:
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
         if halo_size < window_size:
@@ -301,7 +290,6 @@ def halo_partition_fused(inputs, height, width, window_size, halo_size, qkv_size
         height_blocks = height // (window_size * dilation_rate)
         width_blocks = width // (window_size * dilation_rate)
         num_windows = height_blocks * width_blocks * tf.square(dilation_rate)
-        head_channels = full_channels // (qkv_size * num_heads)
 
         halo_factor = halo_size / window_size
         if halo_factor % 1:
@@ -313,9 +301,9 @@ def halo_partition_fused(inputs, height, width, window_size, halo_size, qkv_size
         outputs = tf.image.extract_patches(inputs, halo_kernel, halo_stride, [1] * 4, padding='SAME')
 
         outputs = tf.reshape(outputs, [
-            -1, height_blocks, width_blocks, halo_size, dilation_rate, halo_size, dilation_rate, num_heads, qkv_size,
-            head_channels])
-        outputs = tf.transpose(outputs, [0, 1, 4, 2, 6, 7, 3, 5, 8, 9])
-        outputs = tf.reshape(outputs, [-1, num_windows, num_heads, halo_size ** 2, qkv_size, head_channels])
+            -1, height_blocks, width_blocks, halo_size, dilation_rate, halo_size, dilation_rate, num_heads,
+            channels // num_heads])
+        outputs = tf.transpose(outputs, [0, 1, 4, 2, 6, 7, 3, 5, 8])
+        outputs = tf.reshape(outputs, [-1, num_windows, num_heads, halo_size ** 2, channels // num_heads])
 
         return outputs

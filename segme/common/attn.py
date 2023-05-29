@@ -14,12 +14,10 @@ from segme.common.sequence import Sequenсe
 @register_keras_serializable(package='SegMe>Common')
 class DHMSA(layers.Layer):
     def __init__(
-            self, current_window, pretrain_window, num_heads, dilation_rate=1, qkv_bias=True, proj_bias=True, **kwargs):
+            self, current_window, pretrain_window, num_heads, qk_units=None, qkv_bias=True, dilation_rate=1,
+            proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
-
-        if current_window < pretrain_window:
-            raise ValueError('Actual window size should not be less then pretrain one.')
 
         if current_window % 2 or pretrain_window % 2:
             raise ValueError('Window size must be even.')
@@ -27,8 +25,9 @@ class DHMSA(layers.Layer):
         self.current_window = current_window
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
-        self.dilation_rate = dilation_rate
+        self.qk_units = qk_units
         self.qkv_bias = qkv_bias
+        self.dilation_rate = dilation_rate
         self.proj_bias = proj_bias
 
     @shape_type_conversion
@@ -37,13 +36,16 @@ class DHMSA(layers.Layer):
         if self.channels is None:
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
 
+        self.v_units = self.channels // self.num_heads
+        self.qk_units = self.qk_units or self.v_units
+        self.qk_channels = self.qk_units * self.num_heads
         self.halo_window = self.current_window * 2
 
-        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+        self.qkv = Conv(self.qk_channels * 2 + self.channels, 1, use_bias=False, name='qkv')
         self.kv_dw = ConvNorm(None, 3, strides=2, use_bias=False, name='qkv_dw')  # From PVTv2
 
         if self.qkv_bias:
-            self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
+            self.q_bias = self.add_weight('q_bias', shape=[self.qk_channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
         self.scale = self.add_weight(
@@ -69,20 +71,20 @@ class DHMSA(layers.Layer):
     def qkv_part(self, qkv, pad_size, pad_val):
         _, pad_height, pad_width = pad_size
 
-        q, kv = tf.split(qkv, [self.channels, self.channels * 2], axis=-1)
+        q, kv = tf.split(qkv, [self.qk_channels, self.qk_channels + self.channels], axis=-1)
         kv = self.kv_dw(kv)
 
         if self.qkv_bias:
             q = tf.nn.bias_add(q, self.q_bias)
 
-            k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
+            k_bias = tf.zeros([self.qk_channels], dtype=self.compute_dtype)
             kv_bias = tf.concat([k_bias, self.v_bias], axis=0)
             kv = tf.nn.bias_add(kv, kv_bias)
 
         q_part = partition_apply_fused(
-            q, pad_height, pad_width, 'window_size', self.current_window, 1, self.num_heads, self.dilation_rate)
+            q, pad_height, pad_width, 'window_size', self.current_window, self.num_heads, self.dilation_rate)
         kv_part = halo_partition_fused(
-            kv, pad_height // 2, pad_width // 2, self.current_window // 2, self.halo_window // 2, 2, self.num_heads,
+            kv, pad_height // 2, pad_width // 2, self.current_window // 2, self.halo_window // 2, self.num_heads,
             self.dilation_rate)
 
         parted = self.qkv_attn(q_part, kv_part, pad_size=pad_size, pad_val=pad_val)
@@ -92,8 +94,7 @@ class DHMSA(layers.Layer):
         return parted
 
     def qkv_attn(self, q, kv, pad_size, pad_val):
-        q = tf.squeeze(q, axis=-2)
-        k, v = tf.unstack(kv, 2, axis=-2)
+        k, v = tf.split(kv, [self.qk_units, self.v_units], axis=-1)
 
         q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
         k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
@@ -135,8 +136,9 @@ class DHMSA(layers.Layer):
             'current_window': self.current_window,
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
-            'dilation_rate': self.dilation_rate,
+            'qk_units': self.qk_units,
             'qkv_bias': self.qkv_bias,
+            'dilation_rate': self.dilation_rate,
             'proj_bias': self.proj_bias
         })
 
@@ -146,7 +148,8 @@ class DHMSA(layers.Layer):
 @register_keras_serializable(package='SegMe>Common')
 class SWMSA(layers.Layer):
     def __init__(
-            self, current_window, pretrain_window, num_heads, shift_mode, qkv_bias=True, proj_bias=True, **kwargs):
+            self, current_window, pretrain_window, num_heads, shift_mode, qk_units=None, qkv_bias=True, proj_bias=True,
+            **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -154,6 +157,7 @@ class SWMSA(layers.Layer):
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
         self.shift_mode = shift_mode % 5
+        self.qk_units = qk_units
         self.qkv_bias = qkv_bias
         self.proj_bias = proj_bias
 
@@ -165,9 +169,13 @@ class SWMSA(layers.Layer):
         if self.channels % self.num_heads:
             raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
 
-        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+        self.v_units = self.channels // self.num_heads
+        self.qk_units = self.qk_units or self.v_units
+        self.qk_channels = self.qk_units * self.num_heads
+
+        self.qkv = Conv(self.qk_channels * 2 + self.channels, 1, use_bias=False, name='qkv')
         if self.qkv_bias:
-            self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
+            self.q_bias = self.add_weight('q_bias', shape=[self.qk_channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
         self.shift_size = self.current_window // 2
@@ -188,7 +196,7 @@ class SWMSA(layers.Layer):
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
         if self.qkv_bias:
-            k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
+            k_bias = tf.zeros([self.qk_channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
 
@@ -226,8 +234,7 @@ class SWMSA(layers.Layer):
     def qkv_part(self, qkv, pad_size, pad_val, apply_shift, shift_size):
         _, pad_height, pad_width = pad_size
 
-        parted = partition_apply_fused(
-            qkv, pad_height, pad_width, 'window_size', self.current_window, 3, self.num_heads)
+        parted = partition_apply_fused(qkv, pad_height, pad_width, 'window_size', self.current_window, self.num_heads)
         parted = self.qkv_attn(
             parted, pad_size=pad_size, pad_val=pad_val, apply_shift=apply_shift, shift_size=shift_size)
         parted = partition_reverse_fused(
@@ -236,7 +243,7 @@ class SWMSA(layers.Layer):
         return parted
 
     def qkv_attn(self, qkv, pad_size, pad_val, apply_shift, shift_size):
-        q, k, v = tf.unstack(qkv, 3, axis=-2)
+        q, k, v = tf.split(qkv, [self.qk_units, self.qk_units, self.v_units], axis=-1)
 
         q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
         k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
@@ -326,6 +333,7 @@ class SWMSA(layers.Layer):
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
             'shift_mode': self.shift_mode,
+            'qk_units': self.qk_units,
             'qkv_bias': self.qkv_bias,
             'proj_bias': self.proj_bias
         })
@@ -335,13 +343,15 @@ class SWMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class GGMSA(layers.Layer):
-    def __init__(self, current_window, pretrain_window, num_heads, qkv_bias=True, proj_bias=True, **kwargs):
+    def __init__(
+            self, current_window, pretrain_window, num_heads, qk_units=None, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
         self.current_window = current_window
         self.pretrain_window = pretrain_window
         self.num_heads = num_heads
+        self.qk_units = qk_units
         self.qkv_bias = qkv_bias
         self.proj_bias = proj_bias
 
@@ -353,9 +363,13 @@ class GGMSA(layers.Layer):
         if self.channels % self.num_heads:
             raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
 
-        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+        self.v_units = self.channels // self.num_heads
+        self.qk_units = self.qk_units or self.v_units
+        self.qk_channels = self.qk_units * self.num_heads
+
+        self.qkv = Conv(self.qk_channels * 2 + self.channels, 1, use_bias=False, name='qkv')
         if self.qkv_bias:
-            self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
+            self.q_bias = self.add_weight('q_bias', shape=[self.qk_channels], initializer='zeros')
             self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
         self.scale = self.add_weight(
@@ -373,18 +387,18 @@ class GGMSA(layers.Layer):
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
         if self.qkv_bias:
-            k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
+            k_bias = tf.zeros([self.qk_channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
 
-        outputs = with_partition_fused(self.qkv_attn, qkv, 'grid_size', self.current_window, 3, self.num_heads)
+        outputs = with_partition_fused(self.qkv_attn, qkv, 'grid_size', self.current_window, self.num_heads)
 
         outputs = self.proj(outputs)
 
         return outputs
 
     def qkv_attn(self, qkv, pad_size, pad_val):
-        q, k, v = tf.unstack(qkv, 3, axis=-2)
+        q, k, v = tf.split(qkv, [self.qk_units, self.qk_units, self.v_units], axis=-1)
 
         q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
         k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
@@ -432,6 +446,7 @@ class GGMSA(layers.Layer):
             'current_window': self.current_window,
             'pretrain_window': self.pretrain_window,
             'num_heads': self.num_heads,
+            'qk_units': self.qk_units,
             'qkv_bias': self.qkv_bias,
             'proj_bias': self.proj_bias
         })
@@ -444,9 +459,6 @@ class DLMSA(layers.Layer):
     def __init__(self, window_size, num_heads, qk_units=None, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
-
-        if qk_units and qk_units % num_heads:
-            raise ValueError('QK units should be a multiple of the number of heads if set.')
 
         self.window_size = window_size
         self.num_heads = num_heads
@@ -462,18 +474,21 @@ class DLMSA(layers.Layer):
         if self.channels % self.num_heads:
             raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
 
-        self.qk_units = self.qk_units or self.channels
+        self.v_units = self.channels // self.num_heads
+        self.qk_units = self.qk_units or self.v_units
+        self.qk_channels = self.qk_units * self.num_heads
 
-        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+        self.qkv = Conv(self.qk_channels * 2 + self.channels, 1, use_bias=False, name='qkv')
         if self.qkv_bias:
-            self.q_bias = self.add_weight('q_bias', shape=[self.qk_units], initializer='zeros')
-            self.v_bias = self.add_weight('v_bias', shape=[self.qk_units], initializer='zeros')
+            self.q_bias = self.add_weight('q_bias', shape=[self.qk_channels], initializer='zeros')
+            self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
 
         self.deformable_kernel = self.add_weight(
-            shape=(self.window_size, self.window_size, self.qk_units, self.window_size ** 2),
+            shape=(self.window_size, self.window_size, self.qk_channels, self.window_size ** 2),
             initializer='glorot_uniform', name='deformable_kernel')
 
-        self.static_kernel = np.zeros(self.deformable_kernel.shape, dtype=self.compute_dtype)
+        self.static_kernel = np.zeros(
+            (self.window_size, self.window_size, 1, self.window_size ** 2), dtype=self.compute_dtype)
         for i in range(self.window_size ** 2):
             self.static_kernel[i // self.window_size, i % self.window_size, :, i] = 1.
         self.static_kernel = tf.cast(self.static_kernel, self.compute_dtype)
@@ -492,23 +507,20 @@ class DLMSA(layers.Layer):
     def call(self, inputs):
         qkv = self.qkv(inputs)
         if self.qkv_bias:
-            k_bias = tf.zeros([self.channels], dtype=self.compute_dtype)
+            k_bias = tf.zeros([self.qk_channels], dtype=self.compute_dtype)
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
 
-        q, k, v = tf.split(qkv, [self.qk_units, self.qk_units, self.channels], axis=-1)
+        q, k, v = tf.split(qkv, [self.qk_channels, self.qk_channels, self.channels], axis=-1)
 
-        kernel = self.deformable_kernel + self.static_kernel
-        k = tf.nn.depthwise_conv2d(k, kernel, strides=[1] * 4, padding='SAME')
-        v = tf.nn.depthwise_conv2d(v, kernel, strides=[1] * 4, padding='SAME')
+        k = tf.nn.depthwise_conv2d(k, self.deformable_kernel + self.static_kernel, strides=[1] * 4, padding='SAME')
+        v = tf.nn.depthwise_conv2d(
+            v, tf.repeat(self.static_kernel, self.channels, axis=-2), strides=[1] * 4, padding='SAME')
 
         batch, height, width, _ = tf.unstack(tf.shape(inputs))
-        q = tf.reshape(q, [
-            batch, height, width, self.num_heads, 1, self.qk_units // self.num_heads])
-        k = tf.reshape(k, [
-            batch, height, width, self.num_heads, self.qk_units // self.num_heads, self.window_size ** 2])
-        v = tf.reshape(v, [
-            batch, height, width, self.num_heads, self.channels // self.num_heads, self.window_size ** 2])
+        q = tf.reshape(q, [batch, height, width, self.num_heads, 1, self.qk_units])
+        k = tf.reshape(k, [batch, height, width, self.num_heads, self.qk_units, self.window_size ** 2])
+        v = tf.reshape(v, [batch, height, width, self.num_heads, self.v_units, self.window_size ** 2])
 
         q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
         k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
@@ -526,7 +538,7 @@ class DLMSA(layers.Layer):
 
     def attn_mask(self, height, width):
         mask = tf.ones((1, height, width, 1), dtype=self.compute_dtype)
-        mask = tf.nn.depthwise_conv2d(mask, self.static_kernel[:, :, :1], strides=[1] * 4, padding='SAME')
+        mask = tf.nn.depthwise_conv2d(mask, self.static_kernel, strides=[1] * 4, padding='SAME')
         mask = tf.reshape(mask, [1, height, width, 1, 1, self.window_size ** 2])
         mask = -100. * tf.cast(mask == 0., self.compute_dtype)
 
