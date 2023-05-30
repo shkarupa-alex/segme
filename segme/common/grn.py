@@ -9,8 +9,7 @@ class GRN(layers.Layer):
     """ Inspired with : https://arxiv.org/pdf/2301.00808.pdf """
 
     def __init__(self, epsilon=1e-3, center=True, scale=True, beta_initializer='zeros', gamma_initializer='ones',
-                 beta_regularizer=None,
-                 gamma_regularizer=None, beta_constraint=None, gamma_constraint=None, **kwargs):
+                 beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
         self.supports_masking = True
