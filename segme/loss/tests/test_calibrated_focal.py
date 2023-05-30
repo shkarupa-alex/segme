@@ -20,7 +20,7 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = calibrated_focal_cross_entropy(
-            y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0, alpha=0.25,
+            y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0,
             from_logits=True)
         result = self.evaluate(result)
 
@@ -31,7 +31,7 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = calibrated_focal_cross_entropy(
-            y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0, alpha=0.25,
+            y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0,
             from_logits=True)
         result = self.evaluate(result)
 
@@ -42,46 +42,46 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = calibrated_focal_cross_entropy(
-            y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0, alpha=0.25,
+            y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0,
             from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [9.995504] * 3, atol=1e-4)
+        self.assertAllClose(result, [9.997775] * 3, atol=1e-4)
 
     def test_true(self):
         logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = calibrated_focal_cross_entropy(
-            y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0, alpha=0.25,
+            y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0,
             from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [9.995504] * 3, atol=1e-4)
+        self.assertAllClose(result, [9.997775] * 3, atol=1e-4)
 
     def test_value(self):
         loss = CalibratedFocalCrossEntropy(from_logits=True)
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS))
 
-        self.assertAlmostEqual(result, 1.2206392, places=6)  # Not sure
+        self.assertAlmostEqual(result, 1.3325094, places=6)  # Not sure
 
     def test_weight(self):
         loss = CalibratedFocalCrossEntropy(from_logits=True)
 
         result = self.evaluate(loss(BINARY_TARGETS[:, :, :2, :], BINARY_LOGITS[:, :, :2]))
-        self.assertAlmostEqual(result, 0.7874017, places=6)
+        self.assertAlmostEqual(result, 0.8728758, places=6)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS))
-        self.assertAlmostEqual(result, 0.7874017, places=6)
+        self.assertAlmostEqual(result, 0.8728758, places=6)
 
         result = self.evaluate(loss(BINARY_TARGETS, BINARY_LOGITS, BINARY_WEIGHTS * 2.))
-        self.assertAlmostEqual(result, 0.7874017 * 2., places=6)
+        self.assertAlmostEqual(result, 0.8728758 * 2., places=6)
 
     def test_multi(self):
         loss = CalibratedFocalCrossEntropy(from_logits=True)
         result = self.evaluate(loss(MULTI_TARGETS, MULTI_LOGITS))
 
-        self.assertAlmostEqual(result, 5.2713118, places=6)
+        self.assertAlmostEqual(result, 5.309415, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

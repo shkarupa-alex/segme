@@ -6,7 +6,7 @@ from segme.common.ppm import PyramidPooling
 from segme.common.resize import BilinearInterpolation
 
 
-def UPerNet(classes, decoder_filters=256, head_dropout=0.1, return_logits=False):
+def UPerNet(classes, decoder_filters=256, head_dropout=0.1):
     inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
 
     features = Backbone()(inputs)
@@ -31,8 +31,7 @@ def UPerNet(classes, decoder_filters=256, head_dropout=0.1, return_logits=False)
     outputs = layers.Dropout(head_dropout, name='head_drop')(outputs)
     outputs = HeadProjection(classes, name='head_proj')(outputs)
     outputs = BilinearInterpolation(None, name='head_resize')([outputs, inputs])
-    if not return_logits:  # TODO: https://github.com/keras-team/keras/issues/17420
-        outputs = ClassificationActivation(name='head_act')(outputs)
+    outputs = ClassificationActivation(name='head_act')(outputs)
 
     model = models.Model(inputs=inputs, outputs=outputs, name='uper_net')
 

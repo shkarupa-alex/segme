@@ -29,7 +29,7 @@ class PointRend(layers.Layer):
         self.oversample = oversample
         self.importance = importance
         self.residual = residual
-        self.fines = fines  # TODO: check if needed
+        self.fines = fines
         self.align_corners = align_corners
 
     @shape_type_conversion

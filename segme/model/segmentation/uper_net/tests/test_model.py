@@ -31,11 +31,11 @@ class TestUPerNet(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             UPerNet,
-            kwargs={'classes': 1, 'decoder_filters': 8, 'head_dropout': 0., 'return_logits': True},
+            kwargs={'classes': 1, 'decoder_filters': 8, 'head_dropout': 0.},
             input_shape=(2, 240, 240, 3),
             input_dtype='uint8',
             expected_output_shape=(None, 240, 240, 1),
-            expected_output_dtype='float16'
+            expected_output_dtype='float32'
         )
 
     def test_model(self):
