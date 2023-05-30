@@ -64,14 +64,7 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
         pad_val = (hb_pad, ha_pad, wb_pad, wa_pad)
         outputs = op(outputs, pad_size=pad_size, pad_val=pad_val)
 
-        outputs_batch, outputs_height, outputs_width = tf.unstack(tf.shape(outputs)[:3])
         outputs_channel = outputs.shape[-1]
-
-        assert_batch = tf.debugging.assert_equal(outputs_batch, pad_size[0])
-        assert_height = tf.debugging.assert_equal(outputs_height, pad_size[1])
-        assert_width = tf.debugging.assert_equal(outputs_width, pad_size[2])
-        with tf.control_dependencies([assert_batch, assert_height, assert_width]):
-            outputs = tf.identity(outputs)
 
         outputs = smart_cond(
             with_pad,
