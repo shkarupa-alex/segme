@@ -1,13 +1,12 @@
 from keras import backend, layers, models
-from keras.src.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
+from segme.common.adppool import AdaptiveAveragePooling
 from segme.common.align import Align
 from segme.common.backbone import Backbone
-from segme.common.convnormact import Conv, Norm, Act
-from segme.common.gavg import GlobalAverage
-from segme.common.grn import GRN
+from segme.common.convnormact import ConvNormAct
 from segme.common.head import HeadProjection, ClassificationActivation
+from segme.common.resize import NearestInterpolation, BilinearInterpolation
+from segme.common.sequence import Sequenсe
 from segme.common.unfold import UnFold
-from segme.common.resize import BilinearInterpolation
 from segme.policy.backbone.utils import patch_config
 
 
@@ -38,7 +37,7 @@ def Encoder():
     return ext_model
 
 
-def LMPP(kernel_size=3, expand_ratio=3., name=None):
+def FPP(kernel_size=3, name=None):
     if name is None:
         counter = backend.get_uid('lmpp')
         name = f'lmpp_{counter}'
@@ -48,18 +47,28 @@ def LMPP(kernel_size=3, expand_ratio=3., name=None):
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        expand_filters = int(channels * expand_ratio)
+        x = [ConvNormAct(channels, kernel_size, name=f'{name}_cna')(inputs)]
 
-        x0 = GlobalAverage(name=f'{name}_avg')(inputs)
-        x1 = Conv(channels, 1, use_bias=False, name=f'{name}_pw')(inputs)
-        x2 = Conv(None, kernel_size, use_bias=False, name=f'{name}_dw')(inputs)
-        x = layers.concatenate([x0, x1, x2], name=f'{name}_merge')
+        for atr_rate in [12, 24, 36]:
+            y = Sequenсe([
+                ConvNormAct(None, kernel_size, dilation_rate=atr_rate, name=f'{name}_atr{atr_rate}_dna'),
+                ConvNormAct(channels, 1, name=f'{name}_atr{atr_rate}_pna'),
+            ], name=f'{name}_atr{atr_rate}')(inputs)
+            x.append(y)
 
-        x = Conv(expand_filters, 1, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand')(x)
-        x = Act(name=f'{name}_act')(x)
-        x = GRN(center=False, name=f'{name}_grn')(x)
-        x = Conv(channels, 1, use_bias=False, name=f'{name}_squeeze')(x)
-        x = Norm(name=f'{name}_norm')(x)
+        for avg_rate in [1, 2, 3, 6]:
+            y = Sequenсe([
+                AdaptiveAveragePooling(avg_rate, name=f'{name}_avg{avg_rate}_pool'),
+                ConvNormAct(channels, 1, name=f'{name}_avg{avg_rate}_pna')
+            ], name=f'{name}_avg{avg_rate}')(inputs)
+            if 1 == avg_rate:
+                y = NearestInterpolation()([y, inputs])
+            else:
+                y = BilinearInterpolation()([y, inputs])
+            x.append(y)
+
+        x = layers.concatenate(x, name=f'{name}_merge')
+        x = ConvNormAct(channels, 1, name=f'{name}_proj')(x)
 
         return x
 
@@ -94,7 +103,7 @@ def ExpRef(sup_unfold=False):
     inputs = layers.Input(name='image', shape=[None, None, 4], dtype='uint8')
     feats2, feats4, feats8 = Encoder()(inputs)
 
-    outputs8 = LMPP(name='lmpp')(feats8)
+    outputs8 = FPP(name='fpp')(feats8)
     probs8 = Head(sup_unfold, 8, name='head8')(outputs8)
 
     outputs4 = Align(feats4.shape[-1], name='merge4')([feats4, outputs8])
