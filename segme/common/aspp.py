@@ -3,7 +3,6 @@ from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
-from segme.common.gavg import GlobalAverage
 from segme.common.sequence import Sequenсe
 
 
@@ -50,7 +49,6 @@ class AtrousSpatialPyramidPooling(layers.Layer):
             # Or use fused=False with BatchNormalization or set drop_remainder=True in Dataset batching
             ConvNormAct(self.filters, 1, name='cna')
         ], name='pool')
-        self.gavg = GlobalAverage()
 
         self.proj = Sequenсe([
             ConvNormAct(self.filters, 1, name='cna'),
@@ -60,13 +58,15 @@ class AtrousSpatialPyramidPooling(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs = tf.concat([
+        outputs = [
             self.conv1(inputs),
             self.conv3r0(inputs),
             self.conv3r1(inputs),
-            self.conv3r2(inputs),
-            self.gavg(inputs)
-        ], axis=-1)
+            self.conv3r2(inputs)
+        ]
+        shape = tf.shape(outputs[0])
+        outputs.append(tf.broadcast_to(self.pool(inputs), shape))
+        outputs = tf.concat(outputs, axis=-1)
         outputs = self.proj(outputs)
 
         return outputs
