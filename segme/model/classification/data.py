@@ -41,7 +41,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
             features=tfds.features.FeaturesDict({
                 'image': tfds.features.Image(shape=(self.image_size, self.image_size, 3), encoding_format='jpeg'),
                 'file': tfds.features.Text(),
-                'in1k': tfds.features.Scalar(dtype='bool'),
+                'in1k': tfds.features.Scalar(dtype=np.bool),
                 'size': tfds.features.Text(),
                 'label': tfds.features.Text(),
                 'synset': tfds.features.Text(),
