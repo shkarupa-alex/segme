@@ -264,27 +264,25 @@ def SoftSwin(
 
 
 def SoftSwinTiny(
-        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 6, 2), pretrain_window=16, path_drop=0.1, pretrain_size=256,
-        current_size=384, **kwargs):
+        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 6, 2), pretrain_window=16, pretrain_size=256, **kwargs):
     # 28.0 14.2
     return SoftSwin(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
-        path_drop=path_drop, pretrain_size=pretrain_size, current_size=current_size, model_name='soft_swin_tiny',
-        **kwargs)
+        pretrain_size=pretrain_size, model_name='soft_swin_tiny', **kwargs)
 
 
 def SoftSwinSmall(
-        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 18, 2), pretrain_window=16, pretrain_size=256, current_size=384,
+        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 18, 2), pretrain_window=16, path_drop=0.3, pretrain_size=256,
         **kwargs):
     # 49.4 26.6
     return SoftSwin(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
-        pretrain_size=pretrain_size, current_size=current_size, model_name='soft_swin_small', **kwargs)
+        path_drop=path_drop, pretrain_size=pretrain_size, model_name='soft_swin_small', **kwargs)
 
 
 def SoftSwinBase(
         embed_dim=128, stem_depth=3, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, **kwargs):
-    # 87.3 39.6
+    # 87.3 50.1 @ 256
     return SoftSwin(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
         pretrain_window=pretrain_window, model_name='soft_swin_base', **kwargs)
@@ -292,7 +290,7 @@ def SoftSwinBase(
 
 def SoftSwinLarge(
         embed_dim=192, stem_depth=4, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, **kwargs):
-    # 195.3 82.9
+    # 195.3 105.6 @ 256
     return SoftSwin(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
         pretrain_window=pretrain_window, model_name='soft_swin_large', **kwargs)
