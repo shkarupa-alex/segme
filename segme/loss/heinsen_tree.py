@@ -37,6 +37,7 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, crossentropy, l
     bad_classes = set(class_path.keys()) - set(range(tree_classes))
     if bad_classes:
         raise ValueError(f'Tree paths contain invalid classes: {bad_classes}.')
+
     num_levels = max(len(path) for path in tree_paths)
     tree_paths = [class_path[i] for i in range(tree_classes)]
     tree_paths = np.array([path + [-1] * (num_levels - len(path)) for path in tree_paths])
@@ -56,15 +57,15 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, crossentropy, l
     y_pred_tree = y_pred_tree[y_valid_tree]
 
     if 'categorical' == crossentropy and 0. == label_smoothing:
-        loss = losses.sparse_categorical_crossentropy(y_true_tree, y_pred_tree, from_logits=True)
+        loss = losses.sparse_categorical_crossentropy(y_true_tree, y_pred_tree, from_logits=from_logits)
     elif 'categorical' == crossentropy:
         y_true_tree_1h = tf.one_hot(y_true_tree, tree_classes, dtype='float32')
         loss = losses.categorical_crossentropy(
-            y_true_tree_1h, y_pred_tree, from_logits=True, label_smoothing=label_smoothing)
+            y_true_tree_1h, y_pred_tree, from_logits=from_logits, label_smoothing=label_smoothing)
     elif 'binary' == crossentropy:
         y_true_tree_1h = tf.one_hot(y_true_tree, tree_classes, dtype='float32')
         loss = losses.binary_crossentropy(
-            y_true_tree_1h, y_pred_tree, from_logits=True, label_smoothing=label_smoothing)
+            y_true_tree_1h, y_pred_tree, from_logits=from_logits, label_smoothing=label_smoothing)
     else:
         raise ValueError(f'Unsupported cross entropy type: {crossentropy}')
 
