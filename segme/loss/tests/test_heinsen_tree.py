@@ -14,49 +14,49 @@ class TestHeinsenTreeLoss(test_combinations.TestCase):
         self.assertEqual(loss.name, 'loss1')
         self.assertEqual(loss.reduction, Reduction.NONE)
 
-    # def test_zeros(self):
-    #     logits = -10. * tf.ones((3, 6), 'float32')
-    #     targets = tf.zeros((3, 1), 'int32')
-    #
-    #     result = heinsen_tree_loss(
-    #         y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, crossentropy='categorical',
-    #         label_smoothing=0., from_logits=True)
-    #     result = self.evaluate(result)
-    #
-    #     self.assertAllClose(result, [0.693147] * 3, atol=1e-4)
-    #
-    # def test_ones(self):
-    #     logits = 10. * tf.ones((3, 6), 'float32')
-    #     targets = tf.ones((3, 1), 'int32')
-    #
-    #     result = heinsen_tree_loss(
-    #         y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, crossentropy='categorical',
-    #         label_smoothing=0., from_logits=True)
-    #     result = self.evaluate(result)
-    #
-    #     self.assertAllClose(result, [0.693147] * 3, atol=1e-4)
-    #
-    # def test_false(self):
-    #     logits = -10. * tf.ones((3, 6), 'float32')
-    #     targets = tf.ones((3, 1), 'int32')
-    #
-    #     result = heinsen_tree_loss(
-    #         y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, crossentropy='categorical',
-    #         label_smoothing=0., from_logits=True)
-    #     result = self.evaluate(result)
-    #
-    #     self.assertAllClose(result, [0.693147] * 3, atol=1e-4)
-    #
-    # def test_true(self):
-    #     logits = 10. * tf.ones((3, 6), 'float32')
-    #     targets = tf.zeros((3, 1), 'int32')
-    #
-    #     result = heinsen_tree_loss(
-    #         y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, crossentropy='categorical',
-    #         label_smoothing=0., from_logits=True)
-    #     result = self.evaluate(result)
-    #
-    #     self.assertAllClose(result, [0.693147] * 3, atol=1e-4)
+    def test_zeros(self):
+        logits = -10. * tf.ones((3, 6), 'float32')
+        targets = tf.zeros((3, 1), 'int32')
+
+        result = heinsen_tree_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, crossentropy='categorical',
+            label_smoothing=0., from_logits=True)
+        result = self.evaluate(result)
+
+        self.assertAllClose(result, [0.693147] * 3, atol=1e-4)
+
+    def test_ones(self):
+        logits = 10. * tf.ones((3, 6), 'float32')
+        targets = tf.ones((3, 1), 'int32')
+
+        result = heinsen_tree_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, crossentropy='categorical',
+            label_smoothing=0., from_logits=True)
+        result = self.evaluate(result)
+
+        self.assertAllClose(result, [0.693147] * 3, atol=1e-4)
+
+    def test_false(self):
+        logits = -10. * tf.ones((3, 6), 'float32')
+        targets = tf.ones((3, 1), 'int32')
+
+        result = heinsen_tree_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, crossentropy='categorical',
+            label_smoothing=0., from_logits=True)
+        result = self.evaluate(result)
+
+        self.assertAllClose(result, [0.693147] * 3, atol=1e-4)
+
+    def test_true(self):
+        logits = 10. * tf.ones((3, 6), 'float32')
+        targets = tf.zeros((3, 1), 'int32')
+
+        result = heinsen_tree_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, crossentropy='categorical',
+            label_smoothing=0., from_logits=True)
+        result = self.evaluate(result)
+
+        self.assertAllClose(result, [0.693147] * 3, atol=1e-4)
 
     def test_value(self):
         loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
@@ -64,86 +64,86 @@ class TestHeinsenTreeLoss(test_combinations.TestCase):
 
         self.assertAlmostEqual(result, 0.82880473, places=6)  # 0.8316239714622498 with non-segment mean
 
-    # def test_value_smooth(self):
-    #     loss = HeinsenTreeLoss(TREE_PATHS, label_smoothing=1e-5, from_logits=True)
-    #     result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
-    #
-    #     self.assertAlmostEqual(result, 0.82947063, places=5)
-    #
-    #     loss = HeinsenTreeLoss(TREE_PATHS, label_smoothing=0.1, from_logits=True)
-    #     result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
-    #
-    #     self.assertAlmostEqual(result, 7.4887037, places=5)
-    #
-    # def test_value_binary(self):
-    #     loss = HeinsenTreeLoss(TREE_PATHS, crossentropy='binary', from_logits=True)
-    #     result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
-    #
-    #     self.assertAlmostEqual(result, 0.2545368, places=6)
-    #
-    # def test_value_2d(self):
-    #     loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
-    #     targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
-    #     logits = tf.reshape(TREE_LOGITS, [2, 2, 6])
-    #     result = self.evaluate(loss(targets, logits))
-    #
-    #     self.assertAlmostEqual(result, 0.82880473, places=6)
-    #
-    # def test_weight(self):
-    #     weights = tf.concat([tf.ones((2, 1)), tf.zeros((2, 1))], axis=0)
-    #
-    #     loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
-    #
-    #     result = self.evaluate(loss(TREE_TARGETS[:2], TREE_LOGITS[:2]))
-    #     self.assertAlmostEqual(result, 0.3177374)
-    #
-    #     result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS, weights))
-    #     self.assertAlmostEqual(result, 0.1588687)
-    #
-    #     result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS, weights * 2.))
-    #     self.assertAlmostEqual(result, 0.1588687 * 2., places=6)
-    #
-    # def test_weight_2d(self):
-    #     targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
-    #     logits = tf.reshape(TREE_LOGITS, [2, 2, 6])
-    #     weights = tf.concat([tf.ones((1, 2)), tf.zeros((1, 2))], axis=0)
-    #
-    #     loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
-    #
-    #     result = self.evaluate(loss(targets[:1], logits[:1]))
-    #     self.assertAlmostEqual(result, 0.3177374)
-    #
-    #     result = self.evaluate(loss(targets, logits, weights))
-    #     self.assertAlmostEqual(result, 0.1588687)
-    #
-    #     result = self.evaluate(loss(targets, logits, weights * 2.))
-    #     self.assertAlmostEqual(result, 0.1588687 * 2., places=6)
-    #
-    # def test_multi_probs(self):
-    #     probs = 1 / (1 + np.exp(-TREE_LOGITS))
-    #     probs = tf.constant(probs)
-    #     probs._keras_logits = TREE_LOGITS
-    #
-    #     loss = HeinsenTreeLoss(TREE_PATHS)
-    #     result = self.evaluate(loss(TREE_TARGETS, probs))
-    #
-    #     self.assertAlmostEqual(result, 0.82880473, places=6)
-    #
-    # def test_batch(self):
-    #     targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
-    #     logits = tf.reshape(TREE_LOGITS, [2, 2, 6])
-    #
-    #     loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
-    #     result0 = self.evaluate(loss(targets, logits))
-    #     result1 = sum([self.evaluate(loss(targets[i:i + 1], logits[i:i + 1])) for i in range(2)]) / 2
-    #
-    #     self.assertAlmostEqual(result0, result1)
-    #
-    # def test_model(self):
-    #     model = models.Sequential([layers.Dense(6, activation='sigmoid')])
-    #     model.compile(loss=HeinsenTreeLoss(TREE_PATHS), run_eagerly=test_utils.should_run_eagerly())
-    #     model.fit(np.zeros((2, 6)), np.zeros((2, 1), 'int32'))
-    #     models.Sequential.from_config(model.get_config())
+    def test_value_smooth(self):
+        loss = HeinsenTreeLoss(TREE_PATHS, label_smoothing=1e-5, from_logits=True)
+        result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
+
+        self.assertAlmostEqual(result, 0.82947063, places=5)
+
+        loss = HeinsenTreeLoss(TREE_PATHS, label_smoothing=0.1, from_logits=True)
+        result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
+
+        self.assertAlmostEqual(result, 7.4887037, places=5)
+
+    def test_value_binary(self):
+        loss = HeinsenTreeLoss(TREE_PATHS, crossentropy='binary', from_logits=True)
+        result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
+
+        self.assertAlmostEqual(result, 0.2545368, places=6)
+
+    def test_value_2d(self):
+        loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
+        targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
+        logits = tf.reshape(TREE_LOGITS, [2, 2, 6])
+        result = self.evaluate(loss(targets, logits))
+
+        self.assertAlmostEqual(result, 0.82880473, places=6)
+
+    def test_weight(self):
+        weights = tf.concat([tf.ones((2, 1)), tf.zeros((2, 1))], axis=0)
+
+        loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
+
+        result = self.evaluate(loss(TREE_TARGETS[:2], TREE_LOGITS[:2]))
+        self.assertAlmostEqual(result, 0.3177374)
+
+        result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS, weights))
+        self.assertAlmostEqual(result, 0.1588687)
+
+        result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS, weights * 2.))
+        self.assertAlmostEqual(result, 0.1588687 * 2., places=6)
+
+    def test_weight_2d(self):
+        targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
+        logits = tf.reshape(TREE_LOGITS, [2, 2, 6])
+        weights = tf.concat([tf.ones((1, 2)), tf.zeros((1, 2))], axis=0)
+
+        loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
+
+        result = self.evaluate(loss(targets[:1], logits[:1]))
+        self.assertAlmostEqual(result, 0.3177374)
+
+        result = self.evaluate(loss(targets, logits, weights))
+        self.assertAlmostEqual(result, 0.1588687)
+
+        result = self.evaluate(loss(targets, logits, weights * 2.))
+        self.assertAlmostEqual(result, 0.1588687 * 2., places=6)
+
+    def test_multi_probs(self):
+        probs = 1 / (1 + np.exp(-TREE_LOGITS))
+        probs = tf.constant(probs)
+        probs._keras_logits = TREE_LOGITS
+
+        loss = HeinsenTreeLoss(TREE_PATHS)
+        result = self.evaluate(loss(TREE_TARGETS, probs))
+
+        self.assertAlmostEqual(result, 0.82880473, places=6)
+
+    def test_batch(self):
+        targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
+        logits = tf.reshape(TREE_LOGITS, [2, 2, 6])
+
+        loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
+        result0 = self.evaluate(loss(targets, logits))
+        result1 = sum([self.evaluate(loss(targets[i:i + 1], logits[i:i + 1])) for i in range(2)]) / 2
+
+        self.assertAlmostEqual(result0, result1)
+
+    def test_model(self):
+        model = models.Sequential([layers.Dense(6, activation='sigmoid')])
+        model.compile(loss=HeinsenTreeLoss(TREE_PATHS), run_eagerly=test_utils.should_run_eagerly())
+        model.fit(np.zeros((2, 6)), np.zeros((2, 1), 'int32'))
+        models.Sequential.from_config(model.get_config())
 
 
 TREE_PATHS = [[0, 3, 4], [0], [1], [0, 2], [0, 3], [0, 3, 5]]
