@@ -36,7 +36,6 @@ class HeinsenTreeAccuracy(Metric):
         self.count = self.add_weight('count', initializer='zeros')
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        y_pred = tf.cast(y_pred, self.dtype)
         if y_pred.shape[-1] != self.tree_classes:
             raise ValueError(
                 f'Number of classes in logits must match one in the tree. '
@@ -51,7 +50,7 @@ class HeinsenTreeAccuracy(Metric):
         y_pred_tree = tf.reshape(y_pred, [-1, 1, self.tree_classes])
         y_pred_tree = tf.where(self.valid_mask, y_pred_tree, y_pred.dtype.min)
 
-        y_pred_tree = tf.argmax(y_pred_tree, axis=-1, output_type=y_true.dtype)
+        y_pred_tree = tf.argmax(y_pred_tree, axis=-1, output_type=y_true_tree.dtype)
         y_match_tree = tf.cast(y_true_tree == y_pred_tree, self.dtype)
         y_valid_tree = tf.cast(y_true_tree != -1, self.dtype)
 
