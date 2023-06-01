@@ -3,7 +3,7 @@ from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
-from segme.common.sequence import Sequenсe
+from segme.common.sequence import Sequence
 
 
 @register_keras_serializable(package='SegMe>Model>SOD>Tracer')
@@ -21,19 +21,19 @@ class ReceptiveField(layers.Layer):
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
         self.branch0 = ConvNormAct(self.filters, 1)
-        self.branch1 = Sequenсe([
+        self.branch1 = Sequence([
             ConvNormAct(self.filters, 1),
             ConvNormAct(self.filters, (1, 3)),
             ConvNormAct(self.filters, (3, 1)),
             ConvNormAct(self.filters, 3, dilation_rate=3)
         ])
-        self.branch2 = Sequenсe([
+        self.branch2 = Sequence([
             ConvNormAct(self.filters, 1),
             ConvNormAct(self.filters, (1, 5)),
             ConvNormAct(self.filters, (5, 1)),
             ConvNormAct(self.filters, 3, dilation_rate=5)
         ])
-        self.branch3 = Sequenсe([
+        self.branch3 = Sequence([
             ConvNormAct(self.filters, 1),
             ConvNormAct(self.filters, (1, 7)),
             ConvNormAct(self.filters, (7, 1)),

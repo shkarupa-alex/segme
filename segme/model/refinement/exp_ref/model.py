@@ -5,7 +5,7 @@ from segme.common.backbone import Backbone
 from segme.common.convnormact import ConvNormAct
 from segme.common.head import HeadProjection, ClassificationActivation
 from segme.common.resize import NearestInterpolation, BilinearInterpolation
-from segme.common.sequence import Sequenсe
+from segme.common.sequence import Sequence
 from segme.common.unfold import UnFold
 from segme.policy.backbone.utils import patch_config
 
@@ -50,14 +50,14 @@ def FPP(kernel_size=3, name=None):
         x = [ConvNormAct(channels, kernel_size, name=f'{name}_cna')(inputs)]
 
         for atr_rate in [12, 24, 36]:
-            y = Sequenсe([
+            y = Sequence([
                 ConvNormAct(None, kernel_size, dilation_rate=atr_rate, name=f'{name}_atr{atr_rate}_dna'),
                 ConvNormAct(channels, 1, name=f'{name}_atr{atr_rate}_pna'),
             ], name=f'{name}_atr{atr_rate}')(inputs)
             x.append(y)
 
         for avg_rate in [1, 2, 3, 6]:
-            y = Sequenсe([
+            y = Sequence([
                 AdaptiveAveragePooling(avg_rate, name=f'{name}_avg{avg_rate}_pool'),
                 ConvNormAct(channels, 1, name=f'{name}_avg{avg_rate}_pna')
             ], name=f'{name}_avg{avg_rate}')(inputs)

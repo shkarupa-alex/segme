@@ -5,7 +5,7 @@ from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import Conv, Act
 from segme.common.ppm import PyramidPooling
-from segme.common.sequence import Sequenсe
+from segme.common.sequence import Sequence
 from segme.common.head import HeadProjection, ClassificationActivation
 from segme.common.resize import BilinearInterpolation
 from segme.model.refinement.cascade_psp.upsample import Upsample
@@ -33,18 +33,18 @@ class CascadePSP(layers.Layer):
         self.up2 = Upsample(256)
         self.up3 = Upsample(32)
 
-        self.final8 = Sequenсe([
+        self.final8 = Sequence([
             Conv(32, 1),
             Act(),
             HeadProjection(1)
         ])
 
-        self.final4 = Sequenсe([
+        self.final4 = Sequence([
             Conv(32, 1),
             Act(),
             HeadProjection(1)
         ])
-        self.final1 = Sequenсe([
+        self.final1 = Sequence([
             Conv(32, 1),
             Act(),
             HeadProjection(1)

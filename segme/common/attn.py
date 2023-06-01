@@ -8,7 +8,7 @@ from segme.common.convnormact import ConvNorm, Conv, Act
 from segme.common.pad import with_divisible_pad
 from segme.common.part import partition_apply, partition_apply_fused, partition_reverse_fused
 from segme.common.part import with_partition_fused, halo_partition, halo_partition_fused
-from segme.common.sequence import Sequenсe
+from segme.common.sequence import Sequence
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -676,7 +676,7 @@ class RelativeBias(layers.Layer):
         rel_idx = np.reshape(rel_idx, [-1])
         self.rel_idx = tf.cast(rel_idx, 'int32')
 
-        self.cpb = Sequenсe([
+        self.cpb = Sequence([
             layers.Dense(self.cpb_units, name='expand'),
             Act(name='act'),
             layers.Dense(self.num_heads, activation='sigmoid', use_bias=False, name='squeeze')

@@ -6,7 +6,7 @@ from keras.src.utils.tf_utils import shape_type_conversion
 
 
 @register_keras_serializable(package='SegMe>Common')
-class Sequenсe(layers.Layer):
+class Sequence(layers.Layer):
     def __init__(self, items=None, **kwargs):
         kwargs['autocast'] = False
         super().__init__(**kwargs)

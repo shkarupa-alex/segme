@@ -7,7 +7,7 @@
 # from segme.common.align.fade import CarafeConvolution
 # from segme.common.resize import BilinearInterpolation
 # from segme.common.convnormact import ConvNormAct, ConvAct
-# from segme.common.sequence import Sequenсe
+# from segme.common.sequence import Sequence
 #
 #
 # @register_keras_serializable(package='SegMe>Policy>Align>CAFF')
@@ -91,7 +91,7 @@
 #             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 #         self.input_spec = layers.InputSpec(ndim=4, axes={-1: self.channels})
 #
-#         self.se = Sequenсe([
+#         self.se = Sequence([
 #             layers.GlobalAvgPool2D(keepdims=True),
 #             ConvAct(self.filters, 1, kernel_initializer='variance_scaling'),
 #             layers.Conv2D(self.channels, 1, activation='sigmoid', kernel_initializer='variance_scaling')])

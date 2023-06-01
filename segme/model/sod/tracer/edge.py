@@ -3,7 +3,7 @@ from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
-from segme.common.sequence import Sequenсe
+from segme.common.sequence import Sequence
 from segme.model.sod.tracer.chnatt import ChannelAttention
 
 
@@ -26,23 +26,23 @@ class FrequencyEdge(layers.Layer):
 
         self.chatt = ChannelAttention(self.confidence)
 
-        self.conv_in = Sequenсe([
+        self.conv_in = Sequence([
             ConvNormAct(None, 3),
             ConvNormAct(self.channels, 1)
         ])
-        self.conv_mid0 = Sequenсe([
+        self.conv_mid0 = Sequence([
             ConvNormAct(None, 1),
             ConvNormAct(self.channels // 4, 1)
         ])
-        self.conv_mid1 = Sequenсe([
+        self.conv_mid1 = Sequence([
             ConvNormAct(None, 3),
             ConvNormAct(self.channels // 4, 1)
         ])
-        self.conv_mid2 = Sequenсe([
+        self.conv_mid2 = Sequence([
             ConvNormAct(None, 3, dilation_rate=3),
             ConvNormAct(self.channels // 4, 1)
         ])
-        self.conv_mid3 = Sequenсe([
+        self.conv_mid3 = Sequence([
             ConvNormAct(None, 3, dilation_rate=5),
             ConvNormAct(self.channels // 4, 1)
         ])
