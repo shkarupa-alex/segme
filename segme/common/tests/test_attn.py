@@ -599,7 +599,9 @@ class TestDLMSA(test_combinations.TestCase):
     def test_layer(self):
         test_utils.layer_test(
             DLMSA,
-            kwargs={'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'proj_bias': True},
+            kwargs={
+                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 1,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -607,7 +609,9 @@ class TestDLMSA(test_combinations.TestCase):
         )
         test_utils.layer_test(
             DLMSA,
-            kwargs={'window_size': 5, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'proj_bias': True},
+            kwargs={
+                'window_size': 5, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 1,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -615,7 +619,9 @@ class TestDLMSA(test_combinations.TestCase):
         )
         test_utils.layer_test(
             DLMSA,
-            kwargs={'window_size': 3, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True, 'proj_bias': True},
+            kwargs={
+                'window_size': 3, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 1,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -623,7 +629,9 @@ class TestDLMSA(test_combinations.TestCase):
         )
         test_utils.layer_test(
             DLMSA,
-            kwargs={'window_size': 3, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True, 'proj_bias': True},
+            kwargs={
+                'window_size': 3, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True, 'dilation_rate': 1,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -631,7 +639,19 @@ class TestDLMSA(test_combinations.TestCase):
         )
         test_utils.layer_test(
             DLMSA,
-            kwargs={'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False, 'proj_bias': True},
+            kwargs={
+                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False, 'dilation_rate': 1,
+                'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={
+                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 2,
+                'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -642,7 +662,9 @@ class TestDLMSA(test_combinations.TestCase):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
             DLMSA,
-            kwargs={'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'proj_bias': False},
+            kwargs={
+                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 1,
+                'proj_bias': False},
             input_shape=[2, 15, 17, 4],
             input_dtype='float16',
             expected_output_shape=[None, 15, 17, 4],

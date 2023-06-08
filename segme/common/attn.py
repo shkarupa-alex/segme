@@ -456,7 +456,7 @@ class GGMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class DLMSA(layers.Layer):
-    def __init__(self, window_size, num_heads, qk_units=None, qkv_bias=True, proj_bias=True, **kwargs):
+    def __init__(self, window_size, num_heads, qk_units=None, qkv_bias=True, dilation_rate=1, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -464,6 +464,7 @@ class DLMSA(layers.Layer):
         self.num_heads = num_heads
         self.qk_units = qk_units
         self.qkv_bias = qkv_bias
+        self.dilation_rate = dilation_rate
         self.proj_bias = proj_bias
 
     @shape_type_conversion
@@ -513,9 +514,12 @@ class DLMSA(layers.Layer):
 
         q, k, v = tf.split(qkv, [self.qk_channels, self.qk_channels, self.channels], axis=-1)
 
-        k = tf.nn.depthwise_conv2d(k, self.deformable_kernel + self.static_kernel, strides=[1] * 4, padding='SAME')
+        k = tf.nn.depthwise_conv2d(
+            k, self.deformable_kernel + self.static_kernel, strides=[1] * 4, padding='SAME',
+            dilations=[self.dilation_rate, self.dilation_rate])
         v = tf.nn.depthwise_conv2d(
-            v, tf.repeat(self.static_kernel, self.channels, axis=-2), strides=[1] * 4, padding='SAME')
+            v, tf.repeat(self.static_kernel, self.channels, axis=-2), strides=[1] * 4, padding='SAME',
+            dilations=[self.dilation_rate, self.dilation_rate])
 
         batch, height, width, _ = tf.unstack(tf.shape(inputs))
         q = tf.reshape(q, [batch, height, width, self.num_heads, 1, self.qk_units])
@@ -523,7 +527,7 @@ class DLMSA(layers.Layer):
         v = tf.reshape(v, [batch, height, width, self.num_heads, self.v_units, self.window_size ** 2])
 
         q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
-        k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
+        k = tf.math.l2_normalize(k, axis=-2, epsilon=1.55e-5)
 
         attn = tf.matmul(q * tf.exp(self.scale), k)
         attn += self.attn_mask(height, width)
@@ -538,7 +542,9 @@ class DLMSA(layers.Layer):
 
     def attn_mask(self, height, width):
         mask = tf.ones((1, height, width, 1), dtype=self.compute_dtype)
-        mask = tf.nn.depthwise_conv2d(mask, self.static_kernel, strides=[1] * 4, padding='SAME')
+        mask = tf.nn.depthwise_conv2d(
+            mask, self.static_kernel, strides=[1] * 4, padding='SAME',
+            dilations=[self.dilation_rate, self.dilation_rate])
         mask = tf.reshape(mask, [1, height, width, 1, 1, self.window_size ** 2])
         mask = -100. * tf.cast(mask == 0., self.compute_dtype)
 
@@ -557,6 +563,7 @@ class DLMSA(layers.Layer):
             'num_heads': self.num_heads,
             'qk_units': self.qk_units,
             'qkv_bias': self.qkv_bias,
+            'dilation_rate': self.dilation_rate,
             'proj_bias': self.proj_bias,
         })
 
