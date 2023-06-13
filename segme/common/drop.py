@@ -3,11 +3,32 @@ from keras import backend, layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.tf_utils import shape_type_conversion
+from tensorflow.python.ops import data_flow_ops
 
 
 @register_keras_serializable(package='SegMe>Common')
-class DropPath(layers.Layer):
-    def __init__(self, rate, **kwargs):
+class DropPath(layers.Dropout):
+    def __init__(self, rate, seed=None, **kwargs):
+        kwargs.pop('noise_shape', None)
+        super().__init__(rate=rate, seed=seed, **kwargs)
+
+    def _get_noise_shape(self, inputs):
+        batch_size = tf.shape(inputs)[0]
+        noise_shape = [batch_size] + [1] * (inputs.shape.rank - 1)
+        noise_shape = tf.convert_to_tensor(noise_shape)
+
+        return noise_shape
+
+    def get_config(self):
+        config = super().get_config()
+        del config['noise_shape']
+
+        return config
+
+
+@register_keras_serializable(package='SegMe>Common')
+class SlicePath(layers.Layer):
+    def __init__(self, rate, seed=None, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(min_ndim=1)
 
@@ -15,37 +36,136 @@ class DropPath(layers.Layer):
             raise ValueError(f'Invalid value {rate} received for `rate`. Expected a value between 0 and 1.')
 
         self.rate = rate
+        self.seed = seed
 
     def call(self, inputs, training=None, **kwargs):
+        batch_size = tf.shape(inputs)[0]
+
         if 0. == self.rate:
-            return inputs
+            return inputs, tf.ones([batch_size], dtype='bool')
 
         if training is None:
             training = backend.learning_phase()
 
-        outputs = smart_cond(training, lambda: self.drop(inputs), lambda: tf.identity(inputs))
+        outputs, slice_mask = smart_cond(
+            training,
+            lambda: self.maybe_slice(inputs, batch_size),
+            lambda: (tf.identity(inputs), tf.ones([batch_size], dtype='bool')))
+
+        return outputs, slice_mask
+
+    def maybe_slice(self, inputs, batch_size):
+        keep_size = tf.cast(batch_size, 'float32') * (1. - self.rate)
+        keep_size = tf.math.ceil(keep_size / 8.) * 8.
+        keep_size = tf.cast(keep_size, batch_size.dtype)
+        keep_size = tf.minimum(keep_size, batch_size)
+
+        outputs, slice_mask = smart_cond(
+            keep_size < batch_size,
+            lambda: self.apply_slice(inputs, batch_size, keep_size),
+            lambda: (tf.identity(inputs), tf.ones([batch_size], dtype='bool')))
+
+        return outputs, slice_mask
+
+    def apply_slice(self, inputs, batch_size, keep_size):
+        slice_mask = tf.concat([
+            tf.ones([keep_size], dtype='bool'),
+            tf.zeros([batch_size - keep_size], dtype='bool')
+        ], axis=-1)
+        slice_mask = tf.random.shuffle(slice_mask, self.seed)
+
+        outputs = inputs[slice_mask]
+
+        return outputs, slice_mask
+
+    @shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return (None,) + input_shape[1:], input_shape[:1]
+
+    def compute_output_signature(self, input_signature):
+        output_signature, mask_signature = super().compute_output_signature(input_signature)
+        mask_signature = tf.TensorSpec(dtype='bool', shape=mask_signature.shape)
+
+        return output_signature, mask_signature
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'rate': self.rate,
+            'seed': self.seed
+        })
+
+        return config
+
+
+@register_keras_serializable(package='SegMe>Common')
+class RestorePath(layers.Layer):
+    def __init__(self, rate, seed=None, **kwargs):
+        super().__init__(**kwargs)
+        self.input_spec = [layers.InputSpec(min_ndim=1), layers.InputSpec(ndim=1, dtype='bool')]
+
+        self.rate = rate
+        self.seed = seed
+
+    def call(self, inputs, training=None, **kwargs):
+        outputs, slice_mask = inputs
+
+        if 0. == self.rate:
+            return outputs
+
+        if training is None:
+            training = backend.learning_phase()
+
+        outputs = smart_cond(training, lambda: self.maybe_restore(outputs, slice_mask), lambda: tf.identity(outputs))
 
         return outputs
 
-    def drop(self, inputs):
-        keep = 1.0 - self.rate
-        batch = tf.shape(inputs)[0]
-        shape = [batch] + [1] * (inputs.shape.rank - 1)
+    def maybe_restore(self, inputs, slice_mask):
+        keep_size = tf.shape(inputs)[0]
+        batch_size = tf.size(slice_mask)
 
-        random = tf.random.uniform(shape, dtype=self.compute_dtype)
-        random = tf.floor(random + keep, self.compute_dtype) / keep
+        keep_up = tf.cast(batch_size, 'float32') / tf.cast(keep_size, 'float32')
+        keep_min = (1. - self.rate) * keep_up
+        keep_max = (2. - self.rate) * keep_up
+        noise_shape = [keep_size] + [1] * (inputs.shape.rank - 1)
+        random_mask = tf.random.uniform(
+            noise_shape, minval=keep_min, maxval=keep_max, dtype=self.compute_dtype, seed=self.seed)
 
-        outputs = inputs * random
+        inv_keep = 1. / (1. - self.rate)
+        random_mask = tf.cast(random_mask >= 1., inputs.dtype) * inv_keep
+
+        outputs = inputs * random_mask
+
+        outputs = smart_cond(
+            tf.equal(batch_size, keep_size),
+            lambda: tf.identity(outputs),
+            lambda: self.apply_restore(outputs, batch_size, keep_size, slice_mask))
+
+        return outputs
+
+    def apply_restore(self, inputs, batch_size, keep_size, slice_mask):
+        join_indices = tf.range(batch_size, dtype='int32')
+
+        zero_shape = tf.concat([[batch_size - keep_size], tf.shape(inputs)[1:]], axis=-1)
+        zero_inputs = tf.zeros(zero_shape, dtype=inputs.dtype)
+
+        outputs = data_flow_ops.parallel_dynamic_stitch(
+            [join_indices[slice_mask], join_indices[~slice_mask]],
+            [inputs, zero_inputs]
+        )
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape
+        return input_shape[1] + input_shape[0][1:]
 
     def get_config(self):
         config = super().get_config()
-        config.update({'rate': self.rate})
+        config.update({
+            'rate': self.rate,
+            'seed': self.seed
+        })
 
         return config
 
