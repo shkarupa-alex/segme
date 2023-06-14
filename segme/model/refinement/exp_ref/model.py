@@ -49,17 +49,19 @@ def FPP(kernel_size=3, name=None):
 
         x = [ConvNormAct(channels, kernel_size, name=f'{name}_cna')(inputs)]
 
+        atr_channels = (channels // 24) * 8
         for atr_rate in [12, 24, 36]:
             y = Sequence([
                 ConvNormAct(None, kernel_size, dilation_rate=atr_rate, name=f'{name}_atr{atr_rate}_dna'),
-                ConvNormAct(channels, 1, name=f'{name}_atr{atr_rate}_pna'),
+                ConvNormAct(atr_channels, 1, name=f'{name}_atr{atr_rate}_pna'),
             ], name=f'{name}_atr{atr_rate}')(inputs)
             x.append(y)
 
+        avg_channels = (channels // 32) * 8
         for avg_rate in [1, 2, 3, 6]:
             y = Sequence([
                 AdaptiveAveragePooling(avg_rate, name=f'{name}_avg{avg_rate}_pool'),
-                ConvNormAct(channels, 1, name=f'{name}_avg{avg_rate}_pna')
+                ConvNormAct(avg_channels, 1, name=f'{name}_avg{avg_rate}_pna')
             ], name=f'{name}_avg{avg_rate}')(inputs)
             if 1 == avg_rate:
                 y = NearestInterpolation()([y, inputs])
