@@ -505,7 +505,7 @@ class DLMSA(layers.Layer):
 
         super().build(input_shape)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
         if self.qkv_bias:
             k_bias = tf.zeros([self.qk_channels], dtype=self.compute_dtype)

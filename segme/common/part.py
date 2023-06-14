@@ -176,16 +176,16 @@ def partition_apply_fused(
         if part_type in {'window_size', 'grid_count'}:
             outputs = tf.reshape(inputs, [
                 -1, height_blocks, size_count, dilation_rate, width_blocks, size_count, dilation_rate,
-                num_heads, channels // num_heads])
+                channels // num_heads, num_heads])
         else:
             outputs = tf.reshape(inputs, [
                 -1, size_count, height_blocks, dilation_rate, size_count, width_blocks, dilation_rate,
-                num_heads, channels // num_heads])
+                channels // num_heads, num_heads])
 
         if part_type in {'window_size', 'window_count'}:
-            outputs = tf.transpose(outputs, [0, 1, 3, 4, 6, 7, 2, 5, 8])
+            outputs = tf.transpose(outputs, [0, 1, 3, 4, 6, 8, 2, 5, 7])
         else:
-            outputs = tf.transpose(outputs, [0, 2, 3, 5, 6, 7, 1, 4, 8])
+            outputs = tf.transpose(outputs, [0, 2, 3, 5, 6, 8, 1, 4, 7])
 
         if part_type in {'window_size', 'grid_size'}:
             num_windows = height_blocks * width_blocks * tf.square(dilation_rate)
@@ -230,9 +230,9 @@ def partition_reverse_fused(
                 head_channels])
 
         if part_type in {'window_size', 'window_count'}:
-            outputs = tf.transpose(outputs, [0, 1, 6, 2, 3, 7, 4, 5, 8])
+            outputs = tf.transpose(outputs, [0, 1, 6, 2, 3, 7, 4, 8, 5])
         else:
-            outputs = tf.transpose(outputs, [0, 6, 1, 2, 7, 3, 4, 5, 8])
+            outputs = tf.transpose(outputs, [0, 6, 1, 2, 7, 3, 4, 8, 5])
 
         outputs = tf.reshape(outputs, [
             -1, height_blocks * size_count * dilation_rate, width_blocks * size_count * dilation_rate, full_channels])
@@ -291,19 +291,12 @@ def halo_partition_fused(
         width_blocks = width // (window_size * dilation_rate)
         num_windows = height_blocks * width_blocks * tf.square(dilation_rate)
 
-        halo_factor = halo_size / window_size
-        if halo_factor % 1:
-            halo_height = tf.cast(tf.math.ceil(tf.cast(height, 'float32') * halo_factor), height.dtype)
-            halo_width = tf.cast(tf.math.ceil(tf.cast(width, 'float32') * halo_factor), width.dtype)
-        else:
-            halo_height, halo_width = height * int(halo_factor), width * int(halo_factor)
-
         outputs = tf.image.extract_patches(inputs, halo_kernel, halo_stride, [1] * 4, padding='SAME')
 
         outputs = tf.reshape(outputs, [
-            -1, height_blocks, width_blocks, halo_size, dilation_rate, halo_size, dilation_rate, num_heads,
-            channels // num_heads])
-        outputs = tf.transpose(outputs, [0, 1, 4, 2, 6, 7, 3, 5, 8])
+            -1, height_blocks, width_blocks, halo_size, dilation_rate, halo_size, dilation_rate, channels // num_heads,
+            num_heads])
+        outputs = tf.transpose(outputs, [0, 1, 4, 2, 6, 8, 3, 5, 7])
         outputs = tf.reshape(outputs, [-1, num_windows, num_heads, halo_size ** 2, channels // num_heads])
 
         return outputs

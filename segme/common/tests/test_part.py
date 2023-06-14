@@ -130,8 +130,8 @@ class TestPartitionApplyFused(tf.test.TestCase):
             for dilation_rate in [1, 2, 3]:
                 for num_heads in [1, 2, 4]:
                     expected = partition_apply(inputs, height, width, part_type, size, dilation_rate)
-                    expected = tf.reshape(expected, expected.shape[:-1] + (num_heads, 3 * channels // num_heads))
-                    expected = tf.transpose(expected, [0, 1, 3, 2, 4])
+                    expected = tf.reshape(expected, expected.shape[:-1] + (3 * channels // num_heads, num_heads))
+                    expected = tf.transpose(expected, [0, 1, 4, 2, 3])
                     expected = self.evaluate(expected)
 
                     result = partition_apply_fused(inputs, height, width, part_type, size, num_heads, dilation_rate)
@@ -153,7 +153,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
 
                 for num_heads in [1, 2, 4]:
                     expected = inputs.reshape([-1, num_wind, num_heads, win_size, channels // num_heads])
-                    expected = tf.transpose(expected, perm=[0, 1, 3, 2, 4])
+                    expected = tf.transpose(expected, perm=[0, 1, 3, 4, 2])
                     expected = tf.reshape(expected, [-1, num_wind, win_size, channels])
                     expected = partition_reverse(expected, height, width, part_type, size, dilation_rate)
                     expected = self.evaluate(expected)
@@ -420,8 +420,8 @@ class TestHaloPartitionFused(tf.test.TestCase):
             for dilation_rate in [1, 2, 3]:
                 for num_heads in [1, 2, 4]:
                     expected = halo_partition(inputs, height, width, size, halo_size, dilation_rate)
-                    expected = tf.reshape(expected, expected.shape[:-1] + (num_heads, 2 * channels // num_heads))
-                    expected = tf.transpose(expected, [0, 1, 3, 2, 4])
+                    expected = tf.reshape(expected, expected.shape[:-1] + (2 * channels // num_heads, num_heads))
+                    expected = tf.transpose(expected, [0, 1, 4, 2, 3])
                     expected = self.evaluate(expected)
 
                     result = halo_partition_fused(inputs, height, width, size, halo_size, num_heads, dilation_rate)
