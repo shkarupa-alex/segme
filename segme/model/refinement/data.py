@@ -471,7 +471,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
 
 
 @tf.function(jit_compile=False)
-def _transform_examples(examples, augment, batch_size, with_coord):
+def _transform_examples(examples, augment, batch_size, with_coord, with_prev):
     images, masks, labels, weights = examples['image'], examples['mask'], examples['label'], examples['weight']
     masks = tf.cast(masks > 127, 'uint8') * 255
 
@@ -483,8 +483,10 @@ def _transform_examples(examples, augment, batch_size, with_coord):
 
     if with_coord:
         features = {'image': images, 'mask': masks, 'coord': make_coords([batch_size, CROP_SIZE, CROP_SIZE])}
-    else:
+    elif with_prev:
         features = {'image': images, 'mask': masks, 'prev': masks}
+    else:
+        features = {'image': images, 'mask': masks}
 
     labels = tf.cast(labels > 127, 'int32')
     weights = tf.cast(weights, 'float32') / 20.
@@ -492,7 +494,7 @@ def _transform_examples(examples, augment, batch_size, with_coord):
     return features, labels, weights
 
 
-def make_dataset(data_dir, split_name, batch_size, with_coord=False):
+def make_dataset(data_dir, split_name, batch_size, with_coord=False, with_prev=False):
     builder = RefineDataset(source_dirs=[], data_dir=data_dir)
     builder.download_and_prepare()
 
@@ -502,7 +504,7 @@ def make_dataset(data_dir, split_name, batch_size, with_coord=False):
     dataset = dataset.batch(batch_size, drop_remainder=True)
 
     dataset = dataset.map(
-        lambda ex: _transform_examples(ex, tfds.Split.TRAIN == split_name, batch_size, with_coord),
+        lambda ex: _transform_examples(ex, tfds.Split.TRAIN == split_name, batch_size, with_coord, with_prev),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 

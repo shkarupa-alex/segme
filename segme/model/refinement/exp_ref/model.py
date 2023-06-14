@@ -102,8 +102,11 @@ def Head(unfold, stride, name=None):
 
 
 def ExpRef(sup_unfold=False):
-    inputs = layers.Input(name='image', shape=[None, None, 4], dtype='uint8')
-    feats2, feats4, feats8 = Encoder()(inputs)
+    inputs = [layers.Input(name='image', shape=[None, None, 3], dtype='uint8'),
+              layers.Input(name='mask', shape=[None, None, 1], dtype='uint8')]
+    merged = layers.Concatenate()(inputs)
+
+    feats2, feats4, feats8 = Encoder()(merged)
 
     outputs8 = FPP(name='fpp')(feats8)
     probs8 = Head(sup_unfold, 8, name='head8')(outputs8)
