@@ -133,7 +133,7 @@ def unwrap(image, replace=None, name=None):
             replace, _, _ = validate(replace, None, None)
         else:
             batch = tf.shape(image)[0]
-            replace = tf.random.uniform([batch, 1, 1, image.shape[-1] - 1])
+            replace = tf.random.uniform([batch, 1, 1, image.shape[-1]])
             replace = convert(replace, image.dtype, saturate=True)
 
         mask = tf.cast(tf.equal(mask, 1), image.dtype)

@@ -178,9 +178,8 @@ class GroupNorm(layers.GroupNormalization):
                  gamma_constraint=None, **kwargs):
         data_format = normalize_data_format(data_format)
         axis = -1 if 'channels_last' == data_format else 1
-        # Disable fp32
-        # kwargs['autocast'] = False
-        # kwargs['dtype'] = 'float32'
+        kwargs['autocast'] = False
+        kwargs['dtype'] = 'float32'
         super().__init__(
             groups=-1, axis=axis, epsilon=epsilon, center=center, scale=scale, beta_initializer=beta_initializer,
             gamma_initializer=gamma_initializer, beta_regularizer=beta_regularizer, gamma_regularizer=gamma_regularizer,
@@ -219,13 +218,12 @@ class GroupNorm(layers.GroupNormalization):
 
         super().build(input_shape)
 
-    # Disable fp32
-    # def call(self, inputs):
-    #     outputs = tf.cast(inputs, self.dtype)
-    #     outputs = super().call(outputs)
-    #     outputs = tf.saturate_cast(outputs, inputs.dtype)
-    #
-    #     return outputs
+    def call(self, inputs):
+        outputs = tf.cast(inputs, self.dtype)
+        outputs = super().call(outputs)
+        outputs = tf.saturate_cast(outputs, inputs.dtype)
+
+        return outputs
 
     def _reshape_into_groups(self, inputs):
         input_shape = tf.shape(inputs)
@@ -267,9 +265,8 @@ class FilterResponseNorm(layers.Layer):
     def __init__(self, data_format=None, epsilon=1e-6, beta_initializer='zeros', gamma_initializer='ones',
                  beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None,
                  learned_epsilon=False, **kwargs):
-        # Disable fp32
-        # kwargs['autocast'] = False
-        # kwargs['dtype'] = 'float32'
+        kwargs['autocast'] = False
+        kwargs['dtype'] = 'float32'
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(min_ndim=3)
         self.supports_masking = True
@@ -312,9 +309,7 @@ class FilterResponseNorm(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
-        # Disable fp32
-        # outputs = tf.cast(inputs, self.dtype)
-        outputs = inputs
+        outputs = tf.cast(inputs, self.dtype)
 
         epsilon = self.epsilon
         if self.use_eps_learned:
@@ -323,8 +318,7 @@ class FilterResponseNorm(layers.Layer):
         nu2 = tf.reduce_mean(tf.square(outputs), axis=self.axis, keepdims=True)
         outputs = outputs * tf.math.rsqrt(nu2 + epsilon) * self.gamma + self.beta
 
-        # Disable fp32
-        # outputs = tf.saturate_cast(outputs, inputs.dtype)
+        outputs = tf.saturate_cast(outputs, inputs.dtype)
 
         return outputs
 
