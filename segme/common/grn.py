@@ -62,17 +62,17 @@ class GRN(layers.Layer):
         # Here we will use response normalization method from https://arxiv.org/pdf/1911.09737.pdf
         gx = tf.reduce_mean(tf.square(inputs), axis=[1, 2], keepdims=True)
 
-        # Simple divisive normalization works best, though standardization (||Xi|| − µ)/σ yields similar results.
-        # nx = gx / (tf.reduce_mean(gx, axis=-1, keepdims=True) + self.epsilon)
+        # Simple divisive normalization works best,
+        nx = gx / (tf.reduce_mean(gx, axis=-1, keepdims=True) + self.epsilon)
 
-        # Here we will use standardization for better speed and fp16 stability
-        batch = tf.shape(inputs)[0]
-        scale = tf.ones([batch], dtype=self.dtype)
-        offset = tf.zeros([batch], dtype=self.dtype)
-        nx = tf.squeeze(gx, axis=1)[None]
-        nx, _, _ = tf.compat.v1.nn.fused_batch_norm(
-            nx, scale=scale, offset=offset, epsilon=self.epsilon, data_format='NCHW')
-        nx = tf.squeeze(nx, axis=0)[:, None]
+        # though standardization (||Xi|| − µ)/σ yields similar results.
+        # batch = tf.shape(inputs)[0]
+        # scale = tf.ones([batch], dtype=self.dtype)
+        # offset = tf.zeros([batch], dtype=self.dtype)
+        # nx = tf.squeeze(gx, axis=1)[None]
+        # nx, _, _ = tf.compat.v1.nn.fused_batch_norm(
+        #     nx, scale=scale, offset=offset, epsilon=self.epsilon, data_format='NCHW')
+        # nx = tf.squeeze(nx, axis=0)[:, None]
 
         if self.scale:
             nx *= self.gamma
