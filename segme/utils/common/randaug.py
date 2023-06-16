@@ -5,6 +5,7 @@ from segme.utils.common.augs.blur import gaussblur
 from segme.utils.common.augs.brightness import brightness
 from segme.utils.common.augs.contrast import contrast
 from segme.utils.common.augs.equalize import equalize
+from segme.utils.common.augs.erase import erase
 from segme.utils.common.augs.flip import flip_lr, flip_ud
 from segme.utils.common.augs.gamma import gamma
 from segme.utils.common.augs.grayscale import grayscale
@@ -51,6 +52,13 @@ def _equalize_args(magnitude, batch, channel, replace, reduce=1.):
     prob = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / reduce)
 
     return [prob]
+
+
+def _erase_args(magnitude, batch, channel, replace, reduce=1., min_area=0.02, max_area=0.5):
+    prob = tf.random.uniform([batch, 1, 1, 1], maxval=magnitude / reduce)
+    area = (min_area, max_area * magnitude)
+
+    return [prob, area, replace]
 
 
 def _flip_lr_args(magnitude, batch, channel, replace, reduce=1.):
@@ -192,6 +200,7 @@ _AUG_FUNC = {
     'Brightness': brightness,
     'Contrast': contrast,
     'Equalize': equalize,
+    'Erase': erase,
     'FlipLR': flip_lr,
     'FlipUD': flip_ud,
     'Gamma': gamma,
@@ -203,8 +212,8 @@ _AUG_FUNC = {
     'Mix': mix,
     'Posterize': posterize,
     'Rotate': rotate,
-    'RotateCW': rotate_cw,
     'RotateCCW': rotate_ccw,
+    'RotateCW': rotate_cw,
     'Saturation': saturation,
     'Sharpness': sharpness,
     'ShearX': shear_x,
@@ -220,6 +229,7 @@ _AUG_ARGS = {
     'Brightness': _brightness_args,
     'Contrast': _contrast_args,
     'Equalize': _equalize_args,
+    'Erase': _erase_args,
     'FlipLR': _flip_lr_args,
     'FlipUD': _flip_ud_args,
     'Gamma': _gamma_args,
@@ -231,8 +241,8 @@ _AUG_ARGS = {
     'Mix': _mix_args,
     'Posterize': _posterize_args,
     'Rotate': _rotate_args,
-    'RotateCW': _rotate_cw_ccw_args,
     'RotateCCW': _rotate_cw_ccw_args,
+    'RotateCW': _rotate_cw_ccw_args,
     'Saturation': _saturation_args,
     'Sharpness': _sharpness_args,
     'ShearX': _shear_x_y_args,
@@ -308,6 +318,6 @@ def rand_augment_safe(image, masks, weight, levels=5, magnitude=0.5, ops=None, n
     if ops is None:
         ops = list(_AUG_FUNC.keys())
 
-    ops = list(set(ops) - {'Invert', 'Rotate', 'ShearX', 'ShearY', 'TranslateX', 'TranslateY'})
+    ops = list(set(ops) - {'Erase', 'Invert', 'Rotate', 'ShearX', 'ShearY', 'TranslateX', 'TranslateY'})
 
     return rand_augment_full(image, masks, weight, levels=levels, magnitude=magnitude, ops=ops, name=name)
