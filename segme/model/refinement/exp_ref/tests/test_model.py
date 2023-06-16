@@ -22,16 +22,16 @@ class TestExpRef(test_combinations.TestCase):
         layer_multi_io_test(
             ExpRef,
             kwargs={'sup_unfold': False},
-            input_shapes=[(2, 240, 240, 4)],
-            input_dtypes=['uint8'],
+            input_shapes=[(2, 240, 240, 3), (2, 240, 240, 1)],
+            input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 240, 240, 1)] * 3,
             expected_output_dtypes=['float32'] * 3
         )
         layer_multi_io_test(
             ExpRef,
             kwargs={'sup_unfold': True},
-            input_shapes=[(2, 240, 240, 4)],
-            input_dtypes=['uint8'],
+            input_shapes=[(2, 240, 240, 3), (2, 240, 240, 1)],
+            input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 240, 240, 1)] * 3,
             expected_output_dtypes=['float32'] * 3
         )
@@ -41,16 +41,16 @@ class TestExpRef(test_combinations.TestCase):
         layer_multi_io_test(
             ExpRef,
             kwargs={'sup_unfold': False},
-            input_shapes=[(2, 240, 240, 4)],
-            input_dtypes=['uint8'],
+            input_shapes=[(2, 240, 240, 3), (2, 240, 240, 1)],
+            input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 240, 240, 1)] * 3,
             expected_output_dtypes=['float32'] * 3
         )
         layer_multi_io_test(
             ExpRef,
             kwargs={'sup_unfold': True},
-            input_shapes=[(2, 240, 240, 4)],
-            input_dtypes=['uint8'],
+            input_shapes=[(2, 240, 240, 3), (2, 240, 240, 1)],
+            input_dtypes=['uint8'] * 2,
             expected_output_shapes=[(None, 240, 240, 1)] * 3,
             expected_output_dtypes=['float32'] * 3
         )
@@ -59,7 +59,7 @@ class TestExpRef(test_combinations.TestCase):
         model = ExpRef()
         model.compile(optimizer='sgd', loss='mse', run_eagerly=test_utils.should_run_eagerly(), jit_compile=False)
         model.fit(
-            np.random.random((2, 240, 240, 4)).astype(np.uint8),
+            [np.random.random((2, 240, 240, 3)).astype(np.uint8), np.random.random((2, 240, 240, 1)).astype(np.uint8)],
             np.random.random((2, 240, 240, 1)).astype(np.float32),
             epochs=1, batch_size=10)
 
