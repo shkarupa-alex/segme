@@ -178,6 +178,8 @@ class GroupNorm(layers.GroupNormalization):
                  gamma_constraint=None, **kwargs):
         data_format = normalize_data_format(data_format)
         axis = -1 if 'channels_last' == data_format else 1
+        kwargs['autocast'] = False
+        kwargs['dtype'] = 'float32'
         super().__init__(
             groups=-1, axis=axis, epsilon=epsilon, center=center, scale=scale, beta_initializer=beta_initializer,
             gamma_initializer=gamma_initializer, beta_regularizer=beta_regularizer, gamma_regularizer=gamma_regularizer,
@@ -215,6 +217,13 @@ class GroupNorm(layers.GroupNormalization):
                     f'Number of groups ({self.groups}) must be a multiple of the number of channels ({self.channels}).')
 
         super().build(input_shape)
+
+    def call(self, inputs):
+        outputs = tf.cast(inputs, self.dtype)
+        outputs = super().call(outputs)
+        outputs = tf.saturate_cast(outputs, inputs.dtype)
+
+        return outputs
 
     def _reshape_into_groups(self, inputs):
         input_shape = tf.shape(inputs)
