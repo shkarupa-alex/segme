@@ -14,8 +14,8 @@ from segme.common.sequence import Sequence
 @register_keras_serializable(package='SegMe>Common')
 class DHMSA(layers.Layer):
     def __init__(
-            self, current_window, pretrain_window, num_heads, qk_units=None, qkv_bias=True, dilation_rate=1,
-            proj_bias=True, **kwargs):
+            self, current_window, pretrain_window, num_heads, qk_units=None, qkv_bias=True, cpb_units=512,
+            dilation_rate=1, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -27,6 +27,7 @@ class DHMSA(layers.Layer):
         self.num_heads = num_heads
         self.qk_units = qk_units
         self.qkv_bias = qkv_bias
+        self.cpb_units = cpb_units
         self.dilation_rate = dilation_rate
         self.proj_bias = proj_bias
 
@@ -54,7 +55,8 @@ class DHMSA(layers.Layer):
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
         self.rel_bias = RelativeBias(
-            self.current_window, self.halo_window // 2, self.pretrain_window, self.num_heads, name='rel_bias')
+            self.current_window, self.halo_window // 2, self.pretrain_window, self.num_heads, cpb_units=self.cpb_units,
+            name='rel_bias')
 
         self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
@@ -138,6 +140,7 @@ class DHMSA(layers.Layer):
             'num_heads': self.num_heads,
             'qk_units': self.qk_units,
             'qkv_bias': self.qkv_bias,
+            'cpb_units': self.cpb_units,
             'dilation_rate': self.dilation_rate,
             'proj_bias': self.proj_bias
         })
@@ -148,8 +151,8 @@ class DHMSA(layers.Layer):
 @register_keras_serializable(package='SegMe>Common')
 class SWMSA(layers.Layer):
     def __init__(
-            self, current_window, pretrain_window, num_heads, shift_mode, qk_units=None, qkv_bias=True, proj_bias=True,
-            **kwargs):
+            self, current_window, pretrain_window, num_heads, shift_mode, qk_units=None, qkv_bias=True, cpb_units=512,
+            proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -159,6 +162,7 @@ class SWMSA(layers.Layer):
         self.shift_mode = shift_mode % 5
         self.qk_units = qk_units
         self.qkv_bias = qkv_bias
+        self.cpb_units = cpb_units
         self.proj_bias = proj_bias
 
     @shape_type_conversion
@@ -187,7 +191,8 @@ class SWMSA(layers.Layer):
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
         self.rel_bias = RelativeBias(
-            self.current_window, self.current_window, self.pretrain_window, self.num_heads, name='rel_bias')
+            self.current_window, self.current_window, self.pretrain_window, self.num_heads, cpb_units=self.cpb_units,
+            name='rel_bias')
 
         self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
@@ -335,6 +340,7 @@ class SWMSA(layers.Layer):
             'shift_mode': self.shift_mode,
             'qk_units': self.qk_units,
             'qkv_bias': self.qkv_bias,
+            'cpb_units': self.cpb_units,
             'proj_bias': self.proj_bias
         })
 
@@ -344,7 +350,8 @@ class SWMSA(layers.Layer):
 @register_keras_serializable(package='SegMe>Common')
 class GGMSA(layers.Layer):
     def __init__(
-            self, current_window, pretrain_window, num_heads, qk_units=None, qkv_bias=True, proj_bias=True, **kwargs):
+            self, current_window, pretrain_window, num_heads, qk_units=None, qkv_bias=True, cpb_units=512,
+            proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -353,6 +360,7 @@ class GGMSA(layers.Layer):
         self.num_heads = num_heads
         self.qk_units = qk_units
         self.qkv_bias = qkv_bias
+        self.cpb_units = cpb_units
         self.proj_bias = proj_bias
 
     @shape_type_conversion
@@ -378,7 +386,8 @@ class GGMSA(layers.Layer):
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
         self.rel_bias = RelativeBias(
-            self.current_window, self.current_window, self.pretrain_window, self.num_heads, name='rel_bias')
+            self.current_window, self.current_window, self.pretrain_window, self.num_heads, cpb_units=self.cpb_units,
+            name='rel_bias')
 
         self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
@@ -448,6 +457,7 @@ class GGMSA(layers.Layer):
             'num_heads': self.num_heads,
             'qk_units': self.qk_units,
             'qkv_bias': self.qkv_bias,
+            'cpb_units': self.cpb_units,
             'proj_bias': self.proj_bias
         })
 
@@ -456,7 +466,8 @@ class GGMSA(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common')
 class DLMSA(layers.Layer):
-    def __init__(self, window_size, num_heads, qk_units=None, qkv_bias=True, dilation_rate=1, proj_bias=True, **kwargs):
+    def __init__(self, window_size, num_heads, qk_units=None, qkv_bias=True, cpb_units=512, dilation_rate=1,
+                 proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)
 
@@ -464,6 +475,7 @@ class DLMSA(layers.Layer):
         self.num_heads = num_heads
         self.qk_units = qk_units
         self.qkv_bias = qkv_bias
+        self.cpb_units = cpb_units
         self.dilation_rate = dilation_rate
         self.proj_bias = proj_bias
 
@@ -499,7 +511,8 @@ class DLMSA(layers.Layer):
             initializer=initializers.constant(np.log(10., dtype=self.dtype)),
             constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
 
-        self.rel_bias = RelativeBias(1, self.window_size, self.window_size, self.num_heads, name='rel_bias')
+        self.rel_bias = RelativeBias(
+            1, self.window_size, self.window_size, self.num_heads, cpb_units=self.cpb_units, name='rel_bias')
 
         self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
 
@@ -563,6 +576,7 @@ class DLMSA(layers.Layer):
             'num_heads': self.num_heads,
             'qk_units': self.qk_units,
             'qkv_bias': self.qkv_bias,
+            'cpb_units': self.cpb_units,
             'dilation_rate': self.dilation_rate,
             'proj_bias': self.proj_bias,
         })

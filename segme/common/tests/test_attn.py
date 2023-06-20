@@ -20,7 +20,7 @@ class TestDHMSA(test_combinations.TestCase):
             DHMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
-                'dilation_rate': 1, 'proj_bias': True},
+                'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -30,7 +30,7 @@ class TestDHMSA(test_combinations.TestCase):
             DHMSA,
             kwargs={
                 'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
-                'dilation_rate': 1, 'proj_bias': True},
+                'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
             input_shape=[2, 14, 18, 4],
             input_dtype='float32',
             expected_output_shape=[None, 14, 18, 4],
@@ -40,7 +40,7 @@ class TestDHMSA(test_combinations.TestCase):
             DHMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True,
-                'dilation_rate': 1, 'proj_bias': True},
+                'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
             input_shape=[2, 16, 16, 4],
             input_dtype='float32',
             expected_output_shape=[None, 16, 16, 4],
@@ -50,7 +50,7 @@ class TestDHMSA(test_combinations.TestCase):
             DHMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True,
-                'dilation_rate': 1, 'proj_bias': True},
+                'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -60,7 +60,7 @@ class TestDHMSA(test_combinations.TestCase):
             DHMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False,
-                'dilation_rate': 1, 'proj_bias': True},
+                'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -70,7 +70,17 @@ class TestDHMSA(test_combinations.TestCase):
             DHMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
-                'dilation_rate': 2, 'proj_bias': True},
+                'cpb_units': 384, 'dilation_rate': 1, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            DHMSA,
+            kwargs={
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
+                'cpb_units': 512, 'dilation_rate': 2, 'proj_bias': True},
             input_shape=[2, 13, 19, 4],
             input_dtype='float32',
             expected_output_shape=[None, 13, 19, 4],
@@ -83,7 +93,7 @@ class TestDHMSA(test_combinations.TestCase):
             DHMSA,
             kwargs={
                 'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
-                'dilation_rate': 2, 'proj_bias': False},
+                'cpb_units': 512, 'dilation_rate': 2, 'proj_bias': False},
             input_shape=[2, 16, 16, 4],
             input_dtype='float16',
             expected_output_shape=[None, 16, 16, 4],
@@ -106,7 +116,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -116,7 +126,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 14, 18, 4],
             input_dtype='float32',
             expected_output_shape=[None, 14, 18, 4],
@@ -126,7 +136,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'shift_mode': 0, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 16, 16, 4],
             input_dtype='float32',
             expected_output_shape=[None, 16, 16, 4],
@@ -136,7 +146,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 1, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -146,7 +156,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 2, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -156,7 +166,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 3, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -166,7 +176,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 4, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -176,7 +186,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': 4,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -186,7 +196,17 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
-                'qkv_bias': False, 'proj_bias': True},
+                'qkv_bias': False, 'cpb_units': 512, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            SWMSA,
+            kwargs={
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
+                'qkv_bias': True, 'cpb_units': 384, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -199,7 +219,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': False},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': False},
             input_shape=[2, 16, 16, 4],
             input_dtype='float16',
             expected_output_shape=[None, 16, 16, 4],
@@ -211,7 +231,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 1, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 14, 15, 4],
             input_dtype='float32',
             expected_output_shape=[None, 14, 15, 4],
@@ -223,7 +243,7 @@ class TestSWMSA(test_combinations.TestCase):
             SWMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 1, 'shift_mode': 3, 'qk_units': None,
-                'qkv_bias': True, 'proj_bias': True},
+                'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 1, 2, 4],
             input_dtype='float32',
             expected_output_shape=[None, 1, 2, 4],
@@ -525,7 +545,7 @@ class TestGGMSA(test_combinations.TestCase):
             GGMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
-                'proj_bias': True},
+                'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -535,7 +555,7 @@ class TestGGMSA(test_combinations.TestCase):
             GGMSA,
             kwargs={
                 'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
-                'proj_bias': True},
+                'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 14, 18, 4],
             input_dtype='float32',
             expected_output_shape=[None, 14, 18, 4],
@@ -545,7 +565,7 @@ class TestGGMSA(test_combinations.TestCase):
             GGMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True,
-                'proj_bias': True},
+                'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 16, 16, 4],
             input_dtype='float32',
             expected_output_shape=[None, 16, 16, 4],
@@ -555,7 +575,7 @@ class TestGGMSA(test_combinations.TestCase):
             GGMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True,
-                'proj_bias': True},
+                'cpb_units': 512, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -565,7 +585,17 @@ class TestGGMSA(test_combinations.TestCase):
             GGMSA,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False,
-                'proj_bias': True},
+                'cpb_units': 512, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            GGMSA,
+            kwargs={
+                'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
+                'cpb_units': 384, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -578,7 +608,7 @@ class TestGGMSA(test_combinations.TestCase):
             GGMSA,
             kwargs={
                 'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
-                'proj_bias': False},
+                'cpb_units': 512, 'proj_bias': False},
             input_shape=[2, 16, 16, 4],
             input_dtype='float16',
             expected_output_shape=[None, 16, 16, 4],
@@ -600,7 +630,37 @@ class TestDLMSA(test_combinations.TestCase):
         test_utils.layer_test(
             DLMSA,
             kwargs={
-                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 1,
+                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
+                'dilation_rate': 1, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={
+                'window_size': 5, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
+                'dilation_rate': 1, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={
+                'window_size': 3, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
+                'dilation_rate': 1, 'proj_bias': True},
+            input_shape=[2, 15, 17, 4],
+            input_dtype='float32',
+            expected_output_shape=[None, 15, 17, 4],
+            expected_output_dtype='float32'
+        )
+        test_utils.layer_test(
+            DLMSA,
+            kwargs={
+                'window_size': 3, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True, 'cpb_units': 512, 'dilation_rate': 1,
                 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
@@ -610,8 +670,8 @@ class TestDLMSA(test_combinations.TestCase):
         test_utils.layer_test(
             DLMSA,
             kwargs={
-                'window_size': 5, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 1,
-                'proj_bias': True},
+                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False, 'cpb_units': 512,
+                'dilation_rate': 1, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -620,8 +680,8 @@ class TestDLMSA(test_combinations.TestCase):
         test_utils.layer_test(
             DLMSA,
             kwargs={
-                'window_size': 3, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 1,
-                'proj_bias': True},
+                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 384,
+                'dilation_rate': 1, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -630,28 +690,8 @@ class TestDLMSA(test_combinations.TestCase):
         test_utils.layer_test(
             DLMSA,
             kwargs={
-                'window_size': 3, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True, 'dilation_rate': 1,
-                'proj_bias': True},
-            input_shape=[2, 15, 17, 4],
-            input_dtype='float32',
-            expected_output_shape=[None, 15, 17, 4],
-            expected_output_dtype='float32'
-        )
-        test_utils.layer_test(
-            DLMSA,
-            kwargs={
-                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False, 'dilation_rate': 1,
-                'proj_bias': True},
-            input_shape=[2, 15, 17, 4],
-            input_dtype='float32',
-            expected_output_shape=[None, 15, 17, 4],
-            expected_output_dtype='float32'
-        )
-        test_utils.layer_test(
-            DLMSA,
-            kwargs={
-                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 2,
-                'proj_bias': True},
+                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
+                'dilation_rate': 2, 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
             expected_output_shape=[None, 15, 17, 4],
@@ -663,8 +703,8 @@ class TestDLMSA(test_combinations.TestCase):
         test_utils.layer_test(
             DLMSA,
             kwargs={
-                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'dilation_rate': 1,
-                'proj_bias': False},
+                'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
+                'dilation_rate': 1, 'proj_bias': False},
             input_shape=[2, 15, 17, 4],
             input_dtype='float16',
             expected_output_shape=[None, 15, 17, 4],
