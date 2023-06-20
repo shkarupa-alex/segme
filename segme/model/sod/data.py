@@ -436,8 +436,14 @@ def _transform_examples(examples, augment, with_depth, with_trimap, max_weight):
         sample_weights.append(tf.cast(sample_weights[0] > 0., 'float32'))
 
     if with_trimap:
+        trimap_weight = tf.squeeze(masks[0], axis=-1)
+        trimap_weight = tf.one_hot(trimap_weight, 3)
+        trimap_weight = tf.cast(trimap_weight, 'float32')
+        trimap_weight *= 1. / 3. / tf.reduce_mean(trimap_weight, axis=[0, 1, 2], keepdims=True)
+        trimap_weight = tf.reduce_sum(trimap_weight, axis=-1, keepdims=True)
+
         targets.append(masks[0])
-        sample_weights.append(sample_weights[0])
+        sample_weights.append(sample_weights[0] * trimap_weight)
 
     if not with_depth and not with_trimap:
         return features, targets[0], sample_weights[0]
