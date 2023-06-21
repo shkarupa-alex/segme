@@ -66,18 +66,6 @@ def _approximate_rdp(boundaries, epsilon=1.):
 
 
 def _relax_hce(y_true, y_pred, y_true_skeleton, relax=5, epsilon=2.0):
-    # Binarize y_true
-    if 3 == len(y_true.shape) and 1 == y_true.shape[-1]:
-        y_true = y_true[:, :, 0]
-    assert 2 == len(y_true.shape)
-    y_true = y_true > 127
-
-    # Binarize y_pred
-    if 3 == len(y_pred.shape) and 1 == y_pred.shape[-1]:
-        y_pred = y_pred[:, :, 0]
-    assert 2 == len(y_pred.shape)
-    y_pred = y_pred > 127
-
     # Compute statistics
     union = y_true | y_pred
     tp = y_true & y_pred
@@ -119,8 +107,29 @@ def _relax_hce(y_true, y_pred, y_true_skeleton, relax=5, epsilon=2.0):
 
 
 def compute_hce(y_true, y_pred, y_true_skeleton=None):
+    # Binarize y_true
+    if 3 == len(y_true.shape) and 1 == y_true.shape[-1]:
+        y_true = y_true[:, :, 0]
+    assert 2 == len(y_true.shape)
+    y_true = y_true > 127
+
+    # Binarize y_pred
+    if 3 == len(y_pred.shape) and 1 == y_pred.shape[-1]:
+        y_pred = y_pred[:, :, 0]
+    assert 2 == len(y_pred.shape)
+    y_pred = y_pred > 127
+
+    # Create y_true_skeleton
     if y_true_skeleton is None:
-        y_true_skeleton = skeletonize(y_true > 127)
+        y_true_skeleton = skeletonize(y_true)
+    else:
+        y_true_skeleton = y_true_skeleton.astype('bool')
+
+    # Binarize y_true_skeleton
+    if 3 == len(y_true_skeleton.shape) and 1 == y_true_skeleton.shape[-1]:
+        y_true_skeleton = y_true_skeleton[:, :, 0]
+    assert 2 == len(y_true_skeleton.shape)
+
     points = _relax_hce(y_true, y_pred, y_true_skeleton)
     hce = sum(points)
 
