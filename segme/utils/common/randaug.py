@@ -292,15 +292,19 @@ def rand_augment_full(image, masks, weight, levels=5, magnitude=0.5, ops=None, n
 
         batch = tf.shape(image)[0]
         channel = image.shape[-1]
-        replace = tf.random.uniform([batch, 1, 1, channel])
 
         selected = tf.range(0, len(ops), dtype='int32')
+        selected = tf.repeat(selected, 10, axis=-1)
         selected = tf.random.shuffle(selected)
+        selected, _ = tf.unique(selected)
+        selected = tf.concat([selected, [-1] * len(ops)], axis=-1)
         selected = tf.unstack(selected[:levels])
 
         for i in range(levels):
             with tf.name_scope(f'level_{i}'):
                 for j, op_name in enumerate(ops):
+                    replace = tf.reduce_mean(image, axis=[1, 2], keepdims=True)
+
                     func = _AUG_FUNC[op_name]
                     args = _AUG_ARGS[op_name](magnitude, batch, channel, replace)
 
