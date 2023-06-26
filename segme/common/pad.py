@@ -38,26 +38,29 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
 
         inputs_batch, inputs_height, inputs_width, inputs_channel = inputs.shape
         static_size = inputs_height is not None and inputs_width is not None
-        if not static_size:
-            inputs_batch, inputs_height, inputs_width = tf.unstack(tf.shape(inputs)[:3])
-        else:
+        if static_size:
             inputs_batch = tf.shape(inputs)[0]
+        else:
+            inputs_batch, inputs_height, inputs_width = tf.unstack(tf.shape(inputs)[:3])
 
         h_pad = (dividers[0] - inputs_height % dividers[0]) % dividers[0]
         w_pad = (dividers[1] - inputs_width % dividers[1]) % dividers[1]
+        with_pad = h_pad + w_pad > 0
+
         hb_pad, wb_pad = h_pad // 2, w_pad // 2
         ha_pad, wa_pad = h_pad - hb_pad, w_pad - wb_pad
-
         paddings = [[0, 0], [hb_pad, ha_pad], [wb_pad, wa_pad], [0, 0]]
-        with_pad = h_pad + w_pad > 0
 
         outputs = smart_cond(
             with_pad,
             lambda: tf.pad(inputs, paddings, mode=mode, constant_values=constant_values),
             lambda: tf.identity(inputs))
-        padded_shape = (inputs.shape[0], None, None, inputs_channel)
+
         if static_size:
             padded_shape = (inputs.shape[0], inputs_height + h_pad, inputs_width + w_pad, inputs_channel)
+        else:
+            padded_shape = (inputs.shape[0], None, None, inputs_channel)
+
         outputs.set_shape(padded_shape)
 
         pad_size = (inputs_batch, inputs_height + h_pad, inputs_width + w_pad)
