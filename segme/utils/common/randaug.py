@@ -325,3 +325,14 @@ def rand_augment_safe(image, masks, weight, levels=5, magnitude=0.5, ops=None, n
     ops = list(set(ops) - {'Erase', 'Invert', 'Rotate', 'ShearX', 'ShearY', 'TranslateX', 'TranslateY'})
 
     return rand_augment_full(image, masks, weight, levels=levels, magnitude=magnitude, ops=ops, name=name)
+
+
+def rand_augment_matting(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=None):
+    if ops is None:
+        ops = list(_AUG_FUNC.keys())
+
+    ops = list(set(ops) - {
+        'Erase', 'Gaussblur', 'Grayscale', 'Invert', 'Posterize', 'Rotate', 'Sharpness', 'ShearX', 'ShearY', 'Solarize',
+        'TranslateX', 'TranslateY'})
+
+    return rand_augment_full(image, masks, weight, levels=levels, magnitude=magnitude, ops=ops, name=name)
