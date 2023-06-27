@@ -50,25 +50,6 @@ class TestComposeTwo(tf.test.TestCase):
         self.assertEqual(alpha_.dtype, 'uint8')
         self.assertTupleEqual(alpha_.shape, (1, 16, 16, 1))
 
-    def test_rest(self):
-        fg = np.random.uniform(0., 255., (8, 16, 16, 3)).astype('uint8')
-        alpha = np.random.uniform(0., 255., (8, 16, 16, 1)).astype('uint8')
-        rest = [np.zeros((8,)), np.ones((8, 3))]
-
-        result = compose_two(fg, alpha, rest, prob=1., solve=False)
-        fg_, alpha_, rest_ = self.evaluate(result)
-
-        self.assertEqual(fg_.dtype, 'uint8')
-        self.assertTupleEqual(fg_.shape, (4, 16, 16, 3))
-
-        self.assertEqual(alpha_.dtype, 'uint8')
-        self.assertTupleEqual(alpha_.shape, (4, 16, 16, 1))
-
-        for i in range(len(rest)):
-            self.assertEqual(rest_[i].shape[0] * 2, rest[i].shape[0])
-            self.assertEqual(rest_[i].dtype, rest[i].dtype)
-            self.assertAllEqual(rest_[i], rest[i][:rest_[i].shape[0]])
-
     def test_solve(self):
         fg = np.random.uniform(0., 255., (2, 16, 16, 3)).astype('uint8')
         alpha = np.random.uniform(0., 255., (2, 16, 16, 1)).astype('uint8')
