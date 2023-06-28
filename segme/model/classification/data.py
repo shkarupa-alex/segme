@@ -241,7 +241,7 @@ def _transform_examples(images, labels, size, train, levels, magnitude, preproce
         images = tf.image.resize(images, [size, size], method=tf.image.ResizeMethod.BICUBIC)
         images = tf.clip_by_value(images, 0., 1.)
 
-    if train:
+    if train and levels and magnitude:
         images, _, _ = rand_augment_full(images, None, None, levels, magnitude)
         images = tf.clip_by_value(images, 0., 1.)
 
@@ -255,8 +255,8 @@ def _transform_examples(images, labels, size, train, levels, magnitude, preproce
 
 
 def make_dataset(
-        data_dir, split_name, batch_size, batch_mult=1, image_size=384, preprocess_mode='torch', aug_levels=5,
-        aug_magnitude=0.5, remap_classes=False):
+        data_dir, split_name, batch_size, batch_mult=1, image_size=384, preprocess_mode='torch',
+        aug_levels=5, aug_magnitude=0.5, remap_classes=False):
     train_split = tfds.Split.TRAIN == split_name
 
     builder = Imagenet21k1k(data_dir=data_dir)
