@@ -294,10 +294,10 @@ def rand_augment_full(image, masks, weight, levels=5, magnitude=0.5, ops=None, n
         channel = image.shape[-1]
 
         selected = tf.range(0, len(ops), dtype='int32')
-        selected = tf.repeat(selected, 10, axis=-1)
+        # selected = tf.repeat(selected, 10, axis=-1)
         selected = tf.random.shuffle(selected)
-        selected, _ = tf.unique(selected)
-        selected = tf.concat([selected, [-1] * len(ops)], axis=-1)
+        # selected, _ = tf.unique(selected)
+        # selected = tf.concat([selected, [-1] * len(ops)], axis=-1)
         selected = tf.unstack(selected[:levels])
 
         for i in range(levels):
@@ -327,12 +327,12 @@ def rand_augment_safe(image, masks, weight, levels=5, magnitude=0.5, ops=None, n
     return rand_augment_full(image, masks, weight, levels=levels, magnitude=magnitude, ops=ops, name=name)
 
 
-def rand_augment_matting(image, masks, weight, levels=5, magnitude=0.5, ops=None, name=None):
+def rand_augment_matting(image, masks, weight, levels=5, magnitude=0.4, ops=None, name=None):
     if ops is None:
         ops = list(_AUG_FUNC.keys())
 
     ops = list(set(ops) - {
-        'Erase', 'Gaussblur', 'Grayscale', 'Invert', 'Posterize', 'Rotate', 'Sharpness', 'ShearX', 'ShearY', 'Solarize',
-        'TranslateX', 'TranslateY'})
+        'Erase', 'Equalize', 'Gaussblur', 'Grayscale', 'Invert', 'Posterize', 'Rotate', 'Sharpness', 'ShearX', 'ShearY',
+        'Solarize', 'TranslateX', 'TranslateY'})
 
     return rand_augment_full(image, masks, weight, levels=levels, magnitude=magnitude, ops=ops, name=name)
