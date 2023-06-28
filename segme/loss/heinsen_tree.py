@@ -69,14 +69,11 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, crossentropy, l
     else:
         raise ValueError(f'Unsupported cross entropy type: {crossentropy}')
 
-    level_weight = tf.cast(y_valid_tree, loss.dtype) * tf.range(1, num_levels + 1, dtype=loss.dtype)[None]
-    level_weight /= tf.reduce_sum(level_weight, axis=-1, keepdims=True)
-    level_weight = level_weight[y_valid_tree]
-
     sample_segment = tf.cast(y_valid_tree, 'int32') * tf.range(0, tf.size(y_true))[:, None]
     sample_segment = tf.reshape(sample_segment[y_valid_tree], [-1])
 
-    loss = tf.math.unsorted_segment_sum(loss * level_weight, sample_segment, num_segments=tf.size(y_true))
+    loss = tf.math.unsorted_segment_sum(loss, sample_segment, num_segments=tf.size(y_true))
+    loss /= tf.reduce_sum(tf.cast(y_valid_tree, loss.dtype), axis=-1)
     loss = tf.reshape(loss, tf.shape(y_true))
 
     loss = weighted_loss(loss, sample_weight)
