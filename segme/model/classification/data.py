@@ -39,7 +39,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
         return tfds.core.DatasetInfo(
             builder=self,
             features=tfds.features.FeaturesDict({
-                'image': tfds.features.Image(shape=(self.image_size, self.image_size, 3), encoding_format='jpeg'),
+                'image': tfds.features.Image(shape=(None, None, 3), encoding_format='jpeg'),
                 'file': tfds.features.Text(),
                 'in1k': tfds.features.Scalar(dtype=tf.bool),
                 'size': tfds.features.Text(),
@@ -50,7 +50,6 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
         )
 
     def _split_generators(self, dl_manager):
-
         return {
             tfds.Split.VALIDATION: self._generate_examples(False),
             tfds.Split.TRAIN: self._generate_examples(True)
@@ -102,7 +101,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
             if file_name in self.CORRUPTED_FILES:
                 continue
 
-            image, size = self._prepare_image(file_obj)
+            image, size = self._prepare_image(file_obj, training)
             if image is None:
                 continue
 
@@ -147,7 +146,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                 if file_name in skip_files:
                     continue
 
-                image, size = self._prepare_image(file_obj)
+                image, size = self._prepare_image(file_obj, True)
                 if image is None:
                     continue
 
@@ -190,7 +189,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
         return self._val_to_label_labels[index]
 
-    def _prepare_image(self, file_obj):
+    def _prepare_image(self, file_obj, training):
         image = np.frombuffer(file_obj.read(), dtype=np.uint8)
         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
         if image is None:
@@ -198,62 +197,86 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
         size = f'{image.shape[0]}x{image.shape[1]}'
 
-        shape = np.array(image.shape[:2]).astype('float32')
-        shape *= self.image_size / self.crop_pct / shape.min()
-        shape = shape.round().astype('int64')
-
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image, shape[::-1], interpolation=cv2.INTER_CUBIC)
+        shape = np.array(image.shape[:2]).astype('float32')
+        if not training:
+            shape *= self.image_size / self.crop_pct / shape.min()
+            shape = shape.round().astype('int64')
+            image = cv2.resize(image, shape[::-1], interpolation=cv2.INTER_CUBIC)
 
-        pad_h, pad_w = (shape - self.image_size) // 2
-        image = image[pad_h:pad_h + self.image_size, pad_w:pad_w + self.image_size]
+            pad_h, pad_w = (shape - self.image_size) // 2
+            image = image[pad_h:pad_h + self.image_size, pad_w:pad_w + self.image_size]
+        elif min(shape) > self.image_size:
+            shape *= self.image_size / shape.min()
+            shape = shape.round().astype('int64')
+            image = cv2.resize(image, shape[::-1], interpolation=cv2.INTER_CUBIC)
 
         return image, size
 
 
 @tf.function(jit_compile=True)
-def _transform_examples(images, labels, augment, levels, magnitude, preprocess):
-    if augment:
-        images = tf.image.convert_image_dtype(images, 'float32')
-        images, _, _ = rand_augment_full(images, None, None, levels, magnitude)
-        # TODO: https://github.com/tensorflow/tensorflow/pull/54484
-        images = tf.cast(tf.round(tf.clip_by_value(images, 0., 1.) * 255.), 'uint8')
+def _train_crop(example, size, min_scale=3 / 4):
+    image = example['image']
 
+    limit = tf.reduce_min(tf.shape(image)[:2])
+    start = tf.cast(tf.cast(limit, 'float32') * min_scale, limit.dtype)
+    crop = tf.random.uniform([2], start, limit + 1, dtype='int32')
+    crop = tf.concat([crop, [3]], axis=-1)
+    image = tf.image.random_crop(image, crop)
+
+    image = tf.image.resize(image, [size, size], method=tf.image.ResizeMethod.BICUBIC)
+    image = tf.clip_by_value(image, 0., 255.)
+    image = tf.cast(tf.round(image), 'uint8')
+
+    example['image'] = image
+
+    return example
+
+
+@tf.function(jit_compile=True)
+def _transform_examples(images, labels, size, train, levels, magnitude, preprocess):
+    images = tf.image.convert_image_dtype(images, 'float32')
+
+    if not train and 384 != size:
+        images = tf.image.resize(images, [size, size], method=tf.image.ResizeMethod.BICUBIC)
+        images = tf.clip_by_value(images, 0., 1.)
+
+    if train:
+        images, _, _ = rand_augment_full(images, None, None, levels, magnitude)
+        images = tf.clip_by_value(images, 0., 1.)
+
+    images = tf.round(images * 255.)
     images = tf.cast(images, global_policy().compute_dtype)
+
     if preprocess is not None:
         images = imagenet_utils.preprocess_input(images, mode=preprocess)
 
     return images, labels
 
 
-@tf.function(jit_compile=False)
-def _resize_examples(images, labels, size):
-    images = tf.image.resize(images, [size, size], method=tf.image.ResizeMethod.BICUBIC, antialias=True)
-
-    return images, labels
-
-
 def make_dataset(
-        data_dir, split_name, batch_size, image_size=384, preprocess_mode='torch', aug_levels=0, aug_magnitude=0.,
-        remap_classes=False, shuffle_files=True, drop_remainder=True):
+        data_dir, split_name, batch_size, batch_mult=1, image_size=384, preprocess_mode='torch', aug_levels=5,
+        aug_magnitude=0.5, remap_classes=False):
     train_split = tfds.Split.TRAIN == split_name
-    with_rebatch = train_split and aug_levels > 0 and aug_magnitude > 0.
 
     builder = Imagenet21k1k(data_dir=data_dir)
     builder.download_and_prepare()
 
-    dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=shuffle_files)
-    dataset = dataset.batch(8 if with_rebatch else batch_size, drop_remainder=drop_remainder)
+    dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=train_split)
+    if train_split:
+        dataset = dataset.map(
+            lambda example: _train_crop(example, image_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+    dataset = dataset.batch(10, drop_remainder=False)
     dataset = dataset.map(
         lambda example: _transform_examples(
-            example['image'], example['class'], train_split, aug_levels, aug_magnitude, preprocess_mode),
+            example['image'], example['class'], image_size, train_split, aug_levels, aug_magnitude, preprocess_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    if with_rebatch:
-        dataset = dataset.rebatch(batch_size, drop_remainder=drop_remainder)
-    if 384 != image_size:
-        dataset = dataset.map(
-            lambda images, labels: _resize_examples(images, labels, image_size),
-            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+    if train_split and batch_mult > 1:
+        dataset = dataset.rebatch(batch_size * batch_mult, drop_remainder=True)
+    dataset = dataset.rebatch(batch_size, drop_remainder=train_split)
+
     if remap_classes:
         map_keys, map_values = zip(*tree_class_map().items())
         map_init = tf.lookup.KeyValueTensorInitializer(map_keys, map_values, 'int64', 'int64')
@@ -261,6 +284,7 @@ def make_dataset(
         dataset = dataset.map(
             lambda images, labels: (images, class_map.lookup(labels)),
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return dataset
