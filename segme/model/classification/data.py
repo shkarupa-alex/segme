@@ -228,9 +228,7 @@ def _train_crop(example, size, min_scale=3 / 4):
     image = tf.clip_by_value(image, 0., 255.)
     image = tf.cast(tf.round(image), 'uint8')
 
-    example['image'] = image
-
-    return example
+    return {'image': image, 'class': example['class']}
 
 
 @tf.function(jit_compile=True)
