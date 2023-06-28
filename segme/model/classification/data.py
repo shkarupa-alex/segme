@@ -177,9 +177,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
     def _label_from_valname(self, file_path):
         if not self._val_to_label_labels:
-            labels_path = tfds.image_classification.imagenet._VALIDATION_LABELS_FNAME
-            labels_path = tfds.core.tfds_path(labels_path)
-
+            labels_path = tfds.datasets.imagenet2012.imagenet_common.label_names_file()
             with tf.io.gfile.GFile(os.fspath(labels_path)) as f:
                 self._val_to_label_labels = f.read().strip().splitlines()
 
