@@ -208,24 +208,26 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
 
 @tf.function(jit_compile=True)
-def _train_crop(example, size, min_scale=3 / 4):
-    # if not training:
-    #     shape *= self.image_size / self.crop_pct / shape.min()
-    #     shape = shape.round().astype('int64')
-    #     image = cv2.resize(image, shape[::-1], interpolation=cv2.INTER_CUBIC)
-    #
-    #     pad_h, pad_w = (shape - self.image_size) // 2
-    #     image = image[pad_h:pad_h + self.image_size, pad_w:pad_w + self.image_size]
-
+def _resize_crop(example, size, train, crop_pct=0.875):
     image = example['image']
+    shape = tf.cast(tf.shape(image)[:2], 'float32')
 
-    limit = tf.reduce_min(tf.shape(image)[:2])
-    start = tf.cast(tf.cast(limit, 'float32') * min_scale, limit.dtype)
-    crop = tf.random.uniform([2], start, limit + 1, dtype='int32')
-    crop = tf.concat([crop, [3]], axis=-1)
-    image = tf.image.random_crop(image, crop)
+    if train:
+        crop = tf.random.uniform([2], minval=crop_pct, maxval=1.)
+        crop = tf.cast(tf.round(crop * shape), 'int32')
+        crop = tf.concat([crop, [3]], axis=-1)
 
-    image = tf.image.resize(image, [size, size], method=tf.image.ResizeMethod.BICUBIC)
+        image = tf.image.random_crop(image, crop)
+        image = tf.image.resize(image, [size, size], method=tf.image.ResizeMethod.BICUBIC)
+    else:
+        shape_ = shape * size / crop_pct / tf.reduce_min(shape)
+        shape_ = tf.cast(tf.round(shape_), 'int32')
+
+        image = tf.image.resize(image, shape_, method=tf.image.ResizeMethod.BICUBIC)
+
+        pad_h, pad_w = tf.unstack((shape_ - size) // 2)
+        image = image[pad_h:pad_h + size, pad_w:pad_w + size]
+
     image = tf.clip_by_value(image, 0., 255.)
     image = tf.cast(tf.round(image), 'uint8')
 
@@ -233,12 +235,8 @@ def _train_crop(example, size, min_scale=3 / 4):
 
 
 @tf.function(jit_compile=True)
-def _transform_examples(images, labels, size, train, levels, magnitude, preprocess):
+def _transform_examples(images, labels, train, levels, magnitude, preprocess):
     images = tf.image.convert_image_dtype(images, 'float32')
-
-    if not train and 384 != size:
-        images = tf.image.resize(images, [size, size], method=tf.image.ResizeMethod.BICUBIC)
-        images = tf.clip_by_value(images, 0., 1.)
 
     if train and levels and magnitude:
         images, _, _ = rand_augment_full(images, None, None, levels, magnitude)
@@ -264,12 +262,13 @@ def make_dataset(
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=train_split)
     if train_split:
         dataset = dataset.map(
-            lambda example: _train_crop(example, image_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+            lambda example: _resize_crop(example, image_size, train_split),
+            num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     dataset = dataset.batch(10, drop_remainder=False)
     dataset = dataset.map(
         lambda example: _transform_examples(
-            example['image'], example['class'], image_size, train_split, aug_levels, aug_magnitude, preprocess_mode),
+            example['image'], example['class'], train_split, aug_levels, aug_magnitude, preprocess_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     if train_split and batch_mult > 1:
