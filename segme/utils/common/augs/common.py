@@ -28,7 +28,7 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
         same = tf.logical_and(tf.equal(height, height_), tf.equal(width, width_))
 
         switch_full = tf.random.uniform([batch, 1, 1, 1]) < prob
-        switch_all = switch_full[0]
+        switch_all = switch_full[0, 0, 0, 0]
         switch_part = tf.cast(switch_full[..., :1], 'float32')
 
         image = tf.cond(

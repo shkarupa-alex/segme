@@ -234,7 +234,7 @@ def _resize_crop(example, size, train, crop_pct=0.875):
     return {'image': image, 'class': example['class']}
 
 
-@tf.function(jit_compile=True)
+@tf.function(jit_compile=False)
 def _transform_examples(images, labels, train, levels, magnitude, preprocess):
     images = tf.image.convert_image_dtype(images, 'float32')
 
@@ -260,10 +260,9 @@ def make_dataset(
     builder.download_and_prepare()
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=train_split)
-    if train_split:
-        dataset = dataset.map(
-            lambda example: _resize_crop(example, image_size, train_split),
-            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.map(
+        lambda example: _resize_crop(example, image_size, train_split),
+        num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     dataset = dataset.batch(10, drop_remainder=False)
     dataset = dataset.map(
