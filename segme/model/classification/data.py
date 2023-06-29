@@ -207,8 +207,9 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
         return image, size
 
 
-@tf.function(jit_compile=True)
-def _resize_crop(image, size, train, crop_pct=0.875):
+@tf.function(jit_compile=False)
+def _resize_crop(example, size, train, crop_pct=0.875):
+    image = example['image']
     shape = tf.cast(tf.shape(image)[:2], 'float32')
 
     if train:
@@ -230,7 +231,7 @@ def _resize_crop(image, size, train, crop_pct=0.875):
     image = tf.clip_by_value(image, 0., 255.)
     image = tf.cast(tf.round(image), 'uint8')
 
-    return image
+    return {'image': image, 'class': example['class']}
 
 
 @tf.function(jit_compile=True)
@@ -261,9 +262,7 @@ def make_dataset(
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=train_split)
     if train_split:
         dataset = dataset.map(
-            lambda example: {
-                'image': _resize_crop(example['image'], image_size, train_split),
-                'class': example['class']},
+            lambda example: _resize_crop(example, image_size, train_split),
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     dataset = dataset.batch(10, drop_remainder=False)
