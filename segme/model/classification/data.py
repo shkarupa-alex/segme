@@ -264,15 +264,14 @@ def make_dataset(
         lambda example: _resize_crop(example, image_size, train_split),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    dataset = dataset.batch(10, drop_remainder=False)
+    dataset = dataset.batch(batch_size, drop_remainder=train_split)
+    if train_split and batch_mult > 1:
+        dataset = dataset.take((len(dataset) // batch_mult) * batch_mult)
+
     dataset = dataset.map(
         lambda example: _transform_examples(
             example['image'], example['class'], train_split, aug_levels, aug_magnitude, preprocess_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-    if train_split and batch_mult > 1:
-        dataset = dataset.rebatch(batch_size * batch_mult, drop_remainder=True)
-    dataset = dataset.rebatch(batch_size, drop_remainder=train_split)
 
     if remap_classes:
         map_keys, map_values = zip(*tree_class_map().items())
