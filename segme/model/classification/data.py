@@ -101,7 +101,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
             if file_name in self.CORRUPTED_FILES:
                 continue
 
-            image, size = self._prepare_image(file_obj, training)
+            image, size = self._prepare_image(file_obj)
             if image is None:
                 continue
 
@@ -146,7 +146,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                 if file_name in skip_files:
                     continue
 
-                image, size = self._prepare_image(file_obj, True)
+                image, size = self._prepare_image(file_obj)
                 if image is None:
                     continue
 
@@ -189,7 +189,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
         return self._val_to_label_labels[index]
 
-    def _prepare_image(self, file_obj, training):
+    def _prepare_image(self, file_obj):
         image = np.frombuffer(file_obj.read(), dtype=np.uint8)
         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
         if image is None:
@@ -199,15 +199,8 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         shape = np.array(image.shape[:2]).astype('float32')
-        if not training:
+        if min(shape) > self.image_size / self.crop_pct:
             shape *= self.image_size / self.crop_pct / shape.min()
-            shape = shape.round().astype('int64')
-            image = cv2.resize(image, shape[::-1], interpolation=cv2.INTER_CUBIC)
-
-            pad_h, pad_w = (shape - self.image_size) // 2
-            image = image[pad_h:pad_h + self.image_size, pad_w:pad_w + self.image_size]
-        elif min(shape) > self.image_size:
-            shape *= self.image_size / shape.min()
             shape = shape.round().astype('int64')
             image = cv2.resize(image, shape[::-1], interpolation=cv2.INTER_CUBIC)
 
@@ -216,6 +209,14 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 
 @tf.function(jit_compile=True)
 def _train_crop(example, size, min_scale=3 / 4):
+    # if not training:
+    #     shape *= self.image_size / self.crop_pct / shape.min()
+    #     shape = shape.round().astype('int64')
+    #     image = cv2.resize(image, shape[::-1], interpolation=cv2.INTER_CUBIC)
+    #
+    #     pad_h, pad_w = (shape - self.image_size) // 2
+    #     image = image[pad_h:pad_h + self.image_size, pad_w:pad_w + self.image_size]
+
     image = example['image']
 
     limit = tf.reduce_min(tf.shape(image)[:2])
