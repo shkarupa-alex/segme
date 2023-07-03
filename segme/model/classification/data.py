@@ -196,13 +196,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
             return None, None
 
         size = f'{image.shape[0]}x{image.shape[1]}'
-
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        shape = np.array(image.shape[:2]).astype('float32')
-        if min(shape) > self.image_size / self.crop_pct:
-            shape *= self.image_size / self.crop_pct / shape.min()
-            shape = shape.round().astype('int64')
-            image = cv2.resize(image, shape[::-1], interpolation=cv2.INTER_CUBIC)
 
         return image, size
 
@@ -231,7 +225,7 @@ def _resize_crop(example, size, train, crop_pct=0.875):
     image = tf.clip_by_value(image, 0., 255.)
     image = tf.cast(tf.round(image), 'uint8')
 
-    return {'image': image, 'class': example['class']}
+    return image, example['class']
 
 
 @tf.function(jit_compile=False)
@@ -260,17 +254,20 @@ def make_dataset(
     builder.download_and_prepare()
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=train_split)
-    dataset = dataset.map(
-        lambda example: _resize_crop(example, image_size, train_split),
-        num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset \
+        .map(lambda example: _resize_crop(example, image_size, train_split),
+             num_parallel_calls=tf.data.experimental.AUTOTUNE) \
+        .batch(batch_size, drop_remainder=train_split)
 
-    dataset = dataset.batch(batch_size, drop_remainder=train_split)
-    if train_split and batch_mult > 1:
-        dataset = dataset.take((len(dataset) // batch_mult) * batch_mult)
+    if train_split:
+        dataset = dataset.shuffle(batch_mult * 32)
+
+        if batch_mult > 1:
+            dataset = dataset.take((len(dataset) // batch_mult) * batch_mult)
 
     dataset = dataset.map(
-        lambda example: _transform_examples(
-            example['image'], example['class'], train_split, aug_levels, aug_magnitude, preprocess_mode),
+        lambda images, labels: _transform_examples(
+            images, labels, train_split, aug_levels, aug_magnitude, preprocess_mode),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     if remap_classes:
