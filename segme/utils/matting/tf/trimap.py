@@ -20,7 +20,6 @@ def alpha_trimap(alpha, size, name=None):
             iterations = tf.unstack(iterations)
         elif isinstance(size, int):
             iterations = size, size
-            steps = size
         else:
             raise ValueError('Expecting `size` to be a single margin or a tuple of [min; max] margins.')
 
