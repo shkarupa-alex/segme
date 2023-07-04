@@ -145,7 +145,7 @@ class StandardizedConv(FixedConv):
         self.standardize_l1 = standardize_l1
 
     def _standardize_kernel(self, kernel, dtype=None):
-        if 'float32' != self.dtype or self._compute_dtype not in ('float16', 'float16', 'float32', None):
+        if 'float32' != self.dtype or self._compute_dtype not in ('float16', 'bfloat16', 'float32', None):
             kernel = tf.cast(kernel, 'float32')
             mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
             kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
@@ -208,7 +208,7 @@ class StandardizedDepthwiseConv(FixedDepthwiseConv):
         self.standardize_l1 = standardize_l1
 
     def _standardize_kernel(self, kernel, dtype=None):
-        if 'float32' != self.dtype or self._compute_dtype not in ('float16', 'float16', 'float32', None):
+        if 'float32' != self.dtype or self._compute_dtype not in ('float16', 'bfloat16', 'float32', None):
             kernel = tf.cast(kernel, 'float32')
             mean, var = tf.nn.moments(kernel, axes=[0, 1], keepdims=True)
             kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
