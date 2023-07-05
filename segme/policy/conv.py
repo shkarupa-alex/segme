@@ -133,16 +133,13 @@ class StandardizedConv(FixedConv):
     def __init__(self, filters, kernel_size, strides=(1, 1), padding='valid', data_format=None, dilation_rate=(1, 1),
                  activation=None, use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
                  kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None,
-                 bias_constraint=None, standardize_l1=1e-4, **kwargs):
+                 bias_constraint=None, **kwargs):
         super().__init__(filters=filters, kernel_size=kernel_size, strides=strides, padding=padding,
                          data_format=data_format, dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
                          kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
-                         kernel_regularizer=self._standardized_regularizer, bias_regularizer=bias_regularizer,
+                         kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                          activity_regularizer=activity_regularizer, kernel_constraint=kernel_constraint,
                          bias_constraint=bias_constraint, **kwargs)
-
-        self._kernel_regularizer = regularizers.get(kernel_regularizer)
-        self.standardize_l1 = standardize_l1
 
     def _standardize_kernel(self, kernel, dtype=None):
         if 'float32' != self.dtype or self._compute_dtype not in ('float16', 'bfloat16', 'float32', None):
@@ -161,31 +158,10 @@ class StandardizedConv(FixedConv):
 
         return kernel
 
-    def _standardized_regularizer(self, kernel):
-        expected = self._standardize_kernel(kernel, kernel.dtype)
-        expected = tf.stop_gradient(expected)
-
-        loss = tf.reduce_mean(tf.abs(kernel - expected), axis=[0, 1, 2])
-        loss = self.standardize_l1 * tf.reduce_sum(loss)
-
-        if self._kernel_regularizer is not None:
-            loss += self._kernel_regularizer(kernel)
-
-        return loss
-
     def convolution_op(self, inputs, kernel):
         kernel = self._standardize_kernel(kernel)
 
         return super().convolution_op(inputs, kernel)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            'kernel_regularizer': regularizers.serialize(self._kernel_regularizer),
-            'standardize_l1': self.standardize_l1
-        })
-
-        return config
 
 
 @CONVOLUTIONS.register('dw_stdconv')
@@ -196,16 +172,13 @@ class StandardizedDepthwiseConv(FixedDepthwiseConv):
     def __init__(self, kernel_size, strides=(1, 1), padding='valid', data_format=None, dilation_rate=(1, 1),
                  activation=None, use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros',
                  kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None,
-                 bias_constraint=None, standardize_l1=1e-4, **kwargs):
+                 bias_constraint=None, **kwargs):
         super().__init__(kernel_size=kernel_size, strides=strides, padding=padding, data_format=data_format,
                          dilation_rate=dilation_rate, activation=activation, use_bias=use_bias,
                          kernel_initializer=kernel_initializer, bias_initializer=bias_initializer,
-                         kernel_regularizer=self._standardized_regularizer, bias_regularizer=bias_regularizer,
+                         kernel_regularizer=kernel_regularizer, bias_regularizer=bias_regularizer,
                          activity_regularizer=activity_regularizer, kernel_constraint=kernel_constraint,
                          bias_constraint=bias_constraint, **kwargs)
-
-        self._kernel_regularizer = regularizers.get(kernel_regularizer)
-        self.standardize_l1 = standardize_l1
 
     def _standardize_kernel(self, kernel, dtype=None):
         if 'float32' != self.dtype or self._compute_dtype not in ('float16', 'bfloat16', 'float32', None):
@@ -224,31 +197,10 @@ class StandardizedDepthwiseConv(FixedDepthwiseConv):
 
         return kernel
 
-    def _standardized_regularizer(self, kernel):
-        expected = self._standardize_kernel(kernel, kernel.dtype)
-        expected = tf.stop_gradient(expected)
-
-        loss = tf.reduce_mean(tf.abs(kernel - expected), axis=[0, 1])
-        loss = self.standardize_l1 * tf.reduce_sum(loss)
-
-        if self._kernel_regularizer is not None:
-            loss += self._kernel_regularizer(kernel)
-
-        return loss
-
     def _conv_op(self, inputs, kernel):
         kernel = self._standardize_kernel(kernel)
 
         return super()._conv_op(inputs, kernel)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            'kernel_regularizer': regularizers.serialize(self._kernel_regularizer),
-            'standardize_l1': self.standardize_l1
-        })
-
-        return config
 
 
 @CONVOLUTIONS.register('snconv')
