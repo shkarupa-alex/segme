@@ -52,6 +52,17 @@ class TestNearestInterpolation(test_combinations.TestCase):
             expected_output_dtype='float16'
         )
 
+    def test_tile(self):
+        inputs = tf.random.uniform([3, 1, 1, 5])
+
+        expected = tf.image.resize(inputs, [2, 7], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        expected = self.evaluate(expected)
+
+        result = NearestInterpolation()([inputs, tf.zeros([1, 2, 7, 5])])
+        result = self.evaluate(result)
+
+        self.assertAllClose(expected, result)
+
 
 @test_combinations.run_all_keras_modes
 class TestBilinearInterpolation(test_combinations.TestCase):
