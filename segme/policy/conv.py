@@ -29,13 +29,6 @@ class FixedConv(layers.Conv2D):
                 f'`strides > 1` not supported in conjunction with `dilation_rate > 1`. '
                 f'Received: strides={self.strides} and dilation_rate={self.dilation_rate}')
 
-    @shape_type_conversion
-    def build(self, input_shape):
-        if max(self.strides) > 1 and max(self.dilation_rate) > 1:
-            raise ValueError('Strides > 1 not supported in conjunction with dilations')
-
-        super().build(input_shape)
-
     def convolution_op(self, inputs, kernel):
         paddings = 'VALID' if 'same' != self.padding else 'SAME'
 
@@ -77,12 +70,10 @@ class FixedDepthwiseConv(layers.DepthwiseConv2D):
                          activity_regularizer=activity_regularizer, depthwise_constraint=kernel_constraint,
                          bias_constraint=bias_constraint, **kwargs)
 
-    @shape_type_conversion
-    def build(self, input_shape):
         if max(self.strides) > 1 and max(self.dilation_rate) > 1:
-            raise ValueError('Strides > 1 not supported in conjunction with dilations')
-
-        super().build(input_shape)
+            raise ValueError(
+                f'`strides > 1` not supported in conjunction with `dilation_rate > 1`. '
+                f'Received: strides={self.strides} and dilation_rate={self.dilation_rate}')
 
     def _conv_op(self, inputs, kernel):
         strides = (1, 1) + self.strides if self.data_format == 'channels_first' else (1,) + self.strides + (1,)
