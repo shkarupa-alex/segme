@@ -14,6 +14,7 @@ class Encoder(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         base_model = bbpol.BACKBONES.new('resnet_rs_50_s8', 'imagenet', 3, [2, 4, 32])
+        base_model.trainable = True
         base_config = base_model.get_config()
         base_weights = base_model.get_weights()
 
