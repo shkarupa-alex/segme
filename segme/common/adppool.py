@@ -90,7 +90,9 @@ class AdaptivePooling(layers.Layer):
         if (1, 1) == self.output_size:
             return self.case_global(inputs)
 
-        height, width = tf.unstack(tf.shape(inputs)[1:3])
+        height, width = inputs.shape[1:3]
+        if None in (height, width):
+            height, width = tf.unstack(tf.shape(inputs)[1:3])
         pad_h = (self.output_size[0] - height % self.output_size[0]) % self.output_size[0]
         pad_w = (self.output_size[1] - width % self.output_size[1]) % self.output_size[1]
 
