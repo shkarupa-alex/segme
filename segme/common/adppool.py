@@ -103,6 +103,7 @@ class AdaptivePooling(layers.Layer):
             (pad_h == 0) & (pad_w == 0),
             lambda: self.case_divisible(inputs_),
             lambda: self.case_nondivisible(inputs))
+        outputs.set_shape(self.compute_output_shape(inputs.shape))
 
         return outputs
 
