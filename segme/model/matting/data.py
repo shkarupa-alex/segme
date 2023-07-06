@@ -485,9 +485,9 @@ def _augment_examples(examples):
 
     alpha = matting_tf.augment_alpha(alpha)
     foreground, alpha = matting_tf.random_compose(foreground, alpha, trim=(max(TRIMAP_SIZE), 0.95), solve=False)
-    # foreground, [alpha], _ = rand_augment_matting(foreground, [alpha], None)
-    # foreground = matting_tf.solve_fg(foreground, alpha)
-    # background = tf.random.shuffle(background)
+    foreground, [alpha], _ = rand_augment_matting(foreground, [alpha], None)
+    foreground = matting_tf.solve_fg(foreground, alpha)
+    background = tf.random.shuffle(background)
     trimap = matting_tf.alpha_trimap(alpha, size=TRIMAP_SIZE)
     trimap = matting_tf.augment_trimap(trimap)
 
