@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
@@ -22,11 +23,19 @@ class NearestInterpolation(layers.Layer):
 
         if self.scale is None:
             targets, samples = inputs
-            new_size = tf.shape(samples)[1:3]
+            new_size = samples.shape[1:3]
+            if None in new_size:
+                new_size = tf.shape(samples)[1:3]
         else:
             targets = inputs
-            new_size = tf.cast(tf.shape(targets)[1:3], self.compute_dtype) * self.scale
-            new_size = tf.cast(tf.round(new_size), 'int32')
+            new_size = targets.shape[1:3]
+            if None in new_size:
+                new_size = tf.shape(targets)[1:3]
+                new_size = tf.cast(new_size, self.compute_dtype) * self.scale
+                new_size = tf.cast(tf.round(new_size), 'int32')
+            else:
+                new_size = np.array(new_size) * self.scale
+                new_size = np.round(new_size).astype('int32')
 
         if (1, 1) == targets.shape[1:3]:
             repeats = tf.concat([[1], new_size, [1]], axis=-1)
