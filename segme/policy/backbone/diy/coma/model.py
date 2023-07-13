@@ -8,7 +8,7 @@ from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.drop import SlicePath, RestorePath
 from segme.common.grn import GRN
-from segme.common.attn import SWMSA, DLMSA
+from segme.common.attn import SwinAttention, SlideAttention
 from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
 
@@ -109,7 +109,7 @@ def MLPConv(filters, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initial
         x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
         x = Act(name=f'{name}_act')(x)
 
-        if expand_ratio > 2:
+        if filters == channels and expand_ratio > 2:
             x = GRN(center=False, name=f'{name}_grn')(x)  # From ConvNeXt2
 
         x = Conv(filters, 1, use_bias=False, name=f'{name}_squeeze')(x)
@@ -141,13 +141,13 @@ def LocalBlock(
             if channels is None:
                 raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-            x, mask = SlicePath(path_drop, name=f'{name}_dlmsa_slice')(inputs)
-            x = DLMSA(
+            x, mask = SlicePath(path_drop, name=f'{name}_slide_slice')(inputs)
+            x = SlideAttention(
                 window_size, num_heads, qk_units=qk_units, cpb_units=num_heads * 8, proj_bias=False,
-                dilation_rate=dilation_rate, name=f'{name}_dlmsa_attn')(x)
-            x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_dlmsa_norm')(x)
-            x = RestorePath(path_drop, name=f'{name}_dlmsa_drop')([x, mask])
-            x = layers.add([x, inputs], name=f'{name}_dlmsa_add')
+                dilation_rate=dilation_rate, name=f'{name}_slide_attn')(x)
+            x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_slide_norm')(x)
+            x = RestorePath(path_drop, name=f'{name}_slide_drop')([x, mask])
+            x = layers.add([x, inputs], name=f'{name}_slide_add')
 
             x = MLPConv(
                 filters, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,
@@ -172,13 +172,13 @@ def SwinBlock(current_window, pretrain_window, num_heads, shift_mode, qk_units=1
             if channels is None:
                 raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-            x, mask = SlicePath(path_drop, name=f'{name}_swmsa_slice')(inputs)
-            x = SWMSA(
+            x, mask = SlicePath(path_drop, name=f'{name}_swin_slice')(inputs)
+            x = SwinAttention(
                 current_window, pretrain_window, num_heads, qk_units=qk_units, cpb_units=num_heads * 8, proj_bias=False,
-                shift_mode=shift_mode, name=f'{name}_swmsa_attn')(x)
-            x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_swmsa_norm')(x)
-            x = RestorePath(path_drop, name=f'{name}_swmsa_drop')([x, mask])
-            x = layers.add([x, inputs], name=f'{name}_swmsa_add')
+                shift_mode=shift_mode, name=f'{name}_swin_attn')(x)
+            x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_swin_norm')(x)
+            x = RestorePath(path_drop, name=f'{name}_swin_drop')([x, mask])
+            x = layers.add([x, inputs], name=f'{name}_swin_add')
 
             x = MLPConv(
                 False, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,

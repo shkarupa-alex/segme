@@ -13,7 +13,7 @@ from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common')
-class DHMSA(layers.Layer):
+class HaloAttention(layers.Layer):
     def __init__(
             self, current_window, pretrain_window, num_heads, qk_units=None, qkv_bias=True, cpb_units=512,
             dilation_rate=1, proj_bias=True, **kwargs):
@@ -150,7 +150,7 @@ class DHMSA(layers.Layer):
 
 
 @register_keras_serializable(package='SegMe>Common')
-class SWMSA(layers.Layer):
+class SwinAttention(layers.Layer):
     def __init__(
             self, current_window, pretrain_window, num_heads, shift_mode, qk_units=None, qkv_bias=True, cpb_units=512,
             proj_bias=True, **kwargs):
@@ -350,7 +350,7 @@ class SWMSA(layers.Layer):
 
 
 @register_keras_serializable(package='SegMe>Common')
-class GGMSA(layers.Layer):
+class GridAttention(layers.Layer):
     def __init__(
             self, current_window, pretrain_window, num_heads, qk_units=None, qkv_bias=True, cpb_units=512,
             proj_bias=True, **kwargs):
@@ -467,7 +467,7 @@ class GGMSA(layers.Layer):
 
 
 @register_keras_serializable(package='SegMe>Common')
-class DLMSA(layers.Layer):
+class SlideAttention(layers.Layer):
     def __init__(self, window_size, num_heads, qk_units=None, qkv_bias=True, cpb_units=512, dilation_rate=1,
                  proj_bias=True, **kwargs):
         super().__init__(**kwargs)
@@ -587,7 +587,7 @@ class DLMSA(layers.Layer):
 
 
 @register_keras_serializable(package='SegMe>Common')
-class CHMSA(layers.Layer):
+class ChannelAttention(layers.Layer):
     def __init__(self, num_heads, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=4)

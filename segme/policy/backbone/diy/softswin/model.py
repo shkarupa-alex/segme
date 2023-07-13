@@ -7,7 +7,7 @@ from keras.src.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.drop import DropPath
-from segme.common.attn import SWMSA
+from segme.common.attn import SwinAttention
 from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
 
@@ -118,11 +118,11 @@ def AttnBlock(current_window, pretrain_window, num_heads, shift_mode, path_drop=
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x = SWMSA(
-            current_window, pretrain_window, num_heads, shift_mode=shift_mode, name=f'{name}_swmsa_attn')(inputs)
-        x = Norm(gamma_initializer=gamma_initializer, name=f'{name}_swmsa_norm')(x)
-        x = DropPath(path_drop, name=f'{name}_swmsa_drop')(x)
-        x = layers.add([x, inputs], name=f'{name}_swmsa_add')
+        x = SwinAttention(
+            current_window, pretrain_window, num_heads, shift_mode=shift_mode, name=f'{name}_swin_attn')(inputs)
+        x = Norm(gamma_initializer=gamma_initializer, name=f'{name}_swin_norm')(x)
+        x = DropPath(path_drop, name=f'{name}_swin_drop')(x)
+        x = layers.add([x, inputs], name=f'{name}_swin_add')
 
         x = MLP(
             expand_ratio=expand_ratio, path_drop=path_drop, gamma_initializer=gamma_initializer, name=f'{name}_mlp')(x)

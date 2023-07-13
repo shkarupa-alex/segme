@@ -2,22 +2,23 @@ import numpy as np
 import tensorflow as tf
 from keras import mixed_precision
 from keras.src.testing_infra import test_combinations, test_utils
-from segme.common.attn import DHMSA, SWMSA, GGMSA, DLMSA, CHMSA, RelativeBias
+from segme.common.attn import HaloAttention, SwinAttention, GridAttention, SlideAttention, ChannelAttention, \
+    RelativeBias
 
 
 @test_combinations.run_all_keras_modes
-class TestDHMSA(test_combinations.TestCase):
+class TestHaloAttention(test_combinations.TestCase):
     def setUp(self):
-        super(TestDHMSA, self).setUp()
+        super(TestHaloAttention, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestDHMSA, self).tearDown()
+        super(TestHaloAttention, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         test_utils.layer_test(
-            DHMSA,
+            HaloAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
@@ -27,7 +28,7 @@ class TestDHMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DHMSA,
+            HaloAttention,
             kwargs={
                 'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
@@ -37,7 +38,7 @@ class TestDHMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DHMSA,
+            HaloAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
@@ -47,7 +48,7 @@ class TestDHMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DHMSA,
+            HaloAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True,
                 'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
@@ -57,7 +58,7 @@ class TestDHMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DHMSA,
+            HaloAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False,
                 'cpb_units': 512, 'dilation_rate': 1, 'proj_bias': True},
@@ -67,7 +68,7 @@ class TestDHMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DHMSA,
+            HaloAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 384, 'dilation_rate': 1, 'proj_bias': True},
@@ -77,7 +78,7 @@ class TestDHMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DHMSA,
+            HaloAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 512, 'dilation_rate': 2, 'proj_bias': True},
@@ -90,7 +91,7 @@ class TestDHMSA(test_combinations.TestCase):
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
-            DHMSA,
+            HaloAttention,
             kwargs={
                 'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 512, 'dilation_rate': 2, 'proj_bias': False},
@@ -102,18 +103,18 @@ class TestDHMSA(test_combinations.TestCase):
 
 
 @test_combinations.run_all_keras_modes
-class TestSWMSA(test_combinations.TestCase):
+class TestSwinAttention(test_combinations.TestCase):
     def setUp(self):
-        super(TestSWMSA, self).setUp()
+        super(TestSwinAttention, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestSWMSA, self).tearDown()
+        super(TestSwinAttention, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -123,7 +124,7 @@ class TestSWMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -133,7 +134,7 @@ class TestSWMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'shift_mode': 0, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -143,7 +144,7 @@ class TestSWMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 1, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -153,7 +154,7 @@ class TestSWMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 2, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -163,7 +164,7 @@ class TestSWMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 3, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -173,7 +174,7 @@ class TestSWMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 4, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -183,7 +184,7 @@ class TestSWMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': 4,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -193,7 +194,7 @@ class TestSWMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
                 'qkv_bias': False, 'cpb_units': 512, 'proj_bias': True},
@@ -203,7 +204,7 @@ class TestSWMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 384, 'proj_bias': True},
@@ -216,7 +217,7 @@ class TestSWMSA(test_combinations.TestCase):
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 0, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': False},
@@ -228,7 +229,7 @@ class TestSWMSA(test_combinations.TestCase):
 
     def test_shift_pad(self):
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'shift_mode': 1, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -240,7 +241,7 @@ class TestSWMSA(test_combinations.TestCase):
 
     def test_small(self):
         test_utils.layer_test(
-            SWMSA,
+            SwinAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 1, 'shift_mode': 3, 'qk_units': None,
                 'qkv_bias': True, 'cpb_units': 512, 'proj_bias': True},
@@ -252,7 +253,7 @@ class TestSWMSA(test_combinations.TestCase):
 
     def test_mask_shift_0_no_pad(self):
         inputs = np.ones([2, 8, 12, 3])
-        layer = SWMSA(4, 4, 1, 0)
+        layer = SwinAttention(4, 4, 1, 0)
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
@@ -263,7 +264,7 @@ class TestSWMSA(test_combinations.TestCase):
 
     def test_mask_shift_0_pad(self):
         inputs = np.ones([2, 7, 9, 3])
-        layer = SWMSA(4, 4, 1, 0)
+        layer = SwinAttention(4, 4, 1, 0)
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
@@ -279,7 +280,7 @@ class TestSWMSA(test_combinations.TestCase):
 
     def test_mask_shift_1_no_pad(self):
         inputs = np.ones([2, 8, 12, 3])
-        layer = SWMSA(4, 4, 1, 1)
+        layer = SwinAttention(4, 4, 1, 1)
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
@@ -329,7 +330,7 @@ class TestSWMSA(test_combinations.TestCase):
 
     def test_mask_shift_1_pad(self):
         inputs = np.ones([2, 7, 9, 3])
-        layer = SWMSA(4, 4, 1, 1)
+        layer = SwinAttention(4, 4, 1, 1)
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
@@ -378,7 +379,7 @@ class TestSWMSA(test_combinations.TestCase):
 
     def test_mask_shift_2_no_pad(self):
         inputs = np.ones([2, 8, 12, 3])
-        layer = SWMSA(4, 4, 1, 2)
+        layer = SwinAttention(4, 4, 1, 2)
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
@@ -428,7 +429,7 @@ class TestSWMSA(test_combinations.TestCase):
 
     def test_mask_shift_2_pad(self):
         inputs = np.ones([2, 7, 9, 3])
-        layer = SWMSA(4, 4, 1, 2)
+        layer = SwinAttention(4, 4, 1, 2)
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
@@ -482,7 +483,7 @@ class TestSWMSA(test_combinations.TestCase):
 
     def test_mask_shift_3_pad_to_min_size(self):
         inputs = np.ones([2, 3, 5, 3])
-        layer = SWMSA(4, 4, 1, 3)
+        layer = SwinAttention(4, 4, 1, 3)
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
@@ -531,18 +532,18 @@ class TestSWMSA(test_combinations.TestCase):
 
 
 @test_combinations.run_all_keras_modes
-class TestGGMSA(test_combinations.TestCase):
+class TestGridAttention(test_combinations.TestCase):
     def setUp(self):
-        super(TestGGMSA, self).setUp()
+        super(TestGridAttention, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestGGMSA, self).tearDown()
+        super(TestGridAttention, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         test_utils.layer_test(
-            GGMSA,
+            GridAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 512, 'proj_bias': True},
@@ -552,7 +553,7 @@ class TestGGMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            GGMSA,
+            GridAttention,
             kwargs={
                 'current_window': 8, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 512, 'proj_bias': True},
@@ -562,7 +563,7 @@ class TestGGMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            GGMSA,
+            GridAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 512, 'proj_bias': True},
@@ -572,7 +573,7 @@ class TestGGMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            GGMSA,
+            GridAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True,
                 'cpb_units': 512, 'proj_bias': True},
@@ -582,7 +583,7 @@ class TestGGMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            GGMSA,
+            GridAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False,
                 'cpb_units': 512, 'proj_bias': True},
@@ -592,7 +593,7 @@ class TestGGMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            GGMSA,
+            GridAttention,
             kwargs={
                 'current_window': 4, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 384, 'proj_bias': True},
@@ -605,7 +606,7 @@ class TestGGMSA(test_combinations.TestCase):
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
-            GGMSA,
+            GridAttention,
             kwargs={
                 'current_window': 6, 'pretrain_window': 4, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True,
                 'cpb_units': 512, 'proj_bias': False},
@@ -617,18 +618,18 @@ class TestGGMSA(test_combinations.TestCase):
 
 
 @test_combinations.run_all_keras_modes
-class TestDLMSA(test_combinations.TestCase):
+class TestSlideAttention(test_combinations.TestCase):
     def setUp(self):
-        super(TestDLMSA, self).setUp()
+        super(TestSlideAttention, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestDLMSA, self).tearDown()
+        super(TestSlideAttention, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         test_utils.layer_test(
-            DLMSA,
+            SlideAttention,
             kwargs={
                 'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
                 'dilation_rate': 1, 'proj_bias': True},
@@ -638,7 +639,7 @@ class TestDLMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DLMSA,
+            SlideAttention,
             kwargs={
                 'window_size': 5, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
                 'dilation_rate': 1, 'proj_bias': True},
@@ -648,7 +649,7 @@ class TestDLMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DLMSA,
+            SlideAttention,
             kwargs={
                 'window_size': 3, 'num_heads': 4, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
                 'dilation_rate': 1, 'proj_bias': True},
@@ -658,7 +659,7 @@ class TestDLMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DLMSA,
+            SlideAttention,
             kwargs={
                 'window_size': 3, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True, 'cpb_units': 512, 'dilation_rate': 1,
                 'proj_bias': True},
@@ -668,7 +669,7 @@ class TestDLMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DLMSA,
+            SlideAttention,
             kwargs={
                 'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': False, 'cpb_units': 512,
                 'dilation_rate': 1, 'proj_bias': True},
@@ -678,7 +679,7 @@ class TestDLMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DLMSA,
+            SlideAttention,
             kwargs={
                 'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 384,
                 'dilation_rate': 1, 'proj_bias': True},
@@ -688,7 +689,7 @@ class TestDLMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            DLMSA,
+            SlideAttention,
             kwargs={
                 'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
                 'dilation_rate': 2, 'proj_bias': True},
@@ -701,7 +702,7 @@ class TestDLMSA(test_combinations.TestCase):
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
-            DLMSA,
+            SlideAttention,
             kwargs={
                 'window_size': 3, 'num_heads': 2, 'qk_units': None, 'qkv_bias': True, 'cpb_units': 512,
                 'dilation_rate': 1, 'proj_bias': False},
@@ -713,18 +714,18 @@ class TestDLMSA(test_combinations.TestCase):
 
 
 @test_combinations.run_all_keras_modes
-class TestCHMSA(test_combinations.TestCase):
+class TestChannelAttention(test_combinations.TestCase):
     def setUp(self):
-        super(TestCHMSA, self).setUp()
+        super(TestChannelAttention, self).setUp()
         self.default_policy = mixed_precision.global_policy()
 
     def tearDown(self):
-        super(TestCHMSA, self).tearDown()
+        super(TestChannelAttention, self).tearDown()
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         test_utils.layer_test(
-            CHMSA,
+            ChannelAttention,
             kwargs={'num_heads': 2, 'qkv_bias': True, 'proj_bias': True},
             input_shape=[2, 16, 16, 4],
             input_dtype='float32',
@@ -732,7 +733,7 @@ class TestCHMSA(test_combinations.TestCase):
             expected_output_dtype='float32'
         )
         test_utils.layer_test(
-            CHMSA,
+            ChannelAttention,
             kwargs={'num_heads': 2, 'qkv_bias': False, 'proj_bias': True},
             input_shape=[2, 16, 16, 4],
             input_dtype='float32',
@@ -743,7 +744,7 @@ class TestCHMSA(test_combinations.TestCase):
     def test_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
         test_utils.layer_test(
-            CHMSA,
+            ChannelAttention,
             kwargs={'num_heads': 4, 'qkv_bias': True, 'proj_bias': False},
             input_shape=[2, 16, 16, 4],
             input_dtype='float16',
