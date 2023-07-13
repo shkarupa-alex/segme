@@ -1,5 +1,6 @@
 import tensorflow as tf
 from segme.utils.common.augs.common import apply, blend, convert, validate
+from segme.common.shape import get_shape
 
 
 def mix(image, masks, weight, prob, factor, color=None, name=None):
@@ -17,7 +18,7 @@ def _mix(image, factor, color=None, name=None):
             color = tf.convert_to_tensor(color, image.dtype, name='color')
             color, _, _ = validate(color, None, None)
         else:
-            batch = tf.shape(image)[0]
+            (batch,), _ = get_shape(image, axis=[0])
             color = tf.random.uniform([batch, 1, 1, image.shape[-1]])
 
         dtype = image.dtype

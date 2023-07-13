@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from segme.common.shape import get_shape
 
 
 def _solve_fg_step(step, fg, da0, da1, da2, da3, denom, term0):
@@ -76,7 +77,7 @@ def solve_fg(image, alpha, kappa=1., steps=16, name=None):
         fg = tf.image.resize(image, (2, 2), method=tf.image.ResizeMethod.AREA)
         fg = tf.clip_by_value(fg, 0., 1.)
 
-        height, width = tf.unstack(tf.shape(image)[1:3])
+        (height, width), _ = get_shape(image, axis=[1, 2])
         levels = tf.cast(tf.math.maximum(height, width), 'float32')
         levels = tf.math.ceil(tf.math.log(levels) / np.log(2))
 

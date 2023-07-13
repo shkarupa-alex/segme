@@ -10,6 +10,7 @@ import tensorflow_datasets as tfds
 from keras.applications import imagenet_utils
 from keras.mixed_precision import global_policy
 from segme.model.classification.tree import synsets_1k_21k, tree_class_map
+from segme.common.shape import get_shape
 from segme.utils.common import rand_augment_full
 
 
@@ -204,7 +205,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 @tf.function(jit_compile=False)
 def _resize_crop(example, size, train, crop_pct=0.875):
     image = example['image']
-    shape = tf.cast(tf.shape(image)[:2], 'float32')
+    shape, _ = get_shape(image, axis=[0, 1], dtype='float32')
 
     if train:
         crop = tf.random.uniform([2], minval=tf.reduce_min(shape) * crop_pct, maxval=shape)

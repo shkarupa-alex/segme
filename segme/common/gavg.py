@@ -2,6 +2,7 @@ import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -18,7 +19,9 @@ class GlobalAverage(layers.Layer):
 
     def call(self, inputs, **kwargs):
         outputs = self.pool(inputs)
-        outputs = tf.broadcast_to(outputs, tf.shape(inputs))
+
+        shape, _ = get_shape(inputs)
+        outputs = tf.broadcast_to(outputs, shape)
 
         return outputs
 

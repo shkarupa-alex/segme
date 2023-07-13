@@ -5,6 +5,7 @@ from keras.src.utils.conv_utils import normalize_tuple
 from keras.src.utils.tf_utils import shape_type_conversion
 from tensorflow.python.platform.device_context import enclosing_tpu_context
 from segme.common.convnormact import Conv, Norm, Act, ConvNormAct
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -29,7 +30,7 @@ class FourierUnit(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
-        batch, height, width, _ = tf.unstack(tf.shape(inputs))
+        (height, width), _ = get_shape(inputs, axis=[1, 2])
         ortho_norm = tf.math.sqrt(tf.cast(height * width, 'float32'))
 
         # to RDFT
@@ -105,7 +106,7 @@ class SpectralTransform(layers.Layer):
         gfu = self.gfu(outputs)
 
         if self.use_lfu:
-            batch, height, width, _ = tf.unstack(tf.shape(outputs))
+            (batch, height, width), _ = get_shape(outputs, axis=[0, 1, 2])
 
             assert_height = tf.debugging.assert_equal(height % 2, 0)
             assert_width = tf.debugging.assert_equal(width % 2, 0)

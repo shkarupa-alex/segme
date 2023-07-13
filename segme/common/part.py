@@ -93,7 +93,7 @@ def with_partition(op, inputs, part_type, size_count, dilation_rate=1, dtype=Non
             raise ValueError('Unknown partition type.')
 
         def _op(padded, pad_size, pad_val):
-            _, height, width = pad_size
+            height, width = pad_size
 
             parted = partition_apply(padded, height, width, part_type, size_count, dilation_rate, dtype)
             parted = op(parted, pad_size=pad_size, pad_val=pad_val)
@@ -251,7 +251,7 @@ def with_partition_fused(op, inputs, part_type, size_count, num_heads, dilation_
             raise ValueError('Unknown partition type.')
 
         def _op(padded, pad_size, pad_val):
-            _, height, width = pad_size
+            height, width = pad_size
 
             parted = partition_apply_fused(
                 padded, height, width, part_type, size_count, num_heads, dilation_rate, dtype)

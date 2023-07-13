@@ -25,7 +25,7 @@ class TestModel(test_combinations.TestCase):
 
         values = []
         for layer in cfg['layers']:
-            if layer['class_name'] not in cls:
+            if layer['registered_name'] not in cls:
                 continue
 
             if prop not in layer['config']:

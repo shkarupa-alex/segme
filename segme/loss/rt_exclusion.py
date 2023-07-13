@@ -3,6 +3,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.common_loss import validate_input, weighted_loss, compute_gradient
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Loss')
@@ -34,8 +35,8 @@ def _exclusion_level(r_pred, t_pred, axis, sample_weight):
 
 
 def _down_sample(reflections, transmissions, weights):
-    height_width = tf.shape(reflections)[1:3]
-    hpad, wpad = tf.unstack(height_width % 2)
+    (height, width), _ = get_shape(reflections, axis=[1, 2])
+    hpad, wpad = height % 2, width % 2
     paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
 
     reflections = tf.pad(reflections, paddings, 'SYMMETRIC')
@@ -61,9 +62,14 @@ def reflection_transmission_exclusion_loss(r_pred, t_pred, sample_weight, levels
         loss.append(_exclusion_level(r_pred, t_pred, axis=1, sample_weight=sample_weight))
         loss.append(_exclusion_level(r_pred, t_pred, axis=2, sample_weight=sample_weight))
         last_level = levels - 1 == level
-        if not last_level:
-            assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(r_pred)[1:3]), 2)
 
+        if not last_level:
+            r_size, static_size = get_shape(r_pred, axis=[1, 2])
+            if static_size:
+                r_size = min(r_size)
+            else:
+                r_size = tf.minimum(*r_size)
+            assert_true_shape = tf.assert_greater(r_size, 2)
             with tf.control_dependencies([assert_true_shape]):
                 r_pred, t_pred, sample_weight = _down_sample(r_pred, t_pred, sample_weight)
     loss = sum(loss) / (2. * levels)

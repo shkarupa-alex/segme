@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.python.framework.ops import EagerTensor
 from keras import backend
+from segme.common.shape import get_shape
 
 
 def validate_input(y_true, y_pred, weight, dtype, rank, channel):
@@ -251,8 +252,8 @@ def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False):
     numerator = weighted_loss(numerator, sample_weight, sample_axes=[1, 2], reduce_axes=[1, 2])
     denominator = weighted_loss(denominator, sample_weight, sample_axes=[1, 2], reduce_axes=[1, 2])
 
-    size = tf.reduce_prod(tf.shape(y_true)[1:3])
-    epsilon = smooth / tf.cast(size, y_pred.dtype)
+    size, _ = get_shape(y_true, axis=[1, 2])
+    epsilon = smooth / tf.cast(size[0] * size[1], y_pred.dtype)
 
     loss = 1. - (numerator + epsilon) / (denominator + epsilon)
 

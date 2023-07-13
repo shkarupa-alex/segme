@@ -1,5 +1,6 @@
 import cv2
 import tensorflow as tf
+from segme.common.shape import get_shape
 
 
 def alpha_trimap(alpha, size, name=None):
@@ -38,7 +39,8 @@ def alpha_trimap(alpha, size, name=None):
             lambda i, d: (i + 1, tf.nn.dilation2d(d, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4)),
             [0, dilated])
 
-        trimap = tf.fill(tf.shape(alpha), 128)
+        shape, _ = get_shape(alpha)
+        trimap = tf.fill(shape, 128)
         trimap = tf.where(tf.equal(eroded, 1 - iterations[0]), 255, trimap)
         trimap = tf.where(tf.equal(dilated, iterations[1]), 0, trimap)
         trimap = tf.cast(trimap, 'uint8')

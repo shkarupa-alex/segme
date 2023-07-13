@@ -1,5 +1,6 @@
 tensorflow>=2.13.0
-tensorflow-hub>=0.13.0
+tensorflow_datasets>=4.9.2
+tensorflow_hub>=0.13.0
 tensorflow_probability>=0.20.1
 keras>=2.13.0
 tfmiss>=0.21.0

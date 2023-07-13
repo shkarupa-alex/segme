@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from segme.utils.common.augs.common import apply, transform, wrap, unwrap, validate
+from segme.common.shape import get_shape
 
 
 def rotate(image, masks, weight, prob, degrees, replace=None, name=None):
@@ -35,7 +36,7 @@ def _rotate(image, degrees, interpolation, replace=None, name=None):
         image, _, _ = validate(image, None, None)
 
         radians = tf.cast(-degrees * np.pi / 180., 'float32')[None]
-        height, width = tf.unstack(tf.cast(tf.shape(image)[1:3], 'float32'))
+        (height, width), _ = get_shape(image, axis=[1, 2], dtype='float32')
 
         h_offset = ((width - 1) - (tf.cos(radians) * (width - 1) - tf.sin(radians) * (height - 1))) / 2.0
         v_offset = ((height - 1) - (tf.sin(radians) * (width - 1) + tf.cos(radians) * (height - 1))) / 2.0

@@ -1,5 +1,6 @@
 import tensorflow as tf
 from segme.utils.common.augs.common import apply, convert, validate
+from segme.common.shape import get_shape
 
 
 def equalize(image, masks, weight, prob, name=None):
@@ -33,7 +34,7 @@ def _equalize(image, name=None):
 
             return image
 
-        batch, height, width, channel = tf.unstack(tf.shape(image))
+        (batch, height, width, channel), _ = get_shape(image)
         image_ = tf.cast(image, 'int32')
         image_ = tf.transpose(image_, [0, 3, 1, 2])
         image_ = tf.reshape(image_, [batch * channel, height, width])

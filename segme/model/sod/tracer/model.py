@@ -63,12 +63,12 @@ class Tracer(layers.Layer):
     def compute_output_shape(self, input_shape):
         output_shape = input_shape[:-1] + (1,)
 
-        return [output_shape] * 5
+        return (output_shape,) * 5
 
     def compute_output_signature(self, input_signature):
         outptut_signature = super().compute_output_signature(input_signature)
 
-        return [tf.TensorSpec(dtype='float32', shape=os.shape) for os in outptut_signature]
+        return tuple(tf.TensorSpec(dtype='float32', shape=os.shape) for os in outptut_signature)
 
     def get_config(self):
         config = super().get_config()

@@ -55,7 +55,7 @@ class OddConstrainedLayer(layers.Layer):
         super().build(input_shape)
 
     def constraned_op(self, inputs, pad_size, pad_val):
-        assert 3 == len(pad_size)
+        assert 2 == len(pad_size)
         assert 4 == len(pad_val)
         outputs = tf.nn.space_to_depth(inputs, 2)
         if self.use_proj:

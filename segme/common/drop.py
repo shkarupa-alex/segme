@@ -4,6 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.tf_utils import shape_type_conversion
 from tensorflow.python.ops import data_flow_ops
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -13,8 +14,8 @@ class DropPath(layers.Dropout):
         super().__init__(rate=rate, seed=seed, **kwargs)
 
     def _get_noise_shape(self, inputs):
-        batch_size = tf.shape(inputs)[0]
-        noise_shape = [batch_size] + [1] * (inputs.shape.rank - 1)
+        batch_size, _ = get_shape(inputs, axis=[0])
+        noise_shape = batch_size + [1] * (inputs.shape.rank - 1)
         noise_shape = tf.convert_to_tensor(noise_shape)
 
         return noise_shape
@@ -39,22 +40,23 @@ class SlicePath(layers.Layer):
         self.seed = seed
 
     def call(self, inputs, training=None, **kwargs):
-        batch_size = tf.shape(inputs)[0]
+        batch_size, _ = get_shape(inputs, axis=[0])
 
         if 0. == self.rate:
-            return inputs, tf.ones([batch_size], dtype='bool')
+            return inputs, tf.ones(batch_size, dtype='bool')
 
         if training is None:
             training = backend.learning_phase()
 
         outputs, slice_mask = smart_cond(
             training,
-            lambda: self.maybe_slice(inputs, batch_size),
-            lambda: (tf.identity(inputs), tf.ones([batch_size], dtype='bool')))
+            lambda: self.maybe_slice(inputs, batch_size[0]),
+            lambda: (tf.identity(inputs), tf.ones(batch_size, dtype='bool')))
 
         return outputs, slice_mask
 
     def maybe_slice(self, inputs, batch_size):
+        batch_size = tf.convert_to_tensor(batch_size, 'int32')
         keep_size = tf.cast(batch_size, 'float32') * (1. - self.rate)
         keep_size = tf.math.ceil(keep_size / 8.) * 8.
         keep_size = tf.cast(keep_size, batch_size.dtype)
@@ -121,7 +123,8 @@ class RestorePath(layers.Layer):
         return outputs
 
     def maybe_restore(self, inputs, slice_mask):
-        keep_size = tf.shape(inputs)[0]
+        inputs_shape, _ = get_shape(inputs)
+        keep_size = inputs_shape[0]
         batch_size = tf.size(slice_mask)
 
         keep_up = tf.cast(batch_size, 'float32') / tf.cast(keep_size, 'float32')
@@ -129,7 +132,7 @@ class RestorePath(layers.Layer):
         keep_max = (2. - self.rate) * keep_up
         noise_shape = [keep_size] + [1] * (inputs.shape.rank - 1)
         random_mask = tf.random.uniform(
-            noise_shape, minval=keep_min, maxval=keep_max, dtype=self.compute_dtype, seed=self.seed)
+            noise_shape, minval=keep_min, maxval=keep_max, dtype='float32', seed=self.seed)
 
         inv_keep = 1. / (1. - self.rate)
         random_mask = tf.cast(random_mask >= 1., inputs.dtype) * inv_keep
@@ -139,14 +142,14 @@ class RestorePath(layers.Layer):
         outputs = smart_cond(
             tf.equal(batch_size, keep_size),
             lambda: tf.identity(outputs),
-            lambda: self.apply_restore(outputs, batch_size, keep_size, slice_mask))
+            lambda: self.apply_restore(outputs, batch_size, inputs_shape, slice_mask))
 
         return outputs
 
-    def apply_restore(self, inputs, batch_size, keep_size, slice_mask):
+    def apply_restore(self, inputs, batch_size, inputs_shape, slice_mask):
         join_indices = tf.range(batch_size, dtype='int32')
 
-        zero_shape = tf.concat([[batch_size - keep_size], tf.shape(inputs)[1:]], axis=-1)
+        zero_shape = [batch_size - inputs_shape[0]] + inputs_shape[1:]
         zero_inputs = tf.zeros(zero_shape, dtype=inputs.dtype)
 
         outputs = data_flow_ops.parallel_dynamic_stitch(
@@ -200,7 +203,8 @@ class DropBlock(layers.Layer):
     def drop(self, inputs):
         gamma = self.rate / self.size ** 2
 
-        mask = tf.random.uniform(tf.shape(inputs), dtype=self.compute_dtype)
+        shape, _ = get_shape(inputs)
+        mask = tf.random.uniform(shape, dtype=self.compute_dtype)
         mask = tf.cast(mask < gamma, self.compute_dtype)
         mask = 1. - tf.nn.max_pool2d(mask, self.size, 1, 'SAME')
         mask = mask / tf.reduce_mean(mask, axis=[1, 2], keepdims=True)

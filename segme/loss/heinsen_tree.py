@@ -5,6 +5,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.common_loss import validate_input, to_logits, weighted_loss
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Loss')
@@ -74,7 +75,9 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, crossentropy, l
 
     loss = tf.math.unsorted_segment_sum(loss, sample_segment, num_segments=tf.size(y_true))
     loss /= tf.reduce_sum(tf.cast(y_valid_tree, loss.dtype), axis=-1)
-    loss = tf.reshape(loss, tf.shape(y_true))
+
+    shape, _ = get_shape(y_true)
+    loss = tf.reshape(loss, shape)
 
     loss = weighted_loss(loss, sample_weight)
 

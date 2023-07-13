@@ -4,6 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.common_loss import validate_input, to_probs, to_1hot
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Loss')
@@ -55,7 +56,7 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
 
 def _rmi_lower_bound(y_true, y_pred, pool_stride, pool_way, rmi_radius):
     square_radius = rmi_radius ** 2
-    batch, height, width, channel = tf.unstack(tf.shape(y_true))
+    (batch, height, width, channel), _ = get_shape(y_true)
 
     if pool_stride > 1:
         if 'maxpool' == pool_way:
@@ -117,8 +118,7 @@ def _rmi_lower_bound(y_true, y_pred, pool_stride, pool_way, rmi_radius):
 
 
 def _map_get_pairs(target, output, radius):
-    shape = tf.shape(target)
-    height, width = shape[2], shape[3]
+    (height, width), _ = get_shape(target, axis=[2, 3])
     new_height, new_width = height - radius + 1, width - radius + 1
 
     la_ns, pr_ns = [], []

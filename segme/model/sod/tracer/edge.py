@@ -4,6 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
 from segme.common.sequence import Sequence
+from segme.common.shape import get_shape
 from segme.model.sod.tracer.chnatt import ChannelAttention
 
 
@@ -51,7 +52,7 @@ class FrequencyEdge(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        height, width = tf.unstack(tf.shape(inputs)[1:3])
+        (height, width), _ = get_shape(inputs, axis=[1, 2])
 
         rows = tf.range(height, dtype='float32')[:, None]
         cols = tf.range(width, dtype='float32')[None]

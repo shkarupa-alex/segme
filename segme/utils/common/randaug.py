@@ -1,4 +1,5 @@
 import tensorflow as tf
+from segme.common.shape import get_shape
 from segme.utils.common.augs.common import convert, validate
 from segme.utils.common.augs.autocontrast import autocontrast
 from segme.utils.common.augs.blur import gaussblur
@@ -290,8 +291,7 @@ def rand_augment_full(image, masks, weight, levels=5, magnitude=0.5, ops=None, n
         dtype = image.dtype
         image = convert(image, 'float32')
 
-        batch = tf.shape(image)[0]
-        channel = image.shape[-1]
+        (batch, channel), _ = get_shape(image, axis=[0, 3])
 
         selected = tf.range(0, len(ops), dtype='int32')
         # selected = tf.repeat(selected, 10, axis=-1)

@@ -2,6 +2,7 @@ import cv2
 import tensorflow as tf
 from keras.metrics import BinaryAccuracy, SparseCategoricalAccuracy
 from keras.saving import register_keras_serializable
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Metric>Boundary')
@@ -78,7 +79,7 @@ def boundary_weight(y_true, radius, sample_weight):
     weight = tf.cast(eroded + dilated == 1, 'float32')
     weight = tf.reduce_max(weight, axis=-1, keepdims=True)
 
-    batch, height, width, _ = tf.unstack(tf.shape(y_true))
+    (batch, height, width), _ = get_shape(y_true, axis=[0, 1, 2])
     frame = tf.zeros((batch, height - radius * 2, width - radius * 2, 1), 'float32')
     frame = tf.pad(frame, [[0, 0], [radius, radius], [radius, radius], [0, 0]], constant_values=1.)
     weight = tf.maximum(weight, frame)

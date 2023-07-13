@@ -256,7 +256,7 @@ class TestSWMSA(test_combinations.TestCase):
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
-        mask = layer.attn_mask(inputs.shape[:-1], (0, 0, 0, 0), False, [0, 0])
+        mask = layer.attn_mask(inputs.shape[1:-1], (0, 0, 0, 0), False, [0, 0])
         mask = self.evaluate(mask)
 
         self.assertTrue((mask == 0.).all())
@@ -267,7 +267,7 @@ class TestSWMSA(test_combinations.TestCase):
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
-        mask = layer.attn_mask([2, 8, 12], (0, 1, 1, 2), False, [0, 0])
+        mask = layer.attn_mask([8, 12], (0, 1, 1, 2), False, [0, 0])
         mask = self.evaluate(mask)
         mask = mask.reshape(2, 3, 4, 4).transpose(0, 2, 1, 3).reshape(8, 12)
         mask = (mask == 0.).astype('int32')
@@ -283,7 +283,7 @@ class TestSWMSA(test_combinations.TestCase):
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
-        mask = layer.attn_mask(inputs.shape[:-1], (0, 0, 0, 0), True, [2, 2])
+        mask = layer.attn_mask(inputs.shape[1:-1], (0, 0, 0, 0), True, [2, 2])
         mask = self.evaluate(mask)
         mask = (mask == 0.).astype('int32').reshape(6, 16, 16)
 
@@ -333,7 +333,7 @@ class TestSWMSA(test_combinations.TestCase):
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
-        mask = layer.attn_mask([2, 8, 12], (0, 1, 1, 2), True, [2, 2])
+        mask = layer.attn_mask([8, 12], (0, 1, 1, 2), True, [2, 2])
         mask = self.evaluate(mask)
         mask = (mask == 0.).astype('int32').reshape(6, 4, 4, 4, 4)
 
@@ -382,7 +382,7 @@ class TestSWMSA(test_combinations.TestCase):
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
-        mask = layer.attn_mask(inputs.shape[:-1], (0, 0, 0, 0), True, [2, 2])
+        mask = layer.attn_mask(inputs.shape[1:-1], (0, 0, 0, 0), True, [2, 2])
         mask = self.evaluate(mask)
         mask = (mask == 0.).astype('int32').reshape(6, 16, 16)
 
@@ -432,7 +432,7 @@ class TestSWMSA(test_combinations.TestCase):
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
-        mask = layer.attn_mask([2, 8, 12], (0, 1, 1, 2), True, [2, 2])
+        mask = layer.attn_mask([8, 12], (0, 1, 1, 2), True, [2, 2])
         mask = self.evaluate(mask)
         mask = (mask == 0.).astype('int32').reshape(6, 4, 4, 4, 4)
 
@@ -486,7 +486,7 @@ class TestSWMSA(test_combinations.TestCase):
         layer.build(inputs.shape)
         layer.rel_bias = lambda x: 0.
 
-        mask = layer.attn_mask([2, 4, 8], (0, 1, 1, 2), True, [2, 2])
+        mask = layer.attn_mask([4, 8], (0, 1, 1, 2), True, [2, 2])
         mask = self.evaluate(mask)
         mask = (mask == 0.).astype('int32').reshape(2, 4, 4, 4, 4)
 

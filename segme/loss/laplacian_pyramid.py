@@ -5,6 +5,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.common_loss import validate_input, weighted_loss
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Loss')
@@ -21,8 +22,8 @@ class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
 
 
 def _pad_odd(inputs):
-    height_width = tf.shape(inputs)[1:3]
-    hpad, wpad = tf.unstack(height_width % 2)
+    (height, width), _ = get_shape(inputs, axis=[1, 2])
+    hpad, wpad = height % 2, width % 2
     paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
     padded = tf.pad(inputs, paddings, 'SYMMETRIC')
 
@@ -125,7 +126,12 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma, r
     kernel = np.tile(kernel[..., None, None], (1, 1, y_pred.shape[-1], 1))
     kernel = tf.cast(kernel, y_pred.dtype), tf.cast(kernel.transpose([1, 0, 2, 3]), y_pred.dtype)
 
-    assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(y_true)[1:3]), 2 ** levels)
+    true_size, static_size = get_shape(y_true, axis=[1, 2])
+    if static_size:
+        true_size = min(true_size)
+    else:
+        true_size = tf.minimum(*true_size)
+    assert_true_shape = tf.assert_greater(true_size, 2 ** levels)
     with tf.control_dependencies([assert_true_shape]):
         pyr_pred = _laplacian_pyramid(y_pred, levels, kernel, residual)
         pyr_true = _laplacian_pyramid(y_true, levels, kernel, residual)

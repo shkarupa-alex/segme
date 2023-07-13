@@ -4,6 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct
 from segme.common.sequence import Sequence
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -64,7 +65,7 @@ class AtrousSpatialPyramidPooling(layers.Layer):
             self.conv3r1(inputs),
             self.conv3r2(inputs)
         ]
-        shape = tf.shape(outputs[0])
+        shape, _ = get_shape(outputs[0])
         outputs.append(tf.broadcast_to(self.pool(inputs), shape))
         outputs = tf.concat(outputs, axis=-1)
         outputs = self.proj(outputs)

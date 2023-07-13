@@ -4,6 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.metrics import SumOverBatchSize
 from keras.src.utils import losses_utils, metrics_utils
 from tfmiss.image import connected_components
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Metric>Matting')
@@ -56,11 +57,9 @@ class Conn(SumOverBatchSize):
 def connectivity_error(y_true, y_pred, step, sample_weight=None):
     thresh_steps = list(np.arange(step, step + 1., step))
 
-    true_shape = tf.shape(y_true)
+    true_shape, _ = get_shape(y_true)
     batch_size = true_shape[0]
-    channel_size = y_true.shape[-1]
-    if channel_size is None:
-        raise ValueError('Channel dimension of the labels must be defined.')
+    channel_size = true_shape[-1]
 
     thresh_map = []
     for threshold in thresh_steps:

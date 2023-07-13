@@ -1,5 +1,6 @@
 import tensorflow as tf
 from segme.utils.common.augs.common import convert
+from segme.common.shape import get_shape
 
 
 def augment_alpha(alpha, prob=0.3, max_pow=2., seed=None):
@@ -17,7 +18,7 @@ def augment_alpha(alpha, prob=0.3, max_pow=2., seed=None):
 
         alpha = convert(alpha, 'float32')
 
-        batch = tf.shape(alpha)[0]
+        (batch,), _ = get_shape(alpha, axis=[0])
         gamma, direction, apply, invert = tf.split(
             tf.random.uniform([batch, 1, 1, 4], 0., 1., seed=seed), 4, axis=-1)
 
@@ -49,7 +50,7 @@ def augment_trimap(trimap, prob=0.1, seed=None):
         if 'uint8' != trimap.dtype:
             raise ValueError('Expecting `trimap` dtype to be `uint8`.')
 
-        batch = tf.shape(trimap)[0]
+        (batch,), _ = get_shape(trimap, axis=[0])
         apply = tf.random.uniform([batch, 1, 1, 1], 0., 1., seed=seed)
         apply = tf.cast(apply < prob, trimap.dtype)
 

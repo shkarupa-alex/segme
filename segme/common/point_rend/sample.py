@@ -4,6 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.head import ClassificationActivation
 from segme.common.impfunc import grid_sample
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common>PointRend')
@@ -119,9 +120,8 @@ class UncertainPointsWithRandomness(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        input_shape = tf.shape(inputs)
-        batch_size = input_shape[0]
-        total_points = tf.cast(input_shape[1] * input_shape[2], 'float32') * self.points
+        (batch_size, input_height, input_width), _ = get_shape(inputs, axis=[0, 1, 2])
+        total_points = tf.cast(input_height * input_width, 'float32') * self.points
 
         sampled_size = tf.cast(total_points * self.oversample, 'int32')
         point_coords = tf.random.uniform((batch_size, sampled_size, 2), dtype=self.compute_dtype)
@@ -188,7 +188,7 @@ class UncertainPointsCoordsOnGrid(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        batch, height, width, _ = tf.unstack(tf.shape(inputs))
+        (batch, height, width), _ = get_shape(inputs, axis=[0, 1, 2])
         height = tf.cast(height, 'float32')
         width = tf.cast(width, 'float32')
 

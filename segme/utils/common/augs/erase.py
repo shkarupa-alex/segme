@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from segme.utils.common.augs.common import apply, convert, wrap, unwrap, validate
+from segme.common.shape import get_shape
 
 
 def erase(image, masks, weight, prob, area, replace=None, name=None):
@@ -12,7 +13,7 @@ def erase(image, masks, weight, prob, area, replace=None, name=None):
         area = tf.convert_to_tensor(area, 'float32')
         area = tf.unstack(tf.sqrt(area) / 2.)
 
-        batch, height, width, _ = tf.unstack(tf.shape(image))
+        (batch, height, width), _ = get_shape(image, axis=[0, 1, 2])
         height = tf.cast(height, 'float32')
         width = tf.cast(width, 'float32')
 

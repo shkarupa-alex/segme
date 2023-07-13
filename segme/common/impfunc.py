@@ -1,15 +1,16 @@
 import itertools
 import tensorflow as tf
 from keras.mixed_precision import global_policy
+from segme.common.shape import get_shape
 
 
 def grid_sample(features, grid, mode='bilinear', align_corners=False, symmetric_pad=False):
     if mode not in {'bilinear', 'nearest'}:
         raise ValueError('Wrong interpolation mode. Only "bilinear" and "nearest" supported')
 
-    features_shape = tf.shape(features)
+    features_shape, _ = get_shape(features, axis=[0, 1, 2])
     features_size = features_shape[1:3]
-    batch_size, point_height, point_width, _ = tf.unstack(tf.shape(grid))
+    (batch_size, point_height, point_width), _ = get_shape(grid, axis=[0, 1, 2])
 
     assertions = [
         tf.debugging.assert_equal(
@@ -32,7 +33,7 @@ def grid_sample(features, grid, mode='bilinear', align_corners=False, symmetric_
 
         batch_idx = tf.reshape(tf.range(0, batch_size), (batch_size, 1, 1, 1))
         coord_batches = tf.tile(batch_idx, (1, point_height, point_width, 1))
-        coord_bounds = features_size + 1
+        coord_bounds = tf.cast(features_size, 'int32') + 1
 
         def _lookup(coords):
             coords = tf.clip_by_value(tf.cast(coords, 'int32') + 1, 0, coord_bounds)
@@ -75,7 +76,7 @@ def make_coords(inputs, dtype=None):
         batch, height, width = inputs
     else:
         inputs = tf.convert_to_tensor(inputs)
-        batch, height, width, _ = tf.unstack(tf.shape(inputs))
+        (batch, height, width), _ = get_shape(inputs, axis=[0, 1, 2])
 
     height_ = 1. / tf.cast(height, dtype)
     width_ = 1. / tf.cast(width, dtype)
@@ -132,7 +133,8 @@ def query_features(features, coords, imnet, posnet=None, cells=None, feat_unfold
         vxvy = [(0, 0)]
         epsilon = 0.
 
-    h_w = tf.cast(tf.shape(features)[1:3], dtype)
+    h_w, _ = get_shape(features, axis=[1, 2])
+    h_w = tf.cast(h_w, dtype)
     rx_ry = 1. / h_w
 
     feat_coords = make_coords(features)

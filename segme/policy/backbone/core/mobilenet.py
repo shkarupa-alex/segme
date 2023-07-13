@@ -1,4 +1,3 @@
-import tensorflow as tf
 from functools import partial
 from keras.src.applications import mobilenet_v3
 from segme.policy.backbone.utils import wrap_bone
@@ -6,10 +5,7 @@ from segme.policy.backbone.backbone import BACKBONES
 
 
 def hard_sigmoid(x):
-    def hard_sigmoid_fix(y):
-        return tf.nn.relu6(y + 3.) * (1. / 6.)
-
-    return mobilenet_v3.layers.Activation(hard_sigmoid_fix)(x)
+    return mobilenet_v3.layers.Activation('hard_sigmoid')(x)
 
 
 # TODO: wait for https://github.com/keras-team/keras/issues/15282

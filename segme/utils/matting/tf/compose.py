@@ -2,6 +2,7 @@ import tensorflow as tf
 from keras import backend
 from segme.utils.matting.tf.fg import solve_fg
 from segme.utils.matting.tf.trimap import alpha_trimap
+from segme.common.shape import get_shape
 
 
 def compose_two(fg, alpha, solve=True, name=None):
@@ -24,7 +25,8 @@ def compose_two(fg, alpha, solve=True, name=None):
         if 'uint8' != fg.dtype or 'uint8' != alpha.dtype:
             raise ValueError('Expecting `fg` and `alpha` dtype to be `uint8`.')
 
-        batch = (tf.shape(fg)[0] // 2) * 2
+        (batch,), _ = get_shape(fg, axis=[0])
+        batch = (batch // 2) * 2
         fg = fg[:batch]
         alpha = alpha[:batch]
 
@@ -79,11 +81,13 @@ def random_compose(fg, alpha, prob=0.5, trim=None, solve=True, iterations=4, nam
         if 'uint8' != fg.dtype or 'uint8' != alpha.dtype:
             raise ValueError('Expecting `fg` and `alpha` dtype to be `uint8`.')
 
-        batch, height, width = tf.unstack(tf.shape(fg)[:3])
+        (batch, height, width), _ = get_shape(fg, axis=[0, 1, 2])
         indices = tf.range(batch)
 
         def _cond(comp_fg, comp_alpha):
-            return tf.shape(comp_fg)[0] < batch
+            (batch_,), _ = get_shape(comp_fg, axis=[0])
+
+            return batch_ < batch
 
         def _body(comp_fg, comp_alpha):
             curr_indices = tf.random.shuffle(indices)
@@ -106,8 +110,8 @@ def random_compose(fg, alpha, prob=0.5, trim=None, solve=True, iterations=4, nam
         fg_ = tf.zeros([0, height, width, 3], dtype='uint8')
         alpha_ = tf.zeros([0, height, width, 1], dtype='uint8')
         fg_, alpha_ = tf.while_loop(
-            _cond, _body, [fg_, alpha_], maximum_iterations=iterations, shape_invariants=[
-                tf.TensorShape([None, None, None, 3]), tf.TensorShape([None, None, None, 1])])
+            _cond, _body, (fg_, alpha_), maximum_iterations=iterations, shape_invariants=(
+                tf.TensorShape([None, None, None, 3]), tf.TensorShape([None, None, None, 1])))
         fg_ = tf.concat([fg_, fg], axis=0)[:batch]
         alpha_ = tf.concat([alpha_, alpha], axis=0)[:batch]
         fg_.set_shape(fg.shape)

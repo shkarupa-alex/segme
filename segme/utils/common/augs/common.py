@@ -1,4 +1,5 @@
 import tensorflow as tf
+from segme.common.shape import get_shape
 
 
 def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
@@ -23,8 +24,8 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
         image, masks, weight = validate(image, masks, weight)
         image_ = image_fn(image)
 
-        batch, height, width = tf.unstack(tf.shape(image)[:3])
-        height_, width_ = tf.unstack(tf.shape(image_)[1:3])
+        (batch, height, width), _ = get_shape(image, axis=[0, 1, 2])
+        (height_, width_), _ = get_shape(image_, axis=[1, 2])
         same = tf.logical_and(tf.equal(height, height_), tf.equal(width, width_))
 
         switch_full = tf.random.uniform([batch, 1, 1, 1]) < prob
@@ -94,12 +95,7 @@ def blend(original, augmented, factor, name=None):
 
 def transform(images, transforms, fill_mode='reflect', fill_value=0.0, interpolation='bilinear', name=None):
     with tf.name_scope(name or 'transform'):
-        output_shape = tf.shape(images)[1:3]
-        if not tf.executing_eagerly():
-            output_shape_value = tf.get_static_value(output_shape)
-            if output_shape_value is not None:
-                output_shape = output_shape_value
-
+        output_shape, _ = get_shape(images, axis=[1, 2])
         output_shape = tf.convert_to_tensor(output_shape, 'int32', name='output_shape')
         fill_value = tf.convert_to_tensor(fill_value, 'float32', name='fill_value')
 
@@ -132,7 +128,7 @@ def unwrap(image, replace=None, name=None):
             replace = tf.convert_to_tensor(replace, image.dtype, name='replace')
             replace, _, _ = validate(replace, None, None)
         else:
-            batch = tf.shape(image)[0]
+            (batch,), _ = get_shape(image, axis=[0])
             replace = tf.random.uniform([batch, 1, 1, image.shape[-1]])
             replace = convert(replace, image.dtype, saturate=True)
 

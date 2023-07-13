@@ -186,7 +186,7 @@ class TestMakeCoords(tf.test.TestCase):
         self.assertAllClose(expected, result)
         self.assertDTypeEqual(result, expected.dtype)
 
-        result = make_coords(tf.unstack(tf.shape(tf.zeros([3, 5, 6, 1]))[:3]))
+        result = make_coords(tf.unstack([3, 5, 6]))
         result = self.evaluate(result)
         self.assertAllClose(expected, result)
         self.assertDTypeEqual(result, expected.dtype)
@@ -218,7 +218,7 @@ class TestMakeCoords(tf.test.TestCase):
         self.assertAllClose(expected, result, rtol=3e-3)
         self.assertDTypeEqual(result, expected.dtype)
 
-        result = make_coords(tf.unstack(tf.shape(tf.zeros([3, 5, 6, 1]))[:3]))
+        result = make_coords(tf.unstack([3, 5, 6]))
         result = self.evaluate(result)
         self.assertAllClose(expected, result, rtol=3e-3)
         self.assertDTypeEqual(result, expected.dtype)

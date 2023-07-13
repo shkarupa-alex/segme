@@ -3,6 +3,7 @@ from keras import backend, layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.conv_utils import normalize_tuple
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -36,13 +37,7 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
         if 1 == max(dividers):
             raise ValueError('Nothing to pad: both multipliers equals to 1.')
 
-        inputs_batch, inputs_height, inputs_width, inputs_channel = inputs.shape
-        static_size = inputs_height is not None and inputs_width is not None
-        if static_size:
-            inputs_batch = tf.shape(inputs)[0]
-        else:
-            inputs_batch, inputs_height, inputs_width = tf.unstack(tf.shape(inputs)[:3])
-
+        (inputs_height, inputs_width, inputs_channel), static_size = get_shape(inputs, axis=[1, 2, 3])
         h_pad = (dividers[0] - inputs_height % dividers[0]) % dividers[0]
         w_pad = (dividers[1] - inputs_width % dividers[1]) % dividers[1]
         with_pad = h_pad + w_pad > 0
@@ -60,19 +55,17 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
             padded_shape = (inputs.shape[0], inputs_height + h_pad, inputs_width + w_pad, inputs_channel)
         else:
             padded_shape = (inputs.shape[0], None, None, inputs_channel)
-
         outputs.set_shape(padded_shape)
 
-        pad_size = (inputs_batch, inputs_height + h_pad, inputs_width + w_pad)
+        pad_size = inputs_height + h_pad, inputs_width + w_pad
         pad_val = (hb_pad, ha_pad, wb_pad, wa_pad)
         outputs = op(outputs, pad_size=pad_size, pad_val=pad_val)
-
-        outputs_channel = outputs.shape[-1]
+        (outputs_channel,), _ = get_shape(outputs, axis=[3])
 
         outputs = smart_cond(
             with_pad,
-            lambda: tf.slice(outputs, [0, hb_pad, wb_pad, 0], [-1, inputs_height, inputs_width, -1]),
+            lambda: tf.slice(outputs, [0, hb_pad, wb_pad, 0], [-1, inputs_height, inputs_width, outputs_channel]),
             lambda: tf.identity(outputs))
-        outputs.set_shape(inputs.shape[:-1] + (outputs_channel,))
+        outputs.set_shape(inputs.shape[:-1] + outputs.shape[-1:])
 
         return outputs

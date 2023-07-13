@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from segme.common.shape import get_shape
 
 
 def _solve_fgbg_step(step, image, fg, bg, alpha, grad_weight, regularization):
@@ -100,7 +101,7 @@ def solve_fgbg(image, alpha, regularization=0.005, small_size=32, small_steps=10
             tf.reduce_sum(image * (1. - alpha), axis=[1, 2], keepdims=True),
             tf.reduce_sum(1. - alpha, axis=[1, 2], keepdims=True))
 
-        height, width = tf.unstack(tf.shape(image)[1:3])
+        (height, width), _ = get_shape(image, axis=[1, 2])
         levels = tf.cast(tf.math.maximum(height, width), 'float32')
         levels = tf.math.ceil(tf.math.log(levels) / np.log(2))
 

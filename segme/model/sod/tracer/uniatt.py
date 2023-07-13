@@ -4,6 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from tensorflow_probability.python.stats import percentile
 from segme.common.convnormact import Conv, Norm
+from segme.common.shape import get_shape
 from segme.model.sod.tracer.chnatt import ChannelAttention
 
 
@@ -24,7 +25,7 @@ class UnionAttention(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        batch, height, width, _ = tf.unstack(tf.shape(inputs))
+        (batch, height, width), _ = get_shape(inputs, axis=[0, 1, 2])
 
         channel_outputs, channel_masks = self.chatt(inputs)
         channel_outputs = self.norm(channel_outputs)

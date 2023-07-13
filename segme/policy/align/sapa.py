@@ -4,6 +4,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import Conv, Norm
 from segme.common.resize import NearestInterpolation
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Policy>Align>SAPA')
@@ -105,9 +106,9 @@ class LocalAttention(layers.Layer):
         query, key, value = inputs
         shape = self.compute_output_shape([i.shape for i in inputs])
 
-        q_batch, q_height, q_width, _ = tf.unstack(tf.shape(query))
-        k_batch, k_height, k_width, _ = tf.unstack(tf.shape(key))
-        v_batch, v_height, v_width, _ = tf.unstack(tf.shape(value))
+        (q_batch, q_height, q_width), _ = get_shape(query, axis=[0, 1, 2])
+        (k_batch, k_height, k_width), _ = get_shape(key, axis=[0, 1, 2])
+        (v_batch, v_height, v_width), _ = get_shape(value, axis=[0, 1, 2])
 
         assert_batch = tf.assert_equal(
             (q_batch == k_batch) & (k_batch == v_batch), True,

@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from segme.utils.common.augs.common import apply, transform, validate, wrap, unwrap
+from segme.common.shape import get_shape
 
 
 def translate_x(image, masks, weight, prob, factor, replace=None, name=None):
@@ -25,7 +26,7 @@ def _translate_x(image, factor, interpolation, replace=None, name=None):
     with tf.name_scope(name or 'translate_x_'):
         image, _, _ = validate(image, None, None)
 
-        width = tf.cast(tf.shape(image)[2], 'float32')
+        (width,), _ = get_shape(image, axis=[2], dtype='float32')
         translation = tf.stack([width * factor, 0])[None]
         matrix = tf.concat(
             [tf.ones((1, 1), 'float32'), tf.zeros((1, 1), 'float32'), -translation[:, 0, None],
@@ -44,7 +45,7 @@ def _translate_y(image, factor, interpolation, replace=None, name=None):
     with tf.name_scope(name or 'translate_y_'):
         image, _, _ = validate(image, None, None)
 
-        height = tf.cast(tf.shape(image)[1], 'float32')
+        (height,), _ = get_shape(image, axis=[1], dtype='float32')
         translation = tf.stack([0, height * factor])[None]
         matrix = tf.concat(
             [tf.ones((1, 1), 'float32'), tf.zeros((1, 1), 'float32'), -translation[:, 0, None],

@@ -7,6 +7,7 @@ from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.ops.image_ops_impl import _ssim_helper
 from segme.loss.common_loss import validate_input
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Loss')
@@ -42,8 +43,8 @@ def _ssim_level(y_true, y_pred, max_val, kernels, k1, k2):
 
 
 def _pad_odd(inputs):
-    height_width = tf.shape(inputs)[1:3]
-    hpad, wpad = tf.unstack(height_width % 2)
+    (height, width), _ = get_shape(inputs, axis=[1, 2])
+    hpad, wpad = height % 2, width % 2
     paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
     padded = tf.pad(inputs, paddings, 'SYMMETRIC')
 
@@ -88,7 +89,12 @@ def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernels, k1, 
         pyramid.append(value)
 
         if not last_level:
-            assert_true_shape = tf.assert_greater(tf.reduce_min(tf.shape(y_true)[1:3]), 2)
+            true_size, static_size = get_shape(y_true, axis=[1, 2])
+            if static_size:
+                true_size = min(true_size)
+            else:
+                true_size = tf.minimum(*true_size)
+            assert_true_shape = tf.assert_greater(true_size, 2)
             with tf.control_dependencies([assert_true_shape]):
                 y_true = _pad_odd(y_true)
                 y_true = tf.nn.avg_pool2d(y_true, ksize=2, strides=2, padding='VALID')

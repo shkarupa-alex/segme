@@ -3,6 +3,7 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.common_loss import validate_input, crossentropy, iou, mae
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Loss')
@@ -20,8 +21,13 @@ def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
 
-    min_shape = tf.reduce_min(tf.shape(y_true)[1:3])
-    assert_shape = tf.assert_greater(min_shape, 30)
+
+    true_size, static_size = get_shape(y_true, axis=[1, 2])
+    if static_size:
+        true_size = min(true_size)
+    else:
+        true_size = tf.minimum(*true_size)
+    assert_shape = tf.assert_greater(true_size, 30)
     with tf.control_dependencies([assert_shape]):
         y_true_1h = tf.one_hot(tf.squeeze(y_true, -1), max(2, y_pred.shape[-1]), dtype=y_pred.dtype)
         omega = sum([

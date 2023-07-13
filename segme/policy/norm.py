@@ -4,6 +4,7 @@ from keras import constraints, initializers, layers, regularizers
 from keras.saving import register_keras_serializable
 from keras.src.utils.conv_utils import normalize_data_format
 from keras.src.utils.tf_utils import shape_type_conversion
+from segme.common.shape import get_shape
 from segme.policy.registry import LayerRegistry
 
 NORMALIZATIONS = LayerRegistry()
@@ -226,9 +227,8 @@ class GroupNorm(layers.GroupNormalization):
         return outputs
 
     def _reshape_into_groups(self, inputs):
-        input_shape = tf.shape(inputs)
-        group_shape = tf.unstack(input_shape)
-        group_shape[self.axis] = input_shape[self.axis] // self.groups
+        group_shape, _ = get_shape(inputs)
+        group_shape[self.axis] = group_shape[self.axis] // self.groups
         group_shape.insert(self.axis, self.groups)
 
         return tf.reshape(inputs, group_shape)

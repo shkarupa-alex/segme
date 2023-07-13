@@ -3,6 +3,7 @@ from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.resize import NearestInterpolation
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common>Align>FADE')
@@ -38,7 +39,7 @@ class CarafeConvolution(layers.Layer):
     def call(self, inputs, **kwargs):
         features, masks = inputs
 
-        batch, height, width, _ = tf.unstack(tf.shape(masks))
+        (batch, height, width), _ = get_shape(masks, axis=[0, 1, 2])
         output_shape = self.compute_output_shape([features.shape, masks.shape])
 
         features = tf.image.extract_patches(
@@ -52,11 +53,11 @@ class CarafeConvolution(layers.Layer):
 
             outputs = tf.matmul(features, masks, transpose_a=True)
         else:
-            features_shape = tf.shape(features)
-            features_shape_ = tf.concat([features_shape[:-1], [self.kernel_size ** 2, self.channels[0]]], axis=-1)
-            features = tf.reshape(features, features_shape_)
+            features_shape0, _ = get_shape(features)
+            features_shape1 = features_shape0[:-1] + [self.kernel_size ** 2, self.channels[0]]
+            features = tf.reshape(features, features_shape1)
             features = tf.transpose(features, [0, 1, 2, 4, 3])
-            features = tf.reshape(features, features_shape)
+            features = tf.reshape(features, features_shape0)
             features = self.internear([features, masks])
             features = tf.reshape(
                 features,

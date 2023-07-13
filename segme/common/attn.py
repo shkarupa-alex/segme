@@ -9,6 +9,7 @@ from segme.common.pad import with_divisible_pad
 from segme.common.part import partition_apply, partition_apply_fused, partition_reverse_fused
 from segme.common.part import with_partition_fused, halo_partition, halo_partition_fused
 from segme.common.sequence import Sequence
+from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -71,7 +72,7 @@ class DHMSA(layers.Layer):
         return outputs
 
     def qkv_part(self, qkv, pad_size, pad_val):
-        _, pad_height, pad_width = pad_size
+        pad_height, pad_width = pad_size
 
         q, kv = tf.split(qkv, [self.qk_channels, self.qk_channels + self.channels], axis=-1)
         kv = self.kv_dw(kv)
@@ -113,7 +114,7 @@ class DHMSA(layers.Layer):
         return self.rel_bias(None) + self.pad_mask(pad_size, pad_val)
 
     def pad_mask(self, pad_size, pad_val):
-        _, pad_height, pad_width = pad_size
+        pad_height, pad_width = pad_size
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
@@ -207,16 +208,17 @@ class SWMSA(layers.Layer):
 
         apply_shift, shift_size = False, np.array([0, 0])
         if self.shift_dir is not None:
-            curr_size = np.array(inputs.shape[1:3])
-            if None in curr_size:
-                curr_size = tf.shape(inputs)[1:3]
-                with_shift = curr_size > self.current_window
-                apply_shift = tf.reduce_any(with_shift)
-                shift_size = self.shift_size * tf.cast(with_shift, curr_size.dtype) * self.shift_dir
-            else:
+            curr_size, static_size = get_shape(inputs, axis=[1, 2])
+            if static_size:
+                curr_size = np.array(curr_size)
                 with_shift = curr_size > self.current_window
                 apply_shift = with_shift.any()
                 shift_size = self.shift_size * with_shift.astype(curr_size.dtype) * self.shift_dir
+            else:
+                curr_size = tf.cast(curr_size, 'int32')
+                with_shift = curr_size > self.current_window
+                apply_shift = tf.reduce_any(with_shift)
+                shift_size = self.shift_size * tf.cast(with_shift, curr_size.dtype) * self.shift_dir
 
         qkv = smart_cond(
             apply_shift,
@@ -237,7 +239,7 @@ class SWMSA(layers.Layer):
         return outputs
 
     def qkv_part(self, qkv, pad_size, pad_val, apply_shift, shift_size):
-        _, pad_height, pad_width = pad_size
+        pad_height, pad_width = pad_size
 
         parted = partition_apply_fused(qkv, pad_height, pad_width, 'window_size', self.current_window, self.num_heads)
         parted = self.qkv_attn(
@@ -275,7 +277,7 @@ class SWMSA(layers.Layer):
         return mask
 
     def pad_mask(self, pad_size, pad_val):
-        _, pad_height, pad_width = pad_size
+        pad_height, pad_width = pad_size
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
@@ -289,7 +291,7 @@ class SWMSA(layers.Layer):
         return mask
 
     def shift_mask(self, pad_size, pad_val, shift_size):
-        _, pad_height, pad_width = pad_size
+        pad_height, pad_width = pad_size
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
@@ -431,7 +433,7 @@ class GGMSA(layers.Layer):
         return mask
 
     def pad_mask(self, pad_size, pad_val):
-        _, pad_height, pad_width = pad_size
+        pad_height, pad_width = pad_size
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
@@ -534,7 +536,7 @@ class DLMSA(layers.Layer):
             v, tf.repeat(self.static_kernel, self.channels, axis=-2), strides=[1] * 4, padding='SAME',
             dilations=[self.dilation_rate, self.dilation_rate])
 
-        batch, height, width, _ = tf.unstack(tf.shape(inputs))
+        (batch, height, width), _ = get_shape(inputs, axis=[0, 1, 2])
         q = tf.reshape(q, [batch, height, width, self.num_heads, 1, self.qk_units])
         k = tf.reshape(k, [batch, height, width, self.num_heads, self.qk_units, self.window_size ** 2])
         v = tf.reshape(v, [batch, height, width, self.num_heads, self.v_units, self.window_size ** 2])
@@ -621,7 +623,7 @@ class CHMSA(layers.Layer):
             qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
             qkv = tf.nn.bias_add(qkv, qkv_bias)
 
-        batch, height, width, _ = tf.unstack(tf.shape(qkv))
+        (batch, height, width), _ = get_shape(qkv, axis=[0, 1, 2])
         if 1 == self.num_heads:
             qkv = tf.reshape(qkv, [batch, 1, height * width, 3, self.channels])
         else:
