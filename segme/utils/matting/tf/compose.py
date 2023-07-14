@@ -1,5 +1,6 @@
 import tensorflow as tf
 from keras import backend
+from keras.src.utils.control_flow_util import smart_cond
 from segme.utils.matting.tf.fg import solve_fg
 from segme.utils.matting.tf.trimap import alpha_trimap
 from segme.common.shape import get_shape
@@ -61,8 +62,8 @@ def compose_two(fg, alpha, solve=True, name=None):
         return fg_, alpha_
 
 
-def random_compose(fg, alpha, prob=0.5, trim=None, solve=True, iterations=4, name=None):
-    with tf.name_scope(name or 'random_compose'):
+def compose_batch(fg, alpha, trim=None, solve=True, iterations=4, name=None):
+    with tf.name_scope(name or 'compose_batch'):
         fg = tf.convert_to_tensor(fg, 'uint8')
         alpha = tf.convert_to_tensor(alpha, 'uint8')
 
@@ -84,7 +85,7 @@ def random_compose(fg, alpha, prob=0.5, trim=None, solve=True, iterations=4, nam
         (batch, height, width), _ = get_shape(fg, axis=[0, 1, 2])
         indices = tf.range(batch)
 
-        def _cond(comp_fg, comp_alpha):
+        def _cond(comp_fg, _):
             (batch_,), _ = get_shape(comp_fg, axis=[0])
 
             return batch_ < batch
@@ -117,11 +118,36 @@ def random_compose(fg, alpha, prob=0.5, trim=None, solve=True, iterations=4, nam
         fg_.set_shape(fg.shape)
         alpha_.set_shape(alpha.shape)
 
-        apply = tf.cast(tf.random.uniform([batch, 1, 1, 1], 0., 1.) < prob, 'uint8')
-        fg_ = fg_ * apply + fg * (1 - apply)
-        alpha_ = alpha_ * apply + alpha * (1 - apply)
-
         if solve:
             fg_ = solve_fg(fg_, alpha_)
+
+        return fg_, alpha_
+
+
+def random_compose(fg, alpha, prob=0.5, trim=None, solve=True, iterations=4, name=None):
+    with tf.name_scope(name or 'random_compose'):
+        fg = tf.convert_to_tensor(fg, 'uint8')
+        alpha = tf.convert_to_tensor(alpha, 'uint8')
+
+        if 4 != len(fg.shape):
+            raise ValueError('Expecting `fg` rank to be 4.')
+
+        if 3 != fg.shape[-1]:
+            raise ValueError('Expecting `fg` channels size to be 3.')
+
+        if 4 != len(alpha.shape):
+            raise ValueError('Expecting `alpha` rank to be 4.')
+
+        if 1 != alpha.shape[-1]:
+            raise ValueError('Expecting `alpha` channels size to be 1.')
+
+        if 'uint8' != fg.dtype or 'uint8' != alpha.dtype:
+            raise ValueError('Expecting `fg` and `alpha` dtype to be `uint8`.')
+
+        fg_, alpha_ = smart_cond(
+            tf.random.uniform([], 0., 1.) < prob,
+            lambda: compose_batch(fg, alpha, trim=trim, solve=solve, iterations=iterations),
+            lambda: (tf.identity(fg), tf.identity(alpha)),
+        )
 
         return fg_, alpha_

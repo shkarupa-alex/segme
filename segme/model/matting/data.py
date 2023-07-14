@@ -483,18 +483,17 @@ def _augment_examples(examples):
     foreground = examples['foreground']
     background = examples['background']
 
-    alpha = matting_tf.augment_alpha(alpha)
-    foreground, alpha = matting_tf.random_compose(foreground, alpha, trim=(max(TRIMAP_SIZE), 0.95), solve=False)
-    foreground, [alpha], _ = rand_augment_matting(foreground, [alpha], None)
-    foreground = matting_tf.solve_fg(foreground, alpha)
-    background = tf.random.shuffle(background)
-    trimap = matting_tf.alpha_trimap(alpha, size=TRIMAP_SIZE)
-    trimap = matting_tf.augment_trimap(trimap)
-
     alpha.set_shape(alpha.shape[:1] + [CROP_SIZE, CROP_SIZE, 1])
     foreground.set_shape(foreground.shape[:1] + [CROP_SIZE, CROP_SIZE, 3])
     background.set_shape(background.shape[:1] + [CROP_SIZE, CROP_SIZE, 3])
-    trimap.set_shape(trimap.shape[:1] + [CROP_SIZE, CROP_SIZE, 1])
+
+    alpha = matting_tf.augment_alpha(alpha)
+    foreground, alpha = matting_tf.random_compose(foreground, alpha, trim=(max(TRIMAP_SIZE), 0.95), solve=True)
+    foreground, [alpha], _ = rand_augment_matting(foreground, [alpha], None)
+    # foreground = matting_tf.solve_fg(foreground, alpha)
+    background = tf.random.shuffle(background)
+    trimap = matting_tf.alpha_trimap(alpha, size=TRIMAP_SIZE)
+    trimap = matting_tf.augment_trimap(trimap)
 
     return {
         'alpha': alpha,
@@ -560,11 +559,11 @@ def make_dataset(data_dir, split_name, out_mode, batch_size=1, batch_mult=1):
 
     if train_split:
         dataset = dataset \
-            .shuffle(256) \
-            .batch(32, drop_remainder=True) \
+            .shuffle(batch_size * batch_mult * 8) \
+            .batch(max(32, batch_size * batch_mult * 2), drop_remainder=True) \
             .map(_augment_examples, num_parallel_calls=tf.data.experimental.AUTOTUNE) \
             .unbatch() \
-            .shuffle(256) \
+            .shuffle(batch_size * batch_mult * 8) \
             .batch(batch_size, drop_remainder=True)
 
         if batch_mult > 1:
