@@ -7,8 +7,6 @@ _PARTITION_TYPES = {'window_size', 'window_count', 'grid_size', 'grid_count'}
 def partition_apply(inputs, height, width, part_type, size_count, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'partition_apply'):
         inputs = tf.convert_to_tensor(inputs, dtype)
-        height = tf.convert_to_tensor(height)
-        width = tf.convert_to_tensor(width)
 
         if 4 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 4.')
@@ -48,8 +46,6 @@ def partition_apply(inputs, height, width, part_type, size_count, dilation_rate=
 def partition_reverse(inputs, height, width, part_type, size_count, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'partition_reverse'):
         inputs = tf.convert_to_tensor(inputs, dtype)
-        height = tf.convert_to_tensor(height)
-        width = tf.convert_to_tensor(width)
 
         if 4 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 4.')
@@ -107,8 +103,6 @@ def with_partition(op, inputs, part_type, size_count, dilation_rate=1, dtype=Non
 def halo_partition(inputs, height, width, window_size, halo_size, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'halo_partition'):
         inputs = tf.convert_to_tensor(inputs, dtype)
-        height = tf.convert_to_tensor(height)
-        width = tf.convert_to_tensor(width)
 
         if 4 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 4.')
@@ -157,8 +151,6 @@ def partition_apply_fused(
         inputs, height, width, part_type, size_count, num_heads, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'partition_apply_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
-        height = tf.convert_to_tensor(height)
-        width = tf.convert_to_tensor(width)
 
         if 4 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 4.')
@@ -203,8 +195,6 @@ def partition_reverse_fused(
         inputs, height, width, part_type, size_count, num_heads, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'partition_reverse_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
-        height = tf.convert_to_tensor(height)
-        width = tf.convert_to_tensor(width)
 
         if 5 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 5.')
@@ -268,8 +258,6 @@ def halo_partition_fused(
         inputs, height, width, window_size, halo_size, num_heads, dilation_rate=1, dtype=None, name=None):
     with tf.name_scope(name or 'halo_partition_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
-        height = tf.convert_to_tensor(height)
-        width = tf.convert_to_tensor(width)
 
         if 4 != inputs.shape.rank:
             raise ValueError('Expecting inputs rank to be 4.')
