@@ -24,7 +24,7 @@ class NearestInterpolation(layers.Layer):
 
         if self.scale is None:
             targets, samples = inputs
-            new_size, _ = get_shape(samples, axis=[1, 2])
+            new_size, static_size = get_shape(samples, axis=[1, 2])
         else:
             targets = inputs
             new_size, static_size = get_shape(targets, axis=[1, 2])
@@ -37,7 +37,7 @@ class NearestInterpolation(layers.Layer):
                 new_size = tf.cast(tf.round(new_size), 'int32')
 
         if (1, 1) == targets.shape[1:3]:
-            repeats = tf.concat([[1], new_size, [1]], axis=-1)
+            repeats = [1] + new_size + [1] if static_size else tf.concat([[1], new_size, [1]], axis=-1)
             outputs = tf.tile(targets, repeats)
         else:
             outputs = self.resize(targets, new_size)

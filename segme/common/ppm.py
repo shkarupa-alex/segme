@@ -23,17 +23,14 @@ class PyramidPooling(layers.Layer):
             AdaptiveAveragePooling(size, name='pool'),
             ConvNormAct(self.filters, 1, name='cna')
         ], name=f'stage_{size}') for size in self.sizes]
-        self.interpolations = [
-            # TODO: https://github.com/tensorflow/tensorflow/issues/57575
-            # NearestInterpolation(None) if 1 == size else
-            BilinearInterpolation(None) for size in self.sizes]
+        self.interpolate = BilinearInterpolation(None)
         self.bottleneck = ConvNormAct(self.filters, 3, name='bottleneck')
 
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         outputs = [stage(inputs) for stage in self.stages]
-        outputs = [interpolate([output, inputs]) for interpolate, output in zip(self.interpolations, outputs)]
+        outputs = [self.interpolate([output, inputs]) for output in outputs]
         outputs = tf.concat([inputs] + outputs, axis=-1)
         outputs = self.bottleneck(outputs)
 
