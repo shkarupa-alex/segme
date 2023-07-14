@@ -24,7 +24,9 @@ class PyramidPooling(layers.Layer):
             ConvNormAct(self.filters, 1, name='cna')
         ], name=f'stage_{size}') for size in self.sizes]
         self.interpolations = [
-            NearestInterpolation(None) if 1 == size else BilinearInterpolation(None) for size in self.sizes]
+            # TODO: https://github.com/tensorflow/tensorflow/issues/57575
+            # NearestInterpolation(None) if 1 == size else
+            BilinearInterpolation(None) for size in self.sizes]
         self.bottleneck = ConvNormAct(self.filters, 3, name='bottleneck')
 
         super().build(input_shape)
