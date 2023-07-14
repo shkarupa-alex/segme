@@ -208,14 +208,15 @@ def _resize_crop(example, size, train, crop_pct=0.875):
     shape, _ = get_shape(image, axis=[0, 1], dtype='float32')
 
     if train:
-        crop = tf.random.uniform([2], minval=tf.reduce_min(shape) * crop_pct, maxval=shape)
+        crop = tf.random.uniform([2], minval=tf.minimum(shape) * crop_pct, maxval=shape)
         crop = tf.cast(tf.round(crop), 'int32')
         crop = tf.concat([crop, [3]], axis=-1)
 
         image = tf.image.random_crop(image, crop)
         image = tf.image.resize(image, [size, size], method=tf.image.ResizeMethod.BICUBIC)
     else:
-        shape_ = shape * size / crop_pct / tf.reduce_min(shape)
+        shape_ = tf.stack(shape)
+        shape_ = shape_ * size / crop_pct / tf.minimum(shape)
         shape_ = tf.cast(tf.round(shape_), 'int32')
 
         image = tf.image.resize(image, shape_, method=tf.image.ResizeMethod.BICUBIC)
