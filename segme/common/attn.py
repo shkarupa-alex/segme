@@ -37,6 +37,8 @@ class HaloAttention(layers.Layer):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
+        if self.channels % self.num_heads:
+            raise ValueError('Channel dimensions of the inputs should be a multiple of the number of heads.')
 
         self.v_units = self.channels // self.num_heads
         self.qk_units = self.qk_units or self.v_units
@@ -492,6 +494,9 @@ class SlideAttention(layers.Layer):
         self.v_units = self.channels // self.num_heads
         self.qk_units = self.qk_units or self.v_units
         self.qk_channels = self.qk_units * self.num_heads
+        if self.v_units % self.qk_units:
+            qk_allowed = [i for i in range(1, self.v_units + 1) if not self.v_units % i]
+            raise ValueError(f'Provided QK units value is not supported. Allowed values are: {qk_allowed}.')
 
         self.qkv = Conv(self.qk_channels * 2 + self.channels, 1, use_bias=False, name='qkv')
         if self.qkv_bias:
@@ -529,12 +534,16 @@ class SlideAttention(layers.Layer):
 
         q, k, v = tf.split(qkv, [self.qk_channels, self.qk_channels, self.channels], axis=-1)
 
+        k_kernel = self.deformable_kernel + self.static_kernel
         k = tf.nn.depthwise_conv2d(
-            k, self.deformable_kernel + self.static_kernel, strides=[1] * 4, padding='SAME',
-            dilations=[self.dilation_rate, self.dilation_rate])
+            k, k_kernel, strides=[1] * 4, padding='SAME', dilations=[self.dilation_rate, self.dilation_rate])
+
+        v_kernel = self.deformable_kernel
+        if self.channels != self.qk_channels:
+            v_kernel = tf.repeat(v_kernel, self.channels // self.qk_channels, axis=2)
+        v_kernel = self.static_kernel + v_kernel
         v = tf.nn.depthwise_conv2d(
-            v, tf.repeat(self.static_kernel, self.channels, axis=-2), strides=[1] * 4, padding='SAME',
-            dilations=[self.dilation_rate, self.dilation_rate])
+            v, v_kernel, strides=[1] * 4, padding='SAME', dilations=[self.dilation_rate, self.dilation_rate])
 
         (batch, height, width), _ = get_shape(inputs, axis=[0, 1, 2])
         q = tf.reshape(q, [batch, height, width, self.num_heads, 1, self.qk_units])

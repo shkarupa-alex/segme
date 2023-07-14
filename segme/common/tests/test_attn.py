@@ -661,7 +661,7 @@ class TestSlideAttention(test_combinations.TestCase):
         test_utils.layer_test(
             SlideAttention,
             kwargs={
-                'window_size': 3, 'num_heads': 2, 'qk_units': 4, 'qkv_bias': True, 'cpb_units': 512, 'dilation_rate': 1,
+                'window_size': 3, 'num_heads': 2, 'qk_units': 1, 'qkv_bias': True, 'cpb_units': 512, 'dilation_rate': 1,
                 'proj_bias': True},
             input_shape=[2, 15, 17, 4],
             input_dtype='float32',
