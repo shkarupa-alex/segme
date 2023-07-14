@@ -13,8 +13,8 @@ def _solve_fg_step(step, fg, da0, da1, da2, da3, denom, term0):
 
 
 def _solve_fg_level(level, alpha, afg, fg, height, width, levels, kappa, steps):
-    height_ = tf.cast(tf.math.round(tf.cast(height, 'float32') ** (level / levels)), 'int32')
-    width_ = tf.cast(tf.math.round(tf.cast(width, 'float32') ** (level / levels)), 'int32')
+    height_ = tf.cast(tf.math.round(height ** (level / levels)), 'int32')
+    width_ = tf.cast(tf.math.round(width ** (level / levels)), 'int32')
 
     afg_ = tf.image.resize(afg, [height_, width_], method=tf.image.ResizeMethod.AREA)
     afg_ = tf.clip_by_value(afg_, 0., 1.)
@@ -53,6 +53,7 @@ def solve_fg(image, alpha, kappa=1., steps=16, name=None):
     with tf.name_scope(name or 'solve_fg'):
         image = tf.convert_to_tensor(image, 'uint8')
         alpha = tf.convert_to_tensor(alpha, 'uint8')
+        steps = tf.convert_to_tensor(steps, 'float32')
 
         if 4 != image.shape.rank:
             raise ValueError('Expecting `image` rank to be 4.')
@@ -77,7 +78,7 @@ def solve_fg(image, alpha, kappa=1., steps=16, name=None):
         fg = tf.image.resize(image, (2, 2), method=tf.image.ResizeMethod.AREA)
         fg = tf.clip_by_value(fg, 0., 1.)
 
-        (height, width), _ = get_shape(image, axis=[1, 2])
+        (height, width), _ = get_shape(image, axis=[1, 2], dtype='float32')
         levels = tf.cast(tf.math.maximum(height, width), 'float32')
         levels = tf.math.ceil(tf.math.log(levels) / np.log(2))
 
@@ -86,10 +87,11 @@ def solve_fg(image, alpha, kappa=1., steps=16, name=None):
         _, _, _, fg, _, _, _, _, _ = tf.while_loop(
             lambda level, *_: level <= levels,
             _solve_fg_level,
-            [1., alpha, afg, fg, height, width, levels, kappa, tf.cast(steps, 'float32')],
+            [1., alpha, afg, fg, height, width, levels, kappa, steps],
             shape_invariants=shapes)
 
         fg = tf.clip_by_value(fg, 0., 1.) * 255.
         fg = tf.cast(tf.round(fg), 'uint8')
+        fg.set_shape(image.shape)
 
         return fg
