@@ -491,6 +491,11 @@ def _augment_examples(examples):
     trimap = matting_tf.alpha_trimap(alpha, size=TRIMAP_SIZE)
     trimap = matting_tf.augment_trimap(trimap)
 
+    alpha.set_shape(alpha.shape[:1] + [CROP_SIZE, CROP_SIZE, 1])
+    foreground.set_shape(foreground.shape[:1] + [CROP_SIZE, CROP_SIZE, 3])
+    background.set_shape(background.shape[:1] + [CROP_SIZE, CROP_SIZE, 3])
+    trimap.set_shape(trimap.shape[:1] + [CROP_SIZE, CROP_SIZE, 1])
+
     return {
         'alpha': alpha,
         'foreground': foreground,

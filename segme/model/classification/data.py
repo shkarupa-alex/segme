@@ -225,6 +225,7 @@ def _resize_crop(example, size, train, crop_pct=0.875):
 
     image = tf.clip_by_value(image, 0., 255.)
     image = tf.cast(tf.round(image), 'uint8')
+    image.set_shape([size, size, 3])
 
     return image, example['class']
 
