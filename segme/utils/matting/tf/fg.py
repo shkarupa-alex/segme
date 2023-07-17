@@ -3,13 +3,13 @@ import tensorflow as tf
 from segme.common.shape import get_shape
 
 
-def _solve_fg_step(step, fg, da0, da1, da2, da3, denom, term0):
+def _solve_fg_step(fg, da0, da1, da2, da3, denom, term0):
     fg_pad = tf.pad(fg, ((0, 0), (1, 1), (1, 1), (0, 0)), 'REFLECT')
     term1 = (da0 * fg_pad[:, 1:-1, :-2] + da1 * fg_pad[:, 1:-1, 2:] +
              da2 * fg_pad[:, :-2, 1:-1] + da3 * fg_pad[:, 2:, 1:-1]) / denom
     fg = term0 + term1
 
-    return step + 1., fg, da0, da1, da2, da3, denom, term0
+    return fg, da0, da1, da2, da3, denom, term0
 
 
 def _solve_fg_level(level, alpha, afg, fg, height, width, levels, kappa, steps):
@@ -36,15 +36,15 @@ def _solve_fg_level(level, alpha, afg, fg, height, width, levels, kappa, steps):
     denom = alpha_ ** 2 + da0 + da1 + da2 + da3
     term0 = alpha_ * afg_ / denom
 
-    steps_ = 2 ** tf.math.minimum(levels - level, 5) * steps
+    steps_ = tf.cast(2 ** tf.math.minimum(levels - level, 5) * steps, 'int32')
 
-    shapes = [[], [None, None, None, 3]] + [[None, None, None, 1]] * 5 + [[None, None, None, 3]]
-    shapes = list(map(tf.TensorShape, shapes))
-    _, fg, _, _, _, _, _, _ = tf.while_loop(
-        lambda step, *_: step < steps_,
+    shapes = [[None, None, None, 3]] + [[None, None, None, 1]] * 5 + [[None, None, None, 3]]
+    shapes = tuple(map(tf.TensorShape, shapes))
+    fg, _, _, _, _, _, _ = tf.while_loop(
+        lambda *_: True,
         _solve_fg_step,
-        [0., fg, da0, da1, da2, da3, denom, term0],
-        shape_invariants=shapes)
+        (fg, da0, da1, da2, da3, denom, term0),
+        shape_invariants=shapes, maximum_iterations=steps_)
 
     return level + 1., alpha, afg, fg, height, width, levels, kappa, steps
 

@@ -28,16 +28,16 @@ def alpha_trimap(alpha, size, name=None):
         kernel = tf.convert_to_tensor(kernel, 'int32')
 
         eroded = tf.cast(tf.equal(alpha, 255), 'int32')
-        _, eroded = tf.while_loop(
-            lambda i, *_: i < iterations[0],
-            lambda i, e: (i + 1, tf.nn.erosion2d(e, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4)),
-            [0, eroded])
+        (eroded,) = tf.while_loop(
+            lambda _: True,
+            lambda e: (tf.nn.erosion2d(e, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4),),
+            (eroded,), maximum_iterations=iterations[0])
 
         dilated = tf.cast(tf.greater(alpha, 0), 'int32')
-        _, dilated = tf.while_loop(
-            lambda i, *_: i < iterations[1],
-            lambda i, d: (i + 1, tf.nn.dilation2d(d, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4)),
-            [0, dilated])
+        (dilated,) = tf.while_loop(
+            lambda _: True,
+            lambda d: (tf.nn.dilation2d(d, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4),),
+            (dilated,), maximum_iterations=iterations[1])
 
         shape, _ = get_shape(alpha)
         trimap = tf.fill(shape, 128)
