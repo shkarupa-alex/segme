@@ -43,6 +43,12 @@ def _erase(image, mask, replace=None, name=None):
         (batch,), _ = get_shape(image, axis=[0])
         mask = mask[:batch]
 
+        if replace is not None:
+            replace = tf.convert_to_tensor(replace, image.dtype, name='replace')
+            replace, _, _ = validate(replace, None, None)
+        else:
+            replace = tf.reduce_mean(image, axis=[1, 2], keepdims=True)
+
         image = tf.where(mask, image, replace)
 
         return image

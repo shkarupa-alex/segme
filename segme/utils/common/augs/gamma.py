@@ -13,12 +13,14 @@ def gamma(image, masks, weight, prob, factor, invert, name=None):
 def _gamma(image, factor, invert, name=None):
     with tf.name_scope(name or 'gamma_'):
         image, _, _ = validate(image, None, None)
+        invert = tf.convert_to_tensor(invert)
+
+        if invert.shape.rank:
+            (batch,), _ = get_shape(image, axis=[0])
+            invert = invert[:batch]
 
         dtype = image.dtype
         image = convert(image, 'float32')
-
-        (batch,), _ = get_shape(image, axis=[0])
-        invert = invert[:batch]
 
         image = tf.where(invert, 1. - image, image)
         image = tf.image.adjust_gamma(image, factor)

@@ -17,19 +17,6 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
 
             return result
 
-    # def _some(original, aug_fn, condition):
-    #     with tf.name_scope(name or 'some'):
-    #         image_ = image_fn(image)
-    #         (height_, width_), _ = get_shape(image_, axis=[1, 2])
-    #
-    #         # max_height = tf.maximum(height, height_)
-    #         # max_width = tf.maximum(width, width_)
-    #         # paddings = max_height - height, max_width - width, max_height - height_, max_width - width_
-    #         # original = tf.pad(original, [(0, 0), (0, paddings[0]), (0, paddings[1]), (0, 0)])
-    #         # augmented = tf.pad(augmented, [(0, 0), (0, paddings[2]), (0, paddings[3]), (0, 0)])
-    #
-    #         return tf.where(condition, augmented, original)
-
     def _all(original, aug_fn, condition):
         with tf.name_scope(name or 'all'):
             return smart_cond(condition, lambda: aug_fn(original), lambda: tf.identity(original))
@@ -167,9 +154,7 @@ def unwrap(image, replace=None, name=None):
             replace = tf.convert_to_tensor(replace, image.dtype, name='replace')
             replace, _, _ = validate(replace, None, None)
         else:
-            (batch,), _ = get_shape(image, axis=[0])
-            replace = tf.random.uniform([batch, 1, 1, image.shape[-1]])
-            replace = convert(replace, image.dtype, saturate=True)
+            replace = tf.reduce_mean(image, axis=[1, 2], keepdims=True)
 
         image = tf.where(tf.equal(mask, 1), image, replace)
 

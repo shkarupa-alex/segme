@@ -24,13 +24,13 @@ from segme.utils.common.augs.solarize import solarize
 from segme.utils.common.augs.translate import translate_x, translate_y
 
 
-def _autocontrast_args(magnitude, batch, channel, replace, reduce=1.):
+def _autocontrast_args(magnitude, batch, channel, reduce=1.):
     prob = magnitude / reduce
 
     return [prob]
 
 
-def _brightness_args(magnitude, batch, channel, replace, reduce=1., min_val=-0.5, max_val=0.5):
+def _brightness_args(magnitude, batch, channel, reduce=1., min_val=-0.5, max_val=0.5):
     min_val += 1e-5
 
     prob = magnitude / reduce
@@ -39,7 +39,7 @@ def _brightness_args(magnitude, batch, channel, replace, reduce=1., min_val=-0.5
     return [prob, factor]
 
 
-def _contrast_args(magnitude, batch, channel, replace, reduce=1., max_val=4.):
+def _contrast_args(magnitude, batch, channel, reduce=1., max_val=4.):
     direction = tf.cast(tf.random.uniform([]) > 0.5, 'float32')
 
     prob = magnitude / reduce
@@ -49,32 +49,32 @@ def _contrast_args(magnitude, batch, channel, replace, reduce=1., max_val=4.):
     return [prob, factor]
 
 
-def _equalize_args(magnitude, batch, channel, replace, reduce=1.):
+def _equalize_args(magnitude, batch, channel, reduce=1.):
     prob = magnitude / reduce
 
     return [prob]
 
 
-def _erase_args(magnitude, batch, channel, replace, reduce=1., min_area=0.02, max_area=0.5):
+def _erase_args(magnitude, batch, channel, reduce=1., min_area=0.02, max_area=0.5):
     prob = magnitude / reduce
     area = (min_area, max_area * magnitude)
 
-    return [prob, area, replace]
+    return [prob, area]
 
 
-def _flip_lr_args(magnitude, batch, channel, replace, reduce=1.):
+def _flip_lr_args(magnitude, batch, channel, reduce=1.):
     prob = 1.  # safe & efficient to apply without magnitude
 
     return [prob]
 
 
-def _flip_ud_args(magnitude, batch, channel, replace, reduce=4.):
+def _flip_ud_args(magnitude, batch, channel, reduce=4.):
     prob = magnitude / reduce
 
     return [prob]
 
 
-def _gamma_args(magnitude, batch, channel, replace, reduce=1., max_pow=3.):
+def _gamma_args(magnitude, batch, channel, reduce=1., max_pow=3.):
     direction = tf.cast(tf.random.uniform([]) > 0.5, 'float32')
 
     prob = magnitude / reduce
@@ -86,7 +86,7 @@ def _gamma_args(magnitude, batch, channel, replace, reduce=1., max_pow=3.):
     return [prob, factor, invert]
 
 
-def _gaussblur_args(magnitude, batch, channel, replace, reduce=1.):
+def _gaussblur_args(magnitude, batch, channel, reduce=1.):
     prob = magnitude / reduce
     size = tf.random.uniform([], minval=3. - 1.49, maxval=3. + 4 * magnitude + 0.49)
     size = tf.round(size) // 2 * 2 + 1
@@ -94,14 +94,14 @@ def _gaussblur_args(magnitude, batch, channel, replace, reduce=1.):
     return [prob, size]
 
 
-def _grayscale_args(magnitude, batch, channel, replace, reduce=2.):
+def _grayscale_args(magnitude, batch, channel, reduce=2.):
     prob = magnitude / reduce
     factor = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude)
 
     return [prob, factor]
 
 
-def _hue_args(magnitude, batch, channel, replace, reduce=1., min_val=-0.8, max_val=0.8):
+def _hue_args(magnitude, batch, channel, reduce=1., min_val=-0.8, max_val=0.8):
     min_val += 1e-5
     delta = (max_val - min_val) * (1. - magnitude) / 2
 
@@ -111,13 +111,13 @@ def _hue_args(magnitude, batch, channel, replace, reduce=1., min_val=-0.8, max_v
     return [prob, factor]
 
 
-def _invert_args(magnitude, batch, channel, replace, reduce=12.):
+def _invert_args(magnitude, batch, channel, reduce=12.):
     prob = magnitude / reduce
 
     return [prob]
 
 
-def _jpeg_args(magnitude, batch, channel, replace, reduce=1., min_val=30, max_val=99):
+def _jpeg_args(magnitude, batch, channel, reduce=1., min_val=30, max_val=99):
     delta = (max_val - min_val) * (1. - magnitude)
 
     prob = magnitude / reduce
@@ -126,34 +126,34 @@ def _jpeg_args(magnitude, batch, channel, replace, reduce=1., min_val=30, max_va
     return [prob, quality]
 
 
-def _mix_args(magnitude, batch, channel, replace, reduce=1.):
+def _mix_args(magnitude, batch, channel, reduce=1.):
     prob = magnitude / reduce
     factor = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / 2.)
 
     return [prob, factor]
 
 
-def _posterize_args(magnitude, batch, channel, replace, reduce=2.):
+def _posterize_args(magnitude, batch, channel, reduce=2.):
     prob = magnitude / reduce
     bits = tf.cast(tf.random.uniform([], minval=1, maxval=round(1 + magnitude * 6 + 1e-5), dtype='int32'), 'uint8')
 
     return [prob, bits]
 
 
-def _rotate_args(magnitude, batch, channel, replace, reduce=1.):
+def _rotate_args(magnitude, batch, channel, reduce=1.):
     prob = magnitude / reduce
     degrees = tf.random.uniform([], minval=-45 * magnitude, maxval=45 * magnitude)
 
-    return [prob, degrees, replace]
+    return [prob, degrees]
 
 
-def _rotate_cw_ccw_args(magnitude, batch, channel, replace, reduce=2.):
+def _rotate_cw_ccw_args(magnitude, batch, channel, reduce=2.):
     prob = magnitude / reduce
 
     return [prob]
 
 
-def _saturation_args(magnitude, batch, channel, replace, reduce=1., max_val=4):
+def _saturation_args(magnitude, batch, channel, reduce=1., max_val=4):
     direction = tf.cast(tf.random.uniform([]) > 0.5, 'float32')
 
     prob = magnitude / reduce
@@ -163,37 +163,37 @@ def _saturation_args(magnitude, batch, channel, replace, reduce=1., max_val=4):
     return [prob, factor]
 
 
-def _sharpness_args(magnitude, batch, channel, replace, reduce=1.):
+def _sharpness_args(magnitude, batch, channel, reduce=1.):
     prob = magnitude / reduce
     factor = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / 2.)
 
     return [prob, factor]
 
 
-def _shear_x_y_args(magnitude, batch, channel, replace, reduce=1.):
+def _shear_x_y_args(magnitude, batch, channel, reduce=1.):
     prob = magnitude / reduce
     factor = tf.random.uniform([], minval=-magnitude, maxval=magnitude)
 
-    return [prob, factor, replace]
+    return [prob, factor]
 
 
-def _shuffle_args(magnitude, batch, channel, replace, reduce=1.):
+def _shuffle_args(magnitude, batch, channel, reduce=1.):
     prob = magnitude / reduce
 
     return [prob]
 
 
-def _solarize_args(magnitude, batch, channel, replace, reduce=4.):
+def _solarize_args(magnitude, batch, channel, reduce=4.):
     prob = magnitude / reduce
 
     return [prob]
 
 
-def _translate_x_y_args(magnitude, batch, channel, replace, reduce=1.):
+def _translate_x_y_args(magnitude, batch, channel, reduce=1.):
     prob = magnitude / reduce
     factor = tf.random.uniform([], minval=-magnitude / 3, maxval=magnitude / 3)
 
-    return [prob, factor, replace]
+    return [prob, factor]
 
 
 _AUG_FUNC = {
@@ -299,11 +299,9 @@ def rand_augment_full(image, masks, weight, levels=5, magnitude=0.5, ops=None, n
 
         for i in range(levels):
             with tf.name_scope(f'level_{i}'):
-                replace = tf.reduce_mean(image, axis=[1, 2], keepdims=True)
-
                 for j, op_name in enumerate(ops):
                     func = _AUG_FUNC[op_name]
-                    args = _AUG_ARGS[op_name](magnitude, batch, channel, replace)
+                    args = _AUG_ARGS[op_name](magnitude, batch, channel)
 
                     image, masks, weight = tf.cond(
                         tf.equal(selected[i], j),

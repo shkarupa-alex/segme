@@ -14,12 +14,14 @@ def sharpness(image, masks, weight, prob, factor, name=None):
 def _sharpness(image, factor, name=None):
     with tf.name_scope(name or 'sharpness_'):
         image, _, _ = validate(image, None, None)
+        factor = tf.convert_to_tensor(factor)
+
+        if factor.shape.rank:
+            (batch,), _ = get_shape(image, axis=[0])
+            factor = factor[:batch]
 
         dtype = image.dtype
         image = convert(image, 'float32')
-
-        (batch,), _ = get_shape(image, axis=[0])
-        factor = factor[:batch]
 
         kernel = np.array([[1, 1, 1], [1, 5, 1], [1, 1, 1]], 'float32') / 13.
         kernel = np.tile(kernel[..., None, None], [1, 1, 3, 1])

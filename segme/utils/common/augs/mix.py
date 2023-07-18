@@ -13,9 +13,12 @@ def mix(image, masks, weight, prob, factor, color=None, name=None):
 def _mix(image, factor, color=None, name=None):
     with tf.name_scope(name or 'mix_'):
         image, _, _ = validate(image, None, None)
+        factor = tf.convert_to_tensor(factor)
 
         (batch,), _ = get_shape(image, axis=[0])
-        factor = factor[:batch]
+
+        if factor.shape.rank:
+            factor = factor[:batch]
 
         if color is not None:
             color = tf.convert_to_tensor(color, image.dtype, name='color')
