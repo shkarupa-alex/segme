@@ -40,6 +40,8 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
 
         if static_size:
             if square_size:
+                switch_some = switch_some[:, 0, 0, 0]
+
                 indices = tf.range(batch, dtype='int32')
                 indices, indices_ = indices[~switch_some], indices[switch_some]
 
