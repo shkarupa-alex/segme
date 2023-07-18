@@ -1,4 +1,5 @@
 import tensorflow as tf
+from segme.common.shape import get_shape
 from segme.utils.common.augs.common import apply, blend, convert, validate
 
 
@@ -15,6 +16,9 @@ def _grayscale(image, factor, name=None):
 
         dtype = image.dtype
         image = convert(image, 'float32')
+
+        (batch,), _ = get_shape(image, axis=[0])
+        factor = factor[:batch]
 
         image_ = tf.image.rgb_to_grayscale(image)
         image_ = tf.image.grayscale_to_rgb(image_)

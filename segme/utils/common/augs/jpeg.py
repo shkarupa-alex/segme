@@ -16,6 +16,7 @@ def _jpeg(image, factor, name=None):
         dtype = image.dtype
         image = convert(image, 'uint8')
 
-        image = tf.map_fn(lambda x: tf.image.adjust_jpeg_quality(x, factor), image)
+        image_ = tf.map_fn(lambda x: tf.image.adjust_jpeg_quality(x, factor), image)
+        image_.set_shape(image.shape)
 
-        return convert(image, dtype, saturate=True)
+        return convert(image_, dtype, saturate=True)

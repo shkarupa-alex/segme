@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from segme.utils.common.augs.common import apply, validate
 from segme.common.shape import get_shape
+from segme.utils.common.augs.common import apply, validate
 
 
 def erase(image, masks, weight, prob, area, replace=None, name=None):

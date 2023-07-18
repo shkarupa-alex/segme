@@ -1,28 +1,64 @@
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from segme.utils.common import rand_augment_full
-from segme.utils.common.augs.tests.testing_utils import aug_samples
+from segme.utils.common.randaug import rand_augment_full, _AUG_FUNC
 
 
 @test_util.run_all_in_graph_and_eager_modes
 class TestRandAugment(tf.test.TestCase):
-    def test_full(self):
-        images, masks = aug_samples('autocontrast')
-        masks = masks[..., :1]
-        weights = tf.ones_like(masks, 'float32')
+    def test_known_square(self):
+        images = tf.random.uniform([8, 32, 32, 3])
+        masks = tf.random.uniform([8, 32, 32, 2], maxval=4, dtype='int32')
+        weights = tf.random.uniform([8, 32, 32, 1], dtype='float32')
 
-        images_, [masks_], weights_ = rand_augment_full(images, [masks], weights, magnitude=1.)
+        images_, [masks_], weights_ = rand_augment_full(images, [masks], weights, levels=len(_AUG_FUNC), magnitude=1.)
 
-        self.assertEqual(6, images_.shape[0])
-        self.assertEqual(3, images_.shape[-1])
+        self.assertShapeEqual(images_, images)
         self.assertDTypeEqual(images_, images.dtype)
 
-        self.assertEqual(6, masks_.shape[0])
-        self.assertEqual(1, masks_.shape[-1])
+        self.assertShapeEqual(masks_, masks)
         self.assertDTypeEqual(masks_, masks_.dtype)
 
-        self.assertEqual(6, weights_.shape[0])
-        self.assertEqual(1, weights_.shape[-1])
+        self.assertShapeEqual(weights_, weights)
+        self.assertDTypeEqual(weights_, weights.dtype)
+
+    def test_known_non_square_no_rotate(self):
+        images = tf.random.uniform([8, 32, 64, 3])
+        masks = tf.random.uniform([8, 32, 64, 2], maxval=4, dtype='int32')
+        weights = tf.random.uniform([8, 32, 64, 1], dtype='float32')
+
+        ops = list(set(_AUG_FUNC.keys()) - {'RotateCCW', 'RotateCW'})
+        images_, [masks_], weights_ = rand_augment_full(images, [masks], weights, levels=len(ops), magnitude=1.,
+                                                        ops=ops)
+
+        self.assertShapeEqual(images_, images)
+        self.assertDTypeEqual(images_, images.dtype)
+
+        self.assertShapeEqual(masks_, masks)
+        self.assertDTypeEqual(masks_, masks.dtype)
+
+        self.assertShapeEqual(weights_, weights)
+        self.assertDTypeEqual(weights_, weights.dtype)
+
+    def test_known_non_square_rotate(self):
+        images = tf.random.uniform([8, 32, 64, 3])
+        masks = tf.random.uniform([8, 32, 64, 2], maxval=4, dtype='int32')
+        weights = tf.random.uniform([8, 32, 64, 1], dtype='float32')
+
+        images_, [masks_], weights_ = rand_augment_full(images, [masks], weights, levels=len(_AUG_FUNC), magnitude=1.)
+
+        self.assertTrue(images_.shape in [
+            images.shape, (images.shape[0], None, None, images.shape[3]),
+            (images.shape[0], images.shape[2], images.shape[1], images.shape[3])])
+        self.assertDTypeEqual(images_, images.dtype)
+
+        self.assertTrue(masks_.shape in [
+            masks.shape, (masks.shape[0], None, None, masks.shape[3]),
+            (masks.shape[0], masks.shape[2], masks.shape[1], masks.shape[3])])
+        self.assertDTypeEqual(masks_, masks.dtype)
+
+        self.assertTrue(weights_.shape in [
+            weights.shape, (weights.shape[0], None, None, weights.shape[3]),
+            (weights.shape[0], weights.shape[2], weights.shape[1], weights.shape[3])])
         self.assertDTypeEqual(weights_, weights.dtype)
 
 

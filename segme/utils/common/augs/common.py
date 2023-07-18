@@ -5,104 +5,94 @@ from segme.common.shape import get_shape
 
 
 def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
+    def _some(original, condition, aug_fn, orig_idx, aug_idx):
+        with tf.name_scope(name or 'some'):
+            shape = original.shape
+
+            augmented, original = original[condition], original[~condition]
+            augmented = aug_fn(augmented)
+
+            result = data_flow_ops.parallel_dynamic_stitch([aug_idx, orig_idx], [augmented, original])
+            result.set_shape(shape)
+
+            return result
+
+    # def _some(original, aug_fn, condition):
+    #     with tf.name_scope(name or 'some'):
+    #         image_ = image_fn(image)
+    #         (height_, width_), _ = get_shape(image_, axis=[1, 2])
+    #
+    #         # max_height = tf.maximum(height, height_)
+    #         # max_width = tf.maximum(width, width_)
+    #         # paddings = max_height - height, max_width - width, max_height - height_, max_width - width_
+    #         # original = tf.pad(original, [(0, 0), (0, paddings[0]), (0, paddings[1]), (0, 0)])
+    #         # augmented = tf.pad(augmented, [(0, 0), (0, paddings[2]), (0, paddings[3]), (0, 0)])
+    #
+    #         return tf.where(condition, augmented, original)
+
+    def _all(original, aug_fn, condition):
+        with tf.name_scope(name or 'all'):
+            return smart_cond(condition, lambda: aug_fn(original), lambda: tf.identity(original))
+
     with tf.name_scope(name or 'apply'):
-        def _select_some(x, x_, s, h, w, h_, w_):
-            with tf.name_scope(name or 'select_some'):
-                mh = tf.maximum(h, h_)
-                mw = tf.maximum(w, w_)
-                x = tf.pad(x, [(0, 0), (0, mh - h), (0, mw - w), (0, 0)])
-                x_ = tf.pad(x_, [(0, 0), (0, mh - h_), (0, mw - w_), (0, 0)])
-                s = tf.cast(s, x.dtype)
-
-                x = x * (1 - s) + x_ * s
-
-                return x
-
-        def _select_all(x, x_, s):
-            with tf.name_scope(name or 'select_all'):
-                r = smart_cond(s, lambda: tf.identity(x_), lambda: tf.identity(x))
-                return r
-
         image, masks, weight = validate(image, masks, weight)
-        prob, _, _ = validate(prob, None, None)
-        if {1} != set(prob.shape[1:]):
-            raise ValueError('Expecting `prob` shape to be [*, 1, 1, 1].')
+
+        prob = tf.convert_to_tensor(prob)
+        if prob.shape.rank:
+            raise ValueError('Expecting `prob` to be a scalar.')
 
         (batch, height, width), _ = get_shape(image, axis=[0, 1, 2])
         static_size = not tf.is_tensor(height) and not tf.is_tensor(width)
         square_size = height == width if static_size else tf.equal(height, width)
 
-        switch_some = tf.random.uniform([batch, 1, 1, 1]) < prob
-        switch_all = switch_some[0, 0, 0, 0]
+        switch_some = tf.random.uniform([batch]) < prob
+        switch_all = switch_some[0]
 
-        image_ = image_fn(image)
-        (height_, width_), _ = get_shape(image_, axis=[1, 2])
+        if static_size and square_size:
+            indices = tf.range(batch, dtype='int32')
+            indices_, indices = indices[switch_some], indices[~switch_some]
 
-        if static_size:
-            if square_size:
-                switch_some = switch_some[:, 0, 0, 0]
+            image = _some(image, switch_some, image_fn, indices, indices_)
 
-                indices = tf.range(batch, dtype='int32')
-                indices, indices_ = indices[~switch_some], indices[switch_some]
+            if masks is not None:
+                masks = [_some(m, switch_some, mask_fn, indices, indices_) for m in masks]
 
-                image, image_ = image[~switch_some], image[switch_some]
-                image_ = image_fn(image_)
-                image = data_flow_ops.parallel_dynamic_stitch([indices_, indices], [image_, image])
+            if weight is not None:
+                weight = _some(weight, switch_some, weight_fn, indices, indices_)
 
-                if masks is not None:
-                    temp = []
-                    for mask in masks:
-                        mask, mask_ = mask[~switch_some], mask[switch_some]
-                        mask_ = mask_fn(mask_)
-                        mask = data_flow_ops.parallel_dynamic_stitch([indices_, indices], [mask_, mask])
-                        temp.append(mask)
-                    masks = temp
+        elif static_size and not square_size:
+            image = _all(image, image_fn, switch_all)
 
-                if weight is not None:
-                    weight, weight_ = weight[~switch_some], weight[switch_some]
-                    weight_ = weight_fn(weight_)
-                    weight = data_flow_ops.parallel_dynamic_stitch([indices_, indices], [weight_, weight])
-            else:
-                image_ = image_fn(image)
-                image = _select_all(image, image_, switch_all)
+            if masks is not None:
+                masks = [_all(m, mask_fn, switch_all) for m in masks]
 
-                if masks is not None:
-                    temp = []
-                    for mask in masks:
-                        mask_ = mask_fn(mask)
-                        mask = _select_all(mask, mask_, switch_all)
-                        temp.append(mask)
-                    masks = temp
+            if weight is not None:
+                weight = _all(weight, weight_fn, switch_all)
 
-                if weight is not None:
-                    weight_ = weight_fn(weight)
-                    weight = _select_all(weight, weight_, switch_all)
         else:
-            image_ = image_fn(image)
-            (height_, width_), _ = get_shape(image_, axis=[1, 2])
+            indices = tf.range(batch, dtype='int32')
+            indices_, indices = indices[switch_some], indices[~switch_some]
 
             image = smart_cond(
                 square_size,
-                lambda: _select_some(image, image_, switch_some, height, width, height_, width_),
-                lambda: _select_all(image, image_, switch_all))
+                lambda: _some(image, switch_some, image_fn, indices, indices_),
+                lambda: _all(image, image_fn, switch_all))
 
             if masks is not None:
                 temp = []
                 for mask in masks:
-                    mask_ = mask_fn(mask)
                     mask = smart_cond(
                         square_size,
-                        lambda: _select_some(mask, mask_, switch_some, height, width, height_, width_),
-                        lambda: _select_all(mask, mask_, switch_all))
+                        lambda: _some(mask, switch_some, mask_fn, indices, indices_),
+                        lambda: _all(mask, mask_fn, switch_all))
                     temp.append(mask)
                 masks = temp
 
             if weight is not None:
-                weight_ = weight_fn(weight)
                 weight = smart_cond(
                     square_size,
-                    lambda: _select_some(weight, weight_, switch_some, height, width, height_, width_),
-                    lambda: _select_all(weight, weight_, switch_all))
+                    lambda: _some(weight, switch_some, weight_fn, indices, indices_),
+                    lambda: _all(weight, weight_fn, switch_all))
 
         return image, masks, weight
 
