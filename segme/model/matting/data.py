@@ -477,7 +477,7 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
                 yield '{}_{}'.format(alpha_file, i), alpha, fg, bg, trimap
 
 
-@tf.function
+@tf.function(jit_compile=False)
 def _augment_examples(examples):
     alpha = examples['alpha']
     foreground = examples['foreground']
@@ -503,6 +503,7 @@ def _augment_examples(examples):
     }
 
 
+@tf.function(jit_compile=True)
 def _prepare_examples_mf(examples):
     alpha = tf.cast(examples['alpha'], 'float32') / 255.
     foreground = tf.cast(examples['foreground'], 'float32') / 255.
@@ -518,6 +519,7 @@ def _prepare_examples_mf(examples):
     return features, (alpha, labels, labels, labels), (weights, None, None, None)
 
 
+@tf.function(jit_compile=False)
 def _prepare_examples_fba(examples):
     alpha = tf.cast(examples['alpha'], 'float32') / 255.
     foreground = tf.cast(examples['foreground'], 'float32') / 255.
@@ -540,6 +542,7 @@ def _prepare_examples_fba(examples):
     return features, labels, weights
 
 
+@tf.function(jit_compile=True)
 def _normalize_trimap(examples):
     trimap = examples['trimap']
     trimap = tf.cast(trimap // 86, 'int32') * 128
@@ -549,7 +552,7 @@ def _normalize_trimap(examples):
     return examples
 
 
-def make_dataset(data_dir, split_name, out_mode, batch_size=1, batch_mult=1):
+def make_dataset(data_dir, split_name, out_mode, batch_size=1):
     train_split = tfds.Split.TRAIN == split_name
 
     builder = MattingDataset(source_dirs=[], background_dirs=[], data_dir=data_dir)
@@ -559,15 +562,12 @@ def make_dataset(data_dir, split_name, out_mode, batch_size=1, batch_mult=1):
 
     if train_split:
         dataset = dataset \
-            .shuffle(batch_size * batch_mult * 8) \
-            .batch(max(32, batch_size * batch_mult * 2), drop_remainder=True) \
+            .shuffle(batch_size * 8) \
+            .batch(max(32, batch_size * 4), drop_remainder=True) \
             .map(_augment_examples, num_parallel_calls=tf.data.experimental.AUTOTUNE) \
             .unbatch() \
-            .shuffle(batch_size * batch_mult * 8) \
+            .shuffle(batch_size * 8) \
             .batch(batch_size, drop_remainder=True)
-
-        if batch_mult > 1:
-            dataset = dataset.take((len(dataset) // batch_mult) * batch_mult)
     else:
         dataset = dataset \
             .batch(1) \

@@ -247,8 +247,8 @@ def _transform_examples(images, labels, train, levels, magnitude, preprocess):
 
 
 def make_dataset(
-        data_dir, split_name, batch_size, batch_mult=1, image_size=384, preprocess_mode='torch',
-        aug_levels=5, aug_magnitude=0.5, remap_classes=False):
+        data_dir, split_name, batch_size, image_size=384, preprocess_mode='torch', aug_levels=5, aug_magnitude=0.5,
+        remap_classes=False):
     train_split = tfds.Split.TRAIN == split_name
 
     builder = Imagenet21k1k(data_dir=data_dir)
@@ -261,10 +261,7 @@ def make_dataset(
         .batch(batch_size, drop_remainder=train_split)
 
     if train_split:
-        dataset = dataset.shuffle(batch_mult * 32)
-
-        if batch_mult > 1:
-            dataset = dataset.take((len(dataset) // batch_mult) * batch_mult)
+        dataset = dataset.shuffle(32)
 
     dataset = dataset.map(
         lambda images, labels: _transform_examples(
