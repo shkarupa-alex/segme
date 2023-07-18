@@ -17,7 +17,6 @@ def _gaussblur(image, size, name=None):
         image = convert(image, 'float32')
 
         sigma = 0.3 * ((size - 1) * 0.5 - 1) + 0.8
-
         kernel = tf.cast(tf.range(-size // 2 + 1, size // 2 + 1), dtype='float32')
         kernel = tf.exp(-tf.pow(kernel, 2) / (2. * tf.pow(tf.cast(sigma, 'float32'), 2)))
         kernel /= tf.reduce_sum(kernel)

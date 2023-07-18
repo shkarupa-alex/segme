@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from segme.utils.common.augs.common import apply, convert, wrap, unwrap, validate
+from segme.utils.common.augs.common import apply, validate
 from segme.common.shape import get_shape
 
 
@@ -28,7 +28,6 @@ def erase(image, masks, weight, prob, area, replace=None, name=None):
 
         mask = ((hrange < hcenter - hradius) | (hrange > hcenter + hradius)) | \
                ((wrange < wcenter - wradius) | (wrange > wcenter + wradius))
-        mask = tf.cast(mask, 'float32')
 
         return apply(
             image, masks, weight, prob,
@@ -41,10 +40,9 @@ def _erase(image, mask, replace=None, name=None):
     with tf.name_scope(name or 'erase_'):
         image, _, mask = validate(image, None, mask)
 
-        mask = tf.cast(mask, image.dtype)
+        (batch,), _ = get_shape(image, axis=[0])
+        mask = mask[:batch]
 
-        image = wrap(image)
-        image *= mask
-        image = unwrap(image, replace)
+        image = tf.where(mask, image, replace)
 
         return image

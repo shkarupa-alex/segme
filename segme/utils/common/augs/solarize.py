@@ -24,7 +24,6 @@ def _solarize(image, threshold=None, name=None):
             if threshold is None:
                 threshold = np.round(dtype.max / 2).astype(dtype.as_numpy_dtype())
 
-        mask = tf.cast(image < threshold, dtype)
-        image = image * mask + (max_val - image) * (1 - mask)
+        image = tf.where(image < threshold, image, max_val - image)
 
         return image

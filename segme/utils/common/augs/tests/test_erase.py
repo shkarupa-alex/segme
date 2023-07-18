@@ -8,9 +8,9 @@ from segme.utils.common.augs.tests.testing_utils import aug_samples, max_diff
 @test_util.run_all_in_graph_and_eager_modes
 class TestErase(tf.test.TestCase):
     def test_ref(self):
-        mask = np.ones([6, 448, 448, 1], 'float32')
+        mask = np.ones([6, 448, 448, 1], 'bool')
         for i in range(6):
-            mask[i, i * 64: (i + 1) * 64, i * 64: (i + 1) * 64] = 0.
+            mask[i, i * 64: (i + 1) * 64, i * 64: (i + 1) * 64] = False
 
         inputs, expected = aug_samples('erase')
         augmented = _erase(inputs, mask, [[[[0, 128, 255]]]])
@@ -19,9 +19,9 @@ class TestErase(tf.test.TestCase):
         self.assertLessEqual(difference, 1e-5)
 
     def test_float(self):
-        mask = np.ones([6, 448, 448, 1], 'float32')
+        mask = np.ones([6, 448, 448, 1], 'bool')
         for i in range(6):
-            mask[i, i * 64: (i + 1) * 64, i * 64: (i + 1) * 64] = 0.
+            mask[i, i * 64: (i + 1) * 64, i * 64: (i + 1) * 64] = False
 
         inputs, expected = aug_samples('erase', 'float32')
         augmented = _erase(inputs, mask, [[[[0., 128 / 255, 1.]]]])

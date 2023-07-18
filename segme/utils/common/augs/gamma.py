@@ -16,10 +16,8 @@ def _gamma(image, factor, invert, name=None):
         dtype = image.dtype
         image = convert(image, 'float32')
 
-        invert = tf.cast(invert, 'float32')
-
-        image = (1. - image) * invert + image * (1. - invert)
+        image = tf.where(invert, 1. - image, image)
         image = tf.image.adjust_gamma(image, factor)
-        image = (1. - image) * invert + image * (1. - invert)
+        image = tf.where(invert, 1. - image, image)
 
         return convert(image, dtype, saturate=True)

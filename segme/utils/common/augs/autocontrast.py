@@ -20,8 +20,6 @@ def _autocontrast(image, name=None):
         hi = tf.reduce_max(image, axis=[1, 2], keepdims=True)
 
         image_ = tf.math.divide_no_nan(image - lo, hi - lo)
-
-        mask = tf.cast(hi > lo, image.dtype)
-        image = image_ * mask + image * (1 - mask)
+        image = tf.where(hi > lo, image_, image)
 
         return convert(image, dtype, saturate=True)

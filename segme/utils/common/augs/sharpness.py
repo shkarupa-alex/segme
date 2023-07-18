@@ -24,11 +24,11 @@ def _sharpness(image, factor, name=None):
         image_ = tf.nn.depthwise_conv2d(image, kernel, [1] * 4, padding='VALID')
         image_ = tf.clip_by_value(image_, 0., 1.)
 
-        mask = tf.ones_like(image_)
+        mask = tf.ones_like(image_, dtype='bool')
         mask = tf.pad(mask, [[0, 0], [1, 1], [1, 1], [0, 0]])
 
         image_ = tf.pad(image_, [[0, 0], [1, 1], [1, 1], [0, 0]])
-        image_ = image_ * mask + image * (1 - mask)
+        image_ = tf.where(mask, image_, image)
 
         image = blend(image, image_, factor)
 

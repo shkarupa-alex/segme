@@ -1,4 +1,6 @@
 import tensorflow as tf
+from keras.src.utils.control_flow_util import smart_cond
+from tensorflow.python.ops import data_flow_ops
 from segme.common.shape import get_shape
 
 
@@ -18,42 +20,87 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
 
         def _select_all(x, x_, s):
             with tf.name_scope(name or 'select_all'):
-                r = tf.cond(s, lambda: tf.identity(x_), lambda: tf.identity(x))
+                r = smart_cond(s, lambda: tf.identity(x_), lambda: tf.identity(x))
                 return r
 
         image, masks, weight = validate(image, masks, weight)
-        image_ = image_fn(image)
+        prob, _, _ = validate(prob, None, None)
+        if {1} != set(prob.shape[1:]):
+            raise ValueError('Expecting `prob` shape to be [*, 1, 1, 1].')
 
         (batch, height, width), _ = get_shape(image, axis=[0, 1, 2])
+        static_size = not tf.is_tensor(height) and not tf.is_tensor(width)
+        square_size = height == width if static_size else tf.equal(height, width)
+
+        switch_some = tf.random.uniform([batch, 1, 1, 1]) < prob
+        switch_all = switch_some[0, 0, 0, 0]
+
+        image_ = image_fn(image)
         (height_, width_), _ = get_shape(image_, axis=[1, 2])
-        same = tf.logical_and(tf.equal(height, height_), tf.equal(width, width_))
 
-        switch_full = tf.random.uniform([batch, 1, 1, 1]) < prob
-        switch_all = switch_full[0, 0, 0, 0]
-        switch_part = tf.cast(switch_full[..., :1], 'float32')
+        if static_size:
+            if square_size:
+                indices = tf.range(batch, dtype='int32')
+                indices, indices_ = indices[~switch_some], indices[switch_some]
 
-        image = tf.cond(
-            same,
-            lambda: _select_some(image, image_, switch_part, height, width, height_, width_),
-            lambda: _select_all(image, image_, switch_all))
+                image, image_ = image[~switch_some], image[switch_some]
+                image_ = image_fn(image_)
+                image = data_flow_ops.parallel_dynamic_stitch([indices_, indices], [image_, image])
 
-        if masks is not None:
-            temp = []
-            for mask in masks:
-                mask_ = mask_fn(mask)
-                mask = tf.cond(
-                    same,
-                    lambda: _select_some(mask, mask_, switch_part, height, width, height_, width_),
-                    lambda: _select_all(mask, mask_, switch_all))
-                temp.append(mask)
-            masks = temp
+                if masks is not None:
+                    temp = []
+                    for mask in masks:
+                        mask, mask_ = mask[~switch_some], mask[switch_some]
+                        mask_ = mask_fn(mask_)
+                        mask = data_flow_ops.parallel_dynamic_stitch([indices_, indices], [mask_, mask])
+                        temp.append(mask)
+                    masks = temp
 
-        if weight is not None:
-            weight_ = weight_fn(weight)
-            weight = tf.cond(
-                same,
-                lambda: _select_some(weight, weight_, switch_part, height, width, height_, width_),
-                lambda: _select_all(weight, weight_, switch_all))
+                if weight is not None:
+                    weight, weight_ = weight[~switch_some], weight[switch_some]
+                    weight_ = weight_fn(weight_)
+                    weight = data_flow_ops.parallel_dynamic_stitch([indices_, indices], [weight_, weight])
+            else:
+                image_ = image_fn(image)
+                image = _select_all(image, image_, switch_all)
+
+                if masks is not None:
+                    temp = []
+                    for mask in masks:
+                        mask_ = mask_fn(mask)
+                        mask = _select_all(mask, mask_, switch_all)
+                        temp.append(mask)
+                    masks = temp
+
+                if weight is not None:
+                    weight_ = weight_fn(weight)
+                    weight = _select_all(weight, weight_, switch_all)
+        else:
+            image_ = image_fn(image)
+            (height_, width_), _ = get_shape(image_, axis=[1, 2])
+
+            image = smart_cond(
+                square_size,
+                lambda: _select_some(image, image_, switch_some, height, width, height_, width_),
+                lambda: _select_all(image, image_, switch_all))
+
+            if masks is not None:
+                temp = []
+                for mask in masks:
+                    mask_ = mask_fn(mask)
+                    mask = smart_cond(
+                        square_size,
+                        lambda: _select_some(mask, mask_, switch_some, height, width, height_, width_),
+                        lambda: _select_all(mask, mask_, switch_all))
+                    temp.append(mask)
+                masks = temp
+
+            if weight is not None:
+                weight_ = weight_fn(weight)
+                weight = smart_cond(
+                    square_size,
+                    lambda: _select_some(weight, weight_, switch_some, height, width, height_, width_),
+                    lambda: _select_all(weight, weight_, switch_all))
 
         return image, masks, weight
 
@@ -132,8 +179,7 @@ def unwrap(image, replace=None, name=None):
             replace = tf.random.uniform([batch, 1, 1, image.shape[-1]])
             replace = convert(replace, image.dtype, saturate=True)
 
-        mask = tf.cast(tf.equal(mask, 1), image.dtype)
-        image = image * mask + replace * (1 - mask)
+        image = tf.where(tf.equal(mask, 1), image, replace)
 
         return image
 
