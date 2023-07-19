@@ -4,8 +4,7 @@ from segme.common.align import Align
 from segme.common.backbone import Backbone
 from segme.common.convnormact import ConvNormAct
 from segme.common.head import HeadProjection, ClassificationActivation
-from segme.common.resize import NearestInterpolation, BilinearInterpolation
-from segme.common.sequence import Sequence
+from segme.common.resize import BilinearInterpolation
 from segme.common.unfold import UnFold
 from segme.policy.backbone.utils import patch_config
 
@@ -49,24 +48,17 @@ def FPP(kernel_size=3, name=None):
 
         x = [ConvNormAct(channels, kernel_size, name=f'{name}_cna')(inputs)]
 
-        atr_channels = (channels // 24) * 8
+        atr_channels = (channels // 2 // 8) * 8
         for atr_rate in [12, 24, 36]:
-            y = Sequence([
-                ConvNormAct(None, kernel_size, dilation_rate=atr_rate, name=f'{name}_atr{atr_rate}_dna'),
-                ConvNormAct(atr_channels, 1, name=f'{name}_atr{atr_rate}_pna'),
-            ], name=f'{name}_atr{atr_rate}')(inputs)
+            y = ConvNormAct(None, kernel_size, dilation_rate=atr_rate, name=f'{name}_atr{atr_rate}_dna')(inputs)
+            y = ConvNormAct(atr_channels, 1, name=f'{name}_atr{atr_rate}_pna')(y)
             x.append(y)
 
-        avg_channels = (channels // 32) * 8
+        avg_channels = (channels // 4 // 8) * 8
         for avg_rate in [1, 2, 3, 6]:
-            y = Sequence([
-                AdaptiveAveragePooling(avg_rate, name=f'{name}_avg{avg_rate}_pool'),
-                ConvNormAct(avg_channels, 1, name=f'{name}_avg{avg_rate}_pna')
-            ], name=f'{name}_avg{avg_rate}')(inputs)
-            if 1 == avg_rate:
-                y = NearestInterpolation()([y, inputs])
-            else:
-                y = BilinearInterpolation()([y, inputs])
+            y = AdaptiveAveragePooling(avg_rate, name=f'{name}_avg{avg_rate}_pool')(inputs)
+            y = ConvNormAct(avg_channels, 1, name=f'{name}_avg{avg_rate}_pna')(y)
+            y = BilinearInterpolation(name=f'{name}_avg{avg_rate}_up')([y, inputs])
             x.append(y)
 
         x = layers.concatenate(x, name=f'{name}_merge')
