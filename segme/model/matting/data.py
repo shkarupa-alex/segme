@@ -547,7 +547,13 @@ def _normalize_trimap(examples):
     trimap = examples['trimap']
     trimap = tf.cast(trimap // 86, 'int32') * 128
     trimap = tf.cast(tf.clip_by_value(trimap, 0, 255), 'uint8')
-    examples['trimap'] = trimap
+
+    examples = {
+        'alpha': examples['alpha'],
+        'foreground': examples['foreground'],
+        'background': examples['background'],
+        'trimap': trimap
+    }
 
     return examples
 
