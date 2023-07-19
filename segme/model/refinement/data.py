@@ -476,10 +476,7 @@ def _transform_examples(examples, augment, batch_size, with_coord, with_prev):
     masks = tf.cast(masks > 127, 'uint8') * 255
 
     if augment:
-        images = tf.image.convert_image_dtype(images, 'float32')
         images, [masks, labels], weights = rand_augment_safe(images, [masks, labels], weights, levels=3)
-        # TODO: https://github.com/tensorflow/tensorflow/pull/54484
-        images = tf.cast(tf.round(tf.clip_by_value(images, 0., 1.) * 255.), 'uint8')
 
     if with_coord:
         features = {'image': images, 'mask': masks, 'coord': make_coords([batch_size, CROP_SIZE, CROP_SIZE])}
@@ -499,9 +496,9 @@ def make_dataset(data_dir, split_name, batch_size, with_coord=False, with_prev=F
     builder.download_and_prepare()
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=True)
-    if tfds.Split.TRAIN == split_name:
-        dataset = dataset.shuffle(batch_size * 100)
     dataset = dataset.batch(batch_size, drop_remainder=True)
+    if tfds.Split.TRAIN == split_name:
+        dataset = dataset.shuffle(32)
 
     dataset = dataset.map(
         lambda ex: _transform_examples(ex, tfds.Split.TRAIN == split_name, batch_size, with_coord, with_prev),
