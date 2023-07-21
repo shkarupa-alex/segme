@@ -34,6 +34,9 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
     if 'uint8' != fg1.dtype or 'uint8' != alpha1.dtype:
         raise ValueError('Expecting `fg_` and `alpha_` dtype to be `uint8`.')
 
+    if not isinstance(solve, (list, tuple)):
+        solve = (solve,) * 2
+
     if crop:  # Crop meaningful parts
         mask = alpha0 > 0
         hindex = mask.any(1).nonzero()[0]
@@ -51,13 +54,13 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
         fg1 = fg1[top_:bottom_, left_:right_]
         alpha1 = alpha1[top_:bottom_, left_:right_]
 
-    # Resize background to be compatible with foreground
     interpolation = cv2.INTER_AREA if min(alpha1.shape[:2]) > min(alpha0.shape[:2]) else cv2.INTER_LANCZOS4
+
+    # Resize background to be compatible with foreground
     alpha1 = cv2.resize(alpha1, alpha0.shape[1::-1], interpolation=interpolation)
 
     # Switch to float after resizing to beat overflow
-    fg0, alpha0 = fg0.astype('float32') / 255., alpha0.astype('float32') / 255.
-    fg1, alpha1 = fg1.astype('float32') / 255., alpha1.astype('float32') / 255.
+    alpha0, alpha1 = alpha0.astype('float32') / 255., alpha1.astype('float32') / 255.
 
     # Combine fgs and alphas
     # For description see https://github.com/Yaoyi-Li/GCA-Matting/issues/12
@@ -73,8 +76,16 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
     if (alpha == alpha0).all():
         raise AssertionError('First image fully overflows second one')
 
+    if (alpha == alpha1).all():
+        raise AssertionError('Second image fully encloses first one')
+
+    # Resize background to be compatible with foreground
     fg1 = cv2.resize(fg1, alpha0.shape[1::-1], interpolation=interpolation)
-    if solve:
+
+    # Switch to float after resizing to beat overflow
+    fg0, fg1 = fg0.astype('float32') / 255., fg1.astype('float32') / 255.
+
+    if solve[0]:
         fg0 = solve_fg(
             np.round(fg0 * 255.).astype('uint8'),
             np.round(alpha0 * 255.).astype('uint8')).astype('float32') / 255.
@@ -90,7 +101,7 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
     fg = np.round(fg * 255.).astype('uint8')
     alpha = np.round(alpha * 255.).astype('uint8')
 
-    if solve:
+    if solve[1]:
         fg = solve_fg(fg, alpha)
 
     return fg, alpha

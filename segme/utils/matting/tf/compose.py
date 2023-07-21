@@ -144,9 +144,15 @@ def random_compose(fg, alpha, prob=0.5, trim=None, solve=True, iterations=4, nam
         if 'uint8' != fg.dtype or 'uint8' != alpha.dtype:
             raise ValueError('Expecting `fg` and `alpha` dtype to be `uint8`.')
 
+        if not isinstance(solve, (list, tuple)):
+            solve = (solve,) * 2
+
+        if solve[0]:
+            fg = solve_fg(fg, alpha)
+
         fg_, alpha_ = smart_cond(
             tf.random.uniform([], 0., 1.) < prob,
-            lambda: compose_batch(fg, alpha, trim=trim, solve=solve, iterations=iterations),
+            lambda: compose_batch(fg, alpha, trim=trim, solve=solve[1], iterations=iterations),
             lambda: (tf.identity(fg), tf.identity(alpha)),
         )
 

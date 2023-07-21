@@ -488,9 +488,9 @@ def _augment_examples(examples):
     background.set_shape(background.shape[:1] + [CROP_SIZE, CROP_SIZE, 3])
 
     alpha = matting_tf.augment_alpha(alpha)
-    foreground, alpha = matting_tf.random_compose(foreground, alpha, trim=(max(TRIMAP_SIZE), 0.95), solve=False)
+    # foreground, alpha = matting_tf.random_compose(foreground, alpha, trim=(max(TRIMAP_SIZE), 0.95), solve=False)
     foreground, [alpha], _ = rand_augment_matting(foreground, [alpha], None)
-    foreground = matting_tf.solve_fg(foreground, alpha, kappa=0.334, steps=3)  # for crop size 512
+    # foreground = matting_tf.solve_fg(foreground, alpha, kappa=0.334, steps=3)  # for crop size 512
     background = tf.random.shuffle(background)
     trimap = matting_tf.alpha_trimap(alpha, size=TRIMAP_SIZE)
     trimap = matting_tf.augment_trimap(trimap)
