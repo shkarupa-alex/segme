@@ -35,14 +35,13 @@ def Stem(filters, depth, path_gamma=1., path_drop=0., name=None):
     def apply(inputs):
         x = Conv(filters, 3, strides=2, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_0_conv')(inputs)
         x = Act(name=f'{name}_0_act')(x)
-        x = Norm(center=False, policy='conv-gn-relu', name=f'{name}_0_norm')(x)
+        x = Norm(center=False, name=f'{name}_0_norm')(x)
 
         for i in range(depth):
             y = Conv(filters, 3, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_{i + 1}_conv')(x)
             y = Act(name=f'{name}_{i + 1}_act')(y)
             y = Norm(
-                center=False, policy='conv-gn-relu', gamma_initializer=initializers.Constant(path_gamma[i]),
-                name=f'{name}_{i + 1}_norm')(y)
+                center=False, gamma_initializer=initializers.Constant(path_gamma[i]), name=f'{name}_{i + 1}_norm')(y)
             y = DropPath(path_drop[i], name=f'{name}_{i + 1}_drop')(y)
             x = layers.add([y, x], name=f'{name}_{i + 1}_add')
 
@@ -185,24 +184,25 @@ def SoftSwin(
     else:
         image = layers.Input(shape=input_shape, name='images', dtype=input_dtype)
 
-    with cnapol.policy_scope('conv-ln-gelu'):
-        x = image
+    x = image
 
-        if include_preprocessing:
-            x = layers.Rescaling(scale=1.0 / 255, name='rescale')(x)
-            x = layers.Normalization(
-                mean=[0.485, 0.456, 0.406], variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2], name='normalize')(x)
+    if include_preprocessing:
+        x = layers.Rescaling(scale=1.0 / 255, name='rescale')(x)
+        x = layers.Normalization(
+            mean=[0.485, 0.456, 0.406], variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2], name='normalize')(x)
 
-        path_gammas = np.linspace(path_gamma, 1e-5, stem_depth + sum(stage_depths)).tolist()
-        path_drops = np.linspace(0., path_drop, stem_depth + sum(stage_depths)).tolist()
+    path_gammas = np.linspace(path_gamma, 1e-5, stem_depth + sum(stage_depths)).tolist()
+    stem_gammas, path_gammas = path_gammas[:stem_depth], path_gammas[stem_depth:]
 
-        stem_gammas, path_gammas = path_gammas[:stem_depth], path_gammas[stem_depth:]
-        stem_drops, path_drops = path_drops[:stem_depth], path_drops[stem_depth:]
+    path_drops = np.linspace(0., path_drop, stem_depth + sum(stage_depths)).tolist()
+    stem_drops, path_drops = path_drops[:stem_depth], path_drops[stem_depth:]
 
-        stem_filters = np.ceil(embed_dim / 6 / 8).astype('int32').item() * 8
+    with cnapol.policy_scope('conv-gn-gelu'):
+        stem_filters = np.ceil(embed_dim / 4 / 8).astype('int32').item() * 8
         x = Stem(stem_filters, stem_depth, path_gamma=stem_gammas, path_drop=stem_drops, name='stem')(x)
         x = layers.Activation('linear', name='stem_out')(x)
 
+    with cnapol.policy_scope('conv-ln-gelu'):
         shift_counter = -1
         for i, stage_depth in enumerate(stage_depths):
             stage_window = min(current_window, current_size // 2 ** (i + 2))
@@ -265,7 +265,7 @@ def SoftSwin(
 
 def SoftSwinTiny(
         embed_dim=96, stem_depth=2, stage_depths=(2, 2, 6, 2), pretrain_window=16, pretrain_size=256, **kwargs):
-    # 28.0 14.2
+    # 28.0 14.3
     return SoftSwin(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
         pretrain_size=pretrain_size, model_name='soft_swin_tiny', **kwargs)
@@ -274,7 +274,7 @@ def SoftSwinTiny(
 def SoftSwinSmall(
         embed_dim=96, stem_depth=2, stage_depths=(2, 2, 18, 2), pretrain_window=16, path_drop=0.3, pretrain_size=256,
         **kwargs):
-    # 49.4 26.6
+    # 49.4 26.7
     return SoftSwin(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
         path_drop=path_drop, pretrain_size=pretrain_size, model_name='soft_swin_small', **kwargs)
@@ -282,7 +282,7 @@ def SoftSwinSmall(
 
 def SoftSwinBase(
         embed_dim=128, stem_depth=3, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, **kwargs):
-    # 87.3 50.1 @ 256
+    # 87.3 50.6 @ 256
     return SoftSwin(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
         pretrain_window=pretrain_window, model_name='soft_swin_base', **kwargs)
@@ -290,7 +290,7 @@ def SoftSwinBase(
 
 def SoftSwinLarge(
         embed_dim=192, stem_depth=4, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, **kwargs):
-    # 195.3 105.6 @ 256
+    # 195.4 107.4 @ 256
     return SoftSwin(
         embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
         pretrain_window=pretrain_window, model_name='soft_swin_large', **kwargs)
