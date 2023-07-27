@@ -220,9 +220,9 @@ def partition_reverse_fused(
                 head_channels])
 
         if part_type in {'window_size', 'window_count'}:
-            outputs = tf.transpose(outputs, [0, 1, 6, 2, 3, 7, 4, 8, 5])
+            outputs = tf.transpose(outputs, [0, 1, 6, 2, 3, 7, 4, 5, 8])
         else:
-            outputs = tf.transpose(outputs, [0, 6, 1, 2, 7, 3, 4, 8, 5])
+            outputs = tf.transpose(outputs, [0, 6, 1, 2, 7, 3, 4, 5, 8])
 
         outputs = tf.reshape(outputs, [
             -1, height_blocks * size_count * dilation_rate, width_blocks * size_count * dilation_rate, full_channels])

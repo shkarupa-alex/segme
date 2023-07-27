@@ -153,7 +153,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
 
                 for num_heads in [1, 2, 4]:
                     expected = inputs.reshape([-1, num_wind, num_heads, win_size, channels // num_heads])
-                    expected = tf.transpose(expected, perm=[0, 1, 3, 4, 2])
+                    expected = tf.transpose(expected, perm=[0, 1, 3, 2, 4])
                     expected = tf.reshape(expected, [-1, num_wind, win_size, channels])
                     expected = partition_reverse(expected, height, width, part_type, size, dilation_rate)
                     expected = self.evaluate(expected)
