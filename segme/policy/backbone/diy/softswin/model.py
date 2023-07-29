@@ -197,14 +197,10 @@ def SoftSwin(
     path_drops = np.linspace(0., path_drop, stem_depth + sum(stage_depths)).tolist()
     stem_drops, path_drops = path_drops[:stem_depth], path_drops[stem_depth:]
 
-    # with cnapol.policy_scope('conv-gn-gelu'):
-    #     stem_filters = np.ceil(embed_dim / 4 / 8).astype('int32').item() * 8
-    #     x = Stem(stem_filters, stem_depth, path_gamma=stem_gammas, path_drop=stem_drops, name='stem')(x)
-    #     x = layers.Activation('linear', name='stem_out')(x)
-
-    from tfswin.embed import PatchEmbedding
-    from tfswin.merge import PatchMerging
-    x = PatchEmbedding(4, embed_dim, True, name='patch_embed')(x)
+    with cnapol.policy_scope('conv-gn-gelu'):
+        stem_filters = np.ceil(embed_dim / 4 / 8).astype('int32').item() * 8
+        x = Stem(stem_filters, stem_depth, path_gamma=stem_gammas, path_drop=stem_drops, name='stem')(x)
+        x = layers.Activation('linear', name='stem_out')(x)
 
     with cnapol.policy_scope('conv-ln-gelu'):
         shift_counter = -1
@@ -215,10 +211,10 @@ def SoftSwin(
             stage_gammas, path_gammas = path_gammas[:stage_depth], path_gammas[stage_depth:]
             stage_drops, path_drops = path_drops[:stage_depth], path_drops[stage_depth:]
 
-            # reduce_fused = 0 == i  # From EfficientNet2
-            # reduce_ratio = embed_dim / stem_filters if 0 == i else 2
-            # x = Reduce(
-            #     reduce_fused, expand_ratio=reduce_ratio, project_ratio=reduce_ratio, name=f'stage_{i}_reduce')(x)
+            reduce_fused = 0 == i  # From EfficientNet2
+            reduce_ratio = embed_dim / stem_filters if 0 == i else 2
+            x = Reduce(
+                reduce_fused, expand_ratio=reduce_ratio, project_ratio=reduce_ratio, name=f'stage_{i}_reduce')(x)
 
             for j in range(stage_depth):
                 shift_counter += j % 2
@@ -228,9 +224,6 @@ def SoftSwin(
                     path_gamma=stage_gammas[j], path_drop=stage_drops[j], name=f'stage_{i}_attn_{j}')(x)
 
             x = layers.Activation('linear', name=f'stage_{i}_out')(x)
-
-            if i < 3:
-                x = PatchMerging(True, name=f'stage_{i}_downsample')(x)
 
         x = Norm(name='norm')(x)
 
