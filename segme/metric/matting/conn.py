@@ -58,8 +58,8 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
     thresh_steps = list(np.arange(step, step + 1., step))
 
     true_shape, _ = get_shape(y_true)
-    batch_size = true_shape[0]
-    channel_size = true_shape[-1]
+    batch, height, width, channels = true_shape
+    minmax_len = height * width * channels + 2
 
     thresh_map = []
     for threshold in thresh_steps:
@@ -67,12 +67,12 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
         component_labels = connected_components(combined_input, normalize=False)
 
         squezed_labels = tf.transpose(component_labels, [0, 3, 1, 2])
-        squezed_labels = tf.reshape(squezed_labels, [batch_size * channel_size, -1])
+        squezed_labels = tf.reshape(squezed_labels, [batch * channels, -1])
 
-        component_sizes = tf.math.bincount(squezed_labels, axis=-1)
-        component_sizes = tf.reshape(component_sizes, [batch_size, channel_size, -1])
+        component_sizes = tf.math.bincount(squezed_labels, minlength=minmax_len, maxlength=minmax_len, axis=-1)
+        component_sizes = tf.reshape(component_sizes, [batch, channels, -1])
         component_sizes *= tf.concat([
-            tf.zeros([batch_size, channel_size, 1], dtype=component_sizes.dtype),
+            tf.zeros([batch, channels, 1], dtype=component_sizes.dtype),
             tf.ones_like(component_sizes)[..., 1:]
         ], axis=-1)
 
@@ -85,7 +85,7 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
     thresh_map.append(tf.ones_like(y_true, dtype='bool'))
 
     thresh_map = tf.stack(thresh_map, axis=-1)
-    thresh_map = tf.reshape(thresh_map, [batch_size, -1, len(thresh_steps) + 1])
+    thresh_map = tf.reshape(thresh_map, [batch, -1, len(thresh_steps) + 1])
     thresh_map = tf.cast(tf.argmax(thresh_map, axis=-1), y_true.dtype) * step
     thresh_map = tf.reshape(thresh_map, true_shape)
 
