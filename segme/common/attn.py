@@ -494,7 +494,7 @@ class SlideAttention(layers.Layer):
         self.v_units = self.channels // self.num_heads
         self.qk_units = self.qk_units or self.v_units
         self.qk_channels = self.qk_units * self.num_heads
-        if self.v_units % self.qk_units:
+        if self.v_units % self.qk_units or self.qk_units > self.v_units:
             qk_allowed = [i for i in range(1, self.v_units + 1) if not self.v_units % i]
             raise ValueError(f'Provided QK units value is not supported. Allowed values are: {qk_allowed}.')
 
