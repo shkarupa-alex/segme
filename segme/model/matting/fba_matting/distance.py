@@ -26,7 +26,7 @@ def distance_transform(trimap, length=320):
     clicks = []
     for value in [0, 255]:
         twomap = tf.cast(trimap != value, 'uint8') * 255
-        distance = -euclidean_distance(twomap, dtype='float32') ** 2
+        distance = -euclidean_distance(twomap) ** 2
         clicks.extend([
             tf.exp(distance / (2 * (0.02 * length) ** 2)),
             tf.exp(distance / (2 * (0.08 * length) ** 2)),

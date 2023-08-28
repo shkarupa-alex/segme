@@ -1,7 +1,4 @@
-import tensorflow as tf
 from keras import layers
-from keras.saving import register_keras_serializable
-from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import ConvNormAct, Act
 from segme.common.ppm import PyramidPooling
 from segme.common.sequence import Sequence
@@ -9,71 +6,29 @@ from segme.common.resize import BilinearInterpolation
 from segme.common.head import HeadProjection
 
 
-@register_keras_serializable(package='SegMe>Model>Matting>FBAMatting')
-class Decoder(layers.Layer):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.input_spec = [
-            layers.InputSpec(ndim=4),  # features x2
-            layers.InputSpec(ndim=4),  # features x4
-            layers.InputSpec(ndim=4),  # features x32
-            layers.InputSpec(ndim=4, axes={-1: 3}),  # image (scaled)
-            layers.InputSpec(ndim=4, axes={-1: 3}),  # image (normalized)
-            layers.InputSpec(ndim=4, axes={-1: 2}),  # twomap (scaled)
-        ]
+def Decoder():
+    def apply(feats2, feats4, feats32, imscal, imnorm, twomap):
+        x = PyramidPooling(256)(feats32)
+        x = ConvNormAct(256, 3)(x)
 
-    @shape_type_conversion
-    def build(self, input_shape):
-        self.resize = BilinearInterpolation(None)
+        x = BilinearInterpolation(None)([x, feats4])
+        x = layers.concatenate([x, feats4], axis=-1)
+        x = ConvNormAct(256, 3)(x)
 
-        self.ppm = PyramidPooling(256)
+        x = BilinearInterpolation(None)([x, feats2])
+        x = layers.concatenate([x, feats2], axis=-1)
+        x = ConvNormAct(64, 3)(x)
 
-        self.conv_up1 = ConvNormAct(256, 3)
-        self.conv_up2 = ConvNormAct(256, 3)
-        self.conv_up3 = ConvNormAct(64, 3)
-
-        self.conv_up4 = Sequence([
+        x = BilinearInterpolation(None)([x, imscal])
+        x = layers.concatenate([x, imscal, imnorm, twomap], axis=-1)
+        x = Sequence([
             layers.Conv2D(32, 3, padding='same'),
             Act(),
             layers.Conv2D(16, 3, padding='same'),
             Act(),
             HeadProjection(7)
-        ])
+        ])(x)
 
-        super().build(input_shape)
+        return x
 
-    def call(self, inputs, **kwargs):
-        feats2, feats4, feats32, imscal, imnorm, twomap = inputs
-
-        outputs = self.ppm(feats32)
-        outputs = self.conv_up1(outputs)
-
-        outputs = self.resize([outputs, feats4])
-        outputs = tf.concat([outputs, feats4], axis=-1)
-        outputs = self.conv_up2(outputs)
-
-        outputs = self.resize([outputs, feats2])
-        outputs = tf.concat([outputs, feats2], axis=-1)
-        outputs = self.conv_up3(outputs)
-
-        outputs = self.resize([outputs, imscal])
-        outputs = tf.concat([outputs, imscal, imnorm, twomap], axis=-1)
-        outputs = self.conv_up4(outputs)
-
-        outputs = tf.cast(outputs, 'float32')
-
-        alpha, fgbg = tf.split(outputs, [1, 6], axis=-1)
-        alpha = tf.clip_by_value(alpha, 0., 1.)
-        fgbg = tf.nn.sigmoid(fgbg)
-        alfgbg = tf.concat([alpha, fgbg], axis=-1)
-
-        return alfgbg
-
-    @shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return input_shape[-1][:-1] + (7,)
-
-    def compute_output_signature(self, input_signature):
-        outptut_signature = super().compute_output_signature(input_signature)
-
-        return tf.TensorSpec(dtype='float32', shape=outptut_signature.shape)
+    return apply
