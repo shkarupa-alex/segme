@@ -7,8 +7,8 @@ import random
 import re
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from albumentations.augmentations.geometric.functional import rotate as alb_rotate
 from PIL import Image
-from skimage.transform import rotate as skimage_rotate
 from segme.model.matting.fba_matting.distance import distance_transform
 from segme.model.matting.fba_matting.twomap import twomap_transform
 from segme.utils.albumentations import drop_unapplied
@@ -18,7 +18,6 @@ from segme.utils.common import rand_augment_matting
 CROP_SIZE = 512
 TOTAL_BOXES = 100
 TRIMAP_SIZE = (3, 25)
-UNKNOWN_LIMIT = (0., 1.)
 
 
 def smart_crop(fg, alpha):
@@ -126,7 +125,7 @@ def nonmax_suppression(boxes, threshold):
     x2 = boxes[:, 2]
     y2 = boxes[:, 3]
 
-    area = (x2 - x1 + 1) * (y2 - y1 + 1)
+    area = (x2 - x1) * (y2 - y1)
     idxs = np.arange(len(boxes))
 
     pick = []
@@ -135,103 +134,110 @@ def nonmax_suppression(boxes, threshold):
         i = idxs[last]
         pick.append(i)
 
-        xx1 = np.maximum(x1[i], x1[idxs[:last]])
         yy1 = np.maximum(y1[i], y1[idxs[:last]])
-        xx2 = np.minimum(x2[i], x2[idxs[:last]])
+        xx1 = np.maximum(x1[i], x1[idxs[:last]])
         yy2 = np.minimum(y2[i], y2[idxs[:last]])
+        xx2 = np.minimum(x2[i], x2[idxs[:last]])
 
-        w = np.maximum(0, xx2 - xx1 + 1)
-        h = np.maximum(0, yy2 - yy1 + 1)
+        dh = np.maximum(yy2 - yy1, 0)
+        dw = np.maximum(xx2 - xx1, 0)
 
-        overlap = (w * h) / area[idxs[:last]]
-        idxs = np.delete(idxs, np.concatenate([[last], np.where(overlap > threshold)[0]]))
+        overlap = dw * dh
+        iou = 2 * overlap / (area[idxs[:last]] + area[idxs[last]] - overlap)
+
+        drop = np.where(iou > threshold)[0]
+        idxs = np.delete(idxs, np.concatenate([[last], drop]))
 
     return boxes[pick].astype('int')
 
 
-def rotate_biquintic(fg, alpha, angle):
+def random_rotate(fg, alpha, angle):
     alpha = np.squeeze(alpha)[..., None]
-    full = np.ones_like(alpha)
+    full = np.ones_like(alpha) * 128
 
-    combo = np.concatenate([fg, alpha, full], axis=-1)
-    combo = skimage_rotate(combo, angle, resize=False, preserve_range=True, mode='constant', cval=0, order=5)
-    combo = np.round(combo).astype('uint8')
+    interpolation = np.random.choice([cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_LANCZOS4]).item()
 
-    fg, alpha, full = combo[..., :3], combo[..., 3:4], combo[..., 4:]
-    assert not set(np.unique(full)) - {0, 1}
+    fga = np.concatenate([fg, alpha], axis=-1)
+    fga = alb_rotate(fga, angle=angle, interpolation=interpolation, border_mode=cv2.BORDER_REFLECT_101)
+    full = alb_rotate(full, angle=angle, interpolation=interpolation, border_mode=cv2.BORDER_CONSTANT, value=0)
+
+    fg, alpha = fga[..., :3], fga[..., 3:]
+    full = (full == 128).astype('bool')
 
     return fg, alpha, full
 
 
 def crop_boxes(alpha, full, num_boxes=TOTAL_BOXES):
+    alpha = np.squeeze(alpha)
+    full = np.squeeze(full)
+
     height, width = alpha.shape[:2]
-    assert min(height, width) >= CROP_SIZE, alpha.shape[:2]
+    assert min(height, width) >= CROP_SIZE
 
     trimap = (alpha > 0) & (alpha < 255)
-    trimap = np.squeeze(trimap)
     assert trimap.sum()
 
-    # crop center indices
-    indices = np.stack(trimap.nonzero(), axis=-1)
-    np.random.shuffle(indices)
-    indices = indices[:100 * num_boxes]
-    indices = np.minimum(indices, [[height - CROP_SIZE // 2, width - CROP_SIZE // 2]])
-    indices = np.maximum(indices, CROP_SIZE // 2)
-
-    # estimate crop expand ratio
-    ratios = np.concatenate([
-        indices,
-        height - indices[:, :1],
-        width - indices[:, 1:],
-    ], axis=-1).min(axis=-1, keepdims=True) / CROP_SIZE
-    ratios = np.random.uniform(0.5, ratios, ratios.shape)
-
     # estimate boxes
+    indices = np.stack(trimap.nonzero(), axis=-1)
+
+    ratios = np.random.uniform(.5, min(height, width) / CROP_SIZE, indices.shape)
+    deltas = (ratios * CROP_SIZE / 2).astype('int64')
+
+    indices -= np.minimum(indices - deltas, 0)
+    indices -= np.maximum(indices + deltas - [[height, width]] + 1, 0)
+    indices, unkidx = np.unique(indices, return_index=True, axis=0)
+    deltas = deltas[unkidx]
+
     boxes = np.concatenate([
-        indices - ratios * CROP_SIZE,
-        indices + ratios * CROP_SIZE,
-    ], axis=-1).astype('int64')
-    assert boxes.min() >= 0 and boxes[:, 0].max() < height and boxes[:, 1].max() < width
+        # boxes with fake (minimal) scale for NMS
+        indices - CROP_SIZE // 2 // 2,
+        indices + CROP_SIZE // 2 // 2,
 
-    # drop boxes with more then 90% overlapped
-    np.random.shuffle(boxes)
-    boxes = nonmax_suppression(boxes, 0.9)
+        # boxes with real scale for cropping
+        indices - deltas,
+        indices + deltas,
+    ], axis=-1)
+    assert boxes[4:].min() >= 0 and boxes[:, 6].max() < height and boxes[:, 7].max() < width
 
-    # drop boxes with holes (after augmentation)
-    holes = np.apply_along_axis(lambda b: (full[b[0]:b[2], b[1]:b[3]] == 0).sum(), 1, boxes)
-    boxes = np.delete(boxes, np.where(holes > 0)[0], axis=0)
+    # drop boxes with holes (after rotation)
+    ground = full[boxes[:, 4], boxes[:, 5]] & full[boxes[:, 6] - 1, boxes[:, 7] - 1] & \
+             full[boxes[:, 4], boxes[:, 7] - 1] & full[boxes[:, 6] - 1, boxes[:, 5]]
+    boxes = boxes[ground]
 
-    # drop overlapped
-    thold = 0.8
+    # drop boxes with more then 99->98->...->1% overlapped
+    thold = 0.99
     prev = np.empty((0, 4))
     np.random.shuffle(boxes)
-    while len(boxes) > num_boxes:
+    while len(boxes) > num_boxes and thold > 0.:
         prev = boxes.copy()
         boxes = nonmax_suppression(boxes, thold)
-        thold -= .1
+        thold -= .01
     boxes = boxes if not len(prev) else prev
+
+    boxes = boxes[:, 4:]
 
     return boxes[:num_boxes]
 
 
-def scaled_crops(fg, alpha, num_crops=TOTAL_BOXES, repeats=5):
+def scaled_crops(fg, alpha, num_crops=TOTAL_BOXES, repeats=7):
     maxangle = max_angle(fg)
     rotates = round(maxangle * (repeats - 1) / 45.)
-    angles = np.random.uniform(-maxangle, maxangle, size=repeats).tolist()
+    angles = np.random.uniform(-maxangle, maxangle, size=rotates).tolist()
 
     crops = []
     for i in range(repeats):
         if i < rotates:
-            fg_, alpha_, full_ = rotate_biquintic(fg, alpha, angles[i])
+            fg_, alpha_, full_ = random_rotate(fg, alpha, angles[i])
         else:
-            fg_, alpha_, full_ = fg, alpha, np.ones_like(alpha, 'uint8')
+            fg_, alpha_, full_ = fg, alpha, np.ones_like(alpha, 'bool')
 
         boxes = crop_boxes(alpha_, full_, num_crops)
         if not len(boxes):
             continue
 
         for box in boxes:
-            assert full_[box[0]:box[2], box[1]:box[3]].all()
+            assert full_[box[0], box[1]] & full_[box[2] - 1, box[3] - 1] & \
+                   full_[box[0], box[3] - 1] & full_[box[2] - 1, box[1]]
             fg__ = fg_[box[0]:box[2], box[1]:box[3]]
             alpha__ = alpha_[box[0]:box[2], box[1]:box[3]]
             crops.append((fg__, alpha__))
@@ -249,7 +255,10 @@ def scaled_crops(fg, alpha, num_crops=TOTAL_BOXES, repeats=5):
 
 
 def crop_augment(fg, alpha, replay=False):
-    interpolations = np.random.choice([cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_AREA, cv2.INTER_LANCZOS4], size=2)
+    interpolations = [cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_LANCZOS4]
+    if max(fg.shape[:2]) > CROP_SIZE:
+        interpolations += [cv2.INTER_AREA]
+    interpolations = np.random.choice(interpolations, size=2)
     fg = cv2.resize(fg, (CROP_SIZE, CROP_SIZE), interpolation=interpolations[0])
     alpha = cv2.resize(alpha, (CROP_SIZE, CROP_SIZE), interpolation=interpolations[1])
 
