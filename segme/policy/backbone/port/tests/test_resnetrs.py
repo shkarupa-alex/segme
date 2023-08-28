@@ -122,6 +122,13 @@ class TestResNetRS(test_combinations.TestCase):
             expected_output_dtypes=['float32'] * 5
         )
 
+    def test_50_s8_uniq_weights(self):
+        # https://github.com/keras-team/keras/issues/18356
+        cnapol.set_global_policy('stdconv-gn-leakyrelu')
+        bb = Backbone(scales=[2, 4, 32], policy='resnet_rs_50_s8-imagenet')
+
+        weights = [w.name for w in bb.weights]
+        self.assertLen(set(weights), len(weights))
 
 if __name__ == '__main__':
     tf.test.main()

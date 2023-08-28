@@ -300,10 +300,10 @@ def ResNetRS420(include_top=True, weights='imagenet', classes=1000, input_shape=
 
 
 def wrap_bone_policy(model, prepr, init, channels, end_points, name):
-    if 'conv-bn-relu' == cnapol.global_policy().name or init is None:
+    if cnapol.default_policy().name == cnapol.global_policy().name or init is None:
         return wrap_bone(model, prepr, init, channels, end_points, name)
 
-    with cnapol.policy_scope('conv-bn-relu'):
+    with cnapol.policy_scope(cnapol.default_policy()):
         base_model = wrap_bone(model, prepr, init, channels, end_points, name)
 
     base_weights = {w.name: w for w in base_model.weights}
@@ -315,10 +315,6 @@ def wrap_bone_policy(model, prepr, init, channels, end_points, name):
     ext_weights = []
     for random_weight in ext_model.weights:
         weight_name = random_weight.name
-
-        if 'batch_norm' in weight_name:
-            ext_weights.append(random_weight)
-            continue
 
         if weight_name not in base_weights:
             ext_weights.append(random_weight)
