@@ -11,8 +11,13 @@ from segme.common.attn import SwinAttention
 from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
 
-WEIGHT_URLS = {}
-WEIGHT_HASHES = {}
+BASE_URL = 'https://github.com/shkarupa-alex/segme/releases/download/{}.h5'
+WEIGHT_URLS = {
+    'soft_swin_tiny_conv-ln-gelu': BASE_URL.format('2.2.1/soft_swin_tiny_h21k')
+}
+WEIGHT_HASHES = {
+    'soft_swin_tiny_conv-ln-gelu': 'a99bb80498ab5b531c27e904bfbabd6fbb979e1ff1d07874113c4b6b40c1d55a'
+}
 
 
 def Stem(filters, depth, path_gamma=1., path_drop=0., name=None):
@@ -243,7 +248,7 @@ def SoftSwin(
 
     model = models.Model(inputs, x, name=model_name)
 
-    weights_key = f'{model_name}_{cnapol.global_policy()}'
+    weights_key = f'{model_name}_{cnapol.global_policy().name}'
     if 'imagenet' == weights and weights_key in WEIGHT_URLS:
         weights_url = WEIGHT_URLS[weights_key]
         weights_hash = WEIGHT_HASHES[weights_key]
@@ -262,37 +267,42 @@ def SoftSwin(
 
 
 def SoftSwinTiny(
-        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 6, 2), pretrain_window=16, pretrain_size=256, **kwargs):
+        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 6, 2), pretrain_window=16, pretrain_size=256,
+        model_name='soft_swin_tiny', weights='imagenet', classes=14607, classifier_activation='linear', **kwargs):
     # 28.0 14.3
+    # 0.1993 0.6269 0.7064
     with cnapol.policy_scope('conv-ln-gelu'):
         return SoftSwin(
             embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
-            pretrain_size=pretrain_size, model_name='soft_swin_tiny', **kwargs)
+            pretrain_size=pretrain_size, model_name=model_name, weights=weights, classes=classes,
+            classifier_activation=classifier_activation, **kwargs)
 
 
 def SoftSwinSmall(
         embed_dim=96, stem_depth=2, stage_depths=(2, 2, 18, 2), pretrain_window=16, path_drop=0.3, pretrain_size=256,
-        **kwargs):
+        model_name='soft_swin_small', **kwargs):
     # 49.4 26.7
     with cnapol.policy_scope('conv-ln-gelu'):
         return SoftSwin(
             embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
-            path_drop=path_drop, pretrain_size=pretrain_size, model_name='soft_swin_small', **kwargs)
+            path_drop=path_drop, pretrain_size=pretrain_size, model_name=model_name, **kwargs)
 
 
 def SoftSwinBase(
-        embed_dim=128, stem_depth=3, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, **kwargs):
+        embed_dim=128, stem_depth=3, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12,
+        model_name='soft_swin_base', **kwargs):
     # 87.3 50.6 @ 256
     with cnapol.policy_scope('conv-ln-gelu'):
         return SoftSwin(
             embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
-            pretrain_window=pretrain_window, model_name='soft_swin_base', **kwargs)
+            pretrain_window=pretrain_window, model_name=model_name, **kwargs)
 
 
 def SoftSwinLarge(
-        embed_dim=192, stem_depth=4, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, **kwargs):
+        embed_dim=192, stem_depth=4, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12,
+        model_name='soft_swin_large', **kwargs):
     # 195.4 107.4 @ 256
     with cnapol.policy_scope('conv-ln-gelu'):
         return SoftSwin(
             embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
-            pretrain_window=pretrain_window, model_name='soft_swin_large', **kwargs)
+            pretrain_window=pretrain_window, model_name=model_name, **kwargs)
