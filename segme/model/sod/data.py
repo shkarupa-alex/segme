@@ -60,7 +60,7 @@ def bucket_batch(max_pixels):
     return buck_bounds, batch_sizes, skip_len
 
 
-def apply_scale(image, mask, depth, trimap):
+def apply_scale(image, mask, depth, trimap, with_depth, with_trimap):
     scale = MIN_SIZE / min(mask.shape[:2])
     size = round(mask.shape[1] * scale), round(mask.shape[0] * scale)
 
@@ -70,8 +70,8 @@ def apply_scale(image, mask, depth, trimap):
 
     _image = cv2.resize(image, size, interpolation=interpolation)
     _mask = cv2.resize(mask, size, interpolation=cv2.INTER_NEAREST_EXACT)
-    _depth = cv2.resize(depth, size, interpolation=interpolation)
-    _trimap = cv2.resize(trimap, size, interpolation=cv2.INTER_NEAREST_EXACT)
+    _depth = cv2.resize(depth, size, interpolation=interpolation) if with_depth else depth
+    _trimap = cv2.resize(trimap, size, interpolation=cv2.INTER_NEAREST_EXACT) if with_trimap else trimap
 
     return _image, _mask, _depth, _trimap
 
@@ -168,7 +168,8 @@ def train_augment(image, mask, depth, trimap, replay=False):
             alb.GridDistortion(border_mode=cv2.BORDER_CONSTANT),
             # makes image larger in all directions
             # alb.OpticalDistortion(distort_limit=(-0.5, 0.5), border_mode=cv2.BORDER_CONSTANT),
-            # alb.Perspective(scale=(0.01, 0.05)), # moves image to top-left corner
+            # moves image to top-left corner
+            # alb.Perspective(scale=(0.01, 0.05)),
             alb.PiecewiseAffine(scale=(0.01, 0.03)),
         ], p=0.2),
 
@@ -324,26 +325,17 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
                         if not os.path.exists(depth_path):
                             raise ValueError(f'Unable to locate depth for {image_path}')
 
-                    if os.path.exists(image_path.replace(image_ext, '-image_super.jpg')):
-                        image_path = image_path.replace(image_ext, '-image_super.jpg')
-
                     yield image_path, mask_path, alpha_path, depth_path
 
     def _transform_example(self, image_file, mask_file, alpha_file, depth_file, training):
         image = cv2.cvtColor(cv2.imread(image_file), cv2.COLOR_BGR2RGB)
-
-        small = None
-        if '-image_super.' in image_file:
-            small = cv2.cvtColor(cv2.imread(image_file.replace('-image_super.', '-image.')), cv2.COLOR_BGR2RGB)
-            small = cv2.resize(small, image.shape[1::-1], interpolation=cv2.INTER_CUBIC)
-
         mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
 
-        depth = np.zeros_like(mask, dtype='uint8')
+        depth = np.zeros((1, 1, 1), dtype='uint8')
         if self.with_depth:
             depth = cv2.imread(depth_file, cv2.IMREAD_GRAYSCALE)
 
-        trimap = np.zeros_like(mask, dtype='uint8')
+        trimap = np.zeros((1, 1, 1), dtype='uint8')
         if self.with_trimap:
             size = trimap_size(mask, 384, 5)
             trimap = mask_trimap(mask, size)
@@ -357,31 +349,13 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
             raise ValueError(f'Wrong mask values: {mask_file}')
 
         if training:
-            train_aug = self.train_aug
-
-            if small is not None and train_aug > 1:
-                train_aug -= 1
-                image0, mask0, depth0, trimap0 = apply_scale(small, mask, depth, trimap)
-                image1, mask1, depth1, trimap1, weight1 = train_augment(image0, mask0, depth0, trimap0)
-
-                yield f'{mask_file}_source', image1, mask1, depth1, trimap1, weight1
-
-            if small is not None and train_aug > 2:
-                train_aug -= 1
-                half = image.astype('float32') + small.astype('float32')
-                half = np.round(half / 2).clip(0., 255.).astype('uint8')
-                image0, mask0, depth0, trimap0 = apply_scale(half, mask, depth, trimap)
-                image1, mask1, depth1, trimap1, weight1 = train_augment(image0, mask0, depth0, trimap0)
-
-                yield f'{mask_file}_half', image1, mask1, depth1, trimap1, weight1
-
-            image0, mask0, depth0, trimap0 = apply_scale(image, mask, depth, trimap)
-            for i in range(train_aug):
+            image0, mask0, depth0, trimap0 = apply_scale(image, mask, depth, trimap, self.with_depth, self.with_trimap)
+            for i in range(self.train_aug):
                 image1, mask1, depth1, trimap1, weight1 = train_augment(image0, mask0, depth0, trimap0)
 
                 yield f'{mask_file}_{i}', image1, mask1, depth1, trimap1, weight1
         else:
-            image0, mask0, depth0, trimap0 = apply_scale(image, mask, depth, trimap)
+            image0, mask0, depth0, trimap0 = apply_scale(image, mask, depth, trimap, self.with_depth, self.with_trimap)
             image1, mask1, depth1, trimap1, weight1 = valid_augment(image0, mask0, depth0, trimap0)
 
             yield f'{mask_file}', image1, mask1, depth1, trimap1, weight1
@@ -425,7 +399,8 @@ def _transform_examples(examples, augment, with_depth, with_trimap, max_weight):
         masks.append(trimaps)
 
     if augment:
-        images, masks, _ = rand_augment_safe(images, masks, None, levels=3)
+        images, masks, _ = rand_augment_safe(
+            images, masks, None, levels=2, ops=['FlipLR', 'FlipUD', 'Mix', 'RotateCCW', 'RotateCW', 'Shuffle'])
 
     features = {'image': images}
     targets, sample_weights, masks = masks[0:1], masks[1:2], masks[2:]
