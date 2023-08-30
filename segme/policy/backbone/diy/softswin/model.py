@@ -280,29 +280,30 @@ def SoftSwinTiny(
 
 def SoftSwinSmall(
         embed_dim=96, stem_depth=2, stage_depths=(2, 2, 18, 2), pretrain_window=16, path_drop=0.3, pretrain_size=256,
-        model_name='soft_swin_small', **kwargs):
+        model_name='soft_swin_small', weights=None, classes=14607, **kwargs):
     # 49.4 26.7
     with cnapol.policy_scope('conv-ln-gelu'):
         return SoftSwin(
             embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
-            path_drop=path_drop, pretrain_size=pretrain_size, model_name=model_name, **kwargs)
+            path_drop=path_drop, pretrain_size=pretrain_size, model_name=model_name, weights=weights, classes=classes,
+            **kwargs)
 
 
 def SoftSwinBase(
         embed_dim=128, stem_depth=3, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12,
-        model_name='soft_swin_base', **kwargs):
+        model_name='soft_swin_base', weights=None, classes=14607, **kwargs):
     # 87.3 50.6 @ 256
     with cnapol.policy_scope('conv-ln-gelu'):
         return SoftSwin(
             embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
-            pretrain_window=pretrain_window, model_name=model_name, **kwargs)
+            pretrain_window=pretrain_window, model_name=model_name, weights=weights, classes=classes, **kwargs)
 
 
 def SoftSwinLarge(
         embed_dim=192, stem_depth=4, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12,
-        model_name='soft_swin_large', **kwargs):
+        model_name='soft_swin_large', weights=None, classes=14607, **kwargs):
     # 195.4 107.4 @ 256
     with cnapol.policy_scope('conv-ln-gelu'):
         return SoftSwin(
             embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
-            pretrain_window=pretrain_window, model_name=model_name, **kwargs)
+            pretrain_window=pretrain_window, model_name=model_name, weights=weights, classes=classes, **kwargs)
