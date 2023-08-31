@@ -152,6 +152,7 @@ class RestorePath(layers.Layer):
         zero_shape = [batch_size - inputs_shape[0]] + inputs_shape[1:]
         zero_inputs = tf.zeros(zero_shape, dtype=inputs.dtype)
 
+        # TODO: Reading input as constant from a dynamic tensor is not yet supported
         outputs = data_flow_ops.parallel_dynamic_stitch(
             [join_indices[slice_mask], join_indices[~slice_mask]],
             [inputs, zero_inputs]

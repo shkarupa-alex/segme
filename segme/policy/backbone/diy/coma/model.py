@@ -6,7 +6,7 @@ from keras.src.applications import imagenet_utils
 from keras.src.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
-from segme.common.drop import SlicePath, RestorePath
+from segme.common.drop import DropPath
 from segme.common.grn import GRN
 from segme.common.attn import SwinAttention, SlideAttention
 from segme.model.classification.data import tree_class_map
@@ -39,12 +39,11 @@ def Stem(filters, depth, path_drop=0., path_gamma=1., name=None):
         x = Norm(center=False, name=f'{name}_0_norm')(x)
 
         for i in range(depth):
-            y, mask = SlicePath(path_drop[i], name=f'{name}_{i + 1}_slice')(x)
-            y = Conv(filters, 3, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_{i + 1}_conv')(y)
+            y = Conv(filters, 3, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_{i + 1}_conv')(x)
             y = Act(name=f'{name}_{i + 1}_act')(y)
             y = Norm(
                 center=False, gamma_initializer=initializers.Constant(path_gamma[i]), name=f'{name}_{i + 1}_norm')(y)
-            y = RestorePath(path_drop[i], name=f'{name}_{i + 1}_drop')([y, mask])
+            y = DropPath(path_drop[i], name=f'{name}_{i + 1}_drop')(y)
             x = layers.add([y, x], name=f'{name}_{i + 1}_add')
 
         return x
@@ -96,12 +95,7 @@ def MLPConv(filters, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initial
 
         expand_filters = int(channels * expand_ratio)
 
-        if filters == channels:
-            x, mask = SlicePath(path_drop, name=f'{name}_slice')(inputs)
-        else:
-            x = inputs
-
-        x = Conv(expand_filters, 1, use_bias=False, name=f'{name}_expand_pw')(x)
+        x = Conv(expand_filters, 1, use_bias=False, name=f'{name}_expand_pw')(inputs)
         x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
         x = Act(name=f'{name}_act')(x)
 
@@ -112,7 +106,7 @@ def MLPConv(filters, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initial
 
         if filters == channels:
             x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_norm')(x)
-            x = RestorePath(path_drop, name=f'{name}_drop')([x, mask])
+            x = DropPath(path_drop, name=f'{name}_drop')(x)
             x = layers.add([x, inputs], name=f'{name}_add')
         else:
             x = Norm(center=False, name=f'{name}_norm')(x)
@@ -136,12 +130,11 @@ def SwinBlock(
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x, mask = SlicePath(path_drop, name=f'{name}_swin_slice')(inputs)
         x = SwinAttention(
             current_window, pretrain_window, num_heads, qk_units=qk_units, cpb_units=num_heads * 8, proj_bias=False,
-            shift_mode=shift_mode, name=f'{name}_swin_attn')(x)
+            shift_mode=shift_mode, name=f'{name}_swin_attn')(inputs)
         x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_swin_norm')(x)
-        x = RestorePath(path_drop, name=f'{name}_swin_drop')([x, mask])
+        x = DropPath(path_drop, name=f'{name}_swin_drop')(x)
         x = layers.add([x, inputs], name=f'{name}_swin_add')
 
         x = MLPConv(
@@ -167,12 +160,11 @@ def LocalBlock(
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x, mask = SlicePath(path_drop, name=f'{name}_slide_slice')(inputs)
         x = SlideAttention(
             window_size, num_heads, qk_units=qk_units, cpb_units=num_heads * 8, proj_bias=False,
-            dilation_rate=dilation_rate, name=f'{name}_slide_attn')(x)
+            dilation_rate=dilation_rate, name=f'{name}_slide_attn')(inputs)
         x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_slide_norm')(x)
-        x = RestorePath(path_drop, name=f'{name}_slide_drop')([x, mask])
+        x = DropPath(path_drop, name=f'{name}_slide_drop')(x)
         x = layers.add([x, inputs], name=f'{name}_slide_add')
 
         x = MLPConv(
