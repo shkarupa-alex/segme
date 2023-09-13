@@ -14,10 +14,10 @@ from segme.utils.matting.tf import alpha_trimap as alpha_trimap_tf
 MIN_SIZE = 384
 BUCKET_GROUPS = {
     (384, 512): (384, 512), (384, 576): (384, 576), (576, 384): (576, 384), (384, 672): (384, 672),
-    (384, 640): (384, 672), (384, 608): (384, 608), (512, 384): (512, 384), (384, 384): (384, 384),
+    (384, 640): (384, 672), (512, 384): (512, 384), (384, 608): (384, 608), (384, 384): (384, 384),
     (384, 544): (384, 544), (384, 480): (384, 480), (480, 384): (480, 384), (544, 384): (544, 384),
     (384, 448): (384, 448), (384, 416): (384, 448), (448, 384): (448, 384), (416, 384): (448, 384),
-    (608, 384): (608, 384), (672, 384): (672, 384), (640, 384): (672, 384), (704, 384): (672, 384),
+    (672, 384): (672, 384), (640, 384): (672, 384), (704, 384): (672, 384), (608, 384): (608, 384),
     (384, 704): (384, 704), (384, 736): (384, 704), (384, 768): (384, 704), (736, 384): (736, 384),
     (768, 384): (736, 384)}
 
@@ -331,6 +331,11 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
         image = cv2.cvtColor(cv2.imread(image_file), cv2.COLOR_BGR2RGB)
         mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
 
+        large = None
+        if os.path.exists(image_file.replace('-image.', '-image_super.')):
+            large = cv2.cvtColor(cv2.imread(image_file.replace('-image.', '-image_super.')), cv2.COLOR_BGR2RGB)
+            # large = cv2.resize(large, image.shape[1::-1], interpolation=cv2.INTER_CUBIC)
+
         depth = np.zeros((1, 1, 1), dtype='uint8')
         if self.with_depth:
             depth = cv2.imread(depth_file, cv2.IMREAD_GRAYSCALE)
@@ -349,8 +354,32 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
             raise ValueError(f'Wrong mask values: {mask_file}')
 
         if training:
+            train_aug = self.train_aug
+
+            if large is not None and train_aug > 1:
+                train_aug -= 1
+
+                image0, mask0, depth0, trimap0 = apply_scale(
+                    large, mask, depth, trimap, self.with_depth, self.with_trimap)
+                image1, mask1, depth1, trimap1, weight1 = train_augment(image0, mask0, depth0, trimap0)
+
+                yield f'{mask_file}_super', image1, mask1, depth1, trimap1, weight1
+
+            if large is not None and train_aug > 1:
+                train_aug -= 1
+
+                large0, _, _, _ = apply_scale(large, mask, depth, trimap, False, False)
+                image0, mask0, depth0, trimap0 = apply_scale(
+                    image, mask, depth, trimap, self.with_depth, self.with_trimap)
+                half = large0.astype('float32') + image0.astype('float32')
+                half = np.round(half / 2).astype('uint8')
+
+                image1, mask1, depth1, trimap1, weight1 = train_augment(half, mask0, depth0, trimap0)
+
+                yield f'{mask_file}_half', image1, mask1, depth1, trimap1, weight1
+
             image0, mask0, depth0, trimap0 = apply_scale(image, mask, depth, trimap, self.with_depth, self.with_trimap)
-            for i in range(self.train_aug):
+            for i in range(train_aug):
                 image1, mask1, depth1, trimap1, weight1 = train_augment(image0, mask0, depth0, trimap0)
 
                 yield f'{mask_file}_{i}', image1, mask1, depth1, trimap1, weight1
@@ -391,12 +420,12 @@ def _transform_examples(examples, augment, with_depth, with_trimap, max_weight):
         masks.append(tf.image.convert_image_dtype(examples['depth'], 'float32'))
 
     if with_trimap:
-        trimaps = examples['trimap']
-        trimaps = tf.cast(trimaps // 86, 'int32') * 128
-        trimaps = tf.cast(tf.clip_by_value(trimaps, 0, 255), 'uint8')
-        trimaps = alpha_trimap_tf(trimaps, (0, 10))
-        trimaps = tf.cast(trimaps, 'int32') // 86
-        masks.append(trimaps)
+        unknowns = examples['trimap']
+        unknowns = tf.cast(unknowns // 86, 'int32') * 128
+        unknowns = tf.cast(tf.clip_by_value(unknowns, 0, 255), 'uint8')
+        unknowns = alpha_trimap_tf(unknowns, (0, 10))
+        unknowns = tf.cast(unknowns == 128, 'int32')
+        masks.append(unknowns)
 
     if augment:
         images, masks, _ = rand_augment_safe(
@@ -404,21 +433,16 @@ def _transform_examples(examples, augment, with_depth, with_trimap, max_weight):
 
     features = {'image': images}
     targets, sample_weights, masks = masks[0:1], masks[1:2], masks[2:]
+    valid_weights = tf.cast(sample_weights[0] > 0., 'float32')
 
     if with_depth:
         depths, masks = masks[0], masks[1:]
         targets.append(depths)
-        sample_weights.append(tf.cast(sample_weights[0] > 0., 'float32'))
+        sample_weights.append(valid_weights)
 
     if with_trimap:
-        trimap_weight = tf.squeeze(masks[0], axis=-1)
-        trimap_weight = tf.one_hot(trimap_weight, 3)
-        trimap_weight = tf.cast(trimap_weight, 'float32')
-        trimap_weight *= 1. / 3. / tf.reduce_mean(trimap_weight, axis=[0, 1, 2], keepdims=True)
-        trimap_weight = tf.reduce_sum(trimap_weight, axis=-1, keepdims=True)
-
         targets.append(masks[0])
-        sample_weights.append(sample_weights[0] * trimap_weight)
+        sample_weights.append(valid_weights)
 
     if not with_depth and not with_trimap:
         return features, targets[0], sample_weights[0]
