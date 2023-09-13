@@ -40,18 +40,18 @@ class SlicePath(layers.Layer):
         self.seed = seed
 
     def call(self, inputs, training=None, **kwargs):
-        batch_size, _ = get_shape(inputs, axis=[0])
+        [batch_size], _ = get_shape(inputs, axis=[0])
 
         if 0. == self.rate:
-            return inputs, tf.ones(batch_size, dtype='bool')
+            return inputs, tf.ones([batch_size], dtype='bool')
 
         if training is None:
             training = backend.learning_phase()
 
         outputs, slice_mask = smart_cond(
             training,
-            lambda: self.maybe_slice(inputs, batch_size[0]),
-            lambda: (tf.identity(inputs), tf.ones(batch_size, dtype='bool')))
+            lambda: self.maybe_slice(inputs, batch_size),
+            lambda: (tf.identity(inputs), tf.ones([batch_size], dtype='bool')))
 
         return outputs, slice_mask
 
@@ -70,15 +70,15 @@ class SlicePath(layers.Layer):
         return outputs, slice_mask
 
     def apply_slice(self, inputs, batch_size, keep_size):
-        slice_mask = tf.concat([
+        keep_mask = tf.concat([
             tf.ones([keep_size], dtype='bool'),
             tf.zeros([batch_size - keep_size], dtype='bool')
         ], axis=-1)
-        slice_mask = tf.random.shuffle(slice_mask, self.seed)
+        keep_mask = tf.random.shuffle(keep_mask, self.seed)
 
-        outputs = inputs[slice_mask]
+        outputs = inputs[keep_mask]
 
-        return outputs, slice_mask
+        return outputs, keep_mask
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -110,7 +110,7 @@ class RestorePath(layers.Layer):
         self.seed = seed
 
     def call(self, inputs, training=None, **kwargs):
-        outputs, slice_mask = inputs
+        outputs, keep_mask = inputs
 
         if 0. == self.rate:
             return outputs
@@ -118,14 +118,14 @@ class RestorePath(layers.Layer):
         if training is None:
             training = backend.learning_phase()
 
-        outputs = smart_cond(training, lambda: self.maybe_restore(outputs, slice_mask), lambda: tf.identity(outputs))
+        outputs = smart_cond(training, lambda: self.maybe_restore(outputs, keep_mask), lambda: tf.identity(outputs))
 
         return outputs
 
-    def maybe_restore(self, inputs, slice_mask):
+    def maybe_restore(self, inputs, keep_mask):
         inputs_shape, _ = get_shape(inputs)
         keep_size = inputs_shape[0]
-        batch_size = tf.size(slice_mask)
+        batch_size = tf.size(keep_mask)
 
         keep_up = tf.cast(batch_size, 'float32') / tf.cast(keep_size, 'float32')
         keep_min = (1. - self.rate) * keep_up
@@ -142,21 +142,29 @@ class RestorePath(layers.Layer):
         outputs = smart_cond(
             tf.equal(batch_size, keep_size),
             lambda: tf.identity(outputs),
-            lambda: self.apply_restore(outputs, batch_size, inputs_shape, slice_mask))
+            lambda: self.apply_restore(outputs, batch_size, inputs_shape, keep_mask))
 
         return outputs
 
-    def apply_restore(self, inputs, batch_size, inputs_shape, slice_mask):
-        join_indices = tf.range(batch_size, dtype='int32')
+    def apply_restore(self, inputs, batch_size, inputs_shape, keep_mask):
+        zeros = tf.zeros([1] + inputs_shape[1:], dtype=inputs.dtype)
+        outputs = tf.concat([zeros, inputs], axis=0)
 
-        zero_shape = [batch_size - inputs_shape[0]] + inputs_shape[1:]
-        zero_inputs = tf.zeros(zero_shape, dtype=inputs.dtype)
+        indices = tf.range(1, batch_size + 1, dtype='int32')
+        indices -= tf.cumsum(tf.cast(~keep_mask, 'int32'))
+        indices = tf.where(keep_mask, indices, 0)
+        outputs = tf.gather(outputs, indices, axis=0)
 
         # TODO: Reading input as constant from a dynamic tensor is not yet supported
-        outputs = data_flow_ops.parallel_dynamic_stitch(
-            [join_indices[slice_mask], join_indices[~slice_mask]],
-            [inputs, zero_inputs]
-        )
+        # join_indices = tf.range(batch_size, dtype='int32')
+        #
+        # zero_shape = [batch_size - inputs_shape[0]] + inputs_shape[1:]
+        # zero_inputs = tf.zeros(zero_shape, dtype=inputs.dtype)
+        #
+        # outputs = data_flow_ops.parallel_dynamic_stitch(
+        #     [join_indices[keep_mask], join_indices[~keep_mask]],
+        #     [inputs, zero_inputs]
+        # )
 
         return outputs
 
