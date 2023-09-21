@@ -5,7 +5,7 @@ from segme.common.backbone import Backbone
 from segme.common.convnormact import ConvNormAct
 from segme.common.head import HeadProjection, ClassificationActivation
 from segme.common.resize import BilinearInterpolation
-from segme.common.unfold import UnFold
+from segme.common.fold import UnFold
 from segme.policy.backbone.utils import patch_config
 
 
@@ -75,10 +75,6 @@ def Head(unfold, stride, name=None):
         name = f'head_{counter}'
 
     def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-
         if unfold:
             x = HeadProjection(stride ** 2, name=f'{name}_logits')(inputs)
             x = UnFold(stride, name=f'{name}_unfold')(x)
