@@ -3,7 +3,6 @@ import tensorflow as tf
 from keras import mixed_precision, layers, utils
 from keras.src.testing_infra import test_combinations, test_utils
 from segme.common.drop import DropPath, SlicePath, RestorePath, DropBlock
-from segme.testing_utils import layer_multi_io_test
 
 
 @test_combinations.run_all_keras_modes

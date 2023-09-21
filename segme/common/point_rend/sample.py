@@ -2,52 +2,9 @@ import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
-from segme.common.head import ClassificationActivation
+from segme.common.head import ClassificationUncertainty
 from segme.common.impfunc import grid_sample
 from segme.common.shape import get_shape
-
-
-@register_keras_serializable(package='SegMe>Common>PointRend')
-class ClassificationUncertainty(layers.Layer):
-    def __init__(self, from_logits=True, **kwargs):
-        super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(min_ndim=2)
-        self.from_logits = from_logits
-
-    @shape_type_conversion
-    def build(self, input_shape):
-        self.channels = input_shape[-1]
-        if self.channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-
-        self.input_spec = layers.InputSpec(min_ndim=2, axes={-1: self.channels})
-
-        if self.from_logits:
-            self.class_act = ClassificationActivation(dtype=self.compute_dtype)
-
-        super().build(input_shape)
-
-    def call(self, inputs, **kwargs):
-        if self.from_logits:
-            inputs = self.class_act(inputs)
-
-        if 1 == self.channels:
-            inputs = layers.concatenate([1. - inputs, inputs])
-
-        scores, _ = tf.math.top_k(inputs, k=2)
-        uncertainty = scores[..., 1] - scores[..., 0]
-
-        return uncertainty
-
-    @shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return input_shape[:-1]
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({'from_logits': self.from_logits})
-
-        return config
 
 
 @register_keras_serializable(package='SegMe>Common>PointRend')
@@ -114,7 +71,7 @@ class UncertainPointsWithRandomness(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.class_uncert = ClassificationUncertainty()
+        self.class_uncert = ClassificationUncertainty(1, True)
         self.point_sample = PointSample(align_corners=self.align_corners)
 
         super().build(input_shape)
@@ -136,6 +93,7 @@ class UncertainPointsWithRandomness(layers.Layer):
         # both will have -1 uncertainty, and the sampled point will get -1 uncertainty.
 
         point_uncerts = self.class_uncert(point_logits)
+        point_uncerts = tf.squeeze(point_uncerts, axis=-1)
         uncertain_size = tf.cast(total_points * self.importance, 'int32')
         random_size = tf.maximum(0, tf.cast(total_points, 'int32') - uncertain_size)
 
@@ -183,7 +141,7 @@ class UncertainPointsCoordsOnGrid(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.class_uncert = ClassificationUncertainty()
+        self.class_uncert = ClassificationUncertainty(1, True)
 
         super().build(input_shape)
 

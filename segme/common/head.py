@@ -1,3 +1,4 @@
+import tensorflow as tf
 from keras import initializers, layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
@@ -101,6 +102,64 @@ class ClassificationHead(layers.Layer):
             'classes': self.classes,
             'kernel_size': self.kernel_size,
             'kernel_initializer': initializers.serialize(self.kernel_initializer)
+        })
+
+        return config
+
+
+@register_keras_serializable(package='SegMe>Common')
+class ClassificationUncertainty(layers.Layer):
+    def __init__(self, ord, from_logits, **kwargs):
+        super().__init__(**kwargs)
+        self.input_spec = layers.InputSpec(min_ndim=2)
+
+        if ord not in {1, 2}:
+            raise ValueError(f'Argument `ord` expected to be `1` or `2`. Got: {ord}')
+
+        self.ord = ord
+        self.from_logits = from_logits
+
+    @shape_type_conversion
+    def build(self, input_shape):
+        self.channels = input_shape[-1]
+        if self.channels is None:
+            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+
+        self.input_spec = layers.InputSpec(min_ndim=2, axes={-1: self.channels})
+
+        if self.from_logits:
+            self.class_act = ClassificationActivation(dtype=self.compute_dtype)
+
+        super().build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        if self.from_logits:
+            inputs = self.class_act(inputs)
+
+        if 2 == self.ord and 1 == self.channels:
+            return inputs * (1. - inputs) * 4.
+
+        if 1 == self.channels:
+            inputs = tf.concat([1. - inputs, inputs], axis=-1)
+
+        scores, _ = tf.math.top_k(inputs, k=2)
+
+        if 2 == self.ord:
+            uncertainty = scores[..., :1] * scores[..., 1:] * 4.
+        else:
+            uncertainty = 1. - (scores[..., :1] - scores[..., 1:])
+
+        return uncertainty
+
+    @shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape[:-1] + (1,)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'ord': self.ord,
+            'from_logits': self.from_logits
         })
 
         return config
