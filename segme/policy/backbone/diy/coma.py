@@ -84,7 +84,7 @@ def Reduce(filters, fused=False, kernel_size=3, expand_ratio=4., name=None):
     return apply
 
 
-def MLPConv(filters, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initializer='ones', name=None):
+def MLPConv(filters, fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initializer='ones', name=None):
     if name is None:
         counter = backend.get_uid('mlpconv')
         name = f'mlpconv_{counter}'
@@ -101,8 +101,11 @@ def MLPConv(filters, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initial
         else:
             x = inputs
 
-        x = Conv(expand_filters, 1, use_bias=False, name=f'{name}_expand_pw')(x)
-        x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
+        if fused:
+            x = Conv(expand_filters, kernel_size, use_bias=False, name=f'{name}_expand')(x)
+        else:
+            x = Conv(expand_filters, 1, use_bias=False, name=f'{name}_expand_pw')(x)
+            x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
         x = Act(name=f'{name}_act')(x)
 
         if filters == channels and expand_ratio > 2:
@@ -145,7 +148,7 @@ def SwinBlock(
         x = layers.add([x, inputs], name=f'{name}_swin_add')
 
         x = MLPConv(
-            filters, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,
+            filters, False, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,
             gamma_initializer=gamma_initializer, name=f'{name}_mlpconv')(x)
 
         return x
@@ -176,7 +179,7 @@ def LocalBlock(
         x = layers.add([x, inputs], name=f'{name}_slide_add')
 
         x = MLPConv(
-            filters, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,
+            filters, False, kernel_size=kernel_size, expand_ratio=expand_ratio, path_drop=path_drop,
             gamma_initializer=gamma_initializer, name=f'{name}_mlpconv')(x)
 
         return x
