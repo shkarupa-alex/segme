@@ -27,8 +27,8 @@ def boundary_categorical_loss(y_true, y_pred, sample_weight, from_logits):
     has_true = tf.reduce_any(y_true == 1, axis=[1, 2], keepdims=True)
     has_false = tf.reduce_any(y_true == 0, axis=[1, 2], keepdims=True)
 
-    d_true = euclidean_distance(y_true, dtype=y_pred.dtype)
-    d_false = euclidean_distance(y_false, dtype=y_pred.dtype)
+    d_true = tf.cast(euclidean_distance(y_true), y_pred.dtype)
+    d_false = tf.cast(euclidean_distance(y_false), y_pred.dtype)
 
     distance = d_false * tf.cast(y_false, dtype=y_pred.dtype) - (d_true - 1.) * tf.cast(y_true, dtype=y_pred.dtype)
     distance *= tf.cast(has_true & has_false, 'float32')
