@@ -44,6 +44,13 @@ class TestDropPath(test_combinations.TestCase):
             expected_output_dtype='float16'
         )
 
+    def test_val(self):
+        inputs = tf.ones([20, 4], 'float32')
+        result = DropPath(0.2, seed=1)(inputs, training=True)
+        result = self.evaluate(result)
+        self.assertSetEqual(set(result.ravel()), {0., 1.25})
+        self.assertEqual((result == 0.).all(axis=-1).mean(), 0.2)
+
 
 class SliceRestorePath(layers.Layer):
     def __init__(self, rate, seed=None, **kwargs):
@@ -110,13 +117,6 @@ class TestSliceRestorePath(test_combinations.TestCase):
                 expected_output_dtype='float32'
             )
 
-    def test_val(self):
-        with utils.custom_object_scope({'SliceRestorePath': SliceRestorePath}):
-            inputs = tf.ones([20, 4], 'float32')
-            result = SliceRestorePath(0.2)(inputs, training=True)
-            result = self.evaluate(result)
-            self.assertEqual(result.max(), 1.25)
-
     def test_fp16(self):
         with utils.custom_object_scope({'SliceRestorePath': SliceRestorePath}):
             mixed_precision.set_global_policy('mixed_float16')
@@ -128,6 +128,14 @@ class TestSliceRestorePath(test_combinations.TestCase):
                 expected_output_shape=[None, 16, 3],
                 expected_output_dtype='float16'
             )
+
+    def test_val(self):
+        with utils.custom_object_scope({'SliceRestorePath': SliceRestorePath}):
+            inputs = tf.ones([20, 4], 'float32')
+            result = SliceRestorePath(0.2, seed=1)(inputs, training=True)
+            result = self.evaluate(result)
+            self.assertSetEqual(set(result.ravel()), {0., 1.25})
+            self.assertEqual((result == 0.).all(axis=-1).mean(), 0.2)
 
 
 @test_combinations.run_all_keras_modes

@@ -3,7 +3,6 @@ from keras import backend, layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.tf_utils import shape_type_conversion
-from tensorflow.python.ops import data_flow_ops
 from segme.common.shape import get_shape
 
 
@@ -156,6 +155,8 @@ class RestorePath(layers.Layer):
         outputs = tf.gather(outputs, indices, axis=0)
 
         # TODO: Reading input as constant from a dynamic tensor is not yet supported
+        # from tensorflow.python.ops import data_flow_ops
+        #
         # join_indices = tf.range(batch_size, dtype='int32')
         #
         # zero_shape = [batch_size - inputs_shape[0]] + inputs_shape[1:]
