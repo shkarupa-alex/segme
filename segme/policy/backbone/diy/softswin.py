@@ -17,11 +17,13 @@ from segme.policy.backbone.backbone import BACKBONES
 BASE_URL = 'https://github.com/shkarupa-alex/segme/releases/download/{}.h5'
 WEIGHT_URLS = {
     'soft_swin_tiny_conv-ln-gelu': BASE_URL.format('2.2.1/soft_swin_tiny_h21k'),
-    'soft_swin_small_conv-ln-gelu': BASE_URL.format('2.2.1/soft_swin_small_h21k')
+    'soft_swin_small_conv-ln-gelu': BASE_URL.format('2.2.1/soft_swin_small_h21k'),
+    'soft_swin_base_conv-ln-gelu': BASE_URL.format('2.2.1/soft_swin_base_h21k')
 }
 WEIGHT_HASHES = {
     'soft_swin_tiny_conv-ln-gelu': 'a99bb80498ab5b531c27e904bfbabd6fbb979e1ff1d07874113c4b6b40c1d55a',
-    'soft_swin_small_conv-ln-gelu': '74b6e609b49d013f32c8a4f12b845cd9b3d0782e9a3b4c4e4d1b9df18a0a0129'
+    'soft_swin_small_conv-ln-gelu': '74b6e609b49d013f32c8a4f12b845cd9b3d0782e9a3b4c4e4d1b9df18a0a0129',
+    'soft_swin_base_conv-ln-gelu': '7807ba88d944f7b1d59a47557dfd83a68fda48cc9116ae23e804fbe7cb4c4fd1'
 }
 
 
@@ -299,6 +301,7 @@ def SoftSwinBase(
         embed_dim=128, stem_depth=3, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12,
         pretrain_size=192, current_size=384, model_name='soft_swin_base', weights=None, classes=14607, **kwargs):
     # 87.3 50.6 @ 256
+    # 0.1994 0.6589 0.7476
     with cnapol.policy_scope('conv-ln-gelu'):
         return SoftSwin(
             embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
