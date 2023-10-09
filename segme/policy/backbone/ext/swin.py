@@ -1,6 +1,5 @@
 import tfswin
 from functools import partial
-from keras import models
 from segme.policy.backbone.utils import wrap_bone
 from segme.policy.backbone.backbone import BACKBONES
 
