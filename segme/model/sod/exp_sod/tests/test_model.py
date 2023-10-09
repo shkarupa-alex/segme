@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from keras import mixed_precision
 from keras.src.testing_infra import test_combinations, test_utils
-from tensorflow.python.training.tracking import util as trackable_util
+from tensorflow.python.checkpoint import checkpoint
 from tensorflow.python.util import object_identity
 from segme.model.sod.exp_sod.model import ExpSOD
 from segme.model.sod.exp_sod.loss import exp_sod_losses
@@ -88,7 +88,7 @@ class TestExpSOD(test_combinations.TestCase):
 
         # check whether the model variables are present
         # in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
+        checkpointed_objects = object_identity.ObjectIdentitySet(checkpoint.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
 

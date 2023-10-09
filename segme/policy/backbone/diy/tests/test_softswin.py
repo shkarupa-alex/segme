@@ -4,7 +4,7 @@ from absl.testing import parameterized
 from keras import mixed_precision
 from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
-from tensorflow.python.training.tracking import util as trackable_util
+from tensorflow.python.checkpoint import checkpoint
 from segme.common.backbone import Backbone
 from segme.policy.backbone.diy.softswin import SoftSwin
 from segme.policy import cnapol
@@ -159,7 +159,7 @@ class TestModel(test_combinations.TestCase):
         model.get_config()
 
         # check whether the model variables are present in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
+        checkpointed_objects = object_identity.ObjectIdentitySet(checkpoint.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
 
@@ -186,10 +186,9 @@ class TestModel(test_combinations.TestCase):
         model.get_config()
 
         # check whether the model variables are present in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
+        checkpointed_objects = object_identity.ObjectIdentitySet(checkpoint.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
-
     def test_tiny(self):
         with cnapol.policy_scope('conv-gn-gelu'):
             layer_multi_io_test(
