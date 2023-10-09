@@ -5,7 +5,7 @@ from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.adppool import AdaptiveAveragePooling
 from segme.common.convnormact import ConvNormAct
 from segme.common.sequence import Sequence
-from segme.common.resize import NearestInterpolation, BilinearInterpolation
+from segme.common.resize import BilinearInterpolation
 
 
 @register_keras_serializable(package='SegMe>Common')
