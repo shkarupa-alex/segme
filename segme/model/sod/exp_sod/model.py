@@ -5,11 +5,18 @@ from segme.common.backbone import Backbone
 from segme.common.convnormact import Conv, Norm, Act
 from segme.common.head import HeadProjection, ClassificationActivation, ClassificationUncertainty
 from segme.common.resize import BilinearInterpolation
-from segme.common.fold import Fold, UnFold
+from segme.common.fold import UnFold
 from segme.common.split import Split
-from segme.policy.backbone.diy.coma import SwinBlock, LocalBlock, MLPConv
+from segme.policy.backbone.diy.softswin import AttnBlock, MLP
 
 
+# SwinBlock(
+#         filters, current_window, pretrain_window, num_heads, shift_mode, qk_units=16, kernel_size=3, path_drop=0.,
+#         expand_ratio=3., path_gamma=1., name=None)
+# AttnBlock(current_window, pretrain_window, num_heads, shift_mode, path_drop=0., expand_ratio=4.,
+#               path_gamma=1., name=None)
+# MLPConv(filters, fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initializer='ones', name=None)
+# MLP    (expand_ratio=4., path_drop=0., gamma_initializer='ones', name=None)
 def Attention(depth, window_size, shift_mode, expand_ratio=3., path_drop=0., path_gamma=1., name=None):
     if name is None:
         counter = backend.get_uid('attn')
@@ -34,26 +41,22 @@ def Attention(depth, window_size, shift_mode, expand_ratio=3., path_drop=0., pat
 
         x = inputs
         for i in range(depth):
-            if 0 == i % 3:
-                x = SwinBlock(
-                    channels, window_size, window_size, num_heads, 0, path_drop=path_drop[i],
-                    expand_ratio=expand_ratio, path_gamma=path_gamma[i], name=f'{name}_{i}')(x)
-            elif 1 == i % 3:
-                current_shift = (shift_mode + i // 3 - 1) % 4 + 1
-                x = SwinBlock(
-                    channels, window_size, window_size, num_heads, current_shift, path_drop=path_drop[i],
+            if i % 2:
+                current_shift = (shift_mode + i // 2 - 1) % 4 + 1
+                x = AttnBlock(
+                    window_size, window_size, num_heads, current_shift, path_drop=path_drop[i],
                     expand_ratio=expand_ratio, path_gamma=path_gamma[i], name=f'{name}_{i}')(x)
             else:
-                x = LocalBlock(
-                    channels, 5, num_heads, dilation_rate=1, kernel_size=3, path_drop=path_drop[i],
-                    expand_ratio=expand_ratio, path_gamma=path_gamma[i], name=f'{name}_{i}')(x)
+                x = AttnBlock(
+                    window_size, window_size, num_heads, 0, path_drop=path_drop[i], expand_ratio=expand_ratio,
+                    path_gamma=path_gamma[i], name=f'{name}_{i}')(x)
 
         return x
 
     return apply
 
 
-def Convolution(depth, fused=True, expand_ratio=2., path_drop=0., path_gamma=1., name=None):
+def Convolution(depth, expand_ratio=2., path_drop=0., path_gamma=1., name=None):
     if name is None:
         counter = backend.get_uid('conv')
         name = f'conv_{counter}'
@@ -69,16 +72,12 @@ def Convolution(depth, fused=True, expand_ratio=2., path_drop=0., path_gamma=1.,
         raise ValueError('Number of path dropouts must equals to depth.')
 
     def apply(inputs):
-        channels = inputs.shape[-1]
-        if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-
         x = inputs
         for i in range(depth):
             gamma_initializer = initializers.Constant(path_gamma[i])
-            x = MLPConv(
-                channels, fused, kernel_size=3, expand_ratio=expand_ratio, path_drop=path_drop[i],
-                gamma_initializer=gamma_initializer, name=f'{name}_conv_{i}')(x)
+            x = MLP(
+                expand_ratio=expand_ratio, path_drop=path_drop[i], gamma_initializer=gamma_initializer,
+                name=f'{name}_conv_{i}')(x)
 
         return x
 
@@ -117,7 +116,7 @@ def Head(unfold, depth, unknown, stride, kernel=1, name=None):
 
 
 def ExpSOD(
-        sup_unfold=False, with_depth=False, with_unknown=False, transform_depth=3, window_size=24, path_gamma=0.01,
+        sup_unfold=False, with_depth=False, with_unknown=False, transform_depth=2, window_size=24, path_gamma=0.01,
         path_drop=0.2):
     inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
     outputs = Backbone()(inputs)[::-1]
