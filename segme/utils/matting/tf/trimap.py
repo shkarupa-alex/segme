@@ -1,6 +1,7 @@
 import cv2
 import tensorflow as tf
 from segme.common.shape import get_shape
+from segme.utils.common.morph import erode, dilate
 
 
 def alpha_trimap(alpha, size, name=None):
@@ -24,20 +25,11 @@ def alpha_trimap(alpha, size, name=None):
         else:
             raise ValueError('Expecting `size` to be a single margin or a tuple of [min; max] margins.')
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))[..., None]
-        kernel = tf.convert_to_tensor(kernel, 'int32')
-
         eroded = tf.cast(tf.equal(alpha, 255), 'int32')
-        (eroded,) = tf.while_loop(
-            lambda _: True,
-            lambda e: (tf.nn.erosion2d(e, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4),),
-            (eroded,), maximum_iterations=iterations[0])
+        eroded = erode(eroded, 3, iterations[0])
 
         dilated = tf.cast(tf.greater(alpha, 0), 'int32')
-        (dilated,) = tf.while_loop(
-            lambda _: True,
-            lambda d: (tf.nn.dilation2d(d, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4),),
-            (dilated,), maximum_iterations=iterations[1])
+        dilated = dilate(dilated, 3, iterations[1])
 
         shape, _ = get_shape(alpha)
         trimap = tf.fill(shape, 128)
