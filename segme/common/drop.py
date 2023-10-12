@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras import backend, layers
 from keras.saving import register_keras_serializable
-from keras.src.backend import RandomGenerator
+from keras.src.engine import base_layer
 from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.shape import get_shape
@@ -86,9 +86,9 @@ class SlicePath(layers.Layer):
 
 
 @register_keras_serializable(package='SegMe>Common')
-class RestorePath(layers.Layer):
+class RestorePath(base_layer.BaseRandomLayer):
     def __init__(self, rate, seed=None, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(seed=seed, **kwargs)
         self.input_spec = [layers.InputSpec(min_ndim=1), layers.InputSpec(ndim=1, dtype='int32')]
 
         self.rate = rate
@@ -119,8 +119,7 @@ class RestorePath(layers.Layer):
         keep_min = (1. - self.rate) * keep_up
         keep_max = (2. - self.rate) * keep_up
         noise_shape = [keep_size] + [1] * (outputs.shape.rank - 1)
-        random_mask = tf.random.uniform(
-            noise_shape, minval=keep_min, maxval=keep_max, seed=self.seed, dtype='float32')
+        random_mask = self._random_generator.random_uniform(noise_shape, minval=keep_min, maxval=keep_max)
 
         inv_keep = 1. / (1. - self.rate)
         random_mask = tf.cast(random_mask >= 1., outputs.dtype) * inv_keep
