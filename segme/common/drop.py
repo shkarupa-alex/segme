@@ -1,6 +1,7 @@
 import tensorflow as tf
 from keras import backend, layers
 from keras.saving import register_keras_serializable
+from keras.src.backend import RandomGenerator
 from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.shape import get_shape
@@ -42,52 +43,37 @@ class SlicePath(layers.Layer):
         [batch_size], _ = get_shape(inputs, axis=[0])
 
         if 0. == self.rate:
-            return inputs, tf.ones([batch_size], dtype='bool')
+            return self.skip(inputs, batch_size)
 
         if training is None:
             training = backend.learning_phase()
 
-        outputs, slice_mask = smart_cond(
+        outputs, indices = smart_cond(
             training,
-            lambda: self.maybe_slice(inputs, batch_size),
-            lambda: (tf.identity(inputs), tf.ones([batch_size], dtype='bool')))
+            lambda: self.slice(inputs, batch_size),
+            lambda: self.skip(inputs, batch_size))
 
-        return outputs, slice_mask
+        return outputs, indices
 
-    def maybe_slice(self, inputs, batch_size):
-        batch_size = tf.convert_to_tensor(batch_size, 'int32')
+    def skip(self, inputs, batch_size):
+        return tf.identity(inputs), tf.range(batch_size)
+
+    def slice(self, inputs, batch_size):
         keep_size = tf.cast(batch_size, 'float32') * (1. - self.rate)
         keep_size = tf.math.ceil(keep_size / 8.) * 8.
-        keep_size = tf.cast(keep_size, batch_size.dtype)
+        keep_size = tf.cast(keep_size, 'int32')
         keep_size = tf.minimum(keep_size, batch_size)
 
-        outputs, slice_mask = smart_cond(
-            keep_size < batch_size,
-            lambda: self.apply_slice(inputs, batch_size, keep_size),
-            lambda: (tf.identity(inputs), tf.ones([batch_size], dtype='bool')))
+        indices = tf.range(batch_size)
+        indices = tf.random.shuffle(indices, self.seed)
 
-        return outputs, slice_mask
+        outputs = tf.gather(inputs, indices[:keep_size], axis=0)
 
-    def apply_slice(self, inputs, batch_size, keep_size):
-        keep_mask = tf.concat([
-            tf.ones([keep_size], dtype='bool'),
-            tf.zeros([batch_size - keep_size], dtype='bool')
-        ], axis=-1)
-        keep_mask = tf.random.shuffle(keep_mask, self.seed)
-
-        outputs = inputs[keep_mask]
-
-        return outputs, keep_mask
+        return outputs, indices
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return (None,) + input_shape[1:], input_shape[:1]
-
-    def compute_output_signature(self, input_signature):
-        output_signature, mask_signature = super().compute_output_signature(input_signature)
-        mask_signature = tf.TensorSpec(dtype='bool', shape=mask_signature.shape)
-
-        return output_signature, mask_signature
 
     def get_config(self):
         config = super().get_config()
@@ -103,13 +89,13 @@ class SlicePath(layers.Layer):
 class RestorePath(layers.Layer):
     def __init__(self, rate, seed=None, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = [layers.InputSpec(min_ndim=1), layers.InputSpec(ndim=1, dtype='bool')]
+        self.input_spec = [layers.InputSpec(min_ndim=1), layers.InputSpec(ndim=1, dtype='int32')]
 
         self.rate = rate
         self.seed = seed
 
     def call(self, inputs, training=None, **kwargs):
-        outputs, keep_mask = inputs
+        outputs, indices = inputs
 
         if 0. == self.rate:
             return outputs
@@ -117,61 +103,39 @@ class RestorePath(layers.Layer):
         if training is None:
             training = backend.learning_phase()
 
-        outputs = smart_cond(training, lambda: self.maybe_restore(outputs, keep_mask), lambda: tf.identity(outputs))
+        outputs = smart_cond(
+            training,
+            lambda: self.restore(outputs, indices),
+            lambda: tf.identity(outputs))
 
         return outputs
 
-    def maybe_restore(self, inputs, keep_mask):
-        inputs_shape, _ = get_shape(inputs)
-        keep_size = inputs_shape[0]
-        batch_size = tf.size(keep_mask)
+    def restore(self, outputs, indices):
+        outputs_shape, _ = get_shape(outputs)
+        keep_size = outputs_shape[0]
+        batch_size = tf.size(indices)
 
         keep_up = tf.cast(batch_size, 'float32') / tf.cast(keep_size, 'float32')
         keep_min = (1. - self.rate) * keep_up
         keep_max = (2. - self.rate) * keep_up
-        noise_shape = [keep_size] + [1] * (inputs.shape.rank - 1)
+        noise_shape = [keep_size] + [1] * (outputs.shape.rank - 1)
         random_mask = tf.random.uniform(
-            noise_shape, minval=keep_min, maxval=keep_max, dtype='float32', seed=self.seed)
+            noise_shape, minval=keep_min, maxval=keep_max, seed=self.seed, dtype='float32')
 
         inv_keep = 1. / (1. - self.rate)
-        random_mask = tf.cast(random_mask >= 1., inputs.dtype) * inv_keep
+        random_mask = tf.cast(random_mask >= 1., outputs.dtype) * inv_keep
 
-        outputs = inputs * random_mask
+        drops = tf.zeros([batch_size - keep_size] + outputs_shape[1:], dtype=outputs.dtype)
+        outputs = tf.concat([outputs * random_mask, drops], axis=0)
 
-        outputs = smart_cond(
-            tf.equal(batch_size, keep_size),
-            lambda: tf.identity(outputs),
-            lambda: self.apply_restore(outputs, batch_size, inputs_shape, keep_mask))
-
-        return outputs
-
-    def apply_restore(self, inputs, batch_size, inputs_shape, keep_mask):
-        zeros = tf.zeros([1] + inputs_shape[1:], dtype=inputs.dtype)
-        outputs = tf.concat([zeros, inputs], axis=0)
-
-        indices = tf.range(1, batch_size + 1, dtype='int32')
-        indices -= tf.cumsum(tf.cast(~keep_mask, 'int32'))
-        indices = tf.where(keep_mask, indices, 0)
+        indices = tf.argsort(indices)
         outputs = tf.gather(outputs, indices, axis=0)
-
-        # TODO: Reading input as constant from a dynamic tensor is not yet supported
-        # from tensorflow.python.ops import data_flow_ops
-        #
-        # join_indices = tf.range(batch_size, dtype='int32')
-        #
-        # zero_shape = [batch_size - inputs_shape[0]] + inputs_shape[1:]
-        # zero_inputs = tf.zeros(zero_shape, dtype=inputs.dtype)
-        #
-        # outputs = data_flow_ops.parallel_dynamic_stitch(
-        #     [join_indices[keep_mask], join_indices[~keep_mask]],
-        #     [inputs, zero_inputs]
-        # )
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[1] + input_shape[0][1:]
+        return (None,) + input_shape[0][1:]
 
     def get_config(self):
         config = super().get_config()
