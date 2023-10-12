@@ -1,7 +1,6 @@
 import tensorflow as tf
 from keras import backend, layers
 from keras.saving import register_keras_serializable
-from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.conv_utils import normalize_tuple
 from segme.common.shape import get_shape
 
@@ -46,26 +45,28 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
         ha_pad, wa_pad = h_pad - hb_pad, w_pad - wb_pad
         paddings = [[0, 0], [hb_pad, ha_pad], [wb_pad, wa_pad], [0, 0]]
 
-        outputs = smart_cond(
-            with_pad,
-            lambda: tf.pad(inputs, paddings, mode=mode, constant_values=constant_values),
-            lambda: tf.identity(inputs))
+        if static_size and with_pad or not static_size:
+            outputs = tf.pad(inputs, paddings, mode=mode, constant_values=constant_values)
+        else:
+            outputs = inputs
 
         if static_size:
             padded_shape = (inputs.shape[0], inputs_height + h_pad, inputs_width + w_pad, inputs_channel)
-        else:
-            padded_shape = (inputs.shape[0], None, None, inputs_channel)
-        outputs.set_shape(padded_shape)
+            outputs.set_shape(padded_shape)
 
         pad_size = inputs_height + h_pad, inputs_width + w_pad
         pad_val = (hb_pad, ha_pad, wb_pad, wa_pad)
         outputs = op(outputs, pad_size=pad_size, pad_val=pad_val)
-        (outputs_channel,), _ = get_shape(outputs, axis=[3])
 
-        outputs = smart_cond(
-            with_pad,
-            lambda: tf.slice(outputs, [0, hb_pad, wb_pad, 0], [-1, inputs_height, inputs_width, outputs_channel]),
-            lambda: tf.identity(outputs))
+        (outputs_height, outputs_width), _ = get_shape(outputs, axis=[1, 2])
+        assert_height = tf.assert_equal(outputs_height, inputs_height + h_pad)
+        assert_width = tf.assert_equal(outputs_width, inputs_width + w_pad)
+        with tf.control_dependencies([assert_height, assert_width]):
+            outputs = tf.identity(outputs)
+
+        if static_size and with_pad or not static_size:
+            outputs = outputs[:, hb_pad:hb_pad + inputs_height, wb_pad:wb_pad + inputs_width]
+
         outputs.set_shape(inputs.shape[:-1] + outputs.shape[-1:])
 
         return outputs
