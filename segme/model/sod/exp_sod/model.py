@@ -10,13 +10,6 @@ from segme.common.split import Split
 from segme.policy.backbone.diy.softswin import AttnBlock, MLP
 
 
-# SwinBlock(
-#         filters, current_window, pretrain_window, num_heads, shift_mode, qk_units=16, kernel_size=3, path_drop=0.,
-#         expand_ratio=3., path_gamma=1., name=None)
-# AttnBlock(current_window, pretrain_window, num_heads, shift_mode, path_drop=0., expand_ratio=4.,
-#               path_gamma=1., name=None)
-# MLPConv(filters, fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_initializer='ones', name=None)
-# MLP    (expand_ratio=4., path_drop=0., gamma_initializer='ones', name=None)
 def Attention(depth, window_size, shift_mode, expand_ratio=3., path_drop=0., path_gamma=1., name=None):
     if name is None:
         counter = backend.get_uid('attn')

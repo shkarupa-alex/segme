@@ -462,12 +462,12 @@ def make_dataset(data_dir, split_name, with_depth, with_unknown, batch_pixels, s
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
         batch_size = batch_pixels // (MIN_SIZE ** 2)
+        dataset = dataset.shuffle(batch_size * 8)
         dataset = dataset.batch(batch_size, drop_remainder=True)
-        dataset = dataset.shuffle(batch_size * 10)
     else:
         buck_bounds, batch_sizes, skip_len = bucket_batch(batch_pixels)
         dataset = dataset.filter(lambda example: example['length'] < skip_len)
-        dataset = dataset.shuffle(max(batch_sizes) * 10)
+        dataset = dataset.shuffle(max(batch_sizes) * 8)
         dataset = dataset.bucket_by_sequence_length(
             lambda example: example['length'],
             buck_bounds, batch_sizes, no_padding=True, drop_remainder=True)
