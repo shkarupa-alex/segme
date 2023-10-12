@@ -7,7 +7,7 @@ from keras.src.applications import imagenet_utils
 from keras.src.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
-from segme.common.drop import DropPath
+from segme.common.drop import SlicePath, RestorePath
 from segme.common.attn import SwinAttention
 from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
@@ -50,11 +50,12 @@ def Stem(filters, depth, path_gamma=1., path_drop=0., name=None):
         x = Norm(center=False, name=f'{name}_0_norm')(x)
 
         for i in range(depth):
-            y = Conv(filters, 3, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_{i + 1}_conv')(x)
+            y, indices = SlicePath(path_drop[i], name=f'{name}_{i + 1}_slice')(x)
+            y = Conv(filters, 3, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_{i + 1}_conv')(y)
             y = Act(name=f'{name}_{i + 1}_act')(y)
             y = Norm(
                 center=False, gamma_initializer=initializers.Constant(path_gamma[i]), name=f'{name}_{i + 1}_norm')(y)
-            y = DropPath(path_drop[i], name=f'{name}_{i + 1}_drop')(y)
+            y = RestorePath(path_drop[i], name=f'{name}_{i + 1}_drop')([y, indices])
             x = layers.add([y, x], name=f'{name}_{i + 1}_add')
 
         return x
@@ -104,11 +105,12 @@ def MLP(expand_ratio=4., path_drop=0., gamma_initializer='ones', name=None):
 
         expand_filters = int(channels * expand_ratio)
 
-        x = layers.Dense(expand_filters, name=f'{name}_expand')(inputs)
+        x, indices = SlicePath(path_drop, name=f'{name}_slice')(inputs)
+        x = layers.Dense(expand_filters, name=f'{name}_expand')(x)
         x = Act(name=f'{name}_act')(x)
         x = layers.Dense(channels, name=f'{name}_squeeze')(x)
         x = Norm(gamma_initializer=gamma_initializer, name=f'{name}_norm')(x)
-        x = DropPath(path_drop, name=f'{name}_drop')(x)
+        x = RestorePath(path_drop, name=f'{name}_drop')([x, indices])
         x = layers.add([x, inputs], name=f'{name}_add')
 
         return x
@@ -129,10 +131,11 @@ def AttnBlock(current_window, pretrain_window, num_heads, shift_mode, path_drop=
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
+        x, indices = SlicePath(path_drop, name=f'{name}_slice')(inputs)
         x = SwinAttention(
-            current_window, pretrain_window, num_heads, shift_mode=shift_mode, name=f'{name}_swin_attn')(inputs)
+            current_window, pretrain_window, num_heads, shift_mode=shift_mode, name=f'{name}_swin_attn')(x)
         x = Norm(gamma_initializer=gamma_initializer, name=f'{name}_swin_norm')(x)
-        x = DropPath(path_drop, name=f'{name}_swin_drop')(x)
+        x = RestorePath(path_drop, name=f'{name}_drop')([x, indices])
         x = layers.add([x, inputs], name=f'{name}_swin_add')
 
         x = MLP(

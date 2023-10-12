@@ -97,7 +97,7 @@ def MLPConv(filters, fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_
         expand_filters = int(channels * expand_ratio)
 
         if filters == channels:
-            x, mask = SlicePath(path_drop, name=f'{name}_slice')(inputs)
+            x, indices = SlicePath(path_drop, name=f'{name}_slice')(inputs)
         else:
             x = inputs
 
@@ -115,7 +115,7 @@ def MLPConv(filters, fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_
 
         if filters == channels:
             x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_norm')(x)
-            x = RestorePath(path_drop, name=f'{name}_drop')([x, mask])
+            x = RestorePath(path_drop, name=f'{name}_drop')([x, indices])
             x = layers.add([x, inputs], name=f'{name}_add')
         else:
             x = Norm(center=False, name=f'{name}_norm')(x)
@@ -139,12 +139,12 @@ def SwinBlock(
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x, mask = SlicePath(path_drop, name=f'{name}_swin_slice')(inputs)
+        x, indices = SlicePath(path_drop, name=f'{name}_swin_slice')(inputs)
         x = SwinAttention(
             current_window, pretrain_window, num_heads, qk_units=qk_units, cpb_units=num_heads * 8, proj_bias=False,
             shift_mode=shift_mode, name=f'{name}_swin_attn')(x)
         x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_swin_norm')(x)
-        x = RestorePath(path_drop, name=f'{name}_swin_drop')([x, mask])
+        x = RestorePath(path_drop, name=f'{name}_swin_drop')([x, indices])
         x = layers.add([x, inputs], name=f'{name}_swin_add')
 
         x = MLPConv(
@@ -170,12 +170,12 @@ def LocalBlock(
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x, mask = SlicePath(path_drop, name=f'{name}_slide_slice')(inputs)
+        x, indices = SlicePath(path_drop, name=f'{name}_slide_slice')(inputs)
         x = SlideAttention(
             window_size, num_heads, qk_units=qk_units, cpb_units=num_heads * 8, proj_bias=False,
             dilation_rate=dilation_rate, name=f'{name}_slide_attn')(x)
         x = Norm(center=False, gamma_initializer=gamma_initializer, name=f'{name}_slide_norm')(x)
-        x = RestorePath(path_drop, name=f'{name}_slide_drop')([x, mask])
+        x = RestorePath(path_drop, name=f'{name}_slide_drop')([x, indices])
         x = layers.add([x, inputs], name=f'{name}_slide_add')
 
         x = MLPConv(
