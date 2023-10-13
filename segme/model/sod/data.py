@@ -431,7 +431,6 @@ def _transform_examples(examples, augment, with_depth, with_unknown, max_weight)
         images, masks, _ = rand_augment_safe(
             images, masks, None, levels=2, ops=['FlipLR', 'FlipUD', 'Mix', 'RotateCCW', 'RotateCW', 'Shuffle'])
 
-    features = {'image': images}
     targets, sample_weights, masks = masks[0:1], masks[1:2], masks[2:]
     valid_weights = tf.cast(sample_weights[0] > 0., 'float32')
 
@@ -445,9 +444,9 @@ def _transform_examples(examples, augment, with_depth, with_unknown, max_weight)
         sample_weights.append(valid_weights)
 
     if not with_depth and not with_unknown:
-        return features, targets[0], sample_weights[0]
+        return images, targets[0], sample_weights[0]
 
-    return features, tuple(targets), tuple(sample_weights)
+    return images, tuple(targets), tuple(sample_weights)
 
 
 def make_dataset(data_dir, split_name, with_depth, with_unknown, batch_pixels, square_size=False, max_weight=5.):
