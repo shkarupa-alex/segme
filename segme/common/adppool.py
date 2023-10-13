@@ -23,7 +23,7 @@ class AdaptiveAveragePooling(layers.Layer):
         if static_size:
             return self.case_static(inputs, height, width)
 
-        return self.case_dynamic(inputs, height, width)
+        return self.case_dynamic_nondivisible(inputs, height, width)
 
     def case_global(self, inputs):
         return tf.reduce_mean(inputs, axis=[1, 2], keepdims=True)
@@ -88,31 +88,6 @@ class AdaptiveAveragePooling(layers.Layer):
         pooled_w = tf.concat(pooled_w, axis=2)
 
         return pooled_w
-
-    def case_dynamic(self, inputs, height, width):
-        pad_h = (self.output_size[0] - height % self.output_size[0]) % self.output_size[0]
-        pad_w = (self.output_size[1] - width % self.output_size[1]) % self.output_size[1]
-
-        # Hack to allow build divisible branch
-        inputs_ = tf.pad(inputs, [[0, 0], [0, pad_h], [0, pad_w], [0, 0]])
-
-        outputs = smart_cond(
-            pad_h + pad_w > 0,
-            lambda: self.case_dynamic_nondivisible(inputs, height, width),
-            lambda: self.case_dynamic_divisible(inputs_))
-
-        return outputs
-
-    def case_dynamic_divisible(self, inputs):
-        split_x = tf.split(inputs, self.output_size[0], axis=1)
-        split_x = tf.stack(split_x, axis=1)
-
-        split_y = tf.split(split_x, self.output_size[1], axis=3)
-        split_y = tf.stack(split_y, axis=3)
-
-        outputs = tf.reduce_mean(split_y, axis=[2, 4])
-
-        return outputs
 
     def case_dynamic_nondivisible(self, inputs, height, width):
         start_h = tf.range(self.output_size[0], dtype='float32') * tf.cast(height, 'float32') / self.output_size[0]
