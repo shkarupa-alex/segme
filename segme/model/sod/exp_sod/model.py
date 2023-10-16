@@ -127,8 +127,8 @@ def ExpSOD(
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
         o = Conv(channels, 1, name=f'decoder_{s}_feature_proj')(o)
-        o = Norm(name=f'decoder_{s}_feature_norm')(o)
         o = Act(name=f'decoder_{s}_feature_act')(o)
+        o = Norm(name=f'decoder_{s}_feature_norm')(o)
 
         if 32 == s:
             heads.extend(Head(sup_unfold, with_depth, with_unknown, s, name=f'head_{s}')(o))
