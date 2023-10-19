@@ -230,24 +230,27 @@ def _resize_crop(example, size, train, crop_pct=0.875):
 
 
 @tf.function(jit_compile=False)
-def _transform_examples(images, labels, train, levels, magnitude, preprocess):
-    images = tf.image.convert_image_dtype(images, 'float32')
-
-    if train and levels and magnitude:
+def _transform_examples(images, labels, augment, levels, magnitude, preprocess, remap):
+    if augment:
+        images = tf.image.convert_image_dtype(images, 'float32')
         images, _, _ = rand_augment_full(images, None, None, levels, magnitude)
         images = tf.clip_by_value(images, 0., 1.)
+        images = tf.round(images * 255.)
 
-    images = tf.round(images * 255.)
-    images = tf.cast(images, global_policy().compute_dtype)
-
-    if preprocess is not None:
+    if preprocess:
+        images = tf.cast(images, global_policy().compute_dtype)
         images = imagenet_utils.preprocess_input(images, mode=preprocess)
+    elif augment:
+        images = tf.cast(images, 'uint8')
+
+    if remap:
+        labels = remap.lookup(labels)
 
     return images, labels
 
 
 def make_dataset(
-        data_dir, split_name, batch_size, image_size=384, preprocess_mode='torch', aug_levels=5, aug_magnitude=0.5,
+        data_dir, split_name, batch_size, image_size=384, preprocess_mode=None, aug_levels=5, aug_magnitude=0.5,
         remap_classes=False):
     train_split = tfds.Split.TRAIN == split_name
 
@@ -261,19 +264,19 @@ def make_dataset(
         .batch(batch_size, drop_remainder=train_split)
 
     if train_split:
-        dataset = dataset.shuffle(32)
+        dataset = dataset.shuffle(batch_size * 8)
 
-    dataset = dataset.map(
-        lambda images, labels: _transform_examples(
-            images, labels, train_split, aug_levels, aug_magnitude, preprocess_mode),
-        num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
+    class_map = None
     if remap_classes:
         map_keys, map_values = zip(*tree_class_map().items())
         map_init = tf.lookup.KeyValueTensorInitializer(map_keys, map_values, 'int64', 'int64')
         class_map = tf.lookup.StaticHashTable(map_init, -1)
+
+    train_augment = train_split and aug_levels and aug_magnitude
+    if train_augment or preprocess_mode or class_map:
         dataset = dataset.map(
-            lambda images, labels: (images, class_map.lookup(labels)),
+            lambda images, labels: _transform_examples(
+                images, labels, train_augment, aug_levels, aug_magnitude, preprocess_mode, class_map),
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)

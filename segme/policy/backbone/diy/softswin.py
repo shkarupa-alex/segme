@@ -132,7 +132,7 @@ def AttnBlock(current_window, pretrain_window, num_heads, shift_mode, path_drop=
         x = SwinAttention(
             current_window, pretrain_window, num_heads, shift_mode=shift_mode, name=f'{name}_swin_attn')(inputs)
         x = Norm(gamma_initializer=gamma_initializer, name=f'{name}_swin_norm')(x)
-        x = DropPath(path_drop, name=f'{name}_drop')(x)
+        x = DropPath(path_drop, name=f'{name}_swin_drop')(x)
         x = layers.add([x, inputs], name=f'{name}_swin_add')
 
         x = MLP(

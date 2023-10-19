@@ -6,7 +6,7 @@ from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.checkpoint import checkpoint
 from segme.common.backbone import Backbone
-from segme.policy.backbone.diy.softswin import SoftSwin
+from segme.policy.backbone.diy.softswin import SoftSwinTiny
 from segme.policy import cnapol
 from segme.testing_utils import layer_multi_io_test
 
@@ -39,7 +39,7 @@ class TestModel(test_combinations.TestCase):
         return values
 
     def test_drop_path(self):
-        config = SoftSwin(
+        config = SoftSwinTiny(
             embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3)).get_config()
 
@@ -68,41 +68,38 @@ class TestModel(test_combinations.TestCase):
         self.assertListEqual(expected_drops, actual_drops)
 
     def test_residual_gamma(self):
-        config = SoftSwin(
+        config = SoftSwinTiny(
             embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3)).get_config()
 
         expected_gammas = [
-            ('stem_1_norm', 0.01), ('stem_2_norm', 0.009334), ('stage_0_attn_0_swin_norm', 0.008668),
+            ('stem_1_norm', 0.01), ('stem_2_norm', 0.009334),
 
-            ('stage_0_attn_0_mlp_norm', 0.008668), ('stage_0_attn_1_swin_norm', 0.008002),
-            ('stage_0_attn_1_mlp_norm', 0.008002), ('stage_1_attn_0_swin_norm', 0.0073360000000000005),
+            ('stage_0_attn_0_swin_norm', 0.008668), ('stage_0_attn_0_mlp_norm', 0.008668),
+            ('stage_0_attn_1_swin_norm', 0.008002), ('stage_0_attn_1_mlp_norm', 0.008002),
 
-            ('stage_1_attn_0_mlp_norm', 0.0073360000000000005), ('stage_1_attn_1_swin_norm', 0.006670000000000001),
-            ('stage_1_attn_1_mlp_norm', 0.006670000000000001), ('stage_2_attn_0_swin_norm', 0.006004),
-            ('stage_2_attn_0_mlp_norm', 0.006004), ('stage_2_attn_1_swin_norm', 0.005338),
+            ('stage_1_attn_0_swin_norm', 0.0073360000000000005), ('stage_1_attn_0_mlp_norm', 0.0073360000000000005),
+            ('stage_1_attn_1_swin_norm', 0.006670000000000001), ('stage_1_attn_1_mlp_norm', 0.006670000000000001),
 
-            ('stage_2_attn_1_mlp_norm', 0.005338), ('stage_2_attn_2_swin_norm', 0.004672),
-            ('stage_2_attn_2_mlp_norm', 0.004672), ('stage_2_attn_3_swin_norm', 0.004006),
-            ('stage_2_attn_3_mlp_norm', 0.004006), ('stage_2_attn_4_swin_norm', 0.00334),
-            ('stage_2_attn_4_mlp_norm', 0.00334), ('stage_2_attn_5_swin_norm', 0.002674),
-            ('stage_2_attn_5_mlp_norm', 0.002674), ('stage_3_attn_0_swin_norm', 0.0020079999999999994),
+            ('stage_2_attn_0_swin_norm', 0.006004), ('stage_2_attn_0_mlp_norm', 0.006004),
+            ('stage_2_attn_1_swin_norm', 0.005338), ('stage_2_attn_1_mlp_norm', 0.005338),
+            ('stage_2_attn_2_swin_norm', 0.004672), ('stage_2_attn_2_mlp_norm', 0.004672),
+            ('stage_2_attn_3_swin_norm', 0.004006), ('stage_2_attn_3_mlp_norm', 0.004006),
+            ('stage_2_attn_4_swin_norm', 0.00334), ('stage_2_attn_4_mlp_norm', 0.00334),
+            ('stage_2_attn_5_swin_norm', 0.002674), ('stage_2_attn_5_mlp_norm', 0.002674),
 
-            ('stage_3_attn_0_mlp_norm', 0.0020079999999999994),
-            ('stage_3_attn_1_swin_norm', 0.0013419999999999994),
-            ('stage_3_attn_1_mlp_norm', 0.0013419999999999994),
-            ('stage_3_attn_2_swin_norm', 0.0006759999999999995),
-            ('stage_3_attn_2_mlp_norm', 0.0006759999999999995), ('stage_3_attn_3_swin_norm', 1e-05),
-            ('stage_3_attn_3_mlp_norm', 1e-05)]
+            ('stage_3_attn_0_swin_norm', 0.0020079999999999994), ('stage_3_attn_0_mlp_norm', 0.0020079999999999994),
+            ('stage_3_attn_1_swin_norm', 0.0013419999999999994), ('stage_3_attn_1_mlp_norm', 0.0013419999999999994),
+            ('stage_3_attn_2_swin_norm', 0.0006759999999999995), ('stage_3_attn_2_mlp_norm', 0.0006759999999999995),
+            ('stage_3_attn_3_swin_norm', 1e-05), ('stage_3_attn_3_mlp_norm', 1e-05)]
 
         actual_gammas = TestModel._values_from_config(
-            config, ['SegMe>Policy>Normalization>GroupNorm', 'SegMe>Policy>Normalization>LayerNorm'],
-            'gamma_initializer')
+            config, 'SegMe>Policy>Normalization>LayerNorm', 'gamma_initializer')
         actual_gammas = [(ag[0], ag[1]['config']['value']) for ag in actual_gammas if 'Constant' == ag[1]['class_name']]
         self.assertListEqual(expected_gammas, actual_gammas)
 
     def test_attention_shift(self):
-        config = SoftSwin(
+        config = SoftSwinTiny(
             embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=12, pretrain_size=384, weights=None,
             include_top=False, input_shape=(None, None, 3)).get_config()
 
@@ -123,7 +120,7 @@ class TestModel(test_combinations.TestCase):
         self.assertListEqual(expected_shifts, actual_shifts)
 
     def test_attention_window(self):
-        config = SoftSwin(
+        config = SoftSwinTiny(
             embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=16, pretrain_size=256, weights=None,
             include_top=False, input_shape=(None, None, 3)).get_config()
 
@@ -148,7 +145,7 @@ class TestModel(test_combinations.TestCase):
         if use_fp16:
             mixed_precision.set_global_policy('mixed_float16')
 
-        model = SoftSwin(embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None)
+        model = SoftSwinTiny(embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None)
         model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
 
         images = np.random.random((10, 384, 384, 3)).astype('float32')
@@ -164,7 +161,7 @@ class TestModel(test_combinations.TestCase):
             self.assertIn(v, checkpointed_objects)
 
     def test_finite(self):
-        model = SoftSwin(
+        model = SoftSwinTiny(
             embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3))
         outputs = model(np.random.uniform(0., 255., [2, 384, 384, 3]).astype('float32'))
@@ -172,7 +169,7 @@ class TestModel(test_combinations.TestCase):
         self.assertTrue(np.isfinite(outputs).all())
 
     def test_var_shape(self):
-        model = SoftSwin(
+        model = SoftSwinTiny(
             embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3))
         run_eagerly = test_utils.should_run_eagerly()
@@ -189,6 +186,7 @@ class TestModel(test_combinations.TestCase):
         checkpointed_objects = object_identity.ObjectIdentitySet(checkpoint.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
+
     def test_tiny(self):
         with cnapol.policy_scope('conv-gn-gelu'):
             layer_multi_io_test(
@@ -246,10 +244,10 @@ class TestModel(test_combinations.TestCase):
             layer_multi_io_test(
                 Backbone,
                 kwargs={'scales': None, 'policy': 'softswin_large-none'},
-                input_shapes=[(2, 256, 256, 3)],
+                input_shapes=[(2, 384, 384, 3)],
                 input_dtypes=['uint8'],
                 expected_output_shapes=[
-                    (None, 192, 192, 40),
+                    (None, 192, 192, 48),
                     (None, 96, 96, 192),
                     (None, 48, 48, 384),
                     (None, 24, 24, 768),
