@@ -264,7 +264,7 @@ def make_dataset(
         .batch(batch_size, drop_remainder=train_split)
 
     if train_split:
-        dataset = dataset.shuffle(batch_size * 8)
+        dataset = dataset.shuffle(batch_size)
 
     class_map = None
     if remap_classes:
