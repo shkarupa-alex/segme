@@ -148,7 +148,7 @@ def halo_partition(inputs, height, width, window_size, halo_size, dilation_rate=
 
 
 def partition_apply_fused(
-        inputs, height, width, part_type, size_count, num_heads, dilation_rate=1, dtype=None, name=None):
+        inputs, height, width, part_type, size_count, num_heads, dilation_rate=1, qkv_mult=3, dtype=None, name=None):
     with tf.name_scope(name or 'partition_apply_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
 
@@ -168,16 +168,16 @@ def partition_apply_fused(
         if part_type in {'window_size', 'grid_count'}:
             outputs = tf.reshape(inputs, [
                 -1, height_blocks, size_count, dilation_rate, width_blocks, size_count, dilation_rate,
-                num_heads, channels // num_heads])
+                qkv_mult, num_heads, channels // qkv_mult // num_heads])
         else:
             outputs = tf.reshape(inputs, [
                 -1, size_count, height_blocks, dilation_rate, size_count, width_blocks, dilation_rate,
-                num_heads, channels // num_heads])
+                qkv_mult, num_heads, channels // qkv_mult // num_heads])
 
         if part_type in {'window_size', 'window_count'}:
-            outputs = tf.transpose(outputs, [0, 1, 3, 4, 6, 7, 2, 5, 8])
+            outputs = tf.transpose(outputs, [0, 1, 3, 4, 6, 8, 2, 5, 7, 9])
         else:
-            outputs = tf.transpose(outputs, [0, 2, 3, 5, 6, 7, 1, 4, 8])
+            outputs = tf.transpose(outputs, [0, 2, 3, 5, 6, 8, 1, 4, 7, 9])
 
         if part_type in {'window_size', 'grid_size'}:
             num_windows = height_blocks * width_blocks * tf.square(dilation_rate)
@@ -230,7 +230,8 @@ def partition_reverse_fused(
         return outputs
 
 
-def with_partition_fused(op, inputs, part_type, size_count, num_heads, dilation_rate=1, dtype=None, name=None):
+def with_partition_fused(
+        op, inputs, part_type, size_count, num_heads, dilation_rate=1, qkv_mult=3, dtype=None, name=None):
     with tf.name_scope(name or 'with_partition_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
 
@@ -244,7 +245,7 @@ def with_partition_fused(op, inputs, part_type, size_count, num_heads, dilation_
             height, width = pad_size
 
             parted = partition_apply_fused(
-                padded, height, width, part_type, size_count, num_heads, dilation_rate, dtype)
+                padded, height, width, part_type, size_count, num_heads, dilation_rate, qkv_mult, dtype)
             parted = op(parted, pad_size=pad_size, pad_val=pad_val)
             parted = partition_reverse_fused(
                 parted, height, width, part_type, size_count, num_heads, dilation_rate, dtype)
@@ -255,7 +256,7 @@ def with_partition_fused(op, inputs, part_type, size_count, num_heads, dilation_
 
 
 def halo_partition_fused(
-        inputs, height, width, window_size, halo_size, num_heads, dilation_rate=1, dtype=None, name=None):
+        inputs, height, width, window_size, halo_size, num_heads, dilation_rate=1, qkv_mult=2, dtype=None, name=None):
     with tf.name_scope(name or 'halo_partition_fused'):
         inputs = tf.convert_to_tensor(inputs, dtype)
 
@@ -282,9 +283,9 @@ def halo_partition_fused(
         outputs = tf.image.extract_patches(inputs, halo_kernel, halo_stride, [1] * 4, padding='SAME')
 
         outputs = tf.reshape(outputs, [
-            -1, height_blocks, width_blocks, halo_size, dilation_rate, halo_size, dilation_rate, num_heads,
-            channels // num_heads])
-        outputs = tf.transpose(outputs, [0, 1, 4, 2, 6, 7, 3, 5, 8])
+            -1, height_blocks, width_blocks, halo_size, dilation_rate, halo_size, dilation_rate, qkv_mult, num_heads,
+            channels // qkv_mult // num_heads])
+        outputs = tf.transpose(outputs, [0, 1, 4, 2, 6, 8, 3, 5, 7, 9])
         outputs = tf.reshape(outputs, [-1, num_windows, num_heads, halo_size ** 2, channels // num_heads])
 
         return outputs

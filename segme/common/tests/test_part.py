@@ -122,7 +122,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_apply(self):
-        inputs = np.arange(3 * 24 * 48 * 4 * 3 * 5, dtype='float32').reshape([3, 24, 48, 4 * 3 * 5])
+        inputs = np.arange(3 * 24 * 48 * 3 * 4 * 5, dtype='float32').reshape([3, 24, 48, 3 * 4 * 5])
         height, width = inputs.shape[1:3]
         size, channels = 4, 20
 
@@ -130,8 +130,9 @@ class TestPartitionApplyFused(tf.test.TestCase):
             for dilation_rate in [1, 2, 3]:
                 for num_heads in [1, 2, 4]:
                     expected = partition_apply(inputs, height, width, part_type, size, dilation_rate)
-                    expected = tf.reshape(expected, expected.shape[:-1] + (num_heads, 3 * channels // num_heads))
-                    expected = tf.transpose(expected, [0, 1, 3, 2, 4])
+                    expected = tf.reshape(expected, expected.shape[:-1] + (3, num_heads, channels // num_heads))
+                    expected = tf.transpose(expected, [0, 1, 4, 2, 3, 5])
+                    expected = tf.reshape(expected, expected.shape[:-2] + (3 * channels // num_heads,))
                     expected = self.evaluate(expected)
 
                     result = partition_apply_fused(inputs, height, width, part_type, size, num_heads, dilation_rate)
@@ -175,7 +176,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
             72, 73, 74, 75, 84, 85, 86, 87, 52, 53, 54, 55, 64, 65, 66, 67, 76, 77, 78, 79, 88, 89, 90, 91, 56, 57, 58,
             59, 68, 69, 70, 71, 80, 81, 82, 83, 92, 93, 94, 95], 'int64').reshape([1, 6, 1, 16, 1])
 
-        result = partition_apply_fused(inputs, height, width, 'window_size', size, 1, dilation_rate)
+        result = partition_apply_fused(inputs, height, width, 'window_size', size, 1, dilation_rate, qkv_mult=1)
         result = self.evaluate(result)
 
         self.assertAllEqual(expected, result)
@@ -196,7 +197,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
             142, 184, 186, 188, 190, 41, 43, 45, 47, 89, 91, 93, 95, 137, 139, 141, 143, 185, 187, 189, 191],
             'int64').reshape([1, 12, 1, 16, 1])
 
-        result = partition_apply_fused(inputs, height, width, 'window_size', size, 1, dilation_rate)
+        result = partition_apply_fused(inputs, height, width, 'window_size', size, 1, dilation_rate, qkv_mult=1)
         result = self.evaluate(result)
 
         self.assertAllEqual(expected, result)
@@ -212,7 +213,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
             63, 66, 69, 84, 87, 90, 93, 13, 16, 19, 22, 37, 40, 43, 46, 61, 64, 67, 70, 85, 88, 91, 94, 14, 17, 20, 23,
             38, 41, 44, 47, 62, 65, 68, 71, 86, 89, 92, 95], 'int64').reshape([1, 6, 1, 16, 1])
 
-        result = partition_apply_fused(inputs, height, width, 'grid_size', size, 1, dilation_rate)
+        result = partition_apply_fused(inputs, height, width, 'grid_size', size, 1, dilation_rate, qkv_mult=1)
         result = self.evaluate(result)
 
         self.assertAllEqual(expected, result)
@@ -243,9 +244,8 @@ class TestPartitionApplyFused(tf.test.TestCase):
 
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
-                result = with_partition_fused(
-                    lambda x, **kwargs: tf.reduce_mean(x, axis=-1, keepdims=True),
-                    inputs, part_type, size, 1, dilation_rate)
+                result = with_partition_fused(lambda x, **kwargs: tf.reduce_mean(x, axis=-1, keepdims=True),
+                                              inputs, part_type, size, 1, dilation_rate)
                 result = self.evaluate(result)
                 self.assertAllEqual(inputs.mean(-1, keepdims=True), result)
 
@@ -412,7 +412,7 @@ class TestHaloPartitionFused(tf.test.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_apply(self):
-        inputs = np.arange(3 * 24 * 48 * 4 * 2 * 5, dtype='float32').reshape([3, 24, 48, 4 * 2 * 5])
+        inputs = np.arange(3 * 24 * 48 * 2 * 4 * 5, dtype='float32').reshape([3, 24, 48, 2 * 4 * 5])
         height, width = inputs.shape[1:3]
         size, channels = 4, 20
 
@@ -420,8 +420,9 @@ class TestHaloPartitionFused(tf.test.TestCase):
             for dilation_rate in [1, 2, 3]:
                 for num_heads in [1, 2, 4]:
                     expected = halo_partition(inputs, height, width, size, halo_size, dilation_rate)
-                    expected = tf.reshape(expected, expected.shape[:-1] + (num_heads, 2 * channels // num_heads))
-                    expected = tf.transpose(expected, [0, 1, 3, 2, 4])
+                    expected = tf.reshape(expected, expected.shape[:-1] + (2, num_heads, channels // num_heads))
+                    expected = tf.transpose(expected, [0, 1, 4, 2, 3, 5])
+                    expected = tf.reshape(expected, expected.shape[:-2] + (2 * channels // num_heads,))
                     expected = self.evaluate(expected)
 
                     result = halo_partition_fused(inputs, height, width, size, halo_size, num_heads, dilation_rate)
@@ -430,7 +431,7 @@ class TestHaloPartitionFused(tf.test.TestCase):
                     self.assertAllEqual(expected, result)
 
     def test_center(self):
-        inputs = np.arange(3 * 24 * 48 * 4 * 2 * 5, dtype='float32').reshape([3, 24, 48, 4 * 2 * 5])
+        inputs = np.arange(3 * 24 * 48 * 2 * 4 * 5, dtype='float32').reshape([3, 24, 48, 2 * 4 * 5])
         height, width = inputs.shape[1:3]
         size, channels = 4, 20
 
@@ -439,7 +440,7 @@ class TestHaloPartitionFused(tf.test.TestCase):
             for dilation_rate in [1, 2, 3]:
                 for num_heads in [1, 2, 4]:
                     expected = partition_apply_fused(
-                        inputs, height, width, 'window_size', size, num_heads, dilation_rate)
+                        inputs, height, width, 'window_size', size, num_heads, dilation_rate, qkv_mult=2)
                     expected = self.evaluate(expected)
 
                     result = halo_partition_fused(inputs, height, width, size, halo_size, num_heads, dilation_rate)
