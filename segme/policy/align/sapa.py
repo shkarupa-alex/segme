@@ -26,8 +26,8 @@ class SapaFeatureAlignment(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        self.norm_fine = Norm(policy='conv-ln-relu')
-        self.norm_coarse = Norm(policy='conv-ln-relu')
+        self.norm_fine = Norm(policy='conv-ln1em5-relu')
+        self.norm_coarse = Norm(policy='conv-ln1em5-relu')
 
         self.intnear = NearestInterpolation(None)
 

@@ -10,7 +10,7 @@ class FeatureDistillation(models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.teacher = None
-        self.whitener = layers.LayerNormalization(center=False, scale=False, dtype='float32')
+        self.whitener = layers.LayerNormalization(center=False, scale=False, epsilon=1.001e-5, dtype='float32')
 
     def set_teacher(self, model, jit_compile=None):
         if not isinstance(model, models.Model):
