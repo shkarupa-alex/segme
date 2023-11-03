@@ -106,6 +106,21 @@ class TestFixedConv(test_combinations.TestCase):
                 self.assertTupleEqual(exshape, result.shape)
                 self.assertLess(np.abs(exval - result).max(), 1e-4)
 
+    # def test_same_valid_equal(self):
+    #     inputs = np.random.uniform(size=[2, 16, 16, 3]).astype('float32')
+    #
+    #     valconv = FixedConv(8, 4, strides=4, padding='valid')
+    #     expected = valconv(inputs)
+    #     expected = self.evaluate(expected)
+    #
+    #     sameconv = FixedConv(8, 4, strides=4, padding='same')
+    #     sameconv.build([None, None, None, 3])
+    #     sameconv.set_weights(valconv.get_weights())
+    #     result = sameconv(inputs)
+    #     result = self.evaluate(result)
+    #
+    #     self.assertLess(np.abs(expected - result).max(), 1e-6)
+
 
 @test_combinations.run_all_keras_modes
 class TestFixedDepthwiseConv(test_combinations.TestCase):
