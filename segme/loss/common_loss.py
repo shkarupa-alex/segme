@@ -188,6 +188,7 @@ def mae(y_true, y_pred, sample_weight, from_logits, regression=False):
         y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
         y_true, y_pred = to_1hot(y_true, y_pred)
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
+        # TODO: try to compute mae with inverse softmax/sigmoid on y?
 
     loss = tf.abs(y_pred - y_true)
 
