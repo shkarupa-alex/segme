@@ -16,5 +16,6 @@ from segme.loss.region_mutual import RegionMutualInformationLoss
 from segme.loss.rt_exclusion import ReflectionTransmissionExclusionLoss
 from segme.loss.smooth_penalty import SmoothGradientPenalty
 from segme.loss.sobel_edge import SobelEdgeLoss
+from segme.loss.soft_mae import SoftMeanAbsoluteError
 from segme.loss.structural_similarity import StructuralSimilarityLoss
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper

@@ -1,8 +1,9 @@
 import tensorflow as tf
-from keras import layers, losses, models
+from keras import layers, models
 from keras.saving import register_keras_serializable
 from keras.src.engine.data_adapter import unpack_x_y_sample_weight
 from tensorflow.python.framework import convert_to_constants
+from segme.loss.soft_mae import SoftMeanAbsoluteError
 
 
 @register_keras_serializable(package='SegMe>Common')
@@ -28,7 +29,7 @@ class FeatureDistillation(models.Model):
                 run_eagerly=None, steps_per_execution=None, jit_compile=None, **kwargs):
         if loss is not None or metrics is not None or loss_weights is not None or weighted_metrics is not None:
             raise ValueError('User defined loss, loss_weights, metrics and weighted_metrics not supported.')
-        loss = losses.Huber(delta=2., name='feature_distillation')
+        loss = SoftMeanAbsoluteError(beta=2., name='soft_mae_loss')
 
         super().compile(
             optimizer=optimizer, loss=loss, metrics=None, loss_weights=None, weighted_metrics=None,
