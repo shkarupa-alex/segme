@@ -19,7 +19,7 @@ class FeatureDistillation(models.Model):
 
         teacher_sp = tf.TensorSpec(model.inputs[0].shape, model.inputs[0].dtype)
         teacher_fn = tf.function(
-            lambda x: self.whitener(model(x, training=False), training=False),
+            lambda x: self.whitener(model(x, training=False)),
             jit_compile=jit_compile, reduce_retracing=True)
         teacher_fn = teacher_fn.get_concrete_function(teacher_sp)
         teacher_fn = convert_to_constants.convert_variables_to_constants_v2(teacher_fn)

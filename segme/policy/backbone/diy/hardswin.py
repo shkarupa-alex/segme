@@ -9,7 +9,6 @@ from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.attn import SwinAttention
 from segme.common.drop import DropPath
-from segme.common.fold import Fold
 from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
 
@@ -38,8 +37,7 @@ def Reduce(name=None):
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x = Fold(2, name=f'{name}_fold')(inputs)
-        x = layers.Dense(channels * 2, use_bias=False, name=f'{name}_reduce')(x)
+        x = layers.Conv2D(channels * 2, 2, strides=2, padding='same', use_bias=False, name=f'{name}_reduce')(inputs)
         x = Norm(name=f'{name}_norm')(x)
 
         return x
@@ -101,7 +99,7 @@ def AttnBlock(current_window, pretrain_window, num_heads, shift_mode, path_drop=
 def HardSwin(
         embed_dim, stem_depth, stage_depths, pretrain_window, current_window=None, patch_size=4, expand_ratio=4,
         path_gamma=0.01, path_drop=0.2, pretrain_size=384, current_size=None, input_shape=None, include_top=True,
-        model_name='soft_swin', pooling=None, weights=None, input_tensor=None, classes=1000,
+        model_name='hard_swin', pooling=None, weights=None, input_tensor=None, classes=1000,
         classifier_activation='softmax', include_preprocessing=False):
     if embed_dim % 32:
         raise ValueError('Embedding size should be a multiple of 32.')
@@ -218,9 +216,37 @@ def HardSwin(
 
 def HardSwinTiny(
         embed_dim=96, stem_depth=2, stage_depths=(2, 2, 6, 2), pretrain_window=16, pretrain_size=256,
-        model_name='soft_swin_tiny', weights=None, classes=14607, classifier_activation='linear', **kwargs):
+        model_name='hard_swin_tiny', **kwargs):
     with cnapol.policy_scope('conv-ln1em5-gelu'):
         return HardSwin(
             embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
-            pretrain_size=pretrain_size, model_name=model_name, weights=weights, classes=classes,
-            classifier_activation=classifier_activation, **kwargs)
+            pretrain_size=pretrain_size, model_name=model_name, **kwargs)
+
+
+def HardSwinSmall(
+        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 18, 2), pretrain_window=16, path_drop=0.3, pretrain_size=256,
+        model_name='hard_swin_small', **kwargs):
+    with cnapol.policy_scope('conv-ln1em5-gelu'):
+        return HardSwin(
+            embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
+            path_drop=path_drop, pretrain_size=pretrain_size, model_name=model_name, **kwargs)
+
+
+def HardSwinBase(
+        embed_dim=128, stem_depth=3, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12,
+        pretrain_size=192, current_size=384, model_name='hard_swin_base', **kwargs):
+    with cnapol.policy_scope('conv-ln1em5-gelu'):
+        return HardSwin(
+            embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
+            pretrain_window=pretrain_window, pretrain_size=pretrain_size, current_size=current_size,
+            model_name=model_name, **kwargs)
+
+
+def HardSwinLarge(
+        embed_dim=192, stem_depth=4, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12,
+        pretrain_size=192, current_size=384, model_name='hard_swin_large', **kwargs):
+    with cnapol.policy_scope('conv-ln1em5-gelu'):
+        return HardSwin(
+            embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
+            pretrain_window=pretrain_window, pretrain_size=pretrain_size, current_size=current_size,
+            model_name=model_name, **kwargs)
