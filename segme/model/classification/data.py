@@ -212,12 +212,12 @@ def _resize_crop(example, size, train, crop_pct=0.875):
         crop = tf.concat([crop, [3]], axis=-1)
 
         image = tf.image.random_crop(image, crop)
-        image = tf.image.resize(image, [size, size], method=tf.image.ResizeMethod.BICUBIC)
+        image = tf.image.resize(image, [size, size], method=tf.image.ResizeMethod.BICUBIC, antialias=True)
     else:
         shape_ = shape * size / crop_pct / tf.reduce_min(shape)
         shape_ = tf.cast(tf.round(shape_), 'int32')
 
-        image = tf.image.resize(image, shape_, method=tf.image.ResizeMethod.BICUBIC)
+        image = tf.image.resize(image, shape_, method=tf.image.ResizeMethod.BICUBIC, antialias=True)
 
         crop_h, crop_w = tf.unstack((shape_ - size) // 2)
         image = image[crop_h:crop_h + size, crop_w:crop_w + size]
