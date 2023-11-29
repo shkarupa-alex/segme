@@ -337,9 +337,10 @@ def CoMA(
     x = image
 
     if include_preprocessing:
-        x = layers.Rescaling(scale=1.0 / 255, name='rescale')(x)
         x = layers.Normalization(
-            mean=[0.485, 0.456, 0.406], variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2], name='normalize')(x)
+            mean=np.array([0.485, 0.456, 0.406], 'float32') * 255.,
+            variance=(np.array([0.229, 0.224, 0.225], 'float32') * 255.) ** 2,
+            name='normalize')(x)
 
     stem_drops, path_drops = path_drops[:stem_depth], path_drops[stem_depth:]
     stem_gammas, path_gammas = path_gammas[:stem_depth], path_gammas[stem_depth:]

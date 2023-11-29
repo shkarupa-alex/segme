@@ -1,4 +1,4 @@
-import tensorflow as tf
+import numpy as np
 from keras import models, layers
 
 
@@ -49,9 +49,10 @@ def wrap_bone(model, prepr, init, channels, end_points, name):
     if prepr is None:
         input_prep = input_image
     elif 'torch' == prepr:
-        input_prep = layers.Rescaling(scale=1 / 255, name='rescale')(input_image)
         input_prep = layers.Normalization(
-            mean=[0.485, 0.456, 0.406], variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2], name='normalize')(input_prep)
+            mean=np.array([0.485, 0.456, 0.406], 'float32') * 255.,
+            variance=(np.array([0.229, 0.224, 0.225], 'float32') * 255.) ** 2,
+            name='normalize')(input_image)
     else:
         input_prep = layers.Lambda(prepr, name='preprocess')(input_image)
 

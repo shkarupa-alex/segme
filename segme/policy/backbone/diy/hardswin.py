@@ -152,9 +152,10 @@ def HardSwin(
     x = image
 
     if include_preprocessing:
-        x = layers.Rescaling(scale=1.0 / 255, name='rescale')(x)
         x = layers.Normalization(
-            mean=[0.485, 0.456, 0.406], variance=[0.229 ** 2, 0.224 ** 2, 0.225 ** 2], name='normalize')(x)
+            mean=np.array([0.485, 0.456, 0.406], 'float32') * 255.,
+            variance=(np.array([0.229, 0.224, 0.225], 'float32') * 255.) ** 2,
+            name='normalize')(x)
 
     path_gammas = np.linspace(path_gamma, 1e-5, sum(stage_depths)).tolist()
     path_drops = np.linspace(0., path_drop, sum(stage_depths)).tolist()
@@ -171,11 +172,8 @@ def HardSwin(
         stage_drops, path_drops = path_drops[:stage_depth], path_drops[stage_depth:]
 
         for j in range(stage_depth):
-            # shift_counter += j % 2
-            # shift_mode = shift_counter % 4 + 1 if j % 2 else 0
-            shift_mode = j % 2
             x = AttnBlock(
-                stage_window, pretrain_window, num_heads, shift_mode, expand_ratio=expand_ratio,
+                stage_window, pretrain_window, num_heads, shift_mode=j % 2, expand_ratio=expand_ratio,
                 path_gamma=stage_gammas[j], path_drop=stage_drops[j], name=f'stage_{i}_attn_{j}')(x)
 
         x = layers.Activation('linear', name=f'stage_{i}_out')(x)
