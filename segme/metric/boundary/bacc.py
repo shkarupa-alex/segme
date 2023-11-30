@@ -17,9 +17,10 @@ class BinaryBoundaryAccuracy(BinaryAccuracy):
         """
         super().__init__(name, threshold=threshold, dtype=dtype)
         self.radius = radius
+        self.strict = True
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        sample_weight = boundary_weight(y_true, self.radius, sample_weight)
+        sample_weight = boundary_weight(y_true, self.radius, self.strict, sample_weight)
 
         return super().update_state(y_true, y_pred, sample_weight)
 
@@ -28,6 +29,21 @@ class BinaryBoundaryAccuracy(BinaryAccuracy):
         config.update({'radius': self.radius})
 
         return config
+
+
+@register_keras_serializable(package='SegMe>Metric>Boundary')
+class BinaryApproximateBoundaryAccuracy(BinaryBoundaryAccuracy):
+    def __init__(self, radius=1, threshold=0.5, name='binary_approximate_boundary_accuracy', dtype=None):
+        """Creates an `Accuracy` metric instance estimated only in `radius` pixels from boundary.
+        Approximating 3x3 ellipse kernel with square one.
+
+        Args:
+            radius: (Optional) int radius of boundary
+            name: (Optional) string name of the metric instance.
+            dtype: (Optional) data type of the metric result.
+        """
+        super().__init__(radius=radius, threshold=threshold, name=name, dtype=dtype)
+        self.strict = False
 
 
 @register_keras_serializable(package='SegMe>Metric>Boundary')
@@ -42,10 +58,11 @@ class SparseCategoricalBoundaryAccuracy(SparseCategoricalAccuracy):
         """
         super().__init__(name, dtype=dtype)
         self.radius = radius
+        self.strict = True
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         y_true_1h = tf.one_hot(tf.squeeze(y_true, -1), y_pred.shape[-1], dtype='int32')
-        sample_weight = boundary_weight(y_true_1h, self.radius, sample_weight)
+        sample_weight = boundary_weight(y_true_1h, self.radius, self.strict, sample_weight)
 
         return super().update_state(y_true, y_pred, sample_weight)
 
@@ -56,27 +73,44 @@ class SparseCategoricalBoundaryAccuracy(SparseCategoricalAccuracy):
         return config
 
 
-def boundary_weight(y_true, radius, sample_weight):
+@register_keras_serializable(package='SegMe>Metric>Boundary')
+class SparseCategoricalApproximateBoundaryAccuracy(SparseCategoricalBoundaryAccuracy):
+    def __init__(self, radius=1, name='sparse_categorical_approximate_boundary_accuracy', dtype=None):
+        """Creates a `SparseCategoricalAccuracy` metric instance estimated only in `radius` pixels from boundary.
+        Approximating 3x3 ellipse kernel with square one.
+
+        Args:
+            radius: (Optional) int radius of boundary
+            name: (Optional) string name of the metric instance.
+            dtype: (Optional) data type of the metric result.
+        """
+        super().__init__(radius=radius, name=name, dtype=dtype)
+        self.radius = radius
+        self.strict = False
+
+
+def boundary_weight(y_true, radius, strict, sample_weight):
     if 4 != len(y_true.shape):
         raise ValueError(f'Labels must have rank 4.')
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))[..., None]
-    kernel = tf.convert_to_tensor(kernel, 'int32')
-    kernel = tf.tile(kernel, (1, 1, y_true.shape[-1]))
+    if strict:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))[..., None]
+        kernel = tf.convert_to_tensor(kernel, 'int32')
+        kernel = tf.tile(kernel, (1, 1, y_true.shape[-1]))
 
-    background = tf.cast(y_true != 0, 'int32')
+        eroded = dilated = tf.cast(y_true, 'int32')
+        for _ in range(radius):
+            eroded = tf.nn.erosion2d(eroded, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4)
+            dilated = tf.nn.dilation2d(dilated, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4)
 
-    def _cond(i, e, d):
-        return i < radius
+        weight = tf.cast(tf.equal(eroded + dilated, 1), 'float32')
+    else:
+        foreground = tf.cast(y_true, 'float32')
+        for _ in range(radius):
+            foreground = tf.nn.avg_pool(foreground, ksize=3, strides=1, padding='SAME')
 
-    def _body(i, e, d):
-        return i + 1, \
-               tf.nn.erosion2d(e, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4), \
-               tf.nn.dilation2d(d, kernel, [1] * 4, 'SAME', 'NHWC', [1] * 4)
+        weight = tf.cast((foreground > 0.) & (foreground < 1.), 'float32')
 
-    _, eroded, dilated = tf.while_loop(_cond, _body, [0, background, background])
-
-    weight = tf.cast(eroded + dilated == 1, 'float32')
     weight = tf.reduce_max(weight, axis=-1, keepdims=True)
 
     (batch, height, width), _ = get_shape(y_true, axis=[0, 1, 2])

@@ -1,1 +1,2 @@
 from segme.metric.boundary.bacc import BinaryBoundaryAccuracy, SparseCategoricalBoundaryAccuracy
+from segme.metric.boundary.bacc import BinaryApproximateBoundaryAccuracy, SparseCategoricalApproximateBoundaryAccuracy
