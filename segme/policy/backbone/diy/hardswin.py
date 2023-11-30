@@ -4,13 +4,18 @@ from functools import partial
 from keras import backend, initializers, layers, models
 from keras.mixed_precision import global_policy
 from keras.src.applications import imagenet_utils
-from keras.src.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.attn import SwinAttention
 from segme.common.drop import DropPath
 from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
+from segme.policy.backbone.utils import wrap_bone
+from segme.policy.backbone.backbone import BACKBONES
+
+BASE_URL = 'https://github.com/shkarupa-alex/segme/releases/download/{}.h5'
+WEIGHT_URLS = {}
+WEIGHT_HASHES = {}
 
 
 def Stem(embed_dim, patch_size, name=None):
@@ -97,10 +102,10 @@ def AttnBlock(current_window, pretrain_window, num_heads, shift_mode, path_drop=
 
 
 def HardSwin(
-        embed_dim, stem_depth, stage_depths, pretrain_window, current_window=None, patch_size=4, expand_ratio=4,
-        path_gamma=0.01, path_drop=0.2, pretrain_size=384, current_size=None, input_shape=None, include_top=True,
-        model_name='hard_swin', pooling=None, weights=None, input_tensor=None, classes=1000,
-        classifier_activation='softmax', include_preprocessing=False):
+        embed_dim, stage_depths, pretrain_window, current_window=None, patch_size=4, expand_ratio=4, path_gamma=0.01,
+        path_drop=0.2, pretrain_size=384, current_size=None, input_shape=None, include_top=True, model_name='hard_swin',
+        pooling=None, weights=None, input_tensor=None, classes=1000, classifier_activation='softmax',
+        include_preprocessing=False):
     if embed_dim % 32:
         raise ValueError('Embedding size should be a multiple of 32.')
 
@@ -182,16 +187,17 @@ def HardSwin(
 
     x = Norm(name='norm')(x)
 
-    if include_top or pooling in {None, 'avg'}:
-        x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
-    elif pooling == 'max':
-        x = layers.GlobalMaxPooling2D(name='max_pool')(x)
-    else:
-        raise ValueError(f'Expecting pooling to be one of None/avg/max. Found: {pooling}')
+    if include_top:
+        if include_top or pooling in {None, 'avg'}:
+            x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
+        elif pooling == 'max':
+            x = layers.GlobalMaxPooling2D(name='max_pool')(x)
+        else:
+            raise ValueError(f'Expecting pooling to be one of None/avg/max. Found: {pooling}')
 
-    imagenet_utils.validate_activation(classifier_activation, weights)
-    x = layers.Dense(classes, name='head')(x)
-    x = layers.Activation(classifier_activation, dtype='float32', name='pred')(x)
+        imagenet_utils.validate_activation(classifier_activation, weights)
+        x = layers.Dense(classes, name='head')(x)
+        x = layers.Activation(classifier_activation, dtype='float32', name='pred')(x)
 
     if input_tensor is not None:
         inputs = layer_utils.get_source_inputs(input_tensor)
@@ -200,51 +206,68 @@ def HardSwin(
 
     model = models.Model(inputs, x, name=model_name)
 
-    if weights is not None:
+    weights_key = f'{model_name}__{weights}__{cnapol.global_policy().name}'
+    if weights_key in WEIGHT_URLS:
+        weights_url = WEIGHT_URLS[weights_key]
+        weights_hash = WEIGHT_HASHES[weights_key]
+        weights_path = data_utils.get_file(origin=weights_url, file_hash=weights_hash, cache_subdir='soft_swin')
+        model.load_weights(weights_path)
+    elif weights is not None:
         model.load_weights(weights)
-
-    if include_top:
-        return model
-
-    outputs = model.get_layer(name='norm').output
-    model = models.Model(inputs=inputs, outputs=outputs, name=model_name)
 
     return model
 
 
 def HardSwinTiny(
-        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 6, 2), pretrain_window=16, pretrain_size=256,
+        embed_dim=96, stage_depths=(2, 2, 6, 2), pretrain_window=16, pretrain_size=256, include_top=False,
         model_name='hard_swin_tiny', **kwargs):
     with cnapol.policy_scope('conv-ln1em5-gelu'):
         return HardSwin(
-            embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
-            pretrain_size=pretrain_size, model_name=model_name, **kwargs)
+            embed_dim=embed_dim, stage_depths=stage_depths, pretrain_window=pretrain_window,
+            pretrain_size=pretrain_size, include_top=include_top, model_name=model_name, **kwargs)
 
 
 def HardSwinSmall(
-        embed_dim=96, stem_depth=2, stage_depths=(2, 2, 18, 2), pretrain_window=16, path_drop=0.3, pretrain_size=256,
-        model_name='hard_swin_small', **kwargs):
+        embed_dim=96, stage_depths=(2, 2, 18, 2), pretrain_window=16, path_drop=0.3, pretrain_size=256,
+        include_top=False, model_name='hard_swin_small', **kwargs):
     with cnapol.policy_scope('conv-ln1em5-gelu'):
         return HardSwin(
-            embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, pretrain_window=pretrain_window,
-            path_drop=path_drop, pretrain_size=pretrain_size, model_name=model_name, **kwargs)
+            embed_dim=embed_dim, stage_depths=stage_depths, pretrain_window=pretrain_window, path_drop=path_drop,
+            pretrain_size=pretrain_size, include_top=include_top, model_name=model_name, **kwargs)
 
 
 def HardSwinBase(
-        embed_dim=128, stem_depth=3, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12,
-        pretrain_size=192, current_size=384, model_name='hard_swin_base', **kwargs):
+        embed_dim=128, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, pretrain_size=192,
+        include_top=False, current_size=384, model_name='hard_swin_base', **kwargs):
     with cnapol.policy_scope('conv-ln1em5-gelu'):
         return HardSwin(
-            embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
+            embed_dim=embed_dim, stage_depths=stage_depths, current_window=current_window,
             pretrain_window=pretrain_window, pretrain_size=pretrain_size, current_size=current_size,
-            model_name=model_name, **kwargs)
+            include_top=include_top, model_name=model_name, **kwargs)
 
 
 def HardSwinLarge(
-        embed_dim=192, stem_depth=4, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12,
-        pretrain_size=192, current_size=384, model_name='hard_swin_large', **kwargs):
+        embed_dim=192, stage_depths=(2, 2, 18, 2), current_window=24, pretrain_window=12, pretrain_size=192,
+        include_top=False, current_size=384, model_name='hard_swin_large', **kwargs):
     with cnapol.policy_scope('conv-ln1em5-gelu'):
         return HardSwin(
-            embed_dim=embed_dim, stem_depth=stem_depth, stage_depths=stage_depths, current_window=current_window,
+            embed_dim=embed_dim, stage_depths=stage_depths, current_window=current_window,
             pretrain_window=pretrain_window, pretrain_size=pretrain_size, current_size=current_size,
-            model_name=model_name, **kwargs)
+            include_top=include_top, model_name=model_name, **kwargs)
+
+
+BACKBONES.register('hardswin_tiny')((
+    partial(wrap_bone, HardSwinTiny, None), [
+        None, None, 'stage_0_out', 'stage_1_out', 'stage_2_out', 'stage_3_out']))
+
+BACKBONES.register('hardswin_small')((
+    partial(wrap_bone, HardSwinSmall, None), [
+        None, None, 'stage_0_out', 'stage_1_out', 'stage_2_out', 'stage_3_out']))
+
+BACKBONES.register('hardswin_base')((
+    partial(wrap_bone, HardSwinBase, None), [
+        None, None, 'stage_0_out', 'stage_1_out', 'stage_2_out', 'stage_3_out']))
+
+BACKBONES.register('hardswin_large')((
+    partial(wrap_bone, HardSwinLarge, None), [
+        None, None, 'stage_0_out', 'stage_1_out', 'stage_2_out', 'stage_3_out']))

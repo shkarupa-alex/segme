@@ -40,28 +40,26 @@ class TestModel(test_combinations.TestCase):
 
     def test_drop_path(self):
         config = SoftSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
+            embed_dim=64, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3)).get_config()
 
         expected_drops = [
-            ('stem_1_drop', 0.0), ('stem_2_drop', 0.013333333333333334),
+            ('stage_0_attn_0_swin_drop', 0.0), ('stage_0_attn_0_mlp_drop', 0.0),
+            ('stage_0_attn_1_swin_drop', 0.015384615384615385), ('stage_0_attn_1_mlp_drop', 0.015384615384615385),
 
-            ('stage_0_attn_0_swin_drop', 0.02666666666666667), ('stage_0_attn_0_mlp_drop', 0.02666666666666667),
-            ('stage_0_attn_1_swin_drop', 0.04), ('stage_0_attn_1_mlp_drop', 0.04),
+            ('stage_1_attn_0_swin_drop', 0.03076923076923077), ('stage_1_attn_0_mlp_drop', 0.03076923076923077),
+            ('stage_1_attn_1_swin_drop', 0.046153846153846156), ('stage_1_attn_1_mlp_drop', 0.046153846153846156),
 
-            ('stage_1_attn_0_swin_drop', 0.05333333333333334), ('stage_1_attn_0_mlp_drop', 0.05333333333333334),
-            ('stage_1_attn_1_swin_drop', 0.06666666666666667), ('stage_1_attn_1_mlp_drop', 0.06666666666666667),
+            ('stage_2_attn_0_swin_drop', 0.06153846153846154), ('stage_2_attn_0_mlp_drop', 0.06153846153846154),
+            ('stage_2_attn_1_swin_drop', 0.07692307692307693), ('stage_2_attn_1_mlp_drop', 0.07692307692307693),
+            ('stage_2_attn_2_swin_drop', 0.09230769230769231), ('stage_2_attn_2_mlp_drop', 0.09230769230769231),
+            ('stage_2_attn_3_swin_drop', 0.1076923076923077), ('stage_2_attn_3_mlp_drop', 0.1076923076923077),
+            ('stage_2_attn_4_swin_drop', 0.12307692307692308), ('stage_2_attn_4_mlp_drop', 0.12307692307692308),
+            ('stage_2_attn_5_swin_drop', 0.13846153846153847), ('stage_2_attn_5_mlp_drop', 0.13846153846153847),
 
-            ('stage_2_attn_0_swin_drop', 0.08), ('stage_2_attn_0_mlp_drop', 0.08),
-            ('stage_2_attn_1_swin_drop', 0.09333333333333334), ('stage_2_attn_1_mlp_drop', 0.09333333333333334),
-            ('stage_2_attn_2_swin_drop', 0.10666666666666667), ('stage_2_attn_2_mlp_drop', 0.10666666666666667),
-            ('stage_2_attn_3_swin_drop', 0.12000000000000001), ('stage_2_attn_3_mlp_drop', 0.12000000000000001),
-            ('stage_2_attn_4_swin_drop', 0.13333333333333333), ('stage_2_attn_4_mlp_drop', 0.13333333333333333),
-            ('stage_2_attn_5_swin_drop', 0.14666666666666667), ('stage_2_attn_5_mlp_drop', 0.14666666666666667),
-
-            ('stage_3_attn_0_swin_drop', 0.16), ('stage_3_attn_0_mlp_drop', 0.16),
-            ('stage_3_attn_1_swin_drop', 0.17333333333333334), ('stage_3_attn_1_mlp_drop', 0.17333333333333334),
-            ('stage_3_attn_2_swin_drop', 0.18666666666666668), ('stage_3_attn_2_mlp_drop', 0.18666666666666668),
+            ('stage_3_attn_0_swin_drop', 0.15384615384615385), ('stage_3_attn_0_mlp_drop', 0.15384615384615385),
+            ('stage_3_attn_1_swin_drop', 0.16923076923076924), ('stage_3_attn_1_mlp_drop', 0.16923076923076924),
+            ('stage_3_attn_2_swin_drop', 0.18461538461538463), ('stage_3_attn_2_mlp_drop', 0.18461538461538463),
             ('stage_3_attn_3_swin_drop', 0.2), ('stage_3_attn_3_mlp_drop', 0.2)]
 
         actual_drops = TestModel._values_from_config(config, 'SegMe>Common>DropPath', 'rate')
@@ -69,28 +67,26 @@ class TestModel(test_combinations.TestCase):
 
     def test_residual_gamma(self):
         config = SoftSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
+            embed_dim=64, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3)).get_config()
 
         expected_gammas = [
-            ('stem_1_norm', 0.01), ('stem_2_norm', 0.009334),
+            ('stage_0_attn_0_swin_norm', 0.01), ('stage_0_attn_0_mlp_norm', 0.01),
+            ('stage_0_attn_1_swin_norm', 0.009231538461538461), ('stage_0_attn_1_mlp_norm', 0.009231538461538461),
 
-            ('stage_0_attn_0_swin_norm', 0.008668), ('stage_0_attn_0_mlp_norm', 0.008668),
-            ('stage_0_attn_1_swin_norm', 0.008002), ('stage_0_attn_1_mlp_norm', 0.008002),
+            ('stage_1_attn_0_swin_norm', 0.008463076923076924), ('stage_1_attn_0_mlp_norm', 0.008463076923076924),
+            ('stage_1_attn_1_swin_norm', 0.007694615384615385), ('stage_1_attn_1_mlp_norm', 0.007694615384615385),
 
-            ('stage_1_attn_0_swin_norm', 0.0073360000000000005), ('stage_1_attn_0_mlp_norm', 0.0073360000000000005),
-            ('stage_1_attn_1_swin_norm', 0.006670000000000001), ('stage_1_attn_1_mlp_norm', 0.006670000000000001),
+            ('stage_2_attn_0_swin_norm', 0.006926153846153846), ('stage_2_attn_0_mlp_norm', 0.006926153846153846),
+            ('stage_2_attn_1_swin_norm', 0.006157692307692308), ('stage_2_attn_1_mlp_norm', 0.006157692307692308),
+            ('stage_2_attn_2_swin_norm', 0.005389230769230769), ('stage_2_attn_2_mlp_norm', 0.005389230769230769),
+            ('stage_2_attn_3_swin_norm', 0.00462076923076923), ('stage_2_attn_3_mlp_norm', 0.00462076923076923),
+            ('stage_2_attn_4_swin_norm', 0.003852307692307692), ('stage_2_attn_4_mlp_norm', 0.003852307692307692),
+            ('stage_2_attn_5_swin_norm', 0.003083846153846154), ('stage_2_attn_5_mlp_norm', 0.003083846153846154),
 
-            ('stage_2_attn_0_swin_norm', 0.006004), ('stage_2_attn_0_mlp_norm', 0.006004),
-            ('stage_2_attn_1_swin_norm', 0.005338), ('stage_2_attn_1_mlp_norm', 0.005338),
-            ('stage_2_attn_2_swin_norm', 0.004672), ('stage_2_attn_2_mlp_norm', 0.004672),
-            ('stage_2_attn_3_swin_norm', 0.004006), ('stage_2_attn_3_mlp_norm', 0.004006),
-            ('stage_2_attn_4_swin_norm', 0.00334), ('stage_2_attn_4_mlp_norm', 0.00334),
-            ('stage_2_attn_5_swin_norm', 0.002674), ('stage_2_attn_5_mlp_norm', 0.002674),
-
-            ('stage_3_attn_0_swin_norm', 0.0020079999999999994), ('stage_3_attn_0_mlp_norm', 0.0020079999999999994),
-            ('stage_3_attn_1_swin_norm', 0.0013419999999999994), ('stage_3_attn_1_mlp_norm', 0.0013419999999999994),
-            ('stage_3_attn_2_swin_norm', 0.0006759999999999995), ('stage_3_attn_2_mlp_norm', 0.0006759999999999995),
+            ('stage_3_attn_0_swin_norm', 0.002315384615384615), ('stage_3_attn_0_mlp_norm', 0.002315384615384615),
+            ('stage_3_attn_1_swin_norm', 0.001546923076923076), ('stage_3_attn_1_mlp_norm', 0.001546923076923076),
+            ('stage_3_attn_2_swin_norm', 0.0007784615384615386), ('stage_3_attn_2_mlp_norm', 0.0007784615384615386),
             ('stage_3_attn_3_swin_norm', 1e-05), ('stage_3_attn_3_mlp_norm', 1e-05)]
 
         actual_gammas = TestModel._values_from_config(
@@ -100,7 +96,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_attention_shift(self):
         config = SoftSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=12, pretrain_size=384, weights=None,
+            embed_dim=64, stage_depths=(2, 2, 6, 4), pretrain_window=12, pretrain_size=384, weights=None,
             include_top=False, input_shape=(None, None, 3)).get_config()
 
         expected_shifts = [
@@ -121,7 +117,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_attention_window(self):
         config = SoftSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=16, pretrain_size=256, weights=None,
+            embed_dim=64, stage_depths=(2, 2, 6, 4), pretrain_window=16, pretrain_size=256, weights=None,
             include_top=False, input_shape=(None, None, 3)).get_config()
 
         expected_shifts = [
@@ -145,7 +141,8 @@ class TestModel(test_combinations.TestCase):
         if use_fp16:
             mixed_precision.set_global_policy('mixed_float16')
 
-        model = SoftSwinTiny(embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None)
+        model = SoftSwinTiny(
+            embed_dim=64, stage_depths=(4, 4, 4, 4), pretrain_window=12, include_top=True, weights=None)
         model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
 
         images = np.random.random((10, 384, 384, 3)).astype('float32')
@@ -162,7 +159,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_finite(self):
         model = SoftSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
+            embed_dim=64, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3))
         outputs = model(np.random.uniform(0., 255., [2, 384, 384, 3]).astype('float32'))
         outputs = self.evaluate(outputs)
@@ -170,7 +167,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_var_shape(self):
         model = SoftSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
+            embed_dim=64, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3))
         run_eagerly = test_utils.should_run_eagerly()
         model.compile(optimizer='rmsprop', loss='mse', run_eagerly=run_eagerly, jit_compile=not run_eagerly)
@@ -188,72 +185,68 @@ class TestModel(test_combinations.TestCase):
             self.assertIn(v, checkpointed_objects)
 
     def test_tiny(self):
-        with cnapol.policy_scope('conv-gn-gelu'):
+        with cnapol.policy_scope('conv-ln1em5-gelu'):
             layer_multi_io_test(
                 Backbone,
-                kwargs={'scales': None, 'policy': 'softswin_tiny-imagenet'},
+                kwargs={'scales': None, 'policy': 'softswin_tiny-none'},
                 input_shapes=[(2, 256, 256, 3)],
                 input_dtypes=['uint8'],
                 expected_output_shapes=[
-                    (None, 128, 128, 24),
                     (None, 64, 64, 96),
                     (None, 32, 32, 192),
                     (None, 16, 16, 384),
                     (None, 8, 8, 768)
                 ],
-                expected_output_dtypes=['float32'] * 5
+                expected_output_dtypes=['float32'] * 4
             )
 
     def test_small_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
-        with cnapol.policy_scope('conv-gn-gelu'):
+        with cnapol.policy_scope('conv-ln1em5-gelu'):
             layer_multi_io_test(
                 Backbone,
-                kwargs={'scales': None, 'policy': 'softswin_small-imagenet'},
+                kwargs={'scales': None, 'policy': 'softswin_small-none'},
                 input_shapes=[(2, 256, 256, 3)],
                 input_dtypes=['uint8'],
                 expected_output_shapes=[
-                    (None, 128, 128, 24),
                     (None, 64, 64, 96),
                     (None, 32, 32, 192),
                     (None, 16, 16, 384),
                     (None, 8, 8, 768)
                 ],
-                expected_output_dtypes=['float16'] * 5
+                expected_output_dtypes=['float16'] * 4
             )
 
     def test_base(self):
-        with cnapol.policy_scope('conv-gn-gelu'):
+        with cnapol.policy_scope('conv-ln1em5-gelu'):
             layer_multi_io_test(
                 Backbone,
                 kwargs={'scales': None, 'policy': 'softswin_base-none'},
                 input_shapes=[(2, 384, 384, 3)],
                 input_dtypes=['uint8'],
                 expected_output_shapes=[
-                    (None, 192, 192, 32),
                     (None, 96, 96, 128),
                     (None, 48, 48, 256),
                     (None, 24, 24, 512),
                     (None, 12, 12, 1024)
                 ],
-                expected_output_dtypes=['float32'] * 5
+                expected_output_dtypes=['float32'] * 4
             )
 
     def test_large(self):
-        with cnapol.policy_scope('conv-gn-gelu'):
+        with cnapol.policy_scope('conv-ln1em5-gelu'):
             layer_multi_io_test(
                 Backbone,
                 kwargs={'scales': None, 'policy': 'softswin_large-none'},
                 input_shapes=[(2, 384, 384, 3)],
                 input_dtypes=['uint8'],
                 expected_output_shapes=[
-                    (None, 192, 192, 48),
                     (None, 96, 96, 192),
                     (None, 48, 48, 384),
                     (None, 24, 24, 768),
                     (None, 12, 12, 1536)
                 ],
-                expected_output_dtypes=['float32'] * 5
+                expected_output_dtypes=['float32'] * 4
             )
 
 

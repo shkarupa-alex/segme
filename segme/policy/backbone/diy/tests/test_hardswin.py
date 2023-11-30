@@ -40,7 +40,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_drop_path(self):
         config = HardSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
+            embed_dim=64, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3)).get_config()
 
         expected_drops = [
@@ -67,7 +67,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_residual_gamma(self):
         config = HardSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
+            embed_dim=64, stage_depths=(2, 2, 6, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3)).get_config()
 
         expected_gammas = [
@@ -96,7 +96,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_attention_shift(self):
         config = HardSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=12, pretrain_size=384, weights=None,
+            embed_dim=64, stage_depths=(2, 2, 6, 4), pretrain_window=12, pretrain_size=384, weights=None,
             include_top=False, input_shape=(None, None, 3)).get_config()
 
         expected_shifts = [
@@ -116,7 +116,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_attention_window(self):
         config = HardSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(2, 2, 6, 4), pretrain_window=16, pretrain_size=256, weights=None,
+            embed_dim=64, stage_depths=(2, 2, 6, 4), pretrain_window=16, pretrain_size=256, weights=None,
             include_top=False, input_shape=(None, None, 3)).get_config()
 
         expected_shifts = [
@@ -140,7 +140,8 @@ class TestModel(test_combinations.TestCase):
         if use_fp16:
             mixed_precision.set_global_policy('mixed_float16')
 
-        model = HardSwinTiny(embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None)
+        model = HardSwinTiny(embed_dim=64, stage_depths=(4, 4, 4, 4), pretrain_window=12, include_top=True,
+                             weights=None)
         model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
 
         images = np.random.random((10, 384, 384, 3)).astype('float32')
@@ -157,7 +158,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_finite(self):
         model = HardSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
+            embed_dim=64, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3))
         outputs = model(np.random.uniform(0., 255., [2, 384, 384, 3]).astype('float32'))
         outputs = self.evaluate(outputs)
@@ -165,7 +166,7 @@ class TestModel(test_combinations.TestCase):
 
     def test_var_shape(self):
         model = HardSwinTiny(
-            embed_dim=64, stem_depth=2, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
+            embed_dim=64, stage_depths=(4, 4, 4, 4), pretrain_window=12, weights=None, include_top=False,
             input_shape=(None, None, 3))
         run_eagerly = test_utils.should_run_eagerly()
         model.compile(optimizer='rmsprop', loss='mse', run_eagerly=run_eagerly, jit_compile=not run_eagerly)
@@ -181,6 +182,71 @@ class TestModel(test_combinations.TestCase):
         checkpointed_objects = object_identity.ObjectIdentitySet(checkpoint.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
+
+    def test_tiny(self):
+        with cnapol.policy_scope('conv-ln1em5-gelu'):
+            layer_multi_io_test(
+                Backbone,
+                kwargs={'scales': None, 'policy': 'hardswin_tiny-none'},
+                input_shapes=[(2, 256, 256, 3)],
+                input_dtypes=['uint8'],
+                expected_output_shapes=[
+                    (None, 64, 64, 96),
+                    (None, 32, 32, 192),
+                    (None, 16, 16, 384),
+                    (None, 8, 8, 768)
+                ],
+                expected_output_dtypes=['float32'] * 4
+            )
+
+    def test_small_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
+        with cnapol.policy_scope('conv-ln1em5-gelu'):
+            layer_multi_io_test(
+                Backbone,
+                kwargs={'scales': None, 'policy': 'hardswin_small-none'},
+                input_shapes=[(2, 256, 256, 3)],
+                input_dtypes=['uint8'],
+                expected_output_shapes=[
+                    (None, 64, 64, 96),
+                    (None, 32, 32, 192),
+                    (None, 16, 16, 384),
+                    (None, 8, 8, 768)
+                ],
+                expected_output_dtypes=['float16'] * 4
+            )
+
+    def test_base(self):
+        with cnapol.policy_scope('conv-ln1em5-gelu'):
+            layer_multi_io_test(
+                Backbone,
+                kwargs={'scales': None, 'policy': 'hardswin_base-none'},
+                input_shapes=[(2, 384, 384, 3)],
+                input_dtypes=['uint8'],
+                expected_output_shapes=[
+                    (None, 96, 96, 128),
+                    (None, 48, 48, 256),
+                    (None, 24, 24, 512),
+                    (None, 12, 12, 1024)
+                ],
+                expected_output_dtypes=['float32'] * 4
+            )
+
+    def test_large(self):
+        with cnapol.policy_scope('conv-ln1em5-gelu'):
+            layer_multi_io_test(
+                Backbone,
+                kwargs={'scales': None, 'policy': 'hardswin_large-none'},
+                input_shapes=[(2, 384, 384, 3)],
+                input_dtypes=['uint8'],
+                expected_output_shapes=[
+                    (None, 96, 96, 192),
+                    (None, 48, 48, 384),
+                    (None, 24, 24, 768),
+                    (None, 12, 12, 1536)
+                ],
+                expected_output_dtypes=['float32'] * 4
+            )
 
 
 if __name__ == '__main__':
