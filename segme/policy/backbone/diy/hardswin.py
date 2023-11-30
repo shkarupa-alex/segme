@@ -42,7 +42,7 @@ def Reduce(name=None):
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x = layers.Conv2D(channels * 2, 2, strides=2, padding='same', use_bias=False, name=f'{name}_reduce')(inputs)
+        x = layers.Conv2D(channels * 2, 2, strides=2, padding='same', use_bias=False, name=f'{name}_conv')(inputs)
         x = Norm(name=f'{name}_norm')(x)
 
         return x
