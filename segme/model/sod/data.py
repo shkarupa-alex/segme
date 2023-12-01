@@ -7,7 +7,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from operator import itemgetter
 from segme.utils.albumentations import drop_unapplied
-from segme.utils.common import rand_augment
+from segme.utils.common import rand_augment_full
 from segme.utils.matting.np import alpha_trimap as alpha_trimap_np
 from segme.utils.matting.tf import alpha_trimap as alpha_trimap_tf
 
@@ -428,7 +428,7 @@ def _transform_examples(examples, augment, with_depth, with_unknown, max_weight)
         masks.append(unknowns)
 
     if augment:
-        images, masks, _ = rand_augment(
+        images, masks, _ = rand_augment_full(
             images, masks, None, levels=2, ops=['FlipLR', 'FlipUD', 'Mix', 'RotateCCW', 'RotateCW', 'Shuffle'])
 
     targets, sample_weights, masks = masks[0:1], masks[1:2], masks[2:]
