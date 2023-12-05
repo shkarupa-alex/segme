@@ -35,7 +35,11 @@ class FixedConv(layers.Conv2D):
         if 'SAME' == paddings and max(self.kernel_size) > 1 and max(self.strides) > 1:
             pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
             pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
-            paddings = ((0, 0), (pad_h // 2, pad_h - pad_h // 2), (pad_w // 2, pad_w - pad_w // 2))
+
+            pad_hb = min(pad_h // 2, max(0, self.kernel_size[0] - self.strides[0]))
+            pad_wb = min(pad_w // 2, max(0, self.kernel_size[1] - self.strides[1]))
+
+            paddings = ((0, 0), (pad_hb, pad_h - pad_hb), (pad_wb, pad_w - pad_wb))
             paddings = ((0, 0),) + paddings if self.data_format == 'channels_first' else paddings + ((0, 0),)
 
         if not tf.config.list_physical_devices('GPU') and max(self.dilation_rate) > 1:
@@ -82,7 +86,11 @@ class FixedDepthwiseConv(layers.DepthwiseConv2D):
         if 'SAME' == paddings and max(self.kernel_size) > 1 and max(self.strides) > 1:
             pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
             pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
-            paddings = ((0, 0), (pad_h // 2, pad_h - pad_h // 2), (pad_w // 2, pad_w - pad_w // 2))
+
+            pad_hb = min(pad_h // 2, max(0, self.kernel_size[0] - self.strides[0]))
+            pad_wb = min(pad_w // 2, max(0, self.kernel_size[1] - self.strides[1]))
+
+            paddings = ((0, 0), (pad_hb, pad_h - pad_hb), (pad_wb, pad_w - pad_wb))
             paddings = ((0, 0),) + paddings if self.data_format == 'channels_first' else paddings + ((0, 0),)
 
         return tf.nn.depthwise_conv2d(

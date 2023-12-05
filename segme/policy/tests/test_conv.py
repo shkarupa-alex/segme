@@ -74,25 +74,30 @@ class TestFixedConv(test_combinations.TestCase):
                 self.assertLess(np.abs(exval - result).max(), 1e-4)
 
     def test_same(self):
-        for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
-            if s > 1 and d > 1:
-                continue
+        for k, s in itertools.product(range(2, 9), range(2, 9)):
+            exshapeconv = layers.Conv2D(2, k, strides=s, padding='same')
 
-            exshapeconv = layers.Conv2D(2, k, strides=s, dilation_rate=d, padding='same')
-
-            exvalconv = layers.Conv2D(2, k, strides=s, dilation_rate=d, padding='valid')
+            exvalconv = layers.Conv2D(2, k, strides=s, padding='valid')
             exvalconv.build([None, None, None, 4])
 
-            layer = FixedConv(2, k, strides=s, dilation_rate=d, padding='same')
+            layer = FixedConv(2, k, strides=s, padding='same')
             layer.build([None, None, None, 4])
             layer.set_weights(exvalconv.get_weights())
 
             for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
                 inputs = np.random.normal(size=(2, h, w, 4)) * 10.
 
-                paddings = d * (k - 1)
-                paddings = (paddings // 2, paddings - paddings // 2)
+                paddings = 1 * (k - 1)
+                padbefore = min(paddings // 2, max(0, k - s))
+                paddings = padbefore, paddings - padbefore
                 painputs = np.pad(inputs, ((0, 0), paddings, paddings, (0, 0)))
+
+                if 3 == k and s in {1, 2}:
+                    self.assertTupleEqual(paddings, (1, 1))
+                if 5 == k and s in {1, 2}:
+                    self.assertTupleEqual(paddings, (2, 2))
+                if 7 == k and s in {1, 2}:
+                    self.assertTupleEqual(paddings, (3, 3))
 
                 exshape = exshapeconv.compute_output_shape(inputs.shape)
                 exshape = tuple(exshape.as_list())
@@ -106,20 +111,37 @@ class TestFixedConv(test_combinations.TestCase):
                 self.assertTupleEqual(exshape, result.shape)
                 self.assertLess(np.abs(exval - result).max(), 1e-4)
 
-    # def test_same_valid_equal(self):
-    #     inputs = np.random.uniform(size=[2, 16, 16, 3]).astype('float32')
-    #
-    #     valconv = FixedConv(8, 4, strides=4, padding='valid')
-    #     expected = valconv(inputs)
-    #     expected = self.evaluate(expected)
-    #
-    #     sameconv = FixedConv(8, 4, strides=4, padding='same')
-    #     sameconv.build([None, None, None, 3])
-    #     sameconv.set_weights(valconv.get_weights())
-    #     result = sameconv(inputs)
-    #     result = self.evaluate(result)
-    #
-    #     self.assertLess(np.abs(expected - result).max(), 1e-6)
+    def test_same_saw_last(self):
+        for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
+            if s > 1 and d > 1:
+                continue
+
+            layer = FixedConv(1, k, strides=s, dilation_rate=d, padding='same')
+
+            for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
+                inputs = np.zeros((1, h, w, 4))
+                inputs[:, -max(d, s - k + 1):, -max(d, s - k + 1):] = 1.
+
+                result = layer(inputs)
+                result = self.evaluate(result)
+                if 0. == result[0, -1, -1, 0]:
+                    print(k, s, d)
+                self.assertNotEqual(result[0, -1, -1, 0], 0.)
+
+    def test_same_valid_equal(self):
+        inputs = np.random.uniform(size=[2, 16, 16, 3]).astype('float32')
+
+        valconv = FixedConv(8, 4, strides=4, padding='valid')
+        expected = valconv(inputs)
+        expected = self.evaluate(expected)
+
+        sameconv = FixedConv(8, 4, strides=4, padding='same')
+        sameconv.build([None, None, None, 3])
+        sameconv.set_weights(valconv.get_weights())
+        result = sameconv(inputs)
+        result = self.evaluate(result)
+
+        self.assertLess(np.abs(expected - result).max(), 1e-6)
 
 
 @test_combinations.run_all_keras_modes
@@ -182,25 +204,30 @@ class TestFixedDepthwiseConv(test_combinations.TestCase):
                 self.assertLess(np.abs(exval - result).max(), 1e-4)
 
     def test_same(self):
-        for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
-            if s > 1 and d > 1:
-                continue
+        for k, s in itertools.product(range(1, 9), range(1, 9)):
+            exshapeconv = layers.DepthwiseConv2D(k, strides=s, padding='same')
 
-            exshapeconv = layers.DepthwiseConv2D(k, strides=s, dilation_rate=d, padding='same')
-
-            exvalconv = layers.DepthwiseConv2D(k, strides=s, dilation_rate=d, padding='valid')
+            exvalconv = layers.DepthwiseConv2D(k, strides=s, padding='valid')
             exvalconv.build([None, None, None, 4])
 
-            layer = FixedDepthwiseConv(k, strides=s, dilation_rate=d, padding='same')
+            layer = FixedDepthwiseConv(k, strides=s, padding='same')
             layer.build([None, None, None, 4])
             layer.set_weights(exvalconv.get_weights())
 
             for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
                 inputs = np.random.normal(size=(2, h, w, 4)) * 10.
 
-                paddings = d * (k - 1)
-                paddings = (paddings // 2, paddings - paddings // 2)
+                paddings = 1 * (k - 1)
+                padbefore = min(paddings // 2, max(0, k - s))
+                paddings = padbefore, paddings - padbefore
                 painputs = np.pad(inputs, ((0, 0), paddings, paddings, (0, 0)))
+
+                if 3 == k and s in {1, 2}:
+                    self.assertTupleEqual(paddings, (1, 1))
+                if 5 == k and s in {1, 2}:
+                    self.assertTupleEqual(paddings, (2, 2))
+                if 7 == k and s in {1, 2}:
+                    self.assertTupleEqual(paddings, (3, 3))
 
                 exshape = exshapeconv.compute_output_shape(inputs.shape)
                 exshape = tuple(exshape.as_list())
@@ -213,6 +240,23 @@ class TestFixedDepthwiseConv(test_combinations.TestCase):
 
                 self.assertTupleEqual(exshape, result.shape)
                 self.assertLess(np.abs(exval - result).max(), 1e-4)
+
+    def test_same_saw_last(self):
+        for k, s, d in itertools.product(range(1, 9), range(1, 9), range(1, 9)):
+            if s > 1 and d > 1:
+                continue
+
+            layer = FixedDepthwiseConv(k, strides=s, dilation_rate=d, padding='same')
+
+            for h, w in itertools.product(range(128, 128 + 16 + 1), range(128, 128 + 16 + 1)):
+                inputs = np.zeros((1, h, w, 1))
+                inputs[:, -max(d, s - k + 1):, -max(d, s - k + 1):] = 1.
+
+                result = layer(inputs)
+                result = self.evaluate(result)
+                if 0. == result[0, -1, -1, 0]:
+                    print(k, s, d)
+                self.assertNotEqual(result[0, -1, -1, 0], 0.)
 
 
 @test_combinations.run_all_keras_modes
