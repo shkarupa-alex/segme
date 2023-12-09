@@ -14,11 +14,14 @@ from segme.policy.backbone.backbone import BACKBONES
 
 BASE_URL = 'https://github.com/shkarupa-alex/segme/releases/tag/2.2.1/{}.h5'
 WEIGHT_URLS = {
-    'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu': BASE_URL.format('softswin_tiny_distill_swin2_small')
+    'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu': BASE_URL.format('softswin_tiny_distill_swin2_small'),
+    'soft_swin_tiny__distill_vit_b16_siglip__conv_ln1em5_gelu': BASE_URL.format('softswin_tiny_distill_vit_b16_siglip')
 }
 WEIGHT_HASHES = {
     'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu':
-        '9e8e0d12cf4182008d31f4d0cfebcdf68677affdd4ad72bb0c344a73cc29154f'
+        '9e8e0d12cf4182008d31f4d0cfebcdf68677affdd4ad72bb0c344a73cc29154f',
+    'soft_swin_tiny__distill_vit_b16_siglip__conv_ln1em5_gelu':
+        'a541f4ec9729a74fadc0d7f2326878de0f31a3afb1a15eed0748468ad938a67d'
 }
 
 
