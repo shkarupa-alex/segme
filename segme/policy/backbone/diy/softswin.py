@@ -12,9 +12,14 @@ from segme.policy.backbone.diy.hardswin import AttnBlock
 from segme.policy.backbone.utils import wrap_bone
 from segme.policy.backbone.backbone import BACKBONES
 
-BASE_URL = 'https://github.com/shkarupa-alex/segme/releases/download/{}.h5'
-WEIGHT_URLS = {}
-WEIGHT_HASHES = {}
+BASE_URL = 'https://github.com/shkarupa-alex/segme/releases/tag/2.2.1/{}.h5'
+WEIGHT_URLS = {
+    'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu': BASE_URL.format('softswin_tiny_distill_swin2_small')
+}
+WEIGHT_HASHES = {
+    'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu':
+        '9e8e0d12cf4182008d31f4d0cfebcdf68677affdd4ad72bb0c344a73cc29154f'
+}
 
 
 def Stem(filters, name=None):
@@ -155,7 +160,7 @@ def SoftSwin(
 
     model = models.Model(inputs, x, name=model_name)
 
-    weights_key = f'{model_name}__{weights}__{cnapol.global_policy().name}'
+    weights_key = f'{model_name}__{weights}__{cnapol.global_policy().name}'.replace('-', '_')
     if weights_key in WEIGHT_URLS:
         weights_url = WEIGHT_URLS[weights_key]
         weights_hash = WEIGHT_HASHES[weights_key]
