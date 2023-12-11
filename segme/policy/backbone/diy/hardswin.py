@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from functools import partial
 from keras import backend, initializers, layers, models
 from keras.mixed_precision import global_policy
@@ -8,7 +7,6 @@ from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.attn import SwinAttention
 from segme.common.drop import DropPath
-from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
 from segme.policy.backbone.utils import wrap_bone
 from segme.policy.backbone.backbone import BACKBONES
@@ -42,7 +40,7 @@ def Reduce(name=None):
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        x = layers.Conv2D(channels * 2, 2, strides=2, padding='same', use_bias=False, name=f'{name}_conv')(inputs)
+        x = Conv(channels * 2, 2, strides=2, use_bias=False, name=f'{name}_conv')(inputs)
         x = Norm(name=f'{name}_norm')(x)
 
         return x
@@ -113,15 +111,6 @@ def HardSwin(
         raise ValueError('Number of stages should be greater then 4.')
 
     current_window = current_window or pretrain_window
-
-    if weights not in {'imagenet', None} and not tf.io.gfile.exists(weights):
-        raise ValueError('The `weights` argument should be either `None` (random initialization), `imagenet` '
-                         '(pre-training on ImageNet), or the path to the weights file to be loaded.')
-
-    tree_classes = len(set(tree_class_map().values()))
-    if weights == 'imagenet' and include_top and classes not in {1000, tree_classes}:
-        raise ValueError(f'If using `weights` as `"imagenet"` with `include_top` as true, `classes` should be '
-                         f'1000 or {tree_classes} depending on pretrain dataset.')
 
     if input_tensor is not None:
         try:

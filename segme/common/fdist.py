@@ -49,16 +49,22 @@ class FeatureDistillation(models.Model):
         x, y, sample_weight = unpack_x_y_sample_weight(data)
         del y, sample_weight
 
-        yd = self.teacher(x)
+        if isinstance(x, dict) and 'teacher' in x and 'student' in x:
+            xt, xs = x['teacher'], x['student']
+        else:
+            xt, xs = x, x
+
+        yt = self.teacher(xt)
 
         with tf.GradientTape() as tape:
-            y_pred = self(x, training=True)
-            loss = self.compute_loss(x, yd, y_pred)
+            y_pred = self(xs, training=True)
+            y_pred = self.whitener(y_pred)
+            loss = self.compute_loss(xs, yt, y_pred)
 
-        self._validate_target_and_loss(yd, loss)
+        self._validate_target_and_loss(yt, loss)
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-        return self.compute_metrics(x, yd, y_pred, None)
+        return self.compute_metrics(xs, yt, y_pred, None)
 
     def test_step(self, data):
         if self.teacher is None:
@@ -67,9 +73,15 @@ class FeatureDistillation(models.Model):
         x, y, sample_weight = unpack_x_y_sample_weight(data)
         del y, sample_weight
 
-        yd = self.teacher(x)
+        if isinstance(x, dict) and 'teacher' in x and 'student' in x:
+            xt, xs = x['teacher'], x['student']
+        else:
+            xt, xs = x, x
 
-        y_pred = self(x, training=False)
-        self.compute_loss(x, yd, y_pred)
+        yt = self.teacher(xt)
 
-        return self.compute_metrics(x, yd, y_pred, None)
+        y_pred = self(xs, training=False)
+        y_pred = self.whitener(y_pred)
+        self.compute_loss(xs, yt, y_pred)
+
+        return self.compute_metrics(xs, yt, y_pred, None)
