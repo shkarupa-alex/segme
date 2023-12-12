@@ -29,7 +29,7 @@ def Stem(filters, name=None):
         name = f'stem_{counter}'
 
     def apply(inputs):
-        x = Conv(filters, 7, strides=4, name=f'{name}_conv')(inputs)
+        x = Conv(filters, 7, strides=4, name=f'{name}_embed')(inputs)
         x = Norm(name=f'{name}_norm')(x)
 
         return x
