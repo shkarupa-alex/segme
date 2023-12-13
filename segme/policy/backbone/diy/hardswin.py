@@ -216,6 +216,16 @@ def HardSwinTiny(
             pretrain_size=pretrain_size, include_top=include_top, model_name=model_name, **kwargs)
 
 
+def HardSwinTiny8(
+        embed_dim=96, stage_depths=(2, 2, 6, 2), current_window=8, pretrain_window=16, pretrain_size=256,
+        include_top=False, model_name='hard_swin_tiny', **kwargs):
+    with cnapol.policy_scope('conv-ln1em5-gelu'):
+        return HardSwin(
+            embed_dim=embed_dim, stage_depths=stage_depths, current_window=current_window,
+            pretrain_window=pretrain_window, pretrain_size=pretrain_size, include_top=include_top,
+            model_name=model_name, **kwargs)
+
+
 def HardSwinSmall(
         embed_dim=96, stage_depths=(2, 2, 18, 2), pretrain_window=16, path_drop=0.3, pretrain_size=256,
         include_top=False, model_name='hard_swin_small', **kwargs):
