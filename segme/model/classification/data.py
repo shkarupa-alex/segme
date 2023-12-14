@@ -264,7 +264,8 @@ def make_dataset(
         .batch(batch_size, drop_remainder=train_split)
 
     if train_split:
-        dataset = dataset.shuffle(batch_size)
+        max_pixels_32_gb = 256 ** 3 // 2
+        dataset = dataset.shuffle(max_pixels_32_gb // (image_size ** 2))
 
     class_map = None
     if remap_classes:
