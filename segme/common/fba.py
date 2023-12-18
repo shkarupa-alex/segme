@@ -3,8 +3,6 @@ from keras import backend, layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.tf_utils import shape_type_conversion
-from tensorflow.python.ops import data_flow_ops
-from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package='SegMe>Common')
