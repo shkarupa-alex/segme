@@ -247,7 +247,7 @@ def _transform_examples(images, labels, augment, levels, magnitude, preprocess, 
         labels = remap.lookup(labels)
 
     if max_id:
-        weights = tf.cast(tf.not_equal(labels, max_id), 'float32')
+        weights = tf.cast(tf.not_equal(labels, max_id), 'float32')[..., None]
         labels = tf.minimum(labels, max_id - 1)
 
         return images, labels, weights
