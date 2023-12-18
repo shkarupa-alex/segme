@@ -7,6 +7,7 @@ from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.attn import SwinAttention
 from segme.common.drop import DropPath
+from segme.common.mapool import MultiHeadAttentionPooling
 from segme.policy import cnapol
 from segme.policy.backbone.utils import wrap_bone
 from segme.policy.backbone.backbone import BACKBONES
@@ -157,7 +158,6 @@ def HardSwin(
     x = Stem(embed_dim, patch_size, name='stem')(x)
     x = layers.Activation('linear', name='stem_out')(x)
 
-    shift_counter = -1
     for i, stage_depth in enumerate(stage_depths):
         stage_window = min(current_window, current_size // 2 ** (i + 2))
         num_heads = embed_dim // 2 ** (5 - i)
@@ -177,12 +177,15 @@ def HardSwin(
     x = Norm(name='norm')(x)
 
     if include_top:
-        if include_top or pooling in {None, 'avg'}:
+        if pooling in {None, 'avg'}:
             x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
-        elif pooling == 'max':
+        elif 'max' == pooling:
             x = layers.GlobalMaxPooling2D(name='max_pool')(x)
+        elif 'ma' == pooling:
+            x = MultiHeadAttentionPooling(embed_dim // 4, 1, name='ma_pool')(x)
+            x = layers.Reshape((embed_dim * 8,), name='ma_squeeze')(x)
         else:
-            raise ValueError(f'Expecting pooling to be one of None/avg/max. Found: {pooling}')
+            raise ValueError(f'Expecting pooling to be one of None/avg/max/ma. Found: {pooling}')
 
         imagenet_utils.validate_activation(classifier_activation, weights)
         x = layers.Dense(classes, name='head')(x)
