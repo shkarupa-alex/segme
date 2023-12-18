@@ -36,6 +36,6 @@ def calibrated_focal_cross_entropy(y_true, y_pred, sample_weight, prob0, prob1, 
     sample_weight = modulating_factor if sample_weight is None else modulating_factor * sample_weight
     sample_weight = tf.stop_gradient(sample_weight)
 
-    loss = crossentropy(y_true, y_pred, sample_weight=sample_weight, from_logits=from_logits)
+    loss = crossentropy(y_true, y_pred, sample_weight, from_logits, False, 0.)
 
     return loss

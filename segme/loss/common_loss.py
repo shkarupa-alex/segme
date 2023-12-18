@@ -213,14 +213,29 @@ def mse(y_true, y_pred, sample_weight, from_logits, regression=False):
     return weighted_loss(loss, sample_weight)
 
 
-def crossentropy(y_true, y_pred, sample_weight, from_logits):
+def crossentropy(y_true, y_pred, sample_weight, from_logits, force_binary, label_smoothing):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype=None, rank=None, channel='sparse')
+        y_true, y_pred, sample_weight, dtype=None, rank=None, channel=None)
+    y_pred, from_logits = to_logits(y_pred, from_logits), True
 
-    if 1 == y_pred.shape[-1]:
+    if 1 == y_true.shape[-1] == y_pred.shape[-1]:
+        if label_smoothing:
+            y_true = y_true * (1. - label_smoothing) + label_smoothing / 2.
         loss = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
-    else:
+    elif 1 == y_true.shape[-1] and 0. == label_smoothing and not force_binary:
         loss = backend.sparse_categorical_crossentropy(y_true, y_pred, from_logits=from_logits)[..., None]
+    else:
+        if 1 == y_true.shape[-1]:
+            y_true = tf.cast(tf.squeeze(y_true, -1), 'int32')
+            y_true = tf.one_hot(y_true, y_pred.shape[-1], dtype=y_pred.dtype)
+        if label_smoothing:
+            num_classes = 2 if force_binary else y_true.shape[-1]
+            y_true = y_true * (1. - label_smoothing) + label_smoothing / num_classes
+        if force_binary:
+            loss = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
+            loss = tf.reduce_sum(loss, axis=-1, keepdims=True)
+        else:
+            loss = backend.categorical_crossentropy(y_true, y_pred, from_logits=from_logits)[..., None]
 
     return weighted_loss(loss, sample_weight)
 

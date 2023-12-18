@@ -21,7 +21,6 @@ def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
 
-
     true_size, static_size = get_shape(y_true, axis=[1, 2])
     if static_size:
         true_size = min(true_size)
@@ -41,7 +40,7 @@ def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
     omega_mean = tf.reduce_mean(omega, axis=[1, 2, 3])
     omega_mean = tf.stop_gradient(omega_mean)
 
-    ace = crossentropy(y_true, y_pred, sample_weight, from_logits) / (omega_mean + 0.5)
+    ace = crossentropy(y_true, y_pred, sample_weight, from_logits, False, 0.) / (omega_mean + 0.5)
     aiou = iou(y_true, y_pred, sample_weight, from_logits=from_logits)
     amae = mae(y_true, y_pred, sample_weight, from_logits=from_logits) / (omega_mean - 0.5)  # -1 will produce NaNs
 

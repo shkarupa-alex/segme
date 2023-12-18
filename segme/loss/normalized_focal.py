@@ -33,6 +33,6 @@ def normalized_focal_cross_entropy(y_true, y_pred, sample_weight, gamma, from_lo
     if sample_weight is not None:
         beta *= sample_weight
 
-    loss = crossentropy(y_true, y_pred, beta, from_logits)
+    loss = crossentropy(y_true, y_pred, beta, from_logits, False, 0.)
 
     return loss

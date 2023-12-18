@@ -20,40 +20,40 @@ class TestNormalizedFocalCrossEntropy(test_combinations.TestCase):
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = normalized_focal_cross_entropy(
-            y_true=targets, y_pred=probs, sample_weight=None, gamma=2, from_logits=False)
+            y_true=targets, y_pred=probs, sample_weight=None, gamma=2, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.] * 3, atol=1e-4)
+        self.assertAllClose(result, [0.69314694] * 3, atol=1e-4)
 
     def test_ones(self):
         probs = tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = normalized_focal_cross_entropy(
-            y_true=targets, y_pred=probs, sample_weight=None, gamma=2, from_logits=False)
+            y_true=targets, y_pred=probs, sample_weight=None, gamma=2, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [0.] * 3, atol=1e-4)
+        self.assertAllClose(result, [0.3132613] * 3, atol=1e-4)
 
     def test_false(self):
         probs = tf.zeros((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
         result = normalized_focal_cross_entropy(
-            y_true=targets, y_pred=probs, sample_weight=None, gamma=2, from_logits=False)
+            y_true=targets, y_pred=probs, sample_weight=None, gamma=2, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [15.424946] * 3, atol=1e-4)
+        self.assertAllClose(result, [0.69314694] * 3, atol=1e-4)
 
     def test_true(self):
         probs = tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
         result = normalized_focal_cross_entropy(
-            y_true=targets, y_pred=probs, sample_weight=None, gamma=2, from_logits=False)
+            y_true=targets, y_pred=probs, sample_weight=None, gamma=2, from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [15.333237] * 3, atol=1e-4)
+        self.assertAllClose(result, [1.3132614] * 3, atol=1e-4)
 
     def test_value(self):
         loss = NormalizedFocalCrossEntropy(from_logits=True)
