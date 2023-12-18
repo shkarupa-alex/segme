@@ -44,9 +44,33 @@ def tree_class_map():
     return cmap
 
 
+def flat_class_map():
+    syns = synsets_1k_21k()
+    targ = synsets_21841()
+
+    cmap = {}
+    for i, s in enumerate(syns):
+        if 'teddy.n.01' == s:
+            cmap[i] = targ.index('artifact.n.01')
+        elif 'other.n.99' == s:
+            cmap[i] = len(targ)
+        else:
+            cmap[i] = targ.index(s)
+
+    return cmap
+
+
 def synsets_1k_21k():
     # take first 1000 values to match default imagenet 1k classes
     syns_path = os.path.join(os.path.dirname(__file__), 'synset1k21k.txt')
+    with tf.io.gfile.GFile(syns_path, 'r') as f:
+        syns = f.read().strip().splitlines()
+
+    return syns
+
+
+def synsets_21841():
+    syns_path = os.path.join(os.path.dirname(__file__), 'synset21841.txt')
     with tf.io.gfile.GFile(syns_path, 'r') as f:
         syns = f.read().strip().splitlines()
 
