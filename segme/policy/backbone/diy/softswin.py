@@ -13,14 +13,11 @@ from segme.policy.backbone.backbone import BACKBONES
 
 BASE_URL = 'https://github.com/shkarupa-alex/segme/releases/download/2.2.1/{}.h5'
 WEIGHT_URLS = {
-    'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu': BASE_URL.format('softswin_tiny_distill_swin2_small'),
-    'soft_swin_tiny__distill_vit_b16_siglip__conv_ln1em5_gelu': BASE_URL.format('softswin_tiny_distill_vit_b16_siglip')
+    # 'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu': BASE_URL.format('softswin_tiny_distill_swin2_small'),
 }
 WEIGHT_HASHES = {
-    'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu':
-        '9e8e0d12cf4182008d31f4d0cfebcdf68677affdd4ad72bb0c344a73cc29154f',
-    'soft_swin_tiny__distill_vit_b16_siglip__conv_ln1em5_gelu':
-        'a541f4ec9729a74fadc0d7f2326878de0f31a3afb1a15eed0748468ad938a67d'
+    # 'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu':
+    #     '9e8e0d12cf4182008d31f4d0cfebcdf68677affdd4ad72bb0c344a73cc29154f',
 }
 
 
@@ -156,7 +153,9 @@ def SoftSwin(
 
     model = models.Model(inputs, x, name=model_name)
 
-    weights_key = f'{model_name}__{weights}__{cnapol.global_policy().name}'.replace('-', '_')
+    weights_pooling = 'avg' if pooling is None else pooling
+    weights_top = f'{weights_pooling}_{classes}' if include_top else 'notop'
+    weights_key = f'{model_name}__{weights_top}__{weights}__{cnapol.global_policy().name}'
     if weights_key in WEIGHT_URLS:
         weights_url = WEIGHT_URLS[weights_key]
         weights_hash = WEIGHT_HASHES[weights_key]

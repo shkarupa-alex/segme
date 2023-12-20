@@ -198,7 +198,9 @@ def HardSwin(
 
     model = models.Model(inputs, x, name=model_name)
 
-    weights_key = f'{model_name}__{weights}__{cnapol.global_policy().name}'
+    weights_pooling = 'avg' if pooling is None else pooling
+    weights_top = f'{weights_pooling}_{classes}' if include_top else 'notop'
+    weights_key = f'{model_name}__{weights_top}__{weights}__{cnapol.global_policy().name}'
     if weights_key in WEIGHT_URLS:
         weights_url = WEIGHT_URLS[weights_key]
         weights_hash = WEIGHT_HASHES[weights_key]
