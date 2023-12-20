@@ -15,9 +15,15 @@ def kl_divergence_loss(y_true, y_pred, sample_weight, temperature):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=None, channel='same')
 
-    inv_temperature = 1. / temperature
-    loss = (temperature ** 2) * tf.nn.softmax(y_true) * (
-            tf.nn.log_softmax(y_true * inv_temperature) - tf.nn.log_softmax(y_pred * inv_temperature))
-    loss = tf.reduce_sum(loss, axis=-1, keepdims=True)
+    loss = _kl_divergence(y_true, y_pred, temperature)
 
     return weighted_loss(loss, sample_weight)
+
+
+def _kl_divergence(y_true, y_pred, temperature):
+    y_true *= 1. / temperature
+    y_pred *= 1. / temperature
+    loss = tf.nn.softmax(y_true) * (tf.nn.log_softmax(y_true) - tf.nn.log_softmax(y_pred))
+    loss = tf.reduce_sum(loss, axis=-1, keepdims=True)
+
+    return loss
