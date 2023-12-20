@@ -9,7 +9,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from keras.applications import imagenet_utils
 from keras.mixed_precision import global_policy
-from segme.model.classification.tree import synsets_1k_21k, tree_class_map, flat_class_map
+from segme.model.classification.tree import synsets_1k_21k, tree_class_map, flat_class_map1, flat_class_map3
 from segme.utils.common import rand_augment_full
 
 
@@ -230,7 +230,7 @@ def _resize_crop(example, size, train, crop_pct=0.875):
 
 
 @tf.function(jit_compile=False)
-def _transform_examples(images, labels, augment, levels, magnitude, preprocess, remap, max_id):
+def _transform_examples(images, labels, augment, levels, magnitude, preprocess, remap):
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
         images, _, _ = rand_augment_full(images, None, None, levels, magnitude)
@@ -246,13 +246,7 @@ def _transform_examples(images, labels, augment, levels, magnitude, preprocess, 
     if remap:
         labels = remap.lookup(labels)
 
-    if max_id:
-        weights = tf.cast(tf.not_equal(labels, max_id), 'float32')[..., None]
-        labels = tf.minimum(labels, max_id - 1)
-
-        return images, labels, weights
-    else:
-        return images, labels
+    return images, labels
 
 
 def make_dataset(
@@ -273,13 +267,14 @@ def make_dataset(
         max_pixels_32_gb = 256 ** 3 // 2
         dataset = dataset.shuffle(max_pixels_32_gb // (image_size ** 2))
 
-    class_map, max_id = None, None
+    class_map = None
     if remap_classes:
         if 'tree' == remap_classes:
             class_map = tree_class_map()
-        elif 'flat' == remap_classes:
-            class_map = flat_class_map()
-            max_id = max(class_map.values())
+        elif 'flat1' == remap_classes:
+            class_map = flat_class_map1()
+        elif 'flat3' == remap_classes:
+            class_map = flat_class_map3()
         else:
             raise ValueError('Unknown class remapping mode')
         map_keys, map_values = zip(*class_map.items())
@@ -290,7 +285,7 @@ def make_dataset(
     if train_augment or preprocess_mode or class_map:
         dataset = dataset.map(
             lambda images, labels: _transform_examples(
-                images, labels, train_augment, aug_levels, aug_magnitude, preprocess_mode, class_map, max_id),
+                images, labels, train_augment, aug_levels, aug_magnitude, preprocess_mode, class_map),
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
