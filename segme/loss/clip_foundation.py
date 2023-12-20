@@ -19,6 +19,9 @@ class ClipFoundationLoss(WeightedLossFunctionWrapper):
 def clip_foundation_loss(y_true, y_pred, sample_weight, scale, bias, temperature, weight):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=None, channel=None)
+
+    if y_pred.shape[-1] * 2 != y_true.shape[-1]:
+        raise ValueError('Labels channel size must be twice larger then predictions one.')
     y_true_vision, y_true_text = tf.split(y_true, 2, axis=-1)
 
     vl_temp, pvl_temp, udist_temp = temperature
