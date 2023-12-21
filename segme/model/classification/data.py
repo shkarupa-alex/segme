@@ -9,7 +9,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from keras.applications import imagenet_utils
 from keras.mixed_precision import global_policy
-from segme.model.classification.tree import synsets_1k_21k, tree_class_map, flat_class_map1, flat_class_map3
+from segme.model.classification.tree import synsets_1k_21k, tree_class_map, flat21841_class_map, flat21843_class_map
 from segme.utils.common import rand_augment_full
 
 
@@ -272,9 +272,9 @@ def make_dataset(
         if 'tree' == remap_classes:
             class_map = tree_class_map()
         elif 'flat1' == remap_classes:
-            class_map = flat_class_map1()
+            class_map = flat21841_class_map()
         elif 'flat3' == remap_classes:
-            class_map = flat_class_map3()
+            class_map = flat21843_class_map()
         else:
             raise ValueError('Unknown class remapping mode')
         map_keys, map_values = zip(*class_map.items())

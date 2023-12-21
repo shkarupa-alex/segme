@@ -44,13 +44,17 @@ def tree_class_map():
     return cmap
 
 
-def flat_class_map1():
+def flat21841_class_map():
     syns = synsets_1k_21k()
-    targ = synsets_21841()
+    targ = synsets_21843()
 
     cmap = {}
     for i, s in enumerate(syns):
-        if 'teddy.n.01' == s:
+        if 'chipboard.n.01' == s:
+            s = 'picture.n.01'
+        elif 'knothole.n.01' == s:
+            s = 'bleacher.n.01'
+        elif 'teddy.n.01' == s:
             cmap[i] = targ.index('artifact.n.01')
         elif 'other.n.99' == s:
             cmap[i] = len(targ)
@@ -60,7 +64,7 @@ def flat_class_map1():
     return cmap
 
 
-def flat_class_map3():
+def flat21843_class_map():
     syns = synsets_1k_21k()
     targ = synsets_21843()
 
@@ -84,13 +88,6 @@ def synsets_1k_21k():
 
     return syns
 
-
-def synsets_21841():
-    syns_path = os.path.join(os.path.dirname(__file__), 'synset21841.txt')
-    with tf.io.gfile.GFile(syns_path, 'r') as f:
-        syns = f.read().strip().splitlines()
-
-    return syns
 
 
 def synsets_21843():
