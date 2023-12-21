@@ -157,13 +157,13 @@ class KullbackLeibler(ModelDistillation):
         return KLDivergenceLoss()
 
     def target_loss(self):
-        # TODO: label smoothing
-        return CrossEntropyLoss(from_logits=True)
+        return CrossEntropyLoss(from_logits=True, label_smoothing=0.1)
 
 
 @register_keras_serializable(package='SegMe>Common')
 class StrongerTeacher(ModelDistillation):
     """ Proposed in: https://arxiv.org/abs/2205.10536 """
+
     def distillation_preprocessor(self):
         return layers.Activation('linear', dtype='float32', name='distill_head_prep')
 
@@ -175,17 +175,4 @@ class StrongerTeacher(ModelDistillation):
         return StrongerTeacherLoss()
 
     def target_loss(self):
-        # TODO: label smoothing
-        return CrossEntropyLoss(from_logits=True)
-
-
-@register_keras_serializable(package='SegMe>Common')
-class ClipFoundation(ModelDistillation):
-    """ Proposed in: https://arxiv.org/abs/2303.18232 """
-    pass
-
-    # def feature_preprocessor(self):
-    #     raise layers.LayerNormalization(center=False, scale=False, epsilon=1.001e-5, dtype='float32')
-    #
-    # def distillation_loss(self):
-    #     return SoftMeanAbsoluteError(beta=2., name='soft_mae_loss')
+        return CrossEntropyLoss(from_logits=True, label_smoothing=0.1)
