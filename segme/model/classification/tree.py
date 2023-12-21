@@ -52,9 +52,10 @@ def flat21841_class_map():
     for i, s in enumerate(syns):
         if 'chipboard.n.01' == s:
             s = 'picture.n.01'
-        elif 'knothole.n.01' == s:
+        if 'knothole.n.01' == s:
             s = 'bleacher.n.01'
-        elif 'teddy.n.01' == s:
+
+        if 'teddy.n.01' == s:
             cmap[i] = targ.index('artifact.n.01')
         elif 'other.n.99' == s:
             cmap[i] = len(targ)
