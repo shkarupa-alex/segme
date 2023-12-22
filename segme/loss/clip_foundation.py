@@ -8,6 +8,10 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 @register_keras_serializable(package='SegMe>Loss')
 class ClipFoundationLoss(WeightedLossFunctionWrapper):
+    """ Proposed in: 'DIME-FM : DIstilling Multimodal and Efficient Foundation Models'
+
+    Implements Equations from https://arxiv.org/pdf/2303.18232.pdf
+    """
     def __init__(
             self, scale=100., bias=None, temperature=(1., 3., 7.), weight=(0.68, 0.22, 0.10), reduction=Reduction.AUTO,
             name='clip_foundation_loss'):
