@@ -25,8 +25,9 @@ class TestFeatureDistillation(test_combinations.TestCase):
         student.set_teacher(teacher)
 
         inputs = np.random.uniform(size=(32, 224, 224, 3)).astype('float32')
+        labels = np.random.uniform(size=(32,)).round().astype('int32')
         student.compile()
-        student.fit(x=inputs, batch_size=4)
+        student.fit(x=inputs, y=labels, batch_size=4)
 
     def test_model_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
@@ -39,8 +40,9 @@ class TestFeatureDistillation(test_combinations.TestCase):
         student.set_teacher(teacher)
 
         inputs = np.random.uniform(size=(32, 224, 224, 3)).astype('float16')
+        labels = np.random.uniform(size=(32,)).round().astype('int32')
         student.compile()
-        student.fit(x=inputs, batch_size=4)
+        student.fit(x=inputs, y=labels, batch_size=4)
 
     def test_serializable(self):
         teacher = applications.MobileNetV3Large(include_top=False, include_preprocessing=False)
@@ -51,9 +53,10 @@ class TestFeatureDistillation(test_combinations.TestCase):
         student.set_teacher(teacher)
 
         inputs = np.random.uniform(size=(32, 224, 224, 3)).astype('float32')
+        labels = np.random.uniform(size=(32,)).round().astype('int32')
         student.compile()
-        student.fit(x=inputs, batch_size=4)
-        loss0 = student.evaluate(x=inputs, batch_size=4)
+        student.fit(x=inputs, y=labels, batch_size=4)
+        loss0 = student.evaluate(x=inputs, y=labels, batch_size=4)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             student.save(tmpdir)
@@ -63,7 +66,7 @@ class TestFeatureDistillation(test_combinations.TestCase):
             restored = models.load_model(tmpdir)
 
         restored.set_teacher(teacher)
-        loss1 = restored.evaluate(x=inputs, batch_size=4)
+        loss1 = restored.evaluate(x=inputs, y=labels, batch_size=4)
 
         self.assertEqual(loss0, loss1)
 
@@ -86,7 +89,7 @@ class TestKullbackLeibler(test_combinations.TestCase):
         student.set_teacher(teacher)
 
         inputs = np.random.uniform(size=(32, 224, 224, 3)).astype('float32')
-        labels = np.random.uniform(size=(32, 1)).round().astype('int32')
+        labels = np.random.uniform(size=(32,)).round().astype('int32')
         student.compile()
         student.fit(x=inputs, y=labels, batch_size=4)
 
@@ -100,8 +103,9 @@ class TestKullbackLeibler(test_combinations.TestCase):
         student.set_teacher(teacher)
 
         inputs = np.random.uniform(size=(32, 224, 224, 3)).astype('float16')
+        labels = np.random.uniform(size=(32,)).round().astype('int32')
         student.compile()
-        student.fit(x=inputs, batch_size=4)
+        student.fit(x=inputs, y=labels, batch_size=4)
 
     def test_serializable(self):
         teacher = applications.MobileNetV3Large(classifier_activation='linear', include_preprocessing=False)
@@ -111,9 +115,10 @@ class TestKullbackLeibler(test_combinations.TestCase):
         student.set_teacher(teacher)
 
         inputs = np.random.uniform(size=(32, 224, 224, 3)).astype('float32')
+        labels = np.random.uniform(size=(32,)).round().astype('int32')
         student.compile()
-        student.fit(x=inputs, batch_size=4)
-        loss0 = student.evaluate(x=inputs, batch_size=4)
+        student.fit(x=inputs, y=labels, batch_size=4)
+        loss0 = student.evaluate(x=inputs, y=labels, batch_size=4)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             student.save(tmpdir)
@@ -122,7 +127,7 @@ class TestKullbackLeibler(test_combinations.TestCase):
             restored = models.load_model(tmpdir)
 
         restored.set_teacher(teacher)
-        loss1 = restored.evaluate(x=inputs, batch_size=4)
+        loss1 = restored.evaluate(x=inputs, y=labels, batch_size=4)
 
         self.assertEqual(loss0, loss1)
 
@@ -145,7 +150,7 @@ class TestStrongerTeacher(test_combinations.TestCase):
         student.set_teacher(teacher)
 
         inputs = np.random.uniform(size=(32, 224, 224, 3)).astype('float32')
-        labels = np.random.uniform(size=(32, 1)).round().astype('int32')
+        labels = np.random.uniform(size=(32,)).round().astype('int32')
         student.compile()
         student.fit(x=inputs, y=labels, batch_size=4)
 
@@ -159,8 +164,9 @@ class TestStrongerTeacher(test_combinations.TestCase):
         student.set_teacher(teacher)
 
         inputs = np.random.uniform(size=(32, 224, 224, 3)).astype('float16')
+        labels = np.random.uniform(size=(32,)).round().astype('int32')
         student.compile()
-        student.fit(x=inputs, batch_size=4)
+        student.fit(x=inputs, y=labels, batch_size=4)
 
     def test_serializable(self):
         teacher = applications.MobileNetV3Large(classifier_activation='linear', include_preprocessing=False)
@@ -170,9 +176,10 @@ class TestStrongerTeacher(test_combinations.TestCase):
         student.set_teacher(teacher)
 
         inputs = np.random.uniform(size=(32, 224, 224, 3)).astype('float32')
+        labels = np.random.uniform(size=(32,)).round().astype('int32')
         student.compile()
-        student.fit(x=inputs, batch_size=4)
-        loss0 = student.evaluate(x=inputs, batch_size=4)
+        student.fit(x=inputs, y=labels, batch_size=4)
+        loss0 = student.evaluate(x=inputs, y=labels, batch_size=4)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             student.save(tmpdir)
@@ -181,7 +188,7 @@ class TestStrongerTeacher(test_combinations.TestCase):
             restored = models.load_model(tmpdir)
 
         restored.set_teacher(teacher)
-        loss1 = restored.evaluate(x=inputs, batch_size=4)
+        loss1 = restored.evaluate(x=inputs, y=labels, batch_size=4)
 
         self.assertEqual(loss0, loss1)
 
