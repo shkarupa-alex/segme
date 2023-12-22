@@ -50,6 +50,8 @@ def flat21841_class_map():
 
     cmap = {}
     for i, s in enumerate(syns):
+        if 'other.n.99' == s:
+            continue
         if 'teddy.n.01' == s:
             s = 'plush.n.01'
         if 'chipboard.n.01' == s:
@@ -68,6 +70,8 @@ def flat21843_class_map():
 
     cmap = {}
     for i, s in enumerate(syns):
+        if 'other.n.99' == s:
+            continue
         if 'teddy.n.01' == s:
             s = 'plush.n.01'
 
