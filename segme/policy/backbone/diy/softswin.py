@@ -167,6 +167,16 @@ def SoftSwin(
     return model
 
 
+def SoftSwinTiny8(
+        embed_dim=96, stage_depths=(2, 2, 6, 2), current_window=8, pretrain_window=16, pretrain_size=256,
+        include_top=False, model_name='hard_swin_tiny', **kwargs):
+    with cnapol.policy_scope('conv-ln1em5-gelu'):
+        return SoftSwinTiny(
+            embed_dim=embed_dim, stage_depths=stage_depths, current_window=current_window,
+            pretrain_window=pretrain_window, pretrain_size=pretrain_size, include_top=include_top,
+            model_name=model_name, **kwargs)
+
+
 def SoftSwinTiny(
         embed_dim=96, stage_depths=(2, 2, 6, 2), pretrain_window=16, pretrain_size=256, include_top=False,
         model_name='soft_swin_tiny', **kwargs):
@@ -204,6 +214,10 @@ def SoftSwinLarge(
             pretrain_window=pretrain_window, pretrain_size=pretrain_size, current_size=current_size,
             include_top=include_top, model_name=model_name, **kwargs)
 
+
+BACKBONES.register('softswin_tiny8')((
+    partial(wrap_bone, SoftSwinTiny8, None), [
+        None, None, 'stage_0_out', 'stage_1_out', 'stage_2_out', 'stage_3_out']))
 
 BACKBONES.register('softswin_tiny')((
     partial(wrap_bone, SoftSwinTiny, None), [
