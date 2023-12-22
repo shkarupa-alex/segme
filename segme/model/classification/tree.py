@@ -50,17 +50,14 @@ def flat21841_class_map():
 
     cmap = {}
     for i, s in enumerate(syns):
+        if 'teddy.n.01' == s:
+            s = 'plush.n.01'
         if 'chipboard.n.01' == s:
             s = 'picture.n.01'
         if 'knothole.n.01' == s:
             s = 'bleacher.n.01'
 
-        if 'teddy.n.01' == s:
-            cmap[i] = targ.index('artifact.n.01')
-        elif 'other.n.99' == s:
-            cmap[i] = len(targ)
-        else:
-            cmap[i] = targ.index(s)
+        cmap[i] = targ.index(s)
 
     return cmap
 
@@ -72,11 +69,9 @@ def flat21843_class_map():
     cmap = {}
     for i, s in enumerate(syns):
         if 'teddy.n.01' == s:
-            cmap[i] = targ.index('artifact.n.01')
-        elif 'other.n.99' == s:
-            cmap[i] = len(targ)
-        else:
-            cmap[i] = targ.index(s)
+            s = 'plush.n.01'
+
+        cmap[i] = targ.index(s)
 
     return cmap
 
@@ -88,7 +83,6 @@ def synsets_1k_21k():
         syns = f.read().strip().splitlines()
 
     return syns
-
 
 
 def synsets_21843():
