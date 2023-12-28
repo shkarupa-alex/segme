@@ -35,14 +35,6 @@ def cut_mix_up(image, label, weight, classes, cutmix_alpha=1., mixup_alpha=0.3, 
         return image, label, weight
 
 
-def _no_op(image, label, weight):
-    _image = tf.identity(image)
-    _label = tf.identity(label)
-    _weight = None if weight is None else tf.identity(weight)
-
-    return _image, _label, _weight
-
-
 def cut_mix(image, label, weight, alpha, classes, name=None):
     with tf.name_scope(name or 'cut_mix'):
         image, _, _ = validate(image, None, None)

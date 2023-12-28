@@ -10,7 +10,7 @@ import tensorflow_datasets as tfds
 from keras.applications import imagenet_utils
 from keras.mixed_precision import global_policy
 from segme.model.classification.tree import synsets_1k_21k, tree_class_map, flat21841_class_map, flat21843_class_map
-from segme.utils.common import rand_augment_full
+from segme.utils.common import cut_mix_up, rand_augment_full
 
 
 class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
@@ -230,10 +230,13 @@ def _resize_crop(example, size, train, crop_pct=0.875):
 
 
 @tf.function(jit_compile=False)
-def _transform_examples(images, labels, augment, levels, magnitude, preprocess, remap):
+def _transform_examples(images, labels, augment, levels, magnitude, cutmixup, classes, preprocess, remap):
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
         images, _, _ = rand_augment_full(images, None, None, levels, magnitude)
+        if cutmixup:
+            images, labels, _ = cut_mix_up(
+                images, labels, None, classes, cutmix_prob=magnitude * 0.5, mixup_prob=magnitude * 0.5)
         images = tf.clip_by_value(images, 0., 1.)
         images = tf.round(images * 255.)
 
@@ -251,7 +254,7 @@ def _transform_examples(images, labels, augment, levels, magnitude, preprocess, 
 
 def make_dataset(
         data_dir, split_name, batch_size, image_size=384, preprocess_mode=None, aug_levels=5, aug_magnitude=0.5,
-        remap_classes=None):
+        use_cutmixup=False, remap_classes=None):
     train_split = tfds.Split.TRAIN == split_name
 
     builder = Imagenet21k1k(data_dir=data_dir)
@@ -267,7 +270,7 @@ def make_dataset(
         max_pixels_32_gb = 256 ** 3 // 2
         dataset = dataset.shuffle(max_pixels_32_gb // (image_size ** 2))
 
-    class_map = None
+    class_map, class_size = None, len(synsets_1k_21k())
     if remap_classes:
         if 'tree' == remap_classes:
             class_map = tree_class_map()
@@ -277,6 +280,7 @@ def make_dataset(
             class_map = flat21843_class_map()
         else:
             raise ValueError('Unknown class remapping mode')
+        class_size = len(set(class_map.values()))
         map_keys, map_values = zip(*class_map.items())
         map_init = tf.lookup.KeyValueTensorInitializer(map_keys, map_values, 'int64', 'int64')
         class_map = tf.lookup.StaticHashTable(map_init, -1)
@@ -285,7 +289,8 @@ def make_dataset(
     if train_augment or preprocess_mode or class_map:
         dataset = dataset.map(
             lambda images, labels: _transform_examples(
-                images, labels, train_augment, aug_levels, aug_magnitude, preprocess_mode, class_map),
+                images, labels, train_augment, aug_levels, aug_magnitude, use_cutmixup, class_size, preprocess_mode,
+                class_map),
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
