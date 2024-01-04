@@ -138,7 +138,7 @@ def SoftSwin(
             x = layers.GlobalMaxPooling2D(name='max_pool')(x)
         elif 'ma' == pooling:
             x = MultiHeadAttentionPooling(embed_dim // 4, 1, name='ma_pool')(x)
-            x = layers.Reshape((embed_dim * 8,), name='ma_squeeze')(x)
+            x = layers.Flatten(name='ma_flat')(x)
         else:
             raise ValueError(f'Expecting pooling to be one of None/avg/max/ma. Found: {pooling}')
 
