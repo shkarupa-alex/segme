@@ -72,7 +72,7 @@ def to_logits(y_pred, from_logits):
     if logits is None:
         raise ValueError('Unable to restore logits.')
 
-    return logits
+    return tf.cast(logits, y_pred.dtype)
 
 
 def to_probs(y_pred, from_logits, force_sigmoid):
