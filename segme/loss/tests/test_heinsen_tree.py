@@ -19,7 +19,7 @@ class TestHeinsenTreeLoss(test_combinations.TestCase):
         targets = tf.zeros((3, 1), 'int32')
 
         result = heinsen_tree_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, cross_entropy='categorical',
+            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, force_binary=False,
             label_smoothing=0., level_weighting='mean', from_logits=True)
         result = self.evaluate(result)
 
@@ -30,18 +30,18 @@ class TestHeinsenTreeLoss(test_combinations.TestCase):
         targets = tf.zeros((3, 1), 'int32')
 
         result = heinsen_tree_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, cross_entropy='binary',
+            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, force_binary=True,
             label_smoothing=0., level_weighting='mean', from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [33.333336] * 3, atol=1e-4)
+        self.assertAllClose(result, [100.] * 3, atol=1e-4)
 
     def test_ones_categorical(self):
         logits = 100. * tf.ones((3, 18), 'float32')
         targets = tf.ones((3, 1), 'int32')
 
         result = heinsen_tree_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, cross_entropy='categorical',
+            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, force_binary=False,
             label_smoothing=0., level_weighting='mean', from_logits=True)
         result = self.evaluate(result)
 
@@ -52,77 +52,77 @@ class TestHeinsenTreeLoss(test_combinations.TestCase):
         targets = tf.ones((3, 1), 'int32')
 
         result = heinsen_tree_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, cross_entropy='binary',
+            y_true=targets, y_pred=logits, sample_weight=None, tree_paths=TREE_PATHS, force_binary=True,
             label_smoothing=0., level_weighting='mean', from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [66.66667] * 3, atol=1e-4)
+        self.assertAllClose(result, [200.] * 3, atol=1e-4)
 
     def test_false_categorical(self):
         result = heinsen_tree_loss(
             y_true=TREE_TARGETS, y_pred=-TRUE_LOGITS, sample_weight=None, tree_paths=TREE_PATHS,
-            cross_entropy='categorical', label_smoothing=0., level_weighting='mean', from_logits=True)
+            force_binary=False, label_smoothing=0., level_weighting='mean', from_logits=True)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [201.3418, 200.69315, 201.03972, 201.00633], atol=1e-4)
 
     def test_false_binary(self):
         result = heinsen_tree_loss(
-            y_true=TREE_TARGETS, y_pred=-TRUE_LOGITS, sample_weight=None, tree_paths=TREE_PATHS, cross_entropy='binary',
+            y_true=TREE_TARGETS, y_pred=-TRUE_LOGITS, sample_weight=None, tree_paths=TREE_PATHS, force_binary=True,
             label_smoothing=0., level_weighting='mean', from_logits=True)
         result = self.evaluate(result)
 
-        self.assertAllClose(result, [100.] * 4, atol=1e-4)
+        self.assertAllClose(result, [533.3334, 300., 400., 450.], atol=1e-4)
 
     def test_true_categorical(self):
         result = heinsen_tree_loss(
             y_true=TREE_TARGETS, y_pred=TRUE_LOGITS, sample_weight=None, tree_paths=TREE_PATHS,
-            cross_entropy='categorical', label_smoothing=0., level_weighting='mean', from_logits=True)
+            force_binary=False, label_smoothing=0., level_weighting='mean', from_logits=True)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 4, atol=1e-4)
 
     def test_true_binary(self):
         result = heinsen_tree_loss(
-            y_true=TREE_TARGETS, y_pred=TRUE_LOGITS, sample_weight=None, tree_paths=TREE_PATHS, cross_entropy='binary',
+            y_true=TREE_TARGETS, y_pred=TRUE_LOGITS, sample_weight=None, tree_paths=TREE_PATHS, force_binary=True,
             label_smoothing=0., level_weighting='mean', from_logits=True)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 4, atol=1e-4)
 
     def test_value_categorical(self):
-        loss = HeinsenTreeLoss(TREE_PATHS, cross_entropy='categorical', from_logits=True)
+        loss = HeinsenTreeLoss(TREE_PATHS, force_binary=False, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
         self.assertAlmostEqual(result, 4.5775123, places=6)
 
     def test_value_binary(self):
-        loss = HeinsenTreeLoss(TREE_PATHS, cross_entropy='binary', from_logits=True)
+        loss = HeinsenTreeLoss(TREE_PATHS, force_binary=True, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 2.0161884, places=6)
+        self.assertAlmostEqual(result, 7.641514, places=6)
 
     def test_value_categorical_smooth(self):
-        loss = HeinsenTreeLoss(TREE_PATHS, cross_entropy='categorical', label_smoothing=1e-5, from_logits=True)
+        loss = HeinsenTreeLoss(TREE_PATHS, force_binary=False, label_smoothing=1e-5, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 4.5776277, places=5)
+        self.assertAlmostEqual(result, 4.577481, places=5)
 
-        loss = HeinsenTreeLoss(TREE_PATHS, cross_entropy='categorical', label_smoothing=0.1, from_logits=True)
+        loss = HeinsenTreeLoss(TREE_PATHS, force_binary=False, label_smoothing=0.1, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 5.0211854, places=5)
+        self.assertAlmostEqual(result, 4.2565556, places=5)
 
     def test_value_binary_smooth(self):
-        loss = HeinsenTreeLoss(TREE_PATHS, cross_entropy='binary', label_smoothing=1e-5, from_logits=True)
+        loss = HeinsenTreeLoss(TREE_PATHS, force_binary=True, label_smoothing=1e-5, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 2.016191, places=5)
+        self.assertAlmostEqual(result, 7.641534, places=5)
 
-        loss = HeinsenTreeLoss(TREE_PATHS, cross_entropy='binary', label_smoothing=0.1, from_logits=True)
+        loss = HeinsenTreeLoss(TREE_PATHS, force_binary=True, label_smoothing=0.1, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 2.0410948, places=5)
+        self.assertAlmostEqual(result, 7.8363056, places=5)
 
     def test_value_level_linear(self):
         loss = HeinsenTreeLoss(TREE_PATHS, level_weighting='linear', from_logits=True)
