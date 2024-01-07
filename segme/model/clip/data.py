@@ -2,11 +2,11 @@ import cv2
 import numpy as np
 import os
 import re
+import resource
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from keras.applications import imagenet_utils
 from keras.mixed_precision import global_policy
-from segme.utils.common import rand_augment_full
 
 
 class Clip(tfds.core.GeneratorBasedBuilder):
@@ -14,8 +14,6 @@ class Clip(tfds.core.GeneratorBasedBuilder):
     RELEASE_NOTES = {'1.0.0': 'Initial release.'}
 
     def __init__(self, *, source_dirs, data_dir, image_size=384, logits_size=1152, test_re='-val'):
-        super().__init__(data_dir=data_dir)
-
         if isinstance(source_dirs, str):
             source_dirs = [source_dirs]
         if not isinstance(source_dirs, list):
@@ -31,12 +29,14 @@ class Clip(tfds.core.GeneratorBasedBuilder):
         self.logits_size = logits_size
         self.test_re = test_re
 
+        super().__init__(data_dir=data_dir)
+
     def _info(self):
         return tfds.core.DatasetInfo(
             builder=self,
             features=tfds.features.FeaturesDict({
                 'image': tfds.features.Image(shape=(self.image_size, self.image_size, 3), encoding_format='jpeg'),
-                'logit': tfds.features.Tensor(shape=(2, self.logits_size), dtype='float32'),
+                'logit': tfds.features.Tensor(shape=(2, self.logits_size), dtype=tf.float32),
             })
         )
 
@@ -47,6 +47,9 @@ class Clip(tfds.core.GeneratorBasedBuilder):
         }
 
     def _generate_examples(self, training):
+        _, high = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (high, high))
+
         for image_file in self._iterate_source(training):
             for key, image, logit in self._transform_example(image_file):
                 yield key, {'image': image, 'logit': logit}
