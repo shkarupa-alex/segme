@@ -64,6 +64,8 @@ class Clip(tfds.core.GeneratorBasedBuilder):
                         continue
 
                     image_path = os.path.join(dirpath, file)
+                    if not os.path.exists(image_path.replace('.jpg', '.npy')):
+                        continue
 
                     yield image_path
 
