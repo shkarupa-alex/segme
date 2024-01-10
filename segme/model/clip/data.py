@@ -107,7 +107,7 @@ def make_dataset(data_dir, split_name, batch_size, preprocess_mode=None):
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     if train_split:
-        dataset = dataset.shuffle(batch_size * 8)
+        dataset = dataset.shuffle(batch_size * 2)
 
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
