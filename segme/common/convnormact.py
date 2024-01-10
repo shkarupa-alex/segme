@@ -229,8 +229,8 @@ class ConvAct(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        if 'relu' == self.policy.act_type and 'glorot_uniform' == initializers.serialize(self.kernel_initializer):
-            kernel_initializer = 'he_normal'
+        if self.policy.act_type in {'relu', 'leaky_relu'}:
+            kernel_initializer = 'he_uniform'
         else:
             kernel_initializer = self.kernel_initializer
 
