@@ -1,6 +1,7 @@
 from segme.loss.adaptive_intensity import AdaptivePixelIntensityLoss
 from segme.loss.boundary_categorical import BoundaryCategoricalLoss
 from segme.loss.calibrated_focal import CalibratedFocalCrossEntropy
+from segme.loss.clip_foundation import ClipFoundationLoss
 from segme.loss.consistency_enhanced import ConsistencyEnhancedLoss
 from segme.loss.cross_entropy import CrossEntropyLoss
 from segme.loss.general_dice import GeneralizedDiceLoss
