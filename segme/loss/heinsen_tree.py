@@ -14,7 +14,7 @@ class HeinsenTreeLoss(WeightedLossFunctionWrapper):
     Implements equation [1-13] in https://arxiv.org/pdf/2209.10288.pdf
     """
 
-    def __init__(self, tree_paths, force_binary=False, label_smoothing=0., level_weighting='mean', from_logits=False,
+    def __init__(self, tree_paths, force_binary=False, label_smoothing=0., level_weighting=None, from_logits=False,
                  reduction=Reduction.AUTO, name='heinsen_tree_loss'):
         super().__init__(heinsen_tree_loss, reduction=reduction, name=name, tree_paths=tree_paths,
                          force_binary=force_binary, label_smoothing=label_smoothing, level_weighting=level_weighting,
@@ -94,12 +94,13 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, force_binary, l
         level_range = tf.range(1, num_levels + 1, dtype=loss.dtype)
         level_range = tf.cumsum(level_range)
         level_weight = tf.cast(y_valid_tree, loss.dtype) * level_range[None]
-    else:
+    elif level_weighting:
         raise ValueError(f'Unknown level weighting mode {level_weighting}')
 
-    level_weight /= tf.reduce_sum(level_weight, axis=-1, keepdims=True)
-    level_weight = level_weight[y_valid_tree]
-    loss *= level_weight
+    if level_weighting:
+        level_weight /= tf.reduce_sum(level_weight, axis=-1, keepdims=True)
+        level_weight = level_weight[y_valid_tree]
+        loss *= level_weight
 
     sample_segment = tf.cast(y_valid_tree, 'int32') * tf.range(tf.size(y_true))[:, None]
     sample_segment = tf.reshape(sample_segment[y_valid_tree], [-1])
