@@ -94,10 +94,10 @@ def _transform_examples(examples, preprocess):
     return images, logits
 
 
-def make_dataset(data_dir, split_name, batch_size, preprocess_mode=None):
+def make_dataset(data_dir, split_name, batch_size, preprocess_mode=None, image_size=384, logits_size=1152):
     train_split = tfds.Split.TRAIN == split_name
 
-    builder = Clip(source_dirs=[], data_dir=data_dir)
+    builder = Clip(source_dirs=[], data_dir=data_dir, image_size=image_size, logits_size=logits_size)
     builder.download_and_prepare()
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=train_split)
