@@ -56,7 +56,7 @@ def Reduce(name=None):
 def SoftSwin(
         embed_dim, stage_depths, pretrain_window, current_window=None, expand_ratio=4, path_gamma=0.01, path_drop=0.2,
         pretrain_size=384, current_size=None, input_shape=None, include_top=True, model_name='soft_swin', pooling=None,
-        weights=None, input_tensor=None, classes=1000, classifier_activation='softmax', include_preprocessing=False):
+        weights=None, input_tensor=None, classes=1000, classifier_activation='softmax', include_preprocessing=True):
     if embed_dim % 32:
         raise ValueError('Embedding size should be a multiple of 32.')
 
