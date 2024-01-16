@@ -5,7 +5,7 @@ from keras.mixed_precision import global_policy
 from keras.src.applications import imagenet_utils
 from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
-from segme.common.attn import SwinAttention
+from segme.common.attn.swin import SwinAttention
 from segme.common.drop import DropPath
 from segme.common.mapool import MultiHeadAttentionPooling
 from segme.policy import cnapol
