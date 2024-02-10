@@ -231,6 +231,9 @@ def _resize_crop(example, size, train, crop_pct=0.875):
 
 @tf.function(jit_compile=False)
 def _transform_examples(images, labels, augment, levels, magnitude, cutmixup, classes, preprocess, remap):
+    if remap:
+        labels = remap.lookup(labels)
+
     if augment:
         images = tf.image.convert_image_dtype(images, 'float32')
         images, _, _ = rand_augment_full(images, None, None, levels, magnitude)
@@ -245,9 +248,6 @@ def _transform_examples(images, labels, augment, levels, magnitude, cutmixup, cl
         images = imagenet_utils.preprocess_input(images, mode=preprocess)
     elif augment:
         images = tf.cast(images, 'uint8')
-
-    if remap:
-        labels = remap.lookup(labels)
 
     return images, labels
 
