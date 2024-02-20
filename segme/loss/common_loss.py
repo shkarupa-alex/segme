@@ -21,7 +21,7 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
             raise ValueError(f'Sample weights must have rank {rank}.')
 
     if y_pred.shape.rank != y_true.shape.rank:
-        raise ValueError(f'Labels and predictions must have ranks must be equal.')
+        raise ValueError(f'Labels and predictions ranks must be equal.')
 
     if y_pred.shape[-1] is None or y_true.shape[-1] is None:
         raise ValueError('Channel dimension of both labels and predictions must be defined.')
