@@ -344,7 +344,7 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
 
         trimap = np.zeros((1, 1, 1), dtype='uint8')
         if self.with_unknown:
-            size = trimap_size(mask, 384, 2)
+            size = trimap_size(mask, 384, 3)
             trimap = mask_trimap(mask, size)
 
             if alpha_file is not None:
@@ -432,7 +432,7 @@ def _transform_examples(examples, augment, with_depth, with_unknown, max_weight)
         unknowns = examples['trimap']
         unknowns = tf.cast(unknowns // 86, 'int32') * 128
         unknowns = tf.cast(tf.clip_by_value(unknowns, 0, 255), 'uint8')
-        unknowns = alpha_trimap_tf(unknowns, (0, 7))
+        unknowns = alpha_trimap_tf(unknowns, (0, 8))
         unknowns = tf.cast(unknowns == 128, 'int32')
         masks.append(unknowns)
 
