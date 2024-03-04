@@ -317,6 +317,8 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
                     if not os.path.exists(alpha_path):
                         alpha_path = image_path.replace(image_ext, '-alpha_auto.png')
                     if not os.path.exists(alpha_path):
+                        alpha_path = image_path.replace(image_ext, '-trimap.png')
+                    if not os.path.exists(alpha_path):
                         alpha_path = None
 
                     depth_path = None
@@ -342,12 +344,19 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
 
         trimap = np.zeros((1, 1, 1), dtype='uint8')
         if self.with_unknown:
-            size = trimap_size(mask, 384, 5)
+            size = trimap_size(mask, 384, 2)
             trimap = mask_trimap(mask, size)
+
             if alpha_file is not None:
                 alpha = cv2.imread(alpha_file, cv2.IMREAD_GRAYSCALE)
                 alpha = cv2.resize(alpha, mask.shape[1::-1], interpolation=cv2.INTER_CUBIC)
-                atrimap = alpha_trimap_np(alpha, size)
+                if '-trimap.png' in alpha_file:
+                    atrimap = np.where(alpha < 64, 0, alpha)
+                    atrimap = np.where((atrimap >= 64) & (atrimap <= 190), 128, atrimap)
+                    atrimap = np.where(atrimap > 190, 255, atrimap)
+                else:
+                    atrimap = alpha_trimap_np(alpha, size)
+
                 trimap = np.where(128 == atrimap, 128, trimap)
 
         if len(set(mask.reshape(-1)) - {0, 255}):
@@ -423,7 +432,7 @@ def _transform_examples(examples, augment, with_depth, with_unknown, max_weight)
         unknowns = examples['trimap']
         unknowns = tf.cast(unknowns // 86, 'int32') * 128
         unknowns = tf.cast(tf.clip_by_value(unknowns, 0, 255), 'uint8')
-        unknowns = alpha_trimap_tf(unknowns, (0, 10))
+        unknowns = alpha_trimap_tf(unknowns, (0, 7))
         unknowns = tf.cast(unknowns == 128, 'int32')
         masks.append(unknowns)
 
