@@ -27,6 +27,7 @@ def exp_sod_losses(backbone_scales, with_depth=False, with_unknown=False):
     losses = []
     for i, w in enumerate(weights):
         with_rmi = i + 1 == backbone_scales
+        with_rmi = False  # TODO
         losses.append(lambda y_true, y_pred, sample_weight: cls_loss(y_true, y_pred, sample_weight, w, with_rmi))
 
         if with_depth:
