@@ -102,26 +102,25 @@ def ExpSOD(
 
             if o_prev is None:
                 o_prev = o
-                heads.extend(
-                    Head(sup_unfold, with_depth, with_unknown, stride, name=f'head_{i}')(o))
+                heads.extend(Head(sup_unfold, with_depth, with_unknown, stride, name=f'head_{i}')(o))
                 continue
 
-            shift_mode = num_shifts * i * 2 % 4 + 1
+            shift_mode = num_shifts * (i - 1) * 2 % 4 + 1
             stage_drops, path_drops = path_drops[:transform_depth], path_drops[transform_depth:]
             stage_gammas, path_gammas = path_gammas[:transform_depth], path_gammas[transform_depth:]
             o = Attention(
-                transform_depth, window_size, shift_mode, path_drop=stage_drops,
-                path_gamma=stage_gammas, name=f'backstage_{i}_lateral_transform')(o)
+                transform_depth, window_size, shift_mode, path_drop=stage_drops, path_gamma=stage_gammas,
+                name=f'backstage_{i}_lateral_transform')(o)
 
             o = Align(channels, name=f'backstage_{i}_merge_align')([o, o_prev])
             o = Norm(name=f'backstage_{i}_merge_norm')(o)
 
-            shift_mode = (num_shifts * i * 2 + num_shifts) % 4 + 1
+            shift_mode = (num_shifts * (i - 1) * 2 + num_shifts) % 4 + 1
             stage_drops, path_drops = path_drops[:transform_depth], path_drops[transform_depth:]
             stage_gammas, path_gammas = path_gammas[:transform_depth], path_gammas[transform_depth:]
             o = Attention(
-                transform_depth, window_size, shift_mode, path_drop=stage_drops,
-                path_gamma=stage_gammas, name=f'backstage_{i}_merge_transform')(o)
+                transform_depth, window_size, shift_mode, path_drop=stage_drops, path_gamma=stage_gammas,
+                name=f'backstage_{i}_merge_transform')(o)
 
             # TODO: last head proj with kernel=5?
             o_prev = o
