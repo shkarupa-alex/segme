@@ -1,7 +1,7 @@
 from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
-from segme.common.convnormact import Conv, ConvNormAct
+from segme.common.convnormact import Conv
 
 
 @register_keras_serializable(package='SegMe>Policy>Align')
@@ -26,7 +26,7 @@ class DeconvolutionFeatureAlignment(layers.Layer):
 
         self.resize = layers.Conv2DTranspose(channels[1], self.kernel_size, strides=2, padding='same')
         self.lateral = Conv(channels[0], 1)
-        self.proj = ConvNormAct(self.filters, 3)
+        self.proj = Conv(self.filters, 3)  # Originally ConvNormAct
 
         super().build(input_shape)
 

@@ -3,7 +3,7 @@ import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
-from segme.common.convnormact import ConvNormAct
+from segme.common.convnormact import Conv, ConvNormAct
 from segme.common.impfunc import make_coords, query_features
 from segme.common.sequence import Sequence
 
@@ -30,7 +30,8 @@ class ImplicitFeatureAlignment(layers.Layer):
         self.posemb = [SpatialEncoding() for _ in input_shape]
         self.imnet = Sequence([
             ConvNormAct(self.filters * 2, 1),
-            ConvNormAct(self.filters, 1)])
+            ConvNormAct(self.filters, 1),
+            Conv(self.filters, 1)])
 
         super().build(input_shape)
 

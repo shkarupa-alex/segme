@@ -1,7 +1,7 @@
 from keras import layers
 from keras.saving import register_keras_serializable
 from keras.src.utils.tf_utils import shape_type_conversion
-from segme.common.convnormact import Conv, ConvNormAct
+from segme.common.convnormact import Conv
 from segme.common.resize import BilinearInterpolation
 
 
@@ -26,7 +26,7 @@ class BilinearFeatureAlignment(layers.Layer):
 
         self.resize = BilinearInterpolation(None)
         self.lateral = Conv(channels[0], 1)
-        self.proj = ConvNormAct(self.filters, 3)
+        self.proj = Conv(self.filters, 3)
 
         super().build(input_shape)
 
