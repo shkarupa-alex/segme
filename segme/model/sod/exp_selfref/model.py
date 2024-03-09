@@ -134,8 +134,11 @@ def Head(unfold, stride, kernel=1, name=None):
 
 def ExpSelfRef(sup_unfold=False, window_size=24):
     # TODO: with_unknown=False, with_depth=False
-    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
-    features = Backbone()(inputs)[::-1]
+
+    backbone = Backbone()
+
+    inputs = backbone.inputs[0]
+    features = backbone.outputs[::-1]
     stages = [32, 16, 8, 4, 2, 1][:len(features)]
 
     outputs = []
@@ -175,7 +178,8 @@ def ExpSelfRef(sup_unfold=False, window_size=24):
             f = Transformer(window_size, 0, name=f'decoder_{s}_fuse')(f)
 
         f_prev, h_prev_, h_prev = CRM(
-            s <= 4, s, sup_unfold, window_size, (s + 1) % 4 + 1, name=f'decoder_{s}_crm')(f, h_prev)
+            s <= 4, s, sup_unfold, window_size, (s + 1) % 4 + 1,
+            name=f'decoder_{s}_crm')(f, h_prev)
 
         heads.append(h_prev_)
         heads.append(h_prev)

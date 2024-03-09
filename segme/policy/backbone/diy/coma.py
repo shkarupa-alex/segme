@@ -8,7 +8,8 @@ from keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.drop import DropPath
 from segme.common.grn import GRN
-from segme.common.attn import SwinAttention, SlideAttention
+from segme.common.attn.slide import SlideAttention
+from segme.common.attn.swin import SwinAttention
 from segme.model.classification.data import tree_class_map
 from segme.policy import cnapol
 
@@ -88,7 +89,7 @@ def MLPConv(filters, fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_
         counter = backend.get_uid('mlpconv')
         name = f'mlpconv_{counter}'
 
-    def apply(inputs):
+    def apply(inputs):  # TODO: SwiGLU?
         channels = inputs.shape[-1]
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
@@ -185,6 +186,8 @@ def CoMA(
         pooling=None, weights=None, input_tensor=None, classes=1000, classifier_activation='softmax',
         include_preprocessing=False):
     """ Inspired with:
+
+    TODO: DeepNorm, https://paperswithcode.com/paper/stabilizing-transformer-training-by
 
     09.06.2023 FasterViT: Fast Vision Transformers with Hierarchical Attention
         ! initial layers are memory-bound and better for compute-intensive operations, such as dense convolution
