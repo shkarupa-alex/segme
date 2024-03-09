@@ -7,9 +7,10 @@ from segme.common.resize import BilinearInterpolation
 
 
 def UPerNet(classes, decoder_filters=256, head_dropout=0.1):
-    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
+    backbone = Backbone()
 
-    features = Backbone()(inputs)
+    inputs = backbone.inputs[0]
+    features = backbone.outputs
     scales = len(features)
 
     laterals = [ConvNormAct(decoder_filters, 1, name=f'lateral_{i}')(features[i]) for i in range(scales - 1)]
