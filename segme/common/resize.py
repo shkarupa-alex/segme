@@ -72,19 +72,11 @@ class NearestInterpolation(layers.Layer):
 
 @register_keras_serializable(package='SegMe>Common>Interpolation')
 class BilinearInterpolation(NearestInterpolation):
-    def __init__(self, scale=None, compat=False, **kwargs):
+    def __init__(self, scale=None, **kwargs):
         super().__init__(scale=scale, **kwargs)
-
-        self.compat = compat
 
     def resize(self, inputs, size):
         outputs = tf.image.resize(inputs, size, method=tf.image.ResizeMethod.BILINEAR)
         outputs = tf.saturate_cast(outputs, self.compute_dtype)
 
         return outputs
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({'compat': self.compat})
-
-        return config
