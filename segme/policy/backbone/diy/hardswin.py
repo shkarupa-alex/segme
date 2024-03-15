@@ -1,9 +1,9 @@
 import numpy as np
 from functools import partial
-from keras import backend, initializers, layers, models
-from keras.mixed_precision import global_policy
-from keras.src.applications import imagenet_utils
-from keras.src.utils import data_utils, layer_utils
+from tf_keras import backend, initializers, layers, models
+from tf_keras.mixed_precision import global_policy
+from tf_keras.src.applications import imagenet_utils
+from tf_keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Norm, Conv, Act
 from segme.common.attn.swin import SwinAttention
 from segme.common.drop import DropPath

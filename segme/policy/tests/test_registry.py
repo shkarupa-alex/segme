@@ -1,7 +1,7 @@
 import tensorflow as tf
 import unittest
 from functools import partial
-from keras import applications, layers, models
+from tf_keras import applications, layers, models
 from segme.policy.backbone.utils import wrap_bone
 from segme.policy.registry import Registry, LayerRegistry, BackboneRegistry
 from segme.common.pad import SymmetricPadding  # requred to be registered as serializable

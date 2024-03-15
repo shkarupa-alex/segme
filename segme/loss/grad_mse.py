@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from keras import backend
-from keras.saving import register_keras_serializable
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
+from tf_keras import backend
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.common_loss import validate_input, weighted_loss
 from segme.metric.matting.grad import _togray, _gauss_filter, _gauss_gradient
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper

@@ -1,6 +1,6 @@
 import tensorflow as tf
-from keras.metrics import MeanSquaredError
-from keras.saving import register_keras_serializable
+from tf_keras.metrics import MeanSquaredError
+from tf_keras.saving import register_keras_serializable
 
 
 @register_keras_serializable(package='SegMe>Metric>Matting')

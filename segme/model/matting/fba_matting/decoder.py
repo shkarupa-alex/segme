@@ -1,4 +1,4 @@
-from keras import layers
+from tf_keras import layers
 from segme.common.convnormact import ConvNormAct, Act
 from segme.common.ppm import PyramidPooling
 from segme.common.sequence import Sequence

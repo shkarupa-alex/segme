@@ -1,9 +1,9 @@
 import tensorflow as tf
 from absl.testing import parameterized
-from keras.applications import resnet_rs
-from keras import mixed_precision
-from keras.src.utils import data_utils, image_utils
-from keras.src.testing_infra import test_combinations
+from tf_keras.applications import resnet_rs
+from tf_keras import mixed_precision
+from tf_keras.src.utils import data_utils, image_utils
+from tf_keras.src.testing_infra import test_combinations
 from segme.common.backbone import Backbone
 from segme.policy import cnapol
 from segme.policy.backbone.port.resnetrs import ResNetRS50

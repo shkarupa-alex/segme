@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from keras.saving import register_keras_serializable
-from keras.src.metrics import SumOverBatchSize
-from keras.src.utils import losses_utils, metrics_utils
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.metrics import SumOverBatchSize
+from tf_keras.src.utils import losses_utils, metrics_utils
 from tfmiss.image import connected_components
 from segme.common.shape import get_shape
 

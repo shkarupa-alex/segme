@@ -1,4 +1,4 @@
-from keras import layers, models
+from tf_keras import layers, models
 from segme.common.backbone import Backbone
 from segme.common.head import HeadProjection, ClassificationActivation
 from segme.common.convnormact import ConvNormAct

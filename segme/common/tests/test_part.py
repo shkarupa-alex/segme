@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import mixed_precision
+from tf_keras import mixed_precision
 from tensorflow.python.framework import test_util
 from segme.common.part import _PARTITION_TYPES, partition_apply, partition_reverse, with_partition
 from segme.common.part import partition_apply_fused, partition_reverse_fused, with_partition_fused

@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
-from keras import mixed_precision
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras import mixed_precision
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.checkpoint import checkpoint
 from segme.policy.backbone.diy.coma import CoMATiny

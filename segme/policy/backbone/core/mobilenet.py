@@ -1,5 +1,5 @@
 from functools import partial
-from keras.src.applications import mobilenet_v3
+from tf_keras.src.applications import mobilenet_v3
 from segme.policy.backbone.utils import wrap_bone
 from segme.policy.backbone.backbone import BACKBONES
 

@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 import os
 import tensorflow as tf
-from keras import mixed_precision
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras import mixed_precision
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from segme.common.guidedup import BoxFilter, GuidedFilter, ConvGuidedFilter
 from segme.testing_utils import layer_multi_io_test
 

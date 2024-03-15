@@ -1,7 +1,7 @@
 import tensorflow as tf
-from keras import layers
-from keras.saving import register_keras_serializable
-from keras.src.utils.tf_utils import shape_type_conversion
+from tf_keras import layers
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.utils.tf_utils import shape_type_conversion
 from tfmiss.keras.layers import DCNv2
 from segme.common.convnormact import Conv, Act
 from segme.common.sequence import Sequence

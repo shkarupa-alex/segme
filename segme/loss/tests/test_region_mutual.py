@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from keras import layers, models
-from keras.src.testing_infra import test_combinations, test_utils
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
+from tf_keras import layers, models
+from tf_keras.src.testing_infra import test_combinations, test_utils
+from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.region_mutual import RegionMutualInformationLoss
 from segme.loss.region_mutual import region_mutual_information_loss
 from segme.loss.region_mutual import _map_get_pairs

@@ -5,8 +5,8 @@ import re
 import resource
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from keras.applications import imagenet_utils
-from keras.mixed_precision import global_policy
+from tf_keras.applications import imagenet_utils
+from tf_keras.mixed_precision import global_policy
 
 
 class Clip(tfds.core.GeneratorBasedBuilder):

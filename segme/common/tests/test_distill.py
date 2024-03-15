@@ -1,8 +1,8 @@
 import numpy as np
 import tempfile
 import tensorflow as tf
-from keras import applications, backend, layers, mixed_precision, models
-from keras.src.testing_infra import test_combinations
+from tf_keras import applications, backend, layers, mixed_precision, models
+from tf_keras.src.testing_infra import test_combinations
 from segme.common.distill import FeatureDistillation, KullbackLeibler, StrongerTeacher
 
 

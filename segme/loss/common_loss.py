@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.framework.ops import EagerTensor
-from keras import backend
+from tf_keras import backend
 from segme.common.shape import get_shape
 
 

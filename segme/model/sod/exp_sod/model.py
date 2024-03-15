@@ -1,5 +1,5 @@
 import numpy as np
-from keras import backend, layers, models
+from tf_keras import backend, layers, models
 from segme.common.align import Align
 from segme.common.backbone import Backbone
 from segme.common.convnormact import Conv, Norm, Act

@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras.src.testing_infra import test_combinations
+from tf_keras.src.testing_infra import test_combinations
 from segme.loss.common_loss import validate_input, to_logits, to_probs, to_1hot, weighted_loss, compute_gradient, \
     mae, mse, crossentropy, iou
 

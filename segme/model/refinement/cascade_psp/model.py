@@ -1,8 +1,8 @@
 import tensorflow as tf
-from keras import backend, layers, models
-from keras.saving import register_keras_serializable
-from keras.src.utils.control_flow_util import smart_cond
-from keras.src.utils.tf_utils import shape_type_conversion
+from tf_keras import backend, layers, models
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.utils.control_flow_util import smart_cond
+from tf_keras.src.utils.tf_utils import shape_type_conversion
 from segme.common.convnormact import Conv, Act
 from segme.common.ppm import PyramidPooling
 from segme.common.sequence import Sequence

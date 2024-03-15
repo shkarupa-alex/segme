@@ -1,39 +1,34 @@
+from segme.loss import AdaptivePixelIntensityLoss, LaplaceEdgeCrossEntropy, MeanAbsoluteClassificationError, \
+    MeanSquaredClassificationError, SobelEdgeLoss
 from segme.loss import CrossEntropyLoss, RegionMutualInformationLoss, MeanAbsoluteRegressionError, \
     WeightedLossFunctionWrapper
 
 
-def reg_loss(y_true, y_pred, sample_weight, loss_weight):
-    loss = MeanAbsoluteRegressionError()(y_true, y_pred, sample_weight)
-    loss *= loss_weight
+def cls_loss(y_true, y_pred, sample_weight, scale_weight, loss_weights):
+    assert 6 == len(loss_weights)
+    loss_weights = [w / sum(loss_weights) for w in loss_weights]
+
+    loss = [
+        CrossEntropyLoss()(y_true, y_pred, sample_weight),
+        AdaptivePixelIntensityLoss()(y_true, y_pred, sample_weight),
+        LaplaceEdgeCrossEntropy()(y_true, y_pred, sample_weight),
+        MeanAbsoluteClassificationError()(y_true, y_pred, sample_weight),
+        MeanSquaredClassificationError()(y_true, y_pred, sample_weight),
+        SobelEdgeLoss()(y_true, y_pred, sample_weight)
+    ]
+
+    loss = sum([l * w for l, w in zip(loss, loss_weights)]) * scale_weight
 
     return loss
 
 
-def cls_loss(y_true, y_pred, sample_weight, loss_weight, with_rmi):
-    loss = CrossEntropyLoss()(y_true, y_pred, sample_weight)
-
-    if with_rmi:
-        loss += RegionMutualInformationLoss()(y_true, y_pred, sample_weight)
-
-    loss *= loss_weight
-
-    return loss
-
-
-def exp_sod_losses(backbone_scales, with_depth=False, with_unknown=False):
-    weights = [32, 16, 8, 4, 2, 1][:backbone_scales]
-    weights = [weights[-1] / w for w in weights]
+def exp_sod_losses(backbone_scales, scale_weights, loss_weights):
+    assert len(loss_weights) == backbone_scales
+    scale_weights = [w / sum(scale_weights) for w in scale_weights]
 
     losses = []
-    for i, w in enumerate(weights):
-        with_rmi = i + 1 == backbone_scales
-        with_rmi = False  # TODO
-        losses.append(lambda y_true, y_pred, sample_weight: cls_loss(y_true, y_pred, sample_weight, w, with_rmi))
-
-        if with_depth:
-            losses.append(lambda y_true, y_pred, sample_weight: reg_loss(y_true, y_pred, sample_weight, w * 0.5))
-
-        if with_unknown:
-            losses.append(lambda y_true, y_pred, sample_weight: cls_loss(y_true, y_pred, sample_weight, w, False))
+    for i, w in enumerate(scale_weights):
+        losses.append(
+            lambda y_true, y_pred, sample_weight: cls_loss(y_true, y_pred, sample_weight, w, loss_weights[i]))
 
     return [WeightedLossFunctionWrapper(l) for l in losses]

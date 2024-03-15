@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.src.utils.control_flow_util import smart_cond
+from tf_keras.src.utils.control_flow_util import smart_cond
 from tensorflow.python.ops import data_flow_ops
 from segme.common.shape import get_shape
 

@@ -1,6 +1,6 @@
 import itertools
 import tensorflow as tf
-from keras.mixed_precision import global_policy
+from tf_keras.mixed_precision import global_policy
 from segme.common.shape import get_shape
 
 

@@ -1,7 +1,7 @@
 import tensorflow as tf
-from keras import backend, layers
-from keras.saving import register_keras_serializable
-from keras.src.utils.conv_utils import normalize_tuple
+from tf_keras import backend, layers
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.utils.conv_utils import normalize_tuple
 from segme.common.shape import get_shape
 
 

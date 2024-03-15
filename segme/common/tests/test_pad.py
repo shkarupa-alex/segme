@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from keras import layers, mixed_precision, models
-from keras.utils import custom_object_scope
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras import layers, mixed_precision, models
+from tf_keras.utils import custom_object_scope
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from segme.common.pad import SymmetricPadding, with_divisible_pad
 
 

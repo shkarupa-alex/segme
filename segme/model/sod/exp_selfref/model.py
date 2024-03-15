@@ -1,6 +1,6 @@
 from itertools import cycle
-from keras import backend, layers, models
-from keras.saving import register_keras_serializable
+from tf_keras import backend, layers, models
+from tf_keras.saving import register_keras_serializable
 from segme.common.align import Align
 from segme.common.attn import SwinAttention
 from segme.common.backbone import Backbone

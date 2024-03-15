@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import mixed_precision
+from tf_keras import mixed_precision
 from tensorflow.python.framework import test_util
 from segme.common.impfunc import grid_sample, make_coords, query_features
 

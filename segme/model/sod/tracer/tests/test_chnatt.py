@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.src.testing_infra import test_combinations
+from tf_keras.src.testing_infra import test_combinations
 from segme.model.sod.tracer.chnatt import ChannelAttention
 from segme.testing_utils import layer_multi_io_test
 

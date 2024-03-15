@@ -1,6 +1,6 @@
 import tensorflow as tf
-from keras import layers, mixed_precision, utils
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras import layers, mixed_precision, utils
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from segme.common.sequence import Sequence
 from segme.testing_utils import layer_multi_io_test
 

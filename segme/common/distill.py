@@ -1,7 +1,7 @@
 import tensorflow as tf
-from keras import layers, models
-from keras.saving import register_keras_serializable
-from keras.src.engine.data_adapter import unpack_x_y_sample_weight
+from tf_keras import layers, models
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.engine.data_adapter import unpack_x_y_sample_weight
 from tensorflow.python.framework import convert_to_constants
 from segme.loss.cross_entropy import CrossEntropyLoss
 from segme.loss.kl_divergence import KLDivergenceLoss

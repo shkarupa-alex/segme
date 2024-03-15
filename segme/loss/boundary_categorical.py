@@ -1,6 +1,6 @@
 import tensorflow as tf
-from keras.saving import register_keras_serializable
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tfmiss.image import euclidean_distance
 from segme.loss.common_loss import validate_input, weighted_loss, to_probs, to_1hot
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper

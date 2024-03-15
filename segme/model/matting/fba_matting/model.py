@@ -1,4 +1,4 @@
-from keras import layers, models
+from tf_keras import layers, models
 from segme.model.matting.fba_matting.decoder import Decoder
 from segme.model.matting.fba_matting.fusion import Fusion
 from segme.model.matting.fba_matting.encoder import Encoder

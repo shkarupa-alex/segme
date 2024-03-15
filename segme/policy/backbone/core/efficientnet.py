@@ -1,5 +1,5 @@
 from functools import partial
-from keras.applications import efficientnet_v2
+from tf_keras.applications import efficientnet_v2
 from segme.policy.backbone.utils import wrap_bone
 from segme.policy.backbone.backbone import BACKBONES
 

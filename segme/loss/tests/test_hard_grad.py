@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-from keras import layers, models
-from keras.src.testing_infra import test_combinations, test_utils
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
+from tf_keras import layers, models
+from tf_keras.src.testing_infra import test_combinations, test_utils
+from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.hard_grad import HardGradientMeanAbsoluteError
 from segme.loss.hard_grad import hard_gradient_mean_absolute_error
 

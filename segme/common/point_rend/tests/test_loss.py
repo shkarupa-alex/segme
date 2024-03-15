@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from keras import mixed_precision
-from keras.src.testing_infra import test_combinations
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
+from tf_keras import mixed_precision
+from tf_keras.src.testing_infra import test_combinations
+from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.common.point_rend.loss import PointLoss
 from segme.testing_utils import layer_multi_io_test
 

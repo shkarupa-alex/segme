@@ -1,6 +1,6 @@
 import tensorflow as tf
-from keras import mixed_precision, models
-from keras.src.testing_infra import test_combinations
+from tf_keras import mixed_precision, models
+from tf_keras.src.testing_infra import test_combinations
 from segme.common.backbone import Backbone
 from segme.policy import bbpol
 from segme.testing_utils import layer_multi_io_test

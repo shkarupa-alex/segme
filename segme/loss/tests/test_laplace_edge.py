@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from keras import layers, models
-from keras.src.testing_infra import test_combinations, test_utils
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
+from tf_keras import layers, models
+from tf_keras.src.testing_infra import test_combinations, test_utils
+from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
 from segme.loss.laplace_edge import LaplaceEdgeCrossEntropy
 from segme.loss.laplace_edge import laplace_edge_cross_entropy
 from segme.loss.tests.test_common_loss import BINARY_LOGITS, BINARY_TARGETS, BINARY_WEIGHTS, MULTI_LOGITS, MULTI_TARGETS

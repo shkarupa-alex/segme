@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras import layers
+from tf_keras import layers
 from tensorflow.python.framework import test_util
 from segme.common.shape import get_shape
 

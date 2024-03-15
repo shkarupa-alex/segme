@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from segme.model.matting.fba_matting.twomap import Twomap
 
 

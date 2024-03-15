@@ -2,10 +2,10 @@ from tensorflow.python.autograph.core import ag_ctx
 from tensorflow.python.autograph.impl import api as autograph
 from tensorflow.python.eager import context
 from tensorflow.python.framework import tensor_util
-from keras import backend
-from keras.saving import register_keras_serializable
-from keras.src.losses import LossFunctionWrapper
-from keras.src.utils import losses_utils, tf_utils
+from tf_keras import backend
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.losses import LossFunctionWrapper
+from tf_keras.src.utils import losses_utils, tf_utils
 
 
 @register_keras_serializable(package='SegMe>Loss')

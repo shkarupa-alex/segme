@@ -1,6 +1,6 @@
 import contextlib
 import tensorflow as tf
-from keras.utils import deserialize_keras_object, serialize_keras_object
+from tf_keras.utils import deserialize_keras_object, serialize_keras_object
 from segme.policy.backbone.backbone import BACKBONES
 
 

@@ -1,4 +1,4 @@
-from keras import backend, layers, models
+from tf_keras import backend, layers, models
 from segme.common.adppool import AdaptiveAveragePooling
 from segme.common.align import Align
 from segme.common.backbone import Backbone

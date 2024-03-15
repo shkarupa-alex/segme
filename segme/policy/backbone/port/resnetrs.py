@@ -1,10 +1,10 @@
 import tensorflow as tf
 from functools import partial
-from keras import backend, layers, mixed_precision, models
-from keras.src.applications import imagenet_utils
-from keras.src.applications.resnet_rs import BASE_WEIGHTS_URL, WEIGHT_HASHES, DEPTH_TO_WEIGHT_VARIANTS, BLOCK_ARGS, \
+from tf_keras import backend, layers, mixed_precision, models
+from tf_keras.src.applications import imagenet_utils
+from tf_keras.src.applications.resnet_rs import BASE_WEIGHTS_URL, WEIGHT_HASHES, DEPTH_TO_WEIGHT_VARIANTS, BLOCK_ARGS, \
     CONV_KERNEL_INITIALIZER, get_survival_probability, allow_bigger_recursion
-from keras.src.utils import data_utils, layer_utils
+from tf_keras.src.utils import data_utils, layer_utils
 from segme.common.convnormact import Conv, Norm, Act
 from segme.policy import cnapol
 from segme.policy.backbone.utils import patch_config, wrap_bone

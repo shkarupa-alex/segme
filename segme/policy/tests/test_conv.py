@@ -2,8 +2,8 @@ import itertools
 import numpy as np
 import tensorflow as tf
 import unittest
-from keras import layers, mixed_precision
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras import layers, mixed_precision
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from segme.policy.conv import CONVOLUTIONS, FixedConv, FixedDepthwiseConv, StandardizedConv, \
     StandardizedDepthwiseConv, SpectralConv, SpectralDepthwiseConv
 

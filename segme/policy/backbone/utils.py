@@ -1,5 +1,5 @@
 import numpy as np
-from keras import models, layers
+from tf_keras import models, layers
 
 
 def patch_config(config, path, param, patch):
