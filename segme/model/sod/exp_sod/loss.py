@@ -11,9 +11,9 @@ def cls_loss(y_true, y_pred, sample_weight, scale_weight, loss_weights):
     loss = [
         CrossEntropyLoss()(y_true, y_pred, sample_weight),
         AdaptivePixelIntensityLoss()(y_true, y_pred, sample_weight),
-        LaplaceEdgeCrossEntropy()(y_true, y_pred, sample_weight),
         MeanAbsoluteClassificationError()(y_true, y_pred, sample_weight),
         MeanSquaredClassificationError()(y_true, y_pred, sample_weight),
+        LaplaceEdgeCrossEntropy()(y_true, y_pred, sample_weight),
         SobelEdgeLoss()(y_true, y_pred, sample_weight)
     ]
 
