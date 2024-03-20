@@ -19,7 +19,8 @@ class TestMeanAbsoluteClassificationError(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.zeros((3, 64, 64, 1), 'int32')
 
-        result = mean_absolute_classification_error(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mean_absolute_classification_error(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
@@ -28,7 +29,8 @@ class TestMeanAbsoluteClassificationError(test_combinations.TestCase):
         logits = 10 * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.ones((3, 64, 64, 1), 'int32')
 
-        result = mean_absolute_classification_error(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mean_absolute_classification_error(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
@@ -37,7 +39,8 @@ class TestMeanAbsoluteClassificationError(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.ones((3, 64, 64, 1), 'int32')
 
-        result = mean_absolute_classification_error(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mean_absolute_classification_error(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [1.] * 3, atol=6e-3)
@@ -46,7 +49,8 @@ class TestMeanAbsoluteClassificationError(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.zeros((3, 64, 64, 1), 'int32')
 
-        result = mean_absolute_classification_error(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mean_absolute_classification_error(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [1.] * 3, atol=6e-3)

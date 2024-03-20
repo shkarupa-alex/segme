@@ -13,11 +13,15 @@ class AdaptivePixelIntensityLoss(WeightedLossFunctionWrapper):
     Implements Equation (12) from https://arxiv.org/pdf/2112.07380.pdf
     """
 
-    def __init__(self, from_logits=False, reduction=Reduction.AUTO, name='adaptive_pixel_intensity_loss'):
-        super().__init__(adaptive_pixel_intensity_loss, reduction=reduction, name=name, from_logits=from_logits)
+    def __init__(
+            self, from_logits=False, label_smoothing=0., reduction=Reduction.AUTO,
+            name='adaptive_pixel_intensity_loss'):
+        super().__init__(
+            adaptive_pixel_intensity_loss, reduction=reduction, name=name, from_logits=from_logits,
+            label_smoothing=label_smoothing)
 
 
-def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
+def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits, label_smoothing):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
 
@@ -40,9 +44,12 @@ def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits):
     omega_mean = tf.reduce_mean(omega, axis=[1, 2, 3])
     omega_mean = tf.stop_gradient(omega_mean)
 
-    ace = crossentropy(y_true, y_pred, sample_weight, from_logits, False, 0.) / (omega_mean + 0.5)
-    aiou = iou(y_true, y_pred, sample_weight, from_logits=from_logits)
-    amae = mae(y_true, y_pred, sample_weight, from_logits=from_logits) / (omega_mean - 0.5)  # -1 will produce NaNs
+    ace = crossentropy(
+        y_true, y_pred, sample_weight, from_logits, False, label_smoothing) / (omega_mean + 0.5)
+    aiou = iou(y_true, y_pred, sample_weight, from_logits=from_logits, label_smoothing=label_smoothing)
+    amae = mae(
+        y_true, y_pred, sample_weight, from_logits=from_logits, regression=False, label_smoothing=label_smoothing) / (
+                   omega_mean - 0.5)  # -1 will produce NaNs
 
     loss = ace + aiou + amae
 

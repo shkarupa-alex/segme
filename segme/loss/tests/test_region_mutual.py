@@ -676,7 +676,7 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
 
         result = region_mutual_information_loss(
             y_true=targets, y_pred=logits, sample_weight=None, rmi_radius=3, pool_stride=4, pool_way='avgpool',
-            from_logits=True)
+            from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [-3.800451] * 3, atol=1e-4)
@@ -687,7 +687,7 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
 
         result = region_mutual_information_loss(
             y_true=targets, y_pred=logits, sample_weight=None, rmi_radius=3, pool_stride=4, pool_way='avgpool',
-            from_logits=True)
+            from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [-3.800451] * 3, atol=1e-4)
@@ -698,7 +698,7 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
 
         result = region_mutual_information_loss(
             y_true=targets, y_pred=logits, sample_weight=None, rmi_radius=3, pool_stride=4, pool_way='avgpool',
-            from_logits=True)
+            from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [-3.800451] * 3, atol=1e-4)
@@ -709,7 +709,7 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
 
         result = region_mutual_information_loss(
             y_true=targets, y_pred=logits, sample_weight=None, rmi_radius=3, pool_stride=4, pool_way='avgpool',
-            from_logits=True)
+            from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [-3.800451] * 3, atol=1e-4)
@@ -790,7 +790,7 @@ class TestRegionMutualInformationLoss(test_combinations.TestCase):
 
         result = region_mutual_information_loss(
             y_true=targets, y_pred=probs, sample_weight=None, rmi_radius=1, pool_stride=2, pool_way='avgpool',
-            from_logits=True)
+            from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [-0.9504928588867188], atol=1e-6)

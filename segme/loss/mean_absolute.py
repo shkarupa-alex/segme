@@ -6,8 +6,12 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 @register_keras_serializable(package='SegMe>Loss')
 class MeanAbsoluteClassificationError(WeightedLossFunctionWrapper):
-    def __init__(self, from_logits=False, reduction=Reduction.AUTO, name='mean_absolute_classification_error'):
-        super().__init__(mean_absolute_classification_error, reduction=reduction, name=name, from_logits=from_logits)
+    def __init__(
+            self, from_logits=False, label_smoothing=0., reduction=Reduction.AUTO,
+            name='mean_absolute_classification_error'):
+        super().__init__(
+            mean_absolute_classification_error, reduction=reduction, name=name, from_logits=from_logits,
+            label_smoothing=label_smoothing)
 
 
 @register_keras_serializable(package='SegMe>Loss')
@@ -16,11 +20,11 @@ class MeanAbsoluteRegressionError(WeightedLossFunctionWrapper):
         super().__init__(mean_absolute_regression_error, reduction=reduction, name=name)
 
 
-def mean_absolute_classification_error(y_true, y_pred, sample_weight, from_logits):
+def mean_absolute_classification_error(y_true, y_pred, sample_weight, from_logits, label_smoothing):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
 
-    return mae(y_true, y_pred, sample_weight, from_logits)
+    return mae(y_true, y_pred, sample_weight, from_logits, regression=False, label_smoothing=label_smoothing)
 
 
 def mean_absolute_regression_error(y_true, y_pred, sample_weight):

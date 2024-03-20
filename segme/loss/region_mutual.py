@@ -14,13 +14,16 @@ class RegionMutualInformationLoss(WeightedLossFunctionWrapper):
     Implements right sum part in equation [16] in https://arxiv.org/pdf/1910.12037.pdf
     """
 
-    def __init__(self, rmi_radius=3, pool_way='avgpool', pool_stride=4, from_logits=False, reduction=Reduction.AUTO,
-                 name='region_mutual_information_loss'):
-        super().__init__(region_mutual_information_loss, reduction=reduction, name=name, rmi_radius=rmi_radius,
-                         pool_way=pool_way, pool_stride=pool_stride, from_logits=from_logits)
+    def __init__(
+            self, rmi_radius=3, pool_way='avgpool', pool_stride=4, from_logits=False, label_smoothing=0.,
+            reduction=Reduction.AUTO, name='region_mutual_information_loss'):
+        super().__init__(
+            region_mutual_information_loss, reduction=reduction, name=name, rmi_radius=rmi_radius, pool_way=pool_way,
+            pool_stride=pool_stride, from_logits=from_logits, label_smoothing=label_smoothing)
 
 
-def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, pool_stride, pool_way, from_logits):
+def region_mutual_information_loss(
+        y_true, y_pred, sample_weight, rmi_radius, pool_stride, pool_way, from_logits, label_smoothing):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
     if not 1 <= rmi_radius <= 10:
@@ -42,9 +45,16 @@ def region_mutual_information_loss(y_true, y_pred, sample_weight, rmi_radius, po
         y_pred *= valid_weight
     else:
         batch_weight = None
+        valid_weight = None
 
     y_true, y_pred = to_1hot(y_true, y_pred)
     y_true = tf.cast(y_true, dtype=y_pred.dtype)
+
+    if label_smoothing:
+        num_classes = 2 if force_sigmoid else y_true.shape[-1]
+        y_true = y_true * (1. - label_smoothing) + label_smoothing / num_classes
+        if valid_weight:
+            y_true *= valid_weight
 
     # Get region mutual information
     rmi_loss = _rmi_lower_bound(y_true, y_pred, pool_stride=pool_stride, pool_way=pool_way, rmi_radius=rmi_radius)

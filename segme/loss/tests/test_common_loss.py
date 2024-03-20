@@ -160,7 +160,7 @@ class TestMAE(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
@@ -168,7 +168,7 @@ class TestMAE(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
@@ -176,7 +176,7 @@ class TestMAE(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
@@ -184,12 +184,13 @@ class TestMAE(test_combinations.TestCase):
         logits = 10 * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mae(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
     def test_value(self):
-        result = mae(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True)
+        result = mae(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.375533, 0.417319])
 
@@ -201,20 +202,25 @@ class TestMAE(test_combinations.TestCase):
 
     def test_weight(self):
         result = mae(
-            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True)
+            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True,
+            regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.49504662, 0.17893231])
 
-        result = mae(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
+        result = mae(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True,
+            regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.49504662, 0.17893231])
 
-        result = mae(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
+        result = mae(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True,
+            regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.99009323, 0.35786462])
 
     def test_multi(self):
-        result = mae(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
+        result = mae(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.5163353])
 
@@ -225,7 +231,7 @@ class TestMSE(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
@@ -233,7 +239,7 @@ class TestMSE(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
@@ -241,7 +247,7 @@ class TestMSE(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
@@ -249,12 +255,13 @@ class TestMSE(test_combinations.TestCase):
         logits = 10 * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = mse(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [1.] * 3, atol=6e-3)
 
     def test_value(self):
-        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True)
+        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True,
+                     regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.30168968, 0.35166395])
 
@@ -266,20 +273,25 @@ class TestMSE(test_combinations.TestCase):
 
     def test_weight(self):
         result = mse(
-            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True)
+            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, from_logits=True,
+            regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.3698082, 0.12967442])
 
-        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True)
+        result = mse(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True,
+            regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.3698082, 0.12967442])
 
-        result = mse(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True)
+        result = mse(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True,
+            regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.7396164, 0.25934884])
 
     def test_multi(self):
-        result = mse(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
+        result = mse(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.42551923])
 

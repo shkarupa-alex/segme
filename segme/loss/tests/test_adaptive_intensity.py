@@ -19,7 +19,8 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.zeros((3, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = adaptive_pixel_intensity_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.07852604] * 3, atol=6e-3)
@@ -28,7 +29,8 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         logits = 10 * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.ones((3, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = adaptive_pixel_intensity_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.07852604] * 3, atol=6e-3)
@@ -37,7 +39,8 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.ones((3, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = adaptive_pixel_intensity_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [9.666324] * 3, atol=6e-3)
@@ -46,7 +49,8 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.zeros((3, 64, 64, 1), 'int32')
 
-        result = adaptive_pixel_intensity_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = adaptive_pixel_intensity_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [9.666324] * 3, atol=6e-3)

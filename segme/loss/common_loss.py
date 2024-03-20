@@ -176,10 +176,12 @@ def compute_gradient(inputs, axis, reduction):
     return grad
 
 
-def mae(y_true, y_pred, sample_weight, from_logits, regression=False):
+def mae(y_true, y_pred, sample_weight, from_logits, regression, label_smoothing=0.):
     if regression:
         if from_logits:
             raise ValueError('Regression MAE does not support "from_logits=True"')
+        if label_smoothing:
+            raise ValueError('Regression MAE does not support "label_smoothing!=0"')
         y_true, y_pred, sample_weight = validate_input(
             y_true, y_pred, sample_weight, dtype=None, rank=None, channel='same')
     else:
@@ -188,17 +190,20 @@ def mae(y_true, y_pred, sample_weight, from_logits, regression=False):
         y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
         y_true, y_pred = to_1hot(y_true, y_pred)
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
-        # TODO: try to compute mae with inverse softmax/sigmoid on y?
+        if label_smoothing:
+            y_true = y_true * (1. - label_smoothing) + label_smoothing / y_true.shape[-1]
 
     loss = tf.abs(y_pred - y_true)
 
     return weighted_loss(loss, sample_weight)
 
 
-def mse(y_true, y_pred, sample_weight, from_logits, regression=False):
+def mse(y_true, y_pred, sample_weight, from_logits, regression, label_smoothing=0.):
     if regression:
         if from_logits:
-            raise ValueError('Regression MAE does not support "from_logits=True"')
+            raise ValueError('Regression MSE does not support "from_logits=True"')
+        if label_smoothing:
+            raise ValueError('Regression MSE does not support "label_smoothing!=0"')
         y_true, y_pred, sample_weight = validate_input(
             y_true, y_pred, sample_weight, dtype=None, rank=None, channel='same')
     else:
@@ -207,13 +212,15 @@ def mse(y_true, y_pred, sample_weight, from_logits, regression=False):
         y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
         y_true, y_pred = to_1hot(y_true, y_pred)
         y_true = tf.cast(y_true, dtype=y_pred.dtype)
+        if label_smoothing:
+            y_true = y_true * (1. - label_smoothing) + label_smoothing / y_true.shape[-1]
 
     loss = tf.math.squared_difference(y_pred, y_true)
 
     return weighted_loss(loss, sample_weight)
 
 
-def crossentropy(y_true, y_pred, sample_weight, from_logits, force_binary, label_smoothing):
+def crossentropy(y_true, y_pred, sample_weight, from_logits, force_binary=False, label_smoothing=0.):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=None, channel=None)
     y_pred, from_logits = to_logits(y_pred, from_logits), True
@@ -240,12 +247,15 @@ def crossentropy(y_true, y_pred, sample_weight, from_logits, force_binary, label
     return weighted_loss(loss, sample_weight)
 
 
-def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False):
+def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False, label_smoothing=0.):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
     y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
     y_true_1h, y_pred_1h = to_1hot(y_true, y_pred)
     y_true_1h = tf.cast(y_true_1h, dtype=y_pred.dtype)
+
+    if label_smoothing:
+        y_true_1h = y_true_1h * (1. - label_smoothing) + label_smoothing / y_true_1h.shape[-1]
 
     y_and = y_pred_1h * y_true_1h
     y_or = y_pred_1h + y_true_1h
