@@ -35,12 +35,15 @@ def Stem(filters, depth, path_drop=0., path_gamma=1., name=None):
             raise ValueError('Number of path dropouts must equals to depth.')
 
     def apply(inputs):
-        x = Conv(filters, 3, strides=2, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_0_conv')(inputs)
+        x = Conv(
+            filters, 3, strides=2, use_bias=False, kernel_initializer=CONV_KERNEL_INITIALIZER,
+            name=f'{name}_0_conv')(inputs)
         x = Act(name=f'{name}_0_act')(x)
         x = Norm(center=False, name=f'{name}_0_norm')(x)
 
         for i in range(depth):
-            y = Conv(filters, 3, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_{i + 1}_conv')(x)
+            y = Conv(
+                filters, 3, use_bias=False, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_{i + 1}_conv')(x)
             y = Act(name=f'{name}_{i + 1}_act')(y)
             y = Norm(
                 center=False, gamma_initializer=initializers.Constant(path_gamma[i]), name=f'{name}_{i + 1}_norm')(y)
@@ -68,12 +71,13 @@ def Reduce(filters, fused=False, kernel_size=3, expand_ratio=4., name=None):
 
         if fused:  # From EfficientNet2
             x = Conv(
-                expand_filters, kernel_size, strides=2, kernel_initializer=CONV_KERNEL_INITIALIZER,
-                name=f'{name}_expand')(inputs)
+                expand_filters, kernel_size, strides=2, use_bias=False,
+                kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand')(inputs)
         else:
             x = Conv(expand_filters, 1, use_bias=False, name=f'{name}_expand_pw')(inputs)
             x = Conv(
-                None, kernel_size, strides=2, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
+                None, kernel_size, strides=2, use_bias=False, kernel_initializer=CONV_KERNEL_INITIALIZER,
+                name=f'{name}_expand_dw')(x)
 
         x = Act(name=f'{name}_act')(x)
         x = Conv(filters, 1, use_bias=False, name=f'{name}_squeeze')(x)
@@ -89,7 +93,7 @@ def MLPConv(filters, fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_
         counter = backend.get_uid('mlpconv')
         name = f'mlpconv_{counter}'
 
-    def apply(inputs):  # TODO: SwiGLU?
+    def apply(inputs):
         channels = inputs.shape[-1]
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
@@ -100,7 +104,9 @@ def MLPConv(filters, fused, kernel_size=3, expand_ratio=3., path_drop=0., gamma_
             x = Conv(expand_filters, kernel_size, use_bias=False, name=f'{name}_expand')(inputs)
         else:
             x = Conv(expand_filters, 1, use_bias=False, name=f'{name}_expand_pw')(inputs)
-            x = Conv(None, kernel_size, kernel_initializer=CONV_KERNEL_INITIALIZER, name=f'{name}_expand_dw')(x)
+            x = Conv(
+                None, kernel_size, use_bias=False, kernel_initializer=CONV_KERNEL_INITIALIZER,
+                name=f'{name}_expand_dw')(x)
         x = Act(name=f'{name}_act')(x)
 
         if filters == channels and expand_ratio > 2:
@@ -186,8 +192,6 @@ def CoMA(
         pooling=None, weights=None, input_tensor=None, classes=1000, classifier_activation='softmax',
         include_preprocessing=False):
     """ Inspired with:
-
-    TODO: DeepNorm, https://paperswithcode.com/paper/stabilizing-transformer-training-by
 
     09.06.2023 FasterViT: Fast Vision Transformers with Hierarchical Attention
         ! initial layers are memory-bound and better for compute-intensive operations, such as dense convolution
