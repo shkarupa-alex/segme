@@ -60,9 +60,9 @@ def bucket_batch(max_pixels):
     return buck_bounds, batch_sizes, skip_len
 
 
-def apply_scale(image, mask, depth, trimap, with_depth, with_unknown):
-    scale = MIN_SIZE / min(mask.shape[:2])
-    size = round(mask.shape[1] * scale), round(mask.shape[0] * scale)
+def apply_scale(image, mask, trimap, depth, with_trimap, with_depth):
+    scale = MIN_SIZE / min(image.shape[:2])
+    size = round(image.shape[1] * scale), round(image.shape[0] * scale)
 
     interpolation = cv2.INTER_AREA
     if min(image.shape[:2]) < min(size):
@@ -70,10 +70,10 @@ def apply_scale(image, mask, depth, trimap, with_depth, with_unknown):
 
     _image = cv2.resize(image, size, interpolation=interpolation)
     _mask = cv2.resize(mask, size, interpolation=cv2.INTER_NEAREST_EXACT)
-    _depth = cv2.resize(depth, size, interpolation=interpolation) if with_depth else depth
-    _trimap = cv2.resize(trimap, size, interpolation=cv2.INTER_NEAREST_EXACT) if with_unknown else trimap
+    _trimap = cv2.resize(trimap, size, interpolation=cv2.INTER_NEAREST_EXACT)
+    _depth = cv2.resize(depth, size, interpolation=interpolation)
 
-    return _image, _mask, _depth, _trimap
+    return _image, _mask, _trimap, _depth
 
 
 def trimap_size(mask, size, border):
@@ -113,7 +113,7 @@ def mask_trimap(mask, size):
     return trimap
 
 
-def train_augment(image, mask, depth, trimap, replay=False):
+def train_augment(image, mask, trimap, depth, replay=False):
     src_size = mask.shape
     trg_size = target_size(src_size)
 
@@ -179,9 +179,9 @@ def train_augment(image, mask, depth, trimap, replay=False):
         # Pad & crop
         alb.PadIfNeeded(*trg_size, border_mode=cv2.BORDER_CONSTANT, p=1),
         alb.RandomCrop(*trg_size, p=1),
-    ], additional_targets={'depth': 'mask', 'trimap': 'mask', 'weight': 'mask'})
+    ], additional_targets={'trimap': 'mask', 'depth': 'mask', 'weight': 'mask'})
 
-    augmented = aug(image=image, mask=mask, depth=depth, trimap=trimap, weight=np.ones_like(mask))
+    augmented = aug(image=image, mask=mask, trimap=trimap, depth=depth, weight=np.ones_like(mask))
 
     if augmented['mask'].shape != trg_size:
         raise ValueError('Wrong size after augmntation')
@@ -189,10 +189,10 @@ def train_augment(image, mask, depth, trimap, replay=False):
     if replay:
         print(drop_unapplied(augmented['replay']))
 
-    return augmented['image'], augmented['mask'], augmented['depth'], augmented['trimap'], augmented['weight']
+    return augmented['image'], augmented['mask'], augmented['trimap'], augmented['depth'], augmented['weight']
 
 
-def valid_augment(image, mask, depth, trimap):
+def valid_augment(image, mask, trimap, depth):
     src_size = mask.shape
     trg_size = target_size(src_size)
 
@@ -200,14 +200,14 @@ def valid_augment(image, mask, depth, trimap):
         # Crop
         alb.PadIfNeeded(*trg_size, border_mode=cv2.BORDER_CONSTANT, p=1),
         alb.RandomCrop(*trg_size, p=1),
-    ], additional_targets={'depth': 'mask', 'trimap': 'mask', 'weight': 'mask'})
+    ], additional_targets={'trimap': 'mask', 'depth': 'mask', 'weight': 'mask'})
 
-    augmented = aug(image=image, mask=mask, depth=depth, trimap=trimap, weight=np.ones_like(mask))
+    augmented = aug(image=image, mask=mask, trimap=trimap, depth=depth, weight=np.ones_like(mask))
 
     if augmented['mask'].shape != trg_size:
         raise ValueError('Wrong size after augmntation')
 
-    return augmented['image'], augmented['mask'], augmented['depth'], augmented['trimap'], augmented['weight']
+    return augmented['image'], augmented['mask'], augmented['trimap'], augmented['depth'], augmented['weight']
 
 
 class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
@@ -215,8 +215,8 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
     RELEASE_NOTES = {'1.0.0': 'Initial release.'}
 
     def __init__(
-            self, *, source_dirs, data_dir, train_aug=2, test_re='-test-', set_weight=None, with_depth=False,
-            with_unknown=False, config=None, version=None):
+            self, *, source_dirs, data_dir, train_aug=2, test_re='-test-', set_weight=None, with_trimap=False,
+            with_depth=False, config=None, version=None):
         if isinstance(source_dirs, str):
             source_dirs = [source_dirs]
         if not isinstance(source_dirs, list):
@@ -236,8 +236,8 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
         self.train_aug = train_aug
         self.test_re = test_re
         self.set_weight = set_weight
+        self.with_trimap = with_trimap
         self.with_depth = with_depth
-        self.with_unknown = with_unknown
 
         super().__init__(data_dir=data_dir, config=config, version=version)
 
@@ -249,10 +249,10 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
             'length': tfds.features.Tensor(shape=(), dtype=tf.int32)
         }
 
+        if self.with_trimap:
+            feats['trimap'] = tfds.features.Image(shape=(None, None, 1), dtype=tf.uint8, encoding_format='jpeg')
         if self.with_depth:
             feats['depth'] = tfds.features.Image(shape=(None, None, 1), dtype=tf.uint8, encoding_format='jpeg')
-        if self.with_unknown:
-            feats['trimap'] = tfds.features.Image(shape=(None, None, 1), dtype=tf.uint8, encoding_format='jpeg')
 
         return tfds.core.DatasetInfo(
             builder=self,
@@ -268,8 +268,13 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
 
     def _generate_examples(self, training):
         for image_file, mask_file, alpha_file, depth_file in self._iterate_source(training):
-            for key, image, mask, depth, trimap, weight in self._transform_example(
+            for key, image, mask, trimap, depth, weight in self._transform_example(
                     image_file, mask_file, alpha_file, depth_file, training):
+
+                if len(set(mask.reshape(-1)) - {0, 255}):
+                    raise ValueError(f'Wrong trimap values: {mask_file}')
+                if len(set(trimap.reshape(-1)) - {0, 128, 255}):
+                    raise ValueError(f'Wrong trimap values: {mask_file}')
 
                 sample_weight = 255.
                 for weight_key, weight_value in self.set_weight.items():
@@ -284,10 +289,10 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
                     'weight': weight[..., None],
                     'length': target_length(mask.shape)
                 }
+                if self.with_trimap:
+                    example['trimap'] = trimap[..., None]
                 if self.with_depth:
                     example['depth'] = depth[..., None]
-                if self.with_unknown:
-                    example['trimap'] = trimap[..., None]
 
                 yield key, example
 
@@ -338,12 +343,8 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
             large = cv2.cvtColor(cv2.imread(image_file.replace('-image.', '-image_super.')), cv2.COLOR_BGR2RGB)
             # large = cv2.resize(large, image.shape[1::-1], interpolation=cv2.INTER_CUBIC)
 
-        depth = np.zeros((1, 1, 1), dtype='uint8')
-        if self.with_depth:
-            depth = cv2.imread(depth_file, cv2.IMREAD_GRAYSCALE)
-
-        trimap = np.zeros((1, 1, 1), dtype='uint8')
-        if self.with_unknown:
+        trimap = np.zeros(mask.shape, dtype='uint8')
+        if self.with_trimap:
             size = trimap_size(mask, 384, 3)
             trimap = mask_trimap(mask, size)
 
@@ -359,6 +360,13 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
 
                 trimap = np.where(128 == atrimap, 128, trimap)
 
+            if len(set(trimap.reshape(-1)) - {0, 128, 255}):
+                raise ValueError(f'Wrong trimap values: {mask_file}')
+
+        depth = np.zeros(mask.shape, dtype='uint8')
+        if self.with_depth:
+            depth = cv2.imread(depth_file, cv2.IMREAD_GRAYSCALE)
+
         if len(set(mask.reshape(-1)) - {0, 255}):
             raise ValueError(f'Wrong mask values: {mask_file}')
 
@@ -368,105 +376,112 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
             if large is not None and train_aug > 1:
                 train_aug -= 1
 
-                image0, mask0, depth0, trimap0 = apply_scale(
-                    large, mask, depth, trimap, self.with_depth, self.with_unknown)
-                image1, mask1, depth1, trimap1, weight1 = train_augment(image0, mask0, depth0, trimap0)
+                image0, mask0, trimap0, depth0 = apply_scale(
+                    large, mask, trimap, depth, self.with_trimap, self.with_depth)
+                image1, mask1, trimap1, depth1, weight1 = train_augment(image0, mask0, trimap0, depth0)
 
-                yield f'{mask_file}_super', image1, mask1, depth1, trimap1, weight1
+                yield f'{mask_file}_super', image1, mask1, trimap1, depth1, weight1
 
             if large is not None and train_aug > 1:
                 train_aug -= 1
 
-                large0, _, _, _ = apply_scale(large, mask, depth, trimap, False, False)
-                image0, mask0, depth0, trimap0 = apply_scale(
-                    image, mask, depth, trimap, self.with_depth, self.with_unknown)
+                large0, _, _, _ = apply_scale(large, mask, trimap, depth, False, False)
+                image0, mask0, trimap0, depth0 = apply_scale(
+                    image, mask, trimap, depth, self.with_trimap, self.with_depth)
                 half = large0.astype('float32') + image0.astype('float32')
                 half = np.round(half / 2).astype('uint8')
 
-                image1, mask1, depth1, trimap1, weight1 = train_augment(half, mask0, depth0, trimap0)
+                image1, mask1, trimap1, depth1, weight1 = train_augment(half, mask0, trimap0, depth0)
 
-                yield f'{mask_file}_half', image1, mask1, depth1, trimap1, weight1
+                yield f'{mask_file}_half', image1, mask1, trimap1, depth1, weight1
 
-            image0, mask0, depth0, trimap0 = apply_scale(image, mask, depth, trimap, self.with_depth, self.with_unknown)
+            image0, mask0, trimap0, depth0 = apply_scale(image, mask, trimap, depth, self.with_trimap, self.with_depth)
             for i in range(train_aug):
-                image1, mask1, depth1, trimap1, weight1 = train_augment(image0, mask0, depth0, trimap0)
+                image1, mask1, trimap1, depth1, weight1 = train_augment(image0, mask0, trimap0, depth0)
 
-                yield f'{mask_file}_{i}', image1, mask1, depth1, trimap1, weight1
+                yield f'{mask_file}_{i}', image1, mask1, trimap1, depth1, weight1
         else:
-            image0, mask0, depth0, trimap0 = apply_scale(image, mask, depth, trimap, self.with_depth, self.with_unknown)
-            image1, mask1, depth1, trimap1, weight1 = valid_augment(image0, mask0, depth0, trimap0)
+            image0, mask0, trimap0, depth0 = apply_scale(image, mask, trimap, depth, self.with_trimap, self.with_depth)
+            image1, mask1, trimap1, depth1, weight1 = valid_augment(image0, mask0, trimap0, depth0)
 
-            yield f'{mask_file}', image1, mask1, depth1, trimap1, weight1
+            yield f'{mask_file}', image1, mask1, trimap1, depth1, weight1
 
 
 @tf.function(jit_compile=True)
-def _resize_examples(examples, with_depth, with_unknown):
+def _resize_examples(examples, with_trimap, with_depth):
     result = {
         'image': tf.image.resize(examples['image'], [MIN_SIZE, MIN_SIZE], method=tf.image.ResizeMethod.BILINEAR),
         'mask': tf.image.resize(examples['mask'], [MIN_SIZE, MIN_SIZE], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR),
         'weight': tf.image.resize(examples['weight'], [MIN_SIZE, MIN_SIZE], method=tf.image.ResizeMethod.BILINEAR)
     }
 
+    if with_trimap:
+        result['trimap'] = tf.image.resize(
+            examples['trimap'], [MIN_SIZE, MIN_SIZE], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
     if with_depth:
         result['depth'] = tf.image.resize(
             examples['depth'], [MIN_SIZE, MIN_SIZE], method=tf.image.ResizeMethod.BILINEAR)
-
-    if with_unknown:
-        result['trimap'] = tf.image.resize(
-            examples['trimap'], [MIN_SIZE, MIN_SIZE], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
     return result
 
 
 @tf.function(jit_compile=False)
-def _transform_examples(examples, augment, with_depth, with_unknown, max_weight):
+def _transform_examples(examples, augment, with_trimap, with_depth, backbone_scales, max_weight):
     images = examples['image']
     labels = tf.cast(examples['mask'] > 127, 'int32')
     weights = tf.cast(examples['weight'], 'float32') * (max_weight / 255.)
-
     masks = [labels, weights]
+
+    if with_trimap:
+        trimaps = examples['trimap']
+        trimaps = tf.cast(trimaps // 86, 'int32') * 128
+        trimaps = tf.cast(tf.clip_by_value(trimaps, 0, 255), 'uint8')
+        trimaps = alpha_trimap_tf(trimaps, (0, 8))
+        trimaps = tf.cast(trimaps // 86, 'int32')
+        masks.append(trimaps)
+
     if with_depth:
         masks.append(tf.image.convert_image_dtype(examples['depth'], 'float32'))
-
-    if with_unknown:
-        unknowns = examples['trimap']
-        unknowns = tf.cast(unknowns // 86, 'int32') * 128
-        unknowns = tf.cast(tf.clip_by_value(unknowns, 0, 255), 'uint8')
-        unknowns = alpha_trimap_tf(unknowns, (0, 8))
-        unknowns = tf.cast(unknowns == 128, 'int32')
-        masks.append(unknowns)
 
     if augment:
         images, masks, _ = rand_augment_full(
             images, masks, None, levels=2, ops=['FlipLR', 'FlipUD', 'Mix', 'RotateCCW', 'RotateCW', 'Shuffle'])
 
     targets, sample_weights, masks = masks[0:1], masks[1:2], masks[2:]
-    valid_weights = tf.cast(sample_weights[0] > 0., 'float32')
+
+    if with_trimap:
+        trimaps, masks = masks[0], masks[1:]
+        targets.append(trimaps)
+        sample_weights.append(sample_weights[0])
 
     if with_depth:
-        depths, masks = masks[0], masks[1:]
-        targets.append(depths)
-        sample_weights.append(valid_weights)
-
-    if with_unknown:
         targets.append(masks[0])
+        valid_weights = tf.cast(sample_weights[0] > 0., 'float32')
         sample_weights.append(valid_weights)
 
-    if not with_depth and not with_unknown:
+    if not with_depth and not with_trimap:
         return images, targets[0], sample_weights[0]
+
+    targets, sample_weights = tuple(targets), tuple(sample_weights)
+
+    if backbone_scales > 1:
+        targets *= backbone_scales
+        sample_weights *= backbone_scales
 
     return images, tuple(targets), tuple(sample_weights)
 
 
-def make_dataset(data_dir, split_name, with_depth, with_unknown, batch_pixels, square_size=False, max_weight=5.):
-    builder = SaliencyDataset(source_dirs=[], data_dir=data_dir, with_depth=with_depth, with_unknown=with_unknown)
+def make_dataset(data_dir, split_name, with_trimap, with_depth, batch_pixels, backbone_scales=1, square_size=False,
+                 max_weight=5.):
+    builder = SaliencyDataset(source_dirs=[], data_dir=data_dir, with_trimap=with_trimap, with_depth=with_depth)
     builder.download_and_prepare()
 
     dataset = builder.as_dataset(split=split_name, batch_size=None, shuffle_files=True)
 
     if square_size:
         dataset = dataset.map(
-            lambda ex: _resize_examples(ex, with_depth, with_unknown),
+            lambda ex: _resize_examples(ex, with_trimap, with_depth),
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
         batch_size = batch_pixels // (MIN_SIZE ** 2)
@@ -482,7 +497,7 @@ def make_dataset(data_dir, split_name, with_depth, with_unknown, batch_pixels, s
 
     dataset = dataset.map(
         lambda ex: _transform_examples(
-            ex, tfds.Split.TRAIN == split_name, with_depth, with_unknown, max_weight),
+            ex, tfds.Split.TRAIN == split_name, with_trimap, with_depth, backbone_scales, max_weight),
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
