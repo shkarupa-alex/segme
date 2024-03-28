@@ -9,7 +9,7 @@ from segme.model.sod.exp_sod.loss import exp_sod_losses
 from segme.testing_utils import layer_multi_io_test
 
 
-# @test_combinations.run_all_keras_modes
+@test_combinations.run_all_keras_modes
 class TestExpSOD(test_combinations.TestCase):
     def setUp(self):
         super(TestExpSOD, self).setUp()
@@ -166,8 +166,8 @@ class TestExpSOD(test_combinations.TestCase):
         layer_multi_io_test(
             ExpSOD,
             kwargs={
-                'sup_unfold': False, 'with_depth': False, 'with_unknown': False, 'transform_depth': 3,
-                'window_size': 24, 'path_gamma': 0.01, 'path_drop': 0.2},
+                'with_trimap': False, 'with_depth': False, 'transform_depth': 2, 'window_size': 24, 'path_gamma': 0.01,
+                'path_drop': 0.2},
             input_shapes=[(2, 384, 384, 3)],
             input_dtypes=['uint8'] * 1,
             expected_output_shapes=[(None, 384, 384, 1)] * 5,
@@ -176,28 +176,18 @@ class TestExpSOD(test_combinations.TestCase):
         layer_multi_io_test(
             ExpSOD,
             kwargs={
-                'sup_unfold': True, 'with_depth': False, 'with_unknown': False, 'transform_depth': 3,
-                'window_size': 24, 'path_gamma': 0.01, 'path_drop': 0.2},
+                'with_trimap': True, 'with_depth': False, 'transform_depth': 2, 'window_size': 24, 'path_gamma': 0.01,
+                'path_drop': 0.2},
             input_shapes=[(2, 384, 384, 3)],
             input_dtypes=['uint8'] * 1,
-            expected_output_shapes=[(None, 384, 384, 1)] * 5,
-            expected_output_dtypes=['float32'] * 5
-        )
-        layer_multi_io_test(
-            ExpSOD,
-            kwargs={
-                'sup_unfold': False, 'with_depth': True, 'with_unknown': False, 'transform_depth': 3,
-                'window_size': 24, 'path_gamma': 0.01, 'path_drop': 0.2},
-            input_shapes=[(2, 384, 384, 3)],
-            input_dtypes=['uint8'] * 1,
-            expected_output_shapes=[(None, 384, 384, 1)] * 5 * 2,
+            expected_output_shapes=[(None, 384, 384, 1), (None, 384, 384, 3)] * 5,
             expected_output_dtypes=['float32'] * 5 * 2
         )
         layer_multi_io_test(
             ExpSOD,
             kwargs={
-                'sup_unfold': True, 'with_depth': False, 'with_unknown': True, 'transform_depth': 3,
-                'window_size': 24, 'path_gamma': 0.01, 'path_drop': 0.2},
+                'with_trimap': False, 'with_depth': True, 'transform_depth': 2, 'window_size': 24, 'path_gamma': 0.01,
+                'path_drop': 0.2},
             input_shapes=[(2, 384, 384, 3)],
             input_dtypes=['uint8'] * 1,
             expected_output_shapes=[(None, 384, 384, 1)] * 5 * 2,
@@ -205,25 +195,29 @@ class TestExpSOD(test_combinations.TestCase):
         )
 
     def test_fp16(self):
+        mixed_precision.set_global_policy('mixed_float16')
         layer_multi_io_test(
             ExpSOD,
             kwargs={
-                'sup_unfold': True, 'with_depth': True, 'with_unknown': True, 'transform_depth': 3,
-                'window_size': 24, 'path_gamma': 0.01, 'path_drop': 0.2},
+                'with_trimap': True, 'with_depth': True, 'transform_depth': 2, 'window_size': 24, 'path_gamma': 0.01,
+                'path_drop': 0.2},
             input_shapes=[(2, 384, 384, 3)],
             input_dtypes=['uint8'] * 1,
-            expected_output_shapes=[(None, 384, 384, 1)] * 5 * 3,
+            expected_output_shapes=[(None, 384, 384, 1), (None, 384, 384, 3), (None, 384, 384, 1)] * 5,
             expected_output_dtypes=['float32'] * 5 * 3
         )
 
     def test_model(self):
-        model = ExpSOD(with_depth=True, with_unknown=True)
+        model = ExpSOD(with_depth=True, with_trimap=True)
         model.compile(
-            optimizer='sgd', loss=exp_sod_losses(5, with_depth=True, with_unknown=True),
-            run_eagerly=test_utils.should_run_eagerly(), jit_compile=False)
+            optimizer='sgd', loss=exp_sod_losses(5, with_depth=True, with_trimap=True),
+            # run_eagerly=test_utils.should_run_eagerly(),
+            jit_compile=False)
         model.fit(
             np.random.random((2, 384, 384, 3)).astype(np.uint8),
-            [np.random.random((2, 384, 384, 1)).astype(np.float32)] * 5 * 3,
+            [np.random.random((2, 384, 384, 1)).astype(np.float32),
+             np.random.random((2, 384, 384, 1)).astype(np.int32),
+             np.random.random((2, 384, 384, 1)).astype(np.float32)] * 5,
             epochs=1, batch_size=10)
 
         # test config
