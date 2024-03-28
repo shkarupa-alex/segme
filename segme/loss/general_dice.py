@@ -19,7 +19,7 @@ class GeneralizedDiceLoss(WeightedLossFunctionWrapper):
 
 def generalized_dice_loss(y_true, y_pred, sample_weight, from_logits):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
+        y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
 
     y_true_1h = tf.one_hot(tf.squeeze(y_true, -1), max(2, y_pred.shape[-1]), dtype=y_pred.dtype)
     weight = tf.reduce_mean(y_true_1h, axis=[0, 1, 2], keepdims=True) ** 2

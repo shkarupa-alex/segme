@@ -24,7 +24,7 @@ class HeinsenTreeLoss(WeightedLossFunctionWrapper):
 def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, force_binary, label_smoothing, level_weighting,
                       from_logits):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=None, channel='sparse')
+        y_true, y_pred, sample_weight, dtype='int64', rank=None, channel='sparse')
 
     y_pred, from_logits = to_logits(y_pred, from_logits), True
 
@@ -45,7 +45,7 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, force_binary, l
     tree_paths = np.array([path + [-1] * (num_levels - len(path)) for path in tree_paths])
     valid_mask = (tree_paths.T == np.arange(tree_classes)[None])
 
-    tree_paths = tf.convert_to_tensor(tree_paths, dtype='int32')
+    tree_paths = tf.convert_to_tensor(tree_paths, dtype='int64')
     valid_mask = tf.convert_to_tensor(valid_mask[None], dtype='bool')
 
     y_true_tree = tf.reshape(y_true, [-1])
@@ -102,7 +102,7 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, force_binary, l
         level_weight = level_weight[y_valid_tree]
         loss *= level_weight
 
-    sample_segment = tf.cast(y_valid_tree, 'int32') * tf.range(tf.size(y_true))[:, None]
+    sample_segment = tf.cast(y_valid_tree, 'int64') * tf.range(tf.size(y_true), dtype='int64')[:, None]
     sample_segment = tf.reshape(sample_segment[y_valid_tree], [-1])
     loss = tf.math.unsorted_segment_sum(loss, sample_segment, num_segments=tf.size(y_true))
 

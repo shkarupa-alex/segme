@@ -25,7 +25,7 @@ class RegionMutualInformationLoss(WeightedLossFunctionWrapper):
 def region_mutual_information_loss(
         y_true, y_pred, sample_weight, rmi_radius, pool_stride, pool_way, from_logits, label_smoothing):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
+        y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
     if not 1 <= rmi_radius <= 10:
         raise ValueError('Unsupported RMI radius: {}'.format(rmi_radius))
     if pool_stride > 1 and pool_way not in {'maxpool', 'avgpool', 'resize'}:
@@ -47,8 +47,7 @@ def region_mutual_information_loss(
         batch_weight = None
         valid_weight = None
 
-    y_true, y_pred = to_1hot(y_true, y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+    y_true, y_pred = to_1hot(y_true, y_pred, dtype=y_pred.dtype)
 
     if label_smoothing:
         num_classes = 2 if force_sigmoid else y_true.shape[-1]

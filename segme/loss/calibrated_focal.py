@@ -21,10 +21,9 @@ class CalibratedFocalCrossEntropy(WeightedLossFunctionWrapper):
 
 def calibrated_focal_cross_entropy(y_true, y_pred, sample_weight, prob0, prob1, gamma0, gamma1, from_logits):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
+        y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
     y_prob = to_probs(y_pred, from_logits, force_sigmoid=False)
-    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob)
-    y_true_1h = tf.cast(y_true_1h, y_prob_1h.dtype)
+    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob, dtype=y_prob.dtype)
 
     p_t = tf.reduce_sum(y_true_1h * y_prob_1h, axis=-1, keepdims=True)
 

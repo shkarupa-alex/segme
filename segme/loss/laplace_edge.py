@@ -29,10 +29,9 @@ def laplace(probs, kernel):
 
 def laplace_edge_cross_entropy(y_true, y_pred, sample_weight, from_logits):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
+        y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
     y_prob = to_probs(y_pred, from_logits, force_sigmoid=True)
-    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob)
-    y_true_1h = tf.cast(y_true_1h, y_prob.dtype)
+    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob, dtype=y_prob.dtype)
 
     kernel = np.reshape([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]], [3, 3, 1, 1])
     kernel = np.tile(kernel, [1, 1, y_true_1h.shape[-1], 1])

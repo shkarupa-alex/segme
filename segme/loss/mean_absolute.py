@@ -22,7 +22,7 @@ class MeanAbsoluteRegressionError(WeightedLossFunctionWrapper):
 
 def mean_absolute_classification_error(y_true, y_pred, sample_weight, from_logits, label_smoothing):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
+        y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
 
     return mae(y_true, y_pred, sample_weight, from_logits, regression=False, label_smoothing=label_smoothing)
 

@@ -44,10 +44,9 @@ def sobel(probs):
 
 def sobel_edge_loss(y_true, y_pred, sample_weight, from_logits):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
+        y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
     y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-    y_true, y_pred = to_1hot(y_true, y_pred)
-    y_true = tf.cast(y_true, dtype=y_pred.dtype)
+    y_true, y_pred = to_1hot(y_true, y_pred, dtype=y_pred.dtype)
 
     y_true_edge = sobel(y_true)
     y_true_edge = tf.stop_gradient(y_true_edge)

@@ -21,10 +21,9 @@ class NormalizedFocalCrossEntropy(WeightedLossFunctionWrapper):
 
 def normalized_focal_cross_entropy(y_true, y_pred, sample_weight, gamma, from_logits):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
+        y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
     y_prob = to_probs(y_pred, from_logits, force_sigmoid=False)
-    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob)
-    y_true_1h = tf.cast(y_true_1h, y_prob_1h.dtype)
+    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob, dtype=y_prob.dtype)
 
     pt = tf.reduce_max(y_true_1h * y_prob_1h, axis=-1, keepdims=True)
     beta = (1. - pt) ** gamma

@@ -23,7 +23,7 @@ class AdaptivePixelIntensityLoss(WeightedLossFunctionWrapper):
 
 def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits, label_smoothing):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype='int32', rank=4, channel='sparse')
+        y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
 
     true_size, static_size = get_shape(y_true, axis=[1, 2])
     if static_size:
