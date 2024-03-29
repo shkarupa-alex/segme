@@ -442,7 +442,7 @@ def _transform_examples(examples, augment, with_trimap, with_depth, backbone_sca
         masks.append(trimaps)
 
     if with_depth:
-        masks.append(tf.image.convert_image_dtype(examples['depth'], 'float32'))
+        masks.append(tf.image.convert_image_dtype(examples['depth'], 'float32') * (1 / 255))
 
     if augment:
         images, masks, _ = rand_augment_full(
