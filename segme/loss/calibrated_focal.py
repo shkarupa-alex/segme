@@ -13,17 +13,19 @@ class CalibratedFocalCrossEntropy(WeightedLossFunctionWrapper):
     Note: remember to use focal loss trick: initialize last layer's bias with small negative value like -1.996
     """
 
-    def __init__(self, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0, from_logits=False,
-                 reduction=Reduction.AUTO, name='calibrated_focal_cross_entropy'):
+    def __init__(self, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0, from_logits=False, label_smoothing=0.,
+                 force_binary=False, reduction=Reduction.AUTO, name='calibrated_focal_cross_entropy'):
         super().__init__(calibrated_focal_cross_entropy, reduction=reduction, name=name, prob0=prob0, prob1=prob1,
-                         gamma0=gamma0, gamma1=gamma1, from_logits=from_logits)
+                         gamma0=gamma0, gamma1=gamma1, from_logits=from_logits, label_smoothing=label_smoothing,
+                         force_binary=force_binary)
 
 
-def calibrated_focal_cross_entropy(y_true, y_pred, sample_weight, prob0, prob1, gamma0, gamma1, from_logits):
+def calibrated_focal_cross_entropy(y_true, y_pred, sample_weight, prob0, prob1, gamma0, gamma1, from_logits,
+                                   label_smoothing, force_binary):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
-    y_prob = to_probs(y_pred, from_logits, force_sigmoid=False)
-    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob, dtype=y_prob.dtype)
+    y_prob, _ = to_probs(y_pred, from_logits, force_binary=False)
+    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob, False, dtype=y_prob.dtype)
 
     p_t = tf.reduce_sum(y_true_1h * y_prob_1h, axis=-1, keepdims=True)
 
@@ -35,6 +37,7 @@ def calibrated_focal_cross_entropy(y_true, y_pred, sample_weight, prob0, prob1, 
     sample_weight = modulating_factor if sample_weight is None else modulating_factor * sample_weight
     sample_weight = tf.stop_gradient(sample_weight)
 
-    loss = crossentropy(y_true, y_pred, sample_weight, from_logits, False, 0.)
+    loss = crossentropy(y_true, y_pred, sample_weight, from_logits, label_smoothing=label_smoothing,
+                        force_binary=force_binary)
 
     return loss

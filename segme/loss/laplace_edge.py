@@ -15,8 +15,10 @@ class LaplaceEdgeCrossEntropy(WeightedLossFunctionWrapper):
     Compute edge loss with Laplace operator
     """
 
-    def __init__(self, from_logits=False, reduction=Reduction.AUTO, name='laplace_edge_cross_entropy'):
-        super().__init__(laplace_edge_cross_entropy, reduction=reduction, name=name, from_logits=from_logits)
+    def __init__(self, from_logits=False, force_binary=False, reduction=Reduction.AUTO,
+                 name='laplace_edge_cross_entropy'):
+        super().__init__(laplace_edge_cross_entropy, reduction=reduction, name=name, from_logits=from_logits,
+                         force_binary=force_binary)
 
 
 def laplace(probs, kernel):
@@ -27,11 +29,11 @@ def laplace(probs, kernel):
     return edge
 
 
-def laplace_edge_cross_entropy(y_true, y_pred, sample_weight, from_logits):
+def laplace_edge_cross_entropy(y_true, y_pred, sample_weight, from_logits, force_binary):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
-    y_prob = to_probs(y_pred, from_logits, force_sigmoid=True)
-    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob, dtype=y_prob.dtype)
+    y_prob, from_logits = to_probs(y_pred, from_logits, force_binary=force_binary)
+    y_true_1h, y_prob_1h = to_1hot(y_true, y_prob, from_logits, dtype=y_prob.dtype)
 
     kernel = np.reshape([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]], [3, 3, 1, 1])
     kernel = np.tile(kernel, [1, 1, y_true_1h.shape[-1], 1])

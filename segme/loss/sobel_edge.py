@@ -16,8 +16,9 @@ class SobelEdgeLoss(WeightedLossFunctionWrapper):
     Compute edge loss with Sobel operator
     """
 
-    def __init__(self, from_logits=False, reduction=Reduction.AUTO, name='sobel_edge_loss'):
-        super().__init__(sobel_edge_loss, reduction=reduction, name=name, from_logits=from_logits)
+    def __init__(self, from_logits=False, force_binary=False, reduction=Reduction.AUTO, name='sobel_edge_loss'):
+        super().__init__(sobel_edge_loss, reduction=reduction, name=name, from_logits=from_logits,
+                         force_binary=force_binary)
 
 
 def sobel(probs):
@@ -42,11 +43,11 @@ def sobel(probs):
     return edge
 
 
-def sobel_edge_loss(y_true, y_pred, sample_weight, from_logits):
+def sobel_edge_loss(y_true, y_pred, sample_weight, from_logits, force_binary):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
-    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-    y_true, y_pred = to_1hot(y_true, y_pred, dtype=y_pred.dtype)
+    y_pred, from_logits = to_probs(y_pred, from_logits, force_binary=force_binary)
+    y_true, y_pred = to_1hot(y_true, y_pred, from_logits, dtype=y_pred.dtype)
 
     y_true_edge = sobel(y_true)
     y_true_edge = tf.stop_gradient(y_true_edge)

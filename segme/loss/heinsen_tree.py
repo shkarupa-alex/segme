@@ -26,9 +26,12 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, force_binary, l
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int64', rank=None, channel='sparse')
 
-    y_pred, from_logits = to_logits(y_pred, from_logits), True
+    y_pred, from_logits = to_logits(y_pred, from_logits)
 
     tree_classes = len(tree_paths)
+    if tree_classes < 2:
+        raise ValueError(
+            f'Number of classes must be greater then 1. Got {tree_classes}.')
     if y_pred.shape[-1] != tree_classes:
         raise ValueError(
             f'Number of classes in logits must match one in the tree. Got {y_pred.shape[-1]} vs {tree_classes}.')
@@ -52,30 +55,22 @@ def heinsen_tree_loss(y_true, y_pred, sample_weight, tree_paths, force_binary, l
     y_true_tree = tf.gather(tree_paths, y_true_tree)
 
     y_pred_tree = tf.reshape(y_pred, [-1, 1, tree_classes])
-    y_pred_tree = tf.where(valid_mask, y_pred_tree, -100.)
+    if label_smoothing:
+        if force_binary:
+            invalid_logit = np.log(-label_smoothing / (label_smoothing - 2))
+        else:
+            num_classes = y_pred_tree.shape[-1]
+            invalid_logit = np.log(np.sqrt(-label_smoothing / ((num_classes - 1) * (label_smoothing - 1) - 1)))
+    else:
+        invalid_logit = -100.
+    y_pred_tree = tf.where(valid_mask, y_pred_tree, invalid_logit)
 
     y_valid_tree = tf.not_equal(y_true_tree, -1)
     y_true_tree = y_true_tree[y_valid_tree]
     y_pred_tree = y_pred_tree[y_valid_tree]
 
-    if force_binary or label_smoothing:
-        y_true_tree_1h = tf.one_hot(y_true_tree, tree_classes, dtype=y_pred.dtype)
-        if label_smoothing:
-            num_classes = 2 if force_binary else y_pred_tree.shape[-1]
-            y_mask_tree = tf.ones_like(y_pred, dtype='bool')
-            y_mask_tree = tf.reshape(y_mask_tree, [-1, 1, tree_classes])
-            y_mask_tree = tf.where(valid_mask, y_mask_tree, False)
-            y_mask_tree = y_mask_tree[y_valid_tree]
-            y_true_tree_1h = tf.where(
-                y_mask_tree, y_true_tree_1h, (y_true_tree_1h - label_smoothing / num_classes) / (1. - label_smoothing))
-
-        loss = crossentropy(
-            y_true_tree_1h, y_pred_tree, None, from_logits=from_logits, force_binary=force_binary,
-            label_smoothing=label_smoothing)
-    else:
-        loss = crossentropy(
-            y_true_tree[..., None], y_pred_tree, None, from_logits=from_logits, force_binary=force_binary,
-            label_smoothing=label_smoothing)
+    loss = crossentropy(y_true_tree[..., None], y_pred_tree, None, from_logits=from_logits,
+                        label_smoothing=label_smoothing, force_binary=force_binary)
 
     if 'mean' == level_weighting:
         level_weight = tf.cast(y_valid_tree, loss.dtype)

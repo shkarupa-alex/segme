@@ -16,14 +16,14 @@ class RegionMutualInformationLoss(WeightedLossFunctionWrapper):
 
     def __init__(
             self, rmi_radius=3, pool_way='avgpool', pool_stride=4, from_logits=False, label_smoothing=0.,
-            reduction=Reduction.AUTO, name='region_mutual_information_loss'):
+            force_binary=False, reduction=Reduction.AUTO, name='region_mutual_information_loss'):
         super().__init__(
             region_mutual_information_loss, reduction=reduction, name=name, rmi_radius=rmi_radius, pool_way=pool_way,
-            pool_stride=pool_stride, from_logits=from_logits, label_smoothing=label_smoothing)
+            pool_stride=pool_stride, from_logits=from_logits, label_smoothing=label_smoothing, force_binary=force_binary)
 
 
 def region_mutual_information_loss(
-        y_true, y_pred, sample_weight, rmi_radius, pool_stride, pool_way, from_logits, label_smoothing):
+        y_true, y_pred, sample_weight, rmi_radius, pool_stride, pool_way, from_logits, label_smoothing, force_binary):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
     if not 1 <= rmi_radius <= 10:
@@ -31,7 +31,7 @@ def region_mutual_information_loss(
     if pool_stride > 1 and pool_way not in {'maxpool', 'avgpool', 'resize'}:
         raise ValueError('Unsupported RMI pooling way: {}'.format(pool_way))
 
-    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
+    y_pred, from_logits = to_probs(y_pred, from_logits, force_binary=force_binary)
 
     # Decouple sample_weight to batch items weight and erase invalid pixels
     if sample_weight is not None:
@@ -47,10 +47,10 @@ def region_mutual_information_loss(
         batch_weight = None
         valid_weight = None
 
-    y_true, y_pred = to_1hot(y_true, y_pred, dtype=y_pred.dtype)
+    y_true, y_pred = to_1hot(y_true, y_pred, from_logits, dtype=y_pred.dtype)
 
     if label_smoothing:
-        num_classes = 2 if force_sigmoid else y_true.shape[-1]
+        num_classes = 2 if force_binary else y_true.shape[-1]
         y_true = y_true * (1. - label_smoothing) + label_smoothing / num_classes
         if valid_weight:
             y_true *= valid_weight

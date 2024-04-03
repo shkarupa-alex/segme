@@ -19,8 +19,8 @@ class TestCrossEntropyLoss(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.zeros((3, 64, 64, 1), 'int32')
 
-        result = cross_entropy_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False, label_smoothing=0.)
+        result = cross_entropy_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True,
+                                    label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
@@ -29,8 +29,8 @@ class TestCrossEntropyLoss(test_combinations.TestCase):
         logits = 10 * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.ones((3, 64, 64, 1), 'int32')
 
-        result = cross_entropy_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False, label_smoothing=0.)
+        result = cross_entropy_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True,
+                                    label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
@@ -39,8 +39,8 @@ class TestCrossEntropyLoss(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.ones((3, 64, 64, 1), 'int32')
 
-        result = cross_entropy_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False, label_smoothing=0.)
+        result = cross_entropy_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True,
+                                    label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [10.] * 3, atol=6e-3)
@@ -49,8 +49,8 @@ class TestCrossEntropyLoss(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 64, 64, 1), 'float32')
         targets = tf.zeros((3, 64, 64, 1), 'int32')
 
-        result = cross_entropy_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False, label_smoothing=0.)
+        result = cross_entropy_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True,
+                                    label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [10.] * 3, atol=6e-3)

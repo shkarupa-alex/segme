@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tf_keras.src.testing_infra import test_combinations
 from segme.loss.common_loss import validate_input, to_logits, to_probs, to_1hot, weighted_loss, compute_gradient, \
-    mae, mse, crossentropy, iou
+    smooth_labels, mae, mse, crossentropy, iou
 
 
 @test_combinations.run_all_keras_modes
@@ -44,21 +44,24 @@ class TestUtils(test_combinations.TestCase):
         with self.assertRaisesRegex(ValueError, 'Unable to restore logits'):
             to_logits(tf.zeros((1, 2, 2, 1)), from_logits=False)
 
-        logits1 = to_logits(expected1, from_logits=True)
+        logits1, from_logits1 = to_logits(expected1, from_logits=True)
         logits1 = self.evaluate(logits1)
         self.assertAllClose(logits1, expected1, atol=1e-6)
+        self.assertTrue(from_logits1)
 
         probs1 = tf.nn.sigmoid(expected1)
         probs1._keras_logits = tf.constant(expected1)
-        logits1 = to_logits(probs1, from_logits=False)
+        logits1, from_logits1 = to_logits(probs1, from_logits=False)
         logits1 = self.evaluate(logits1)
         self.assertAllClose(logits1, expected1, atol=1e-6)
+        self.assertTrue(from_logits1)
 
         probs4 = tf.nn.sigmoid(expected4)
         probs4._keras_logits = tf.constant(expected4)
-        logits4 = to_logits(probs4, from_logits=False)
+        logits4, from_logits4 = to_logits(probs4, from_logits=False)
         logits4 = self.evaluate(logits4)
         self.assertAllClose(logits4, expected4, atol=1e-6)
+        self.assertTrue(from_logits4)
 
         with self.assertRaisesRegex(ValueError, 'does not represent logits'):
             probs1 = tf.zeros((1, 2, 2, 1))
@@ -85,18 +88,17 @@ class TestUtils(test_combinations.TestCase):
              [[3.4914178176388266, 4.551627675234152, 7.709902261544302, 3.3982255596983277],
               [0.9182162683255968, 7.0387004793287886, 2.1883984916630697, 1.3921544038795197]]]], 'float32')
 
-        probs1 = to_probs(logits1, from_logits=True, force_sigmoid=False)
+        probs1, from_logits1 = to_probs(logits1, from_logits=True, force_binary=False)
         expected1 = tf.nn.sigmoid(logits1)
         probs1, expected1 = self.evaluate([probs1, expected1])
         self.assertAllClose(probs1, expected1, atol=1e-6)
+        self.assertFalse(from_logits1)
 
-        probs4 = to_probs(logits4, from_logits=True, force_sigmoid=False)
+        probs4, from_logits4 = to_probs(logits4, from_logits=True, force_binary=False)
         expected4 = tf.nn.softmax(logits4)
         probs4, expected4 = self.evaluate([probs4, expected4])
         self.assertAllClose(probs4, expected4, atol=1e-6)
-
-        with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'does not represent probabilities'):
-            to_probs(logits1, from_logits=False, force_sigmoid=False)
+        self.assertFalse(from_logits4)
 
     def test_to_1hot(self):
         targets1 = tf.constant([
@@ -104,20 +106,17 @@ class TestUtils(test_combinations.TestCase):
             [[[0], [1], [1], [0]], [[1], [0], [0], [1]], [[0], [1], [1], [0]], [[1], [1], [1], [1]]]], 'int32')
         targets4 = tf.constant([[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], 'int32')
 
-        targets1h, _ = to_1hot(targets1, np.zeros((2, 4, 4, 1), 'float32'))
+        targets1h, _ = to_1hot(targets1, np.zeros((2, 4, 4, 1), 'float32'), False)
         expected1h = tf.concat([1 - targets1, targets1], axis=-1)
         targets1h, expected1h = self.evaluate([targets1h, expected1h])
         self.assertAllClose(targets1h, expected1h, atol=1e-6)
 
-        targets4h, _ = to_1hot(targets4, np.zeros((2, 4, 4, 4), 'float32'))
+        targets4h, _ = to_1hot(targets4, np.zeros((2, 4, 4, 4), 'float32'), False)
         expected4h = tf.constant([
             [[[0, 1, 0, 0], [0, 0, 0, 1]], [[0, 0, 0, 1], [0, 0, 0, 1]],
              [[0, 1, 0, 0], [0, 0, 1, 0]], [[0, 0, 1, 0], [0, 1, 0, 0]]]], 'int32')
         targets4h, expected4h = self.evaluate([targets4h, expected4h])
         self.assertAllClose(targets4h, expected4h, atol=4e-6)
-
-        with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'Condition x == y did not hold'):
-            to_1hot(targets1, np.ones((2, 4, 4, 1), 'float32') * 2.)
 
     def test_weighted_loss(self):
         loss = np.random.uniform(size=(2, 4, 5, 3))
@@ -152,6 +151,22 @@ class TestUtils(test_combinations.TestCase):
         grad_2min = compute_gradient(inputs, 2, 'min')
         grad_2min = self.evaluate(grad_2min)
         self.assertAllClose(grad_2min, expected_2min)
+
+    def test_smooth_labels(self):
+        targets_1, logits_1 = to_1hot(BINARY_TARGETS, BINARY_LOGITS, True)
+        targets_n, logits_n = to_1hot(MULTI_TARGETS, MULTI_LOGITS, True)
+
+        expected = np.where(targets_1 == 0, 0.05, 0.95)
+        result = smooth_labels(targets_1, logits_1, 0.1, False)
+        self.assertAllClose(expected, result)
+
+        expected = np.where(targets_n == 0, 0.025, 0.92499995)
+        result = smooth_labels(targets_n, logits_n, 0.1, False)
+        self.assertAllClose(expected, result)
+
+        expected = np.where(targets_n == 0, 0.05, 0.95)
+        result = smooth_labels(targets_n, logits_n, 0.1, True)
+        self.assertAllClose(expected, result)
 
 
 @test_combinations.run_all_keras_modes
@@ -222,7 +237,26 @@ class TestMAE(test_combinations.TestCase):
     def test_multi(self):
         result = mae(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.5163353])
+        self.assertAllClose(result, [0.313545])
+
+    def test_smooth(self):
+        result = mae(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True, regression=False,
+            label_smoothing=0.1, force_binary=False)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.357069, 0.390263])
+
+        result = mae(
+            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, regression=False,
+            label_smoothing=0.1, force_binary=False)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.305073])
+
+        result = mae(
+            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, regression=False,
+            label_smoothing=0.1, force_binary=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.48360923])
 
 
 @test_combinations.run_all_keras_modes
@@ -293,7 +327,26 @@ class TestMSE(test_combinations.TestCase):
     def test_multi(self):
         result = mse(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, regression=False)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.42551923])
+        self.assertAllClose(result, [0.269082])
+
+    def test_smooth(self):
+        result = mse(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True, regression=False,
+            label_smoothing=0.1, force_binary=False)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.266636, 0.312432])
+
+        result = mse(
+            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, regression=False,
+            label_smoothing=0.1, force_binary=False)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.239602])
+
+        result = mse(
+            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, regression=False,
+            label_smoothing=0.1, force_binary=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.376386])
 
 
 @test_combinations.run_all_keras_modes
@@ -302,8 +355,8 @@ class TestCrossentropy(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = crossentropy(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False, label_smoothing=0.)
+        result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.,
+                              force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
@@ -311,8 +364,8 @@ class TestCrossentropy(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = crossentropy(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False, label_smoothing=0.)
+        result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.,
+                              force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [0.] * 3, atol=6e-3)
 
@@ -320,8 +373,8 @@ class TestCrossentropy(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = crossentropy(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False, label_smoothing=0.)
+        result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.,
+                              force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [10.] * 3, atol=6e-3)
 
@@ -329,93 +382,81 @@ class TestCrossentropy(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = crossentropy(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False, label_smoothing=0.)
+        result = crossentropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.,
+                              force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [10.] * 3, atol=6e-3)
 
     def test_value(self):
-        result = crossentropy(
-            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True, force_binary=False,
-            label_smoothing=0.)
+        result = crossentropy(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True,
+                              label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [1.2658163, 1.8140206])
 
     def test_value_smooth(self):
-        result = crossentropy(
-            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True, force_binary=False,
-            label_smoothing=0.05)
+        result = crossentropy(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True,
+                              label_smoothing=0.05, force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [1.3035736, 1.8281653])
 
     def test_weight(self):
-        result = crossentropy(
-            y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None, force_binary=False,
-            from_logits=True, label_smoothing=0.)
+        result = crossentropy(y_true=BINARY_TARGETS[:, :, :2], y_pred=BINARY_LOGITS[:, :, :2], sample_weight=None,
+                              from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [1.6474432, 0.50508237])
 
-        result = crossentropy(
-            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS, from_logits=True,
-            force_binary=False, label_smoothing=0.)
+        result = crossentropy(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS,
+                              from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [1.6474432, 0.50508237])
 
-        result = crossentropy(
-            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2, from_logits=True,
-            force_binary=False, label_smoothing=0.)
+        result = crossentropy(y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=BINARY_WEIGHTS * 2,
+                              from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [3.2948864, 1.0101647])
 
     def test_multi(self):
-        result = crossentropy(
-            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, force_binary=False,
-            label_smoothing=0.)
+        result = crossentropy(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True,
+                              label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [5.34982])
 
     def test_multi_binary(self):
-        result = crossentropy(
-            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, force_binary=True,
-            label_smoothing=0.)
+        result = crossentropy(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True,
+                              label_smoothing=0., force_binary=True)
         result = self.evaluate(result)
         self.assertAllClose(result, [7.669404])
 
     def test_multi_smooth(self):
-        result = crossentropy(
-            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, force_binary=False,
-            label_smoothing=0.05)
+        result = crossentropy(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True,
+                              label_smoothing=0.05, force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [5.34137])
 
     def test_multi_binary_smooth(self):
-        result = crossentropy(
-            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, force_binary=True,
-            label_smoothing=0.05)
+        result = crossentropy(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True,
+                              label_smoothing=0.05, force_binary=True)
         result = self.evaluate(result)
         self.assertAllClose(result, [7.6590743])
 
     def test_multi_1hot(self):
         targets = tf.one_hot(tf.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1])
-        result = crossentropy(
-            y_true=targets, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, force_binary=False,
-            label_smoothing=0.)
+        result = crossentropy(y_true=targets, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True,
+                              label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [5.34982])
 
     def test_multi_1hot_binary(self):
         targets = tf.one_hot(tf.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1])
-        result = crossentropy(
-            y_true=targets, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, force_binary=True,
-            label_smoothing=0.)
+        result = crossentropy(y_true=targets, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True,
+                              label_smoothing=0., force_binary=True)
         result = self.evaluate(result)
         self.assertAllClose(result, [7.669404])
 
     def test_multi_1hot_smooth(self):
         targets = tf.one_hot(tf.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1])
-        result = crossentropy(
-            y_true=targets, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, force_binary=False,
-            label_smoothing=0.05)
+        result = crossentropy(y_true=targets, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True,
+                              label_smoothing=0.05, force_binary=False)
         result = self.evaluate(result)
         self.assertAllClose(result, [5.34137])
 
@@ -476,7 +517,26 @@ class TestIOU(test_combinations.TestCase):
     def test_multi(self):
         result = iou(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.68037534])
+        self.assertAllClose(result, [0.595264])
+
+    def test_smooth(self):
+        result = iou(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True, label_smoothing=0.1,
+            force_binary=False)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.512235, 0.565407])
+
+        result = iou(
+            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, label_smoothing=0.1,
+            force_binary=False)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.595264])
+
+        result = iou(
+            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, label_smoothing=0.1,
+            force_binary=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.680375])
 
 
 @test_combinations.run_all_keras_modes
@@ -538,7 +598,26 @@ class TestDice(test_combinations.TestCase):
     def test_multi(self):
         result = iou(y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, dice=True)
         result = self.evaluate(result)
-        self.assertAllClose(result, [0.6068242])
+        self.assertAllClose(result, [0.543164])
+
+    def test_smooth(self):
+        result = iou(
+            y_true=BINARY_TARGETS, y_pred=BINARY_LOGITS, sample_weight=None, from_logits=True, dice=True,
+            label_smoothing=0.1, force_binary=False)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.370317, 0.431792])
+
+        result = iou(
+            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, dice=True,
+            label_smoothing=0.1, force_binary=False)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.543164])
+
+        result = iou(
+            y_true=MULTI_TARGETS, y_pred=MULTI_LOGITS, sample_weight=None, from_logits=True, dice=True,
+            label_smoothing=0.1, force_binary=True)
+        result = self.evaluate(result)
+        self.assertAllClose(result, [0.606824])
 
 
 BINARY_LOGITS = tf.constant([

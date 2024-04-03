@@ -87,7 +87,7 @@ class TestMeanSquaredClassificationError(test_combinations.TestCase):
         loss = MeanSquaredClassificationError(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 0.42551875, places=6)
+        self.assertAlmostEqual(result, 0.2690816, places=6)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

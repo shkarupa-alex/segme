@@ -19,7 +19,8 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = laplace_edge_cross_entropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = laplace_edge_cross_entropy(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -28,7 +29,8 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = laplace_edge_cross_entropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = laplace_edge_cross_entropy(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -37,7 +39,8 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = laplace_edge_cross_entropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = laplace_edge_cross_entropy(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -46,7 +49,8 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = laplace_edge_cross_entropy(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = laplace_edge_cross_entropy(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -73,7 +77,7 @@ class TestLaplaceEdgeCrossEntropy(test_combinations.TestCase):
     def test_multi(self):
         loss = LaplaceEdgeCrossEntropy(from_logits=True)
         result = self.evaluate(loss(MULTI_TARGETS, MULTI_LOGITS))
-        self.assertAlmostEqual(result, 3.2714694, places=4)
+        self.assertAlmostEqual(result, 3.4413445, places=4)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

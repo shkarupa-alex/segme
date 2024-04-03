@@ -19,7 +19,8 @@ class TestSobelEdgeLoss(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.zeros((3, 16, 16, 1), 'int32')
 
-        result = sobel_edge_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = sobel_edge_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -28,7 +29,8 @@ class TestSobelEdgeLoss(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 16, 16, 1), 'float32')
         targets = tf.ones((3, 16, 16, 1), 'int32')
 
-        result = sobel_edge_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = sobel_edge_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -37,7 +39,8 @@ class TestSobelEdgeLoss(test_combinations.TestCase):
         logits = -10. * tf.ones((3, 6, 6, 1), 'float32')
         targets = tf.ones((3, 6, 6, 1), 'int32')
 
-        result = sobel_edge_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = sobel_edge_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -46,7 +49,8 @@ class TestSobelEdgeLoss(test_combinations.TestCase):
         logits = 10. * tf.ones((3, 6, 6, 1), 'float32')
         targets = tf.zeros((3, 6, 6, 1), 'int32')
 
-        result = sobel_edge_loss(y_true=targets, y_pred=logits, sample_weight=None, from_logits=True)
+        result = sobel_edge_loss(
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -71,7 +75,7 @@ class TestSobelEdgeLoss(test_combinations.TestCase):
     def test_multi(self):
         loss = SobelEdgeLoss(from_logits=True)
         result = self.evaluate(loss(MULTI_TARGETS, MULTI_LOGITS))
-        self.assertAlmostEqual(result, 0.14044482)
+        self.assertAlmostEqual(result, 0.14728217)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

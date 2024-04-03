@@ -106,23 +106,23 @@ class TestHeinsenTreeLoss(test_combinations.TestCase):
         loss = HeinsenTreeLoss(TREE_PATHS, force_binary=False, label_smoothing=1e-5, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 11.979132, places=5)
+        self.assertAlmostEqual(result, 11.980194, places=5)
 
         loss = HeinsenTreeLoss(TREE_PATHS, force_binary=False, label_smoothing=0.1, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 11.164401, places=5)
+        self.assertAlmostEqual(result, 12.815364, places=5)
 
     def test_value_binary_smooth(self):
         loss = HeinsenTreeLoss(TREE_PATHS, force_binary=True, label_smoothing=1e-5, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 19.175018, places=5)
+        self.assertAlmostEqual(result, 19.16037, places=5)
 
         loss = HeinsenTreeLoss(TREE_PATHS, force_binary=True, label_smoothing=0.1, from_logits=True)
         result = self.evaluate(loss(TREE_TARGETS, TREE_LOGITS))
 
-        self.assertAlmostEqual(result, 19.87182, places=5)
+        self.assertAlmostEqual(result, 26.571712, places=5)
 
     def test_value_level_mean(self):
         loss = HeinsenTreeLoss(TREE_PATHS, level_weighting='mean', from_logits=True)

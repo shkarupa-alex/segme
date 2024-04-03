@@ -20,7 +20,7 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         targets = tf.zeros((3, 64, 64, 1), 'int32')
 
         result = adaptive_pixel_intensity_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.07852604] * 3, atol=6e-3)
@@ -30,7 +30,7 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         targets = tf.ones((3, 64, 64, 1), 'int32')
 
         result = adaptive_pixel_intensity_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.07852604] * 3, atol=6e-3)
@@ -40,7 +40,7 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         targets = tf.ones((3, 64, 64, 1), 'int32')
 
         result = adaptive_pixel_intensity_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [9.666324] * 3, atol=6e-3)
@@ -50,7 +50,7 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         targets = tf.zeros((3, 64, 64, 1), 'int32')
 
         result = adaptive_pixel_intensity_loss(
-            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0.)
+            y_true=targets, y_pred=logits, sample_weight=None, from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [9.666324] * 3, atol=6e-3)
@@ -87,7 +87,7 @@ class TestAdaptivePixelIntensityLoss(test_combinations.TestCase):
         loss = AdaptivePixelIntensityLoss(from_logits=True)
         result = self.evaluate(loss(targets, logits))
 
-        self.assertAlmostEqual(result, 5.6857705, places=5)
+        self.assertAlmostEqual(result, 5.394371, places=5)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')

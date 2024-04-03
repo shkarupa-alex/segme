@@ -21,7 +21,7 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
 
         result = calibrated_focal_cross_entropy(
             y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0,
-            from_logits=True)
+            from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -32,7 +32,7 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
 
         result = calibrated_focal_cross_entropy(
             y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0,
-            from_logits=True)
+            from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [0.] * 3, atol=1e-4)
@@ -43,7 +43,7 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
 
         result = calibrated_focal_cross_entropy(
             y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0,
-            from_logits=True)
+            from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [9.997775] * 3, atol=1e-4)
@@ -54,7 +54,7 @@ class TestCalibratedFocalCrossEntropy(test_combinations.TestCase):
 
         result = calibrated_focal_cross_entropy(
             y_true=targets, y_pred=logits, sample_weight=None, prob0=0.2, prob1=0.5, gamma0=5.0, gamma1=3.0,
-            from_logits=True)
+            from_logits=True, label_smoothing=0., force_binary=False)
         result = self.evaluate(result)
 
         self.assertAllClose(result, [9.997775] * 3, atol=1e-4)

@@ -14,14 +14,14 @@ class AdaptivePixelIntensityLoss(WeightedLossFunctionWrapper):
     """
 
     def __init__(
-            self, from_logits=False, label_smoothing=0., reduction=Reduction.AUTO,
+            self, from_logits=False, label_smoothing=0., force_binary=False, reduction=Reduction.AUTO,
             name='adaptive_pixel_intensity_loss'):
         super().__init__(
             adaptive_pixel_intensity_loss, reduction=reduction, name=name, from_logits=from_logits,
-            label_smoothing=label_smoothing)
+            label_smoothing=label_smoothing, force_binary=force_binary)
 
 
-def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits, label_smoothing):
+def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits, label_smoothing, force_binary):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
 
@@ -45,11 +45,13 @@ def adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, from_logits, la
     omega_mean = tf.stop_gradient(omega_mean)
 
     ace = crossentropy(
-        y_true, y_pred, sample_weight, from_logits, False, label_smoothing) / (omega_mean + 0.5)
-    aiou = iou(y_true, y_pred, sample_weight, from_logits=from_logits, label_smoothing=label_smoothing)
+        y_true, y_pred, sample_weight, from_logits, label_smoothing=label_smoothing,
+        force_binary=force_binary) / (omega_mean + 0.5)
+    aiou = iou(
+        y_true, y_pred, sample_weight, from_logits, label_smoothing=label_smoothing, force_binary=force_binary)
     amae = mae(
-        y_true, y_pred, sample_weight, from_logits=from_logits, regression=False, label_smoothing=label_smoothing) / (
-                   omega_mean - 0.5)  # -1 will produce NaNs
+        y_true, y_pred, sample_weight, from_logits, regression=False, label_smoothing=label_smoothing,
+        force_binary=force_binary) / (omega_mean - 0.5)  # -1 will produce NaNs
 
     loss = ace + aiou + amae
 

@@ -5,8 +5,8 @@ from segme.loss.region_mutual import region_mutual_information_loss
 
 
 def ape_rmi(y_true, y_pred, sample_weight):
-    return (adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, False, 0.) +
-            region_mutual_information_loss(y_true, y_pred, sample_weight, 3, 4, 'avgpool', False, 0.))
+    return (adaptive_pixel_intensity_loss(y_true, y_pred, sample_weight, False, 0., False) +
+            region_mutual_information_loss(y_true, y_pred, sample_weight, 3, 4, 'avgpool', False, 0., False))
 
 
 def scaled_mae(y_true, y_pred, sample_weight, scale):

@@ -62,40 +62,35 @@ def to_logits(y_pred, from_logits):
     if op_type(y_pred) in {'Sigmoid', 'Softmax'} and 1 == len(y_pred.op.inputs):
         logits = y_pred.op.inputs[0]
 
+    if from_logits and logits is None:
+        return y_pred, True
+
     if from_logits and logits is not None:
         raise ValueError('Received `from_logits=True`, but the `y_pred` argument was produced by '
                          'a sigmoid/softmax activation and thus does not represent logits.')
 
-    if from_logits and logits is None:
-        return y_pred
-
     if logits is None:
         raise ValueError('Unable to restore logits.')
 
-    return tf.cast(logits, y_pred.dtype)
+    return tf.cast(logits, y_pred.dtype), True
 
 
-def to_probs(y_pred, from_logits, force_sigmoid):
-    if force_sigmoid and 'Sigmoid' == op_type(y_pred) and 1 == len(y_pred.op.inputs):
-        return y_pred
+def to_probs(y_pred, from_logits, force_binary):
+    if force_binary and 'Sigmoid' == op_type(y_pred) and 1 == len(y_pred.op.inputs):
+        return y_pred, False
 
-    if force_sigmoid:
-        y_pred = to_logits(y_pred, from_logits)
+    if force_binary:
+        y_pred, from_logits = to_logits(y_pred, from_logits)
         y_probs = tf.nn.sigmoid(y_pred)
         y_probs._keras_logits = y_pred
 
-        return y_probs
+        return y_probs, False
 
     if not from_logits:
-        minmax_range = (tf.reduce_min(y_pred) >= 0.) & (tf.reduce_max(y_pred) <= 1.)
-        minmax_assert = tf.assert_equal(
-            minmax_range, True, 'Received `from_logits=False`, but the `y_pred` argument has values outside '
-                                '[0; 1] range and thus does not represent probabilities.')
-        with tf.control_dependencies([minmax_assert]):
-            y_probs = tf.identity(y_pred)
-            y_probs._keras_logits = y_pred
+        y_probs = tf.identity(y_pred)
+        y_probs._keras_logits = y_pred
 
-            return y_probs
+        return y_probs, False
 
     if 1 == y_pred.shape[-1]:
         y_probs = tf.nn.sigmoid(y_pred)
@@ -103,17 +98,17 @@ def to_probs(y_pred, from_logits, force_sigmoid):
         y_probs = tf.nn.softmax(y_pred)
     y_probs._keras_logits = y_pred
 
-    return y_probs
+    return y_probs, False
 
 
-def to_1hot(y_true, y_pred, dtype=None):
+def to_1hot(y_true, y_pred, from_logits, dtype=None):
     if 1 != y_true.shape[-1]:
         raise ValueError('Labels must be sparse-encoded.')
 
     if 1 == y_pred.shape[-1]:
-        assert_min = tf.assert_equal(tf.reduce_min(y_pred) >= 0., True)
-        assert_max = tf.assert_equal(tf.reduce_max(y_pred) <= 1., True)
-        with tf.control_dependencies([assert_min, assert_max]):
+        if from_logits:
+            y_pred = tf.concat([-y_pred, y_pred], axis=-1)
+        else:
             y_pred = tf.concat([1. - y_pred, y_pred], axis=-1)
 
     y_true = tf.one_hot(tf.squeeze(y_true, -1), y_pred.shape[-1], dtype=dtype or y_true.dtype)
@@ -176,73 +171,85 @@ def compute_gradient(inputs, axis, reduction):
     return grad
 
 
-def mae(y_true, y_pred, sample_weight, from_logits, regression, label_smoothing=0.):
+def smooth_labels(y_true, y_pred, label_smoothing, force_binary):
+    if not label_smoothing:
+        return y_true
+
+    if 1 == y_true.shape[-1] and 1 != y_pred.shape[-1]:
+        raise ValueError('Labels and predictions channel sizes must be equal.')
+
+    y_true = tf.cast(y_true, y_pred.dtype)
+
+    num_classes = 2 if force_binary else max(2, y_pred.shape[-1])
+    y_true = y_true * (1. - label_smoothing) + label_smoothing / num_classes
+
+    return y_true
+
+
+def mae(y_true, y_pred, sample_weight, from_logits, regression, label_smoothing=0., force_binary=False):
     if regression:
         if from_logits:
             raise ValueError('Regression MAE does not support "from_logits=True"')
         if label_smoothing:
+            raise ValueError('Regression MAE does not support "label_smoothing!=0"')
+        if force_binary:
             raise ValueError('Regression MAE does not support "label_smoothing!=0"')
         y_true, y_pred, sample_weight = validate_input(
             y_true, y_pred, sample_weight, dtype=None, rank=None, channel='same')
     else:
         y_true, y_pred, sample_weight = validate_input(
             y_true, y_pred, sample_weight, dtype='int64', rank=None, channel='sparse')
-        y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-        y_true, y_pred = to_1hot(y_true, y_pred, dtype=y_pred.dtype)
+        y_pred, from_logits = to_probs(y_pred, from_logits, force_binary=force_binary)
+        y_true, y_pred = to_1hot(y_true, y_pred, from_logits, dtype=y_pred.dtype)
 
-        if label_smoothing:
-            y_true = y_true * (1. - label_smoothing) + label_smoothing / y_true.shape[-1]
+        y_true = smooth_labels(y_true, y_pred, label_smoothing, force_binary)
 
     loss = tf.abs(y_pred - y_true)
 
     return weighted_loss(loss, sample_weight)
 
 
-def mse(y_true, y_pred, sample_weight, from_logits, regression, label_smoothing=0.):
+def mse(y_true, y_pred, sample_weight, from_logits, regression, label_smoothing=0., force_binary=False):
     if regression:
         if from_logits:
             raise ValueError('Regression MSE does not support "from_logits=True"')
         if label_smoothing:
-            raise ValueError('Regression MSE does not support "label_smoothing!=0"')
+            raise ValueError('Regression MAE does not support "label_smoothing!=0"')
+        if force_binary:
+            raise ValueError('Regression MAE does not support "label_smoothing!=0"')
         y_true, y_pred, sample_weight = validate_input(
             y_true, y_pred, sample_weight, dtype=None, rank=None, channel='same')
     else:
         y_true, y_pred, sample_weight = validate_input(
             y_true, y_pred, sample_weight, dtype='int64', rank=None, channel='sparse')
-        y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-        y_true, y_pred = to_1hot(y_true, y_pred, dtype=y_pred.dtype)
+        y_pred, from_logits = to_probs(y_pred, from_logits, force_binary=force_binary)
+        y_true, y_pred = to_1hot(y_true, y_pred, from_logits, dtype=y_pred.dtype)
 
-        if label_smoothing:
-            y_true = y_true * (1. - label_smoothing) + label_smoothing / y_true.shape[-1]
+        y_true = smooth_labels(y_true, y_pred, label_smoothing, force_binary)
 
     loss = tf.math.squared_difference(y_pred, y_true)
 
     return weighted_loss(loss, sample_weight)
 
 
-def crossentropy(y_true, y_pred, sample_weight, from_logits, force_binary=False, label_smoothing=0.):
+def crossentropy(y_true, y_pred, sample_weight, from_logits, label_smoothing=0., force_binary=False):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int64', rank=None, channel=None)
-    y_pred, from_logits = to_logits(y_pred, from_logits), True
+    y_pred, from_logits = to_logits(y_pred, from_logits)
 
     if 1 == y_true.shape[-1] == y_pred.shape[-1]:
+        y_true = smooth_labels(y_true, y_pred, label_smoothing, force_binary)
         y_true = tf.cast(y_true, y_pred.dtype)
-
-        if label_smoothing:
-            y_true = y_true * (1. - label_smoothing) + label_smoothing / 2.
 
         loss = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
     elif 1 == y_true.shape[-1] and 0. == label_smoothing and not force_binary:
         loss = backend.sparse_categorical_crossentropy(y_true, y_pred, from_logits=from_logits)[..., None]
     else:
         if 1 == y_true.shape[-1]:
-            y_true, y_pred = to_1hot(y_true, y_pred, dtype=y_pred.dtype)
+            y_true, y_pred = to_1hot(y_true, y_pred, from_logits, dtype=y_pred.dtype)
 
+        y_true = smooth_labels(y_true, y_pred, label_smoothing, force_binary)
         y_true = tf.cast(y_true, y_pred.dtype)
-
-        if label_smoothing:
-            num_classes = 2 if force_binary else y_true.shape[-1]
-            y_true = y_true * (1. - label_smoothing) + label_smoothing / num_classes
 
         if force_binary:
             loss = backend.binary_crossentropy(y_true, y_pred, from_logits=from_logits)
@@ -253,14 +260,13 @@ def crossentropy(y_true, y_pred, sample_weight, from_logits, force_binary=False,
     return weighted_loss(loss, sample_weight)
 
 
-def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False, label_smoothing=0.):
+def iou(y_true, y_pred, sample_weight, from_logits, smooth=1., dice=False, label_smoothing=0., force_binary=False):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype='int64', rank=4, channel='sparse')
-    y_pred, from_logits = to_probs(y_pred, from_logits, force_sigmoid=True), False
-    y_true_1h, y_pred_1h = to_1hot(y_true, y_pred, dtype=y_pred.dtype)
+    y_pred, from_logits = to_probs(y_pred, from_logits, force_binary=force_binary)
+    y_true_1h, y_pred_1h = to_1hot(y_true, y_pred, from_logits, dtype=y_pred.dtype)
 
-    if label_smoothing:
-        y_true_1h = y_true_1h * (1. - label_smoothing) + label_smoothing / y_true_1h.shape[-1]
+    y_true = smooth_labels(y_true_1h, y_pred_1h, label_smoothing, force_binary)
 
     y_and = y_pred_1h * y_true_1h
     y_or = y_pred_1h + y_true_1h

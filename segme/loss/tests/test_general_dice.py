@@ -73,7 +73,7 @@ class TestGeneralizedDiceLoss(test_combinations.TestCase):
         loss = GeneralizedDiceLoss(from_logits=True)
         result = self.evaluate(loss(MULTI_TARGETS, MULTI_LOGITS))
 
-        self.assertAlmostEqual(result, 0.6770502)
+        self.assertAlmostEqual(result, 0.6607753)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype('float32')
