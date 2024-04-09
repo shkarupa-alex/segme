@@ -189,6 +189,8 @@ def modify_boundary(image, regional_sample_rate=0.1, sample_rate=0.1, move_rate=
     # if np.random.uniform(0., 1., None) > .5:  # extension by Shkarupa Alex
     #     image = smooth_mask(image)
 
+    image = (image > 127).astype('uint8') * 255
+
     return image
 
 
