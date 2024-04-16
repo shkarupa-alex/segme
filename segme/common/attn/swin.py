@@ -127,15 +127,21 @@ class SwinAttention(layers.Layer):
         k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
 
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
-        attn += self.attn_mask(pad_size, pad_val, apply_shift, shift_size)
+        attn += self.attn_mask(attn, pad_size, pad_val, apply_shift, shift_size)
         attn = tf.nn.softmax(attn)
 
         outputs = tf.matmul(attn, v)
 
         return outputs
 
-    def attn_mask(self, pad_size, pad_val, apply_shift, shift_size):
+    def attn_mask(self, attention, pad_size, pad_val, apply_shift, shift_size):
         mask = self.rel_bias(None)
+
+        # TODO: Detected at node gradient_tape/.../StridedSliceGrad ...
+        #  shape of dy was [1,24,4,576,576] instead of [1,1,4,576,576]
+        # TODO: only in training?
+        windows = tf.shape(attention)[1]
+        mask = tf.repeat(mask, windows, axis=1)
 
         mask = smart_cond(
             apply_shift,
