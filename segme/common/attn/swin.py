@@ -137,18 +137,15 @@ class SwinAttention(layers.Layer):
     def attn_mask(self, attention, pad_size, pad_val, apply_shift, shift_size):
         mask = self.rel_bias(None)
 
-        # TODO: Detected at node gradient_tape/.../StridedSliceGrad ...
-        #  shape of dy was [1,24,4,576,576] instead of [1,1,4,576,576]
-        # TODO: only in training?
         windows = tf.shape(attention)[1]
-        mask = tf.repeat(mask, windows, axis=1)
+        mask_ = tf.repeat(mask, windows, axis=1)
 
         mask = smart_cond(
             apply_shift,
-            lambda: mask + self.shift_mask(pad_size, pad_val, shift_size),
+            lambda: mask_ + self.shift_mask(pad_size, pad_val, shift_size),
             lambda: smart_cond(
                 sum(pad_val) > 0,
-                lambda: mask + self.pad_mask(pad_size, pad_val),
+                lambda: mask_ + self.pad_mask(pad_size, pad_val),
                 lambda: tf.identity(mask)))
 
         return mask

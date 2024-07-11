@@ -8,6 +8,8 @@ from segme.common.shape import get_shape
 from segme.policy.registry import LayerRegistry
 
 NORMALIZATIONS = LayerRegistry()
+NORMALIZATIONS.register('gn321em5')({'class_name': 'SegMe>Policy>Normalization>GroupNorm', 'config': {
+    'groups': 32, 'epsilon': 1.001e-5}})
 NORMALIZATIONS.register('ln1em5')({'class_name': 'SegMe>Policy>Normalization>LayerNorm', 'config': {
     'epsilon': 1.001e-5}})
 NORMALIZATIONS.register('brn')({'class_name': 'SegMe>Policy>Normalization>BatchNorm', 'config': {

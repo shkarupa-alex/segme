@@ -50,7 +50,7 @@ def with_divisible_pad(op, inputs, dividers, mode='CONSTANT', constant_values=0,
         else:
             outputs = inputs
 
-        if static_size:
+        if static_size and with_pad:
             padded_shape = (inputs.shape[0], inputs_height + h_pad, inputs_width + w_pad, inputs_channel)
             outputs.set_shape(padded_shape)
 

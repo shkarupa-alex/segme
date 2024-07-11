@@ -9,6 +9,7 @@ ACTIVATIONS.register('relu')(layers.ReLU)
 ACTIVATIONS.register('leakyrelu')(layers.LeakyReLU)
 ACTIVATIONS.register('gelu')({'class_name': 'Activation', 'config': {'activation': 'gelu'}})
 ACTIVATIONS.register('selu')({'class_name': 'Activation', 'config': {'activation': 'selu'}})
+ACTIVATIONS.register('silu')({'class_name': 'Activation', 'config': {'activation': 'silu'}})
 
 
 @ACTIVATIONS.register('tlu')

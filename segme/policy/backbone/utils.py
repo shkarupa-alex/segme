@@ -44,7 +44,7 @@ def get_layer(model, name_idx):
 
 
 def wrap_bone(model, prepr, init, channels, end_points, name):
-    input_image = layers.Input(name='image', shape=(None, None, channels))
+    input_image = layers.Input(name='image', shape=(None, None, channels), dtype='uint8')
 
     if prepr is None:
         input_prep = input_image
