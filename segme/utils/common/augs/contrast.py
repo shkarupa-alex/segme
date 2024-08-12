@@ -1,20 +1,29 @@
 import tensorflow as tf
-from segme.utils.common.augs.common import apply, convert, validate
+
+from segme.utils.common.augs.common import apply
+from segme.utils.common.augs.common import convert
+from segme.utils.common.augs.common import validate
 
 
 def contrast(image, masks, weight, prob, factor, name=None):
-    with tf.name_scope(name or 'contrast'):
+    with tf.name_scope(name or "contrast"):
         return apply(
-            image, masks, weight, prob,
-            lambda x: _contrast(x, factor), tf.identity, tf.identity)
+            image,
+            masks,
+            weight,
+            prob,
+            lambda x: _contrast(x, factor),
+            tf.identity,
+            tf.identity,
+        )
 
 
 def _contrast(image, factor, name=None):
-    with tf.name_scope(name or 'contrast_'):
+    with tf.name_scope(name or "contrast_"):
         image, _, _ = validate(image, None, None)
 
         dtype = image.dtype
-        image = convert(image, 'float32')
+        image = convert(image, "float32")
 
         image = tf.image.adjust_contrast(image, factor)
 

@@ -1,17 +1,26 @@
 import tensorflow as tf
+
 from segme.common.shape import get_shape
-from segme.utils.common.augs.common import apply, convert, validate
+from segme.utils.common.augs.common import apply
+from segme.utils.common.augs.common import convert
+from segme.utils.common.augs.common import validate
 
 
 def brightness(image, masks, weight, prob, factor, name=None):
-    with tf.name_scope(name or 'brightness'):
+    with tf.name_scope(name or "brightness"):
         return apply(
-            image, masks, weight, prob,
-            lambda x: _brightness(x, factor), tf.identity, tf.identity)
+            image,
+            masks,
+            weight,
+            prob,
+            lambda x: _brightness(x, factor),
+            tf.identity,
+            tf.identity,
+        )
 
 
 def _brightness(image, factor, name=None):
-    with tf.name_scope(name or 'brightness_'):
+    with tf.name_scope(name or "brightness_"):
         image, _, _ = validate(image, None, None)
         factor = tf.convert_to_tensor(factor)
 
@@ -20,7 +29,7 @@ def _brightness(image, factor, name=None):
             factor = factor[:batch]
 
         dtype = image.dtype
-        image = convert(image, 'float32')
+        image = convert(image, "float32")
 
         image = tf.image.adjust_brightness(image, factor)
 

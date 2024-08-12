@@ -1,18 +1,28 @@
 import numpy as np
 import tensorflow as tf
+
 from segme.common.shape import get_shape
-from segme.utils.common.augs.common import apply, blend, convert, validate
+from segme.utils.common.augs.common import apply
+from segme.utils.common.augs.common import blend
+from segme.utils.common.augs.common import convert
+from segme.utils.common.augs.common import validate
 
 
 def sharpness(image, masks, weight, prob, factor, name=None):
-    with tf.name_scope(name or 'sharpness'):
+    with tf.name_scope(name or "sharpness"):
         return apply(
-            image, masks, weight, prob,
-            lambda x: _sharpness(x, factor), tf.identity, tf.identity)
+            image,
+            masks,
+            weight,
+            prob,
+            lambda x: _sharpness(x, factor),
+            tf.identity,
+            tf.identity,
+        )
 
 
 def _sharpness(image, factor, name=None):
-    with tf.name_scope(name or 'sharpness_'):
+    with tf.name_scope(name or "sharpness_"):
         image, _, _ = validate(image, None, None)
         factor = tf.convert_to_tensor(factor)
 
@@ -21,16 +31,16 @@ def _sharpness(image, factor, name=None):
             factor = factor[:batch]
 
         dtype = image.dtype
-        image = convert(image, 'float32')
+        image = convert(image, "float32")
 
-        kernel = np.array([[1, 1, 1], [1, 5, 1], [1, 1, 1]], 'float32') / 13.
+        kernel = np.array([[1, 1, 1], [1, 5, 1], [1, 1, 1]], "float32") / 13.0
         kernel = np.tile(kernel[..., None, None], [1, 1, 3, 1])
-        kernel = tf.cast(kernel, 'float32')
+        kernel = tf.cast(kernel, "float32")
 
-        image_ = tf.nn.depthwise_conv2d(image, kernel, [1] * 4, padding='VALID')
-        image_ = tf.clip_by_value(image_, 0., 1.)
+        image_ = tf.nn.depthwise_conv2d(image, kernel, [1] * 4, padding="VALID")
+        image_ = tf.clip_by_value(image_, 0.0, 1.0)
 
-        mask = tf.ones_like(image_, dtype='bool')
+        mask = tf.ones_like(image_, dtype="bool")
         mask = tf.pad(mask, [[0, 0], [1, 1], [1, 1], [0, 0]])
 
         image_ = tf.pad(image_, [[0, 0], [1, 1], [1, 1], [0, 0]])

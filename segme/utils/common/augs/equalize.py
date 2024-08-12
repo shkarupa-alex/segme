@@ -1,21 +1,24 @@
 import tensorflow as tf
-from segme.utils.common.augs.common import apply, convert, validate
+
 from segme.common.shape import get_shape
+from segme.utils.common.augs.common import apply
+from segme.utils.common.augs.common import convert
+from segme.utils.common.augs.common import validate
 
 
 def equalize(image, masks, weight, prob, name=None):
-    with tf.name_scope(name or 'equalize'):
+    with tf.name_scope(name or "equalize"):
         return apply(
-            image, masks, weight, prob,
-            _equalize, tf.identity, tf.identity)
+            image, masks, weight, prob, _equalize, tf.identity, tf.identity
+        )
 
 
 def _equalize(image, name=None):
-    with tf.name_scope(name or 'equalize_'):
+    with tf.name_scope(name or "equalize_"):
         image, _, _ = validate(image, None, None)
 
         dtype = image.dtype
-        image = convert(image, 'uint8', saturate=True)
+        image = convert(image, "uint8", saturate=True)
 
         def _equalize_2d(image):
             histo = tf.histogram_fixed_width(image, [0, 255], nbins=256)
@@ -35,13 +38,13 @@ def _equalize(image, name=None):
             return image
 
         (batch, height, width, channel), _ = get_shape(image)
-        image_ = tf.cast(image, 'int32')
+        image_ = tf.cast(image, "int32")
         image_ = tf.transpose(image_, [0, 3, 1, 2])
         image_ = tf.reshape(image_, [batch * channel, height, width])
         image_ = tf.map_fn(_equalize_2d, image_)
         image_ = tf.reshape(image_, [batch, channel, height, width])
         image_ = tf.transpose(image_, [0, 2, 3, 1])
         image_.set_shape(image.shape)
-        image = tf.cast(image_, 'uint8')
+        image = tf.cast(image_, "uint8")
 
         return convert(image, dtype, saturate=True)
