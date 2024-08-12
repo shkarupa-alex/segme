@@ -1,31 +1,48 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
-from segme.loss.common_loss import validate_input, weighted_loss
-from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
+from keras.src.saving import register_keras_serializable
+
 from segme.common.shape import get_shape
+from segme.loss.common_loss import validate_input
+from segme.loss.common_loss import weighted_loss
+from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@register_keras_serializable(package='SegMe>Loss')
+@register_keras_serializable(package="SegMe>Loss")
 class LaplacianPyramidLoss(WeightedLossFunctionWrapper):
-    """ Proposed in: 'Optimizing the Latent Space of Generative Networks'
+    """Proposed in: 'Optimizing the Latent Space of Generative Networks'
 
     Implements Lap1 in https://arxiv.org/pdf/1707.05776.pdf
     """
 
-    def __init__(self, levels=5, size=5, sigma=None, residual=False, weight_pooling='mean', reduction=Reduction.AUTO,
-                 name='laplacian_pyramid_loss'):
-        super().__init__(laplacian_pyramid_loss, reduction=reduction, name=name, levels=levels, size=size, sigma=sigma,
-                         residual=residual, weight_pooling=weight_pooling)
+    def __init__(
+        self,
+        levels=5,
+        size=5,
+        sigma=None,
+        residual=False,
+        weight_pooling="mean",
+        reduction="sum_over_batch_size",
+        name="laplacian_pyramid_loss",
+    ):
+        super().__init__(
+            laplacian_pyramid_loss,
+            reduction=reduction,
+            name=name,
+            levels=levels,
+            size=size,
+            sigma=sigma,
+            residual=residual,
+            weight_pooling=weight_pooling,
+        )
 
 
 def _pad_odd(inputs):
     (height, width), _ = get_shape(inputs, axis=[1, 2])
     hpad, wpad = height % 2, width % 2
     paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
-    padded = tf.pad(inputs, paddings, 'SYMMETRIC')
+    padded = tf.pad(inputs, paddings, "SYMMETRIC")
 
     return padded
 
@@ -41,13 +58,17 @@ def _gauss_kernel(size, sigma):
 def _gauss_filter(inputs, kernel):
     kernel_size = max(kernel[0].shape[0], kernel[1].shape[1])
 
-    padding = (kernel_size - 1)
+    padding = kernel_size - 1
     padding = padding // 2, padding - padding // 2
     paddings = [(0, 0)] + [padding, padding] + [(0, 0)]
 
-    padded = tf.pad(inputs, paddings, 'REFLECT')
-    blurred = tf.nn.depthwise_conv2d(padded, kernel[0], strides=[1, 1, 1, 1], padding='VALID')
-    blurred = tf.nn.depthwise_conv2d(blurred, kernel[1], strides=[1, 1, 1, 1], padding='VALID')
+    padded = tf.pad(inputs, paddings, "REFLECT")
+    blurred = tf.nn.depthwise_conv2d(
+        padded, kernel[0], strides=[1, 1, 1, 1], padding="VALID"
+    )
+    blurred = tf.nn.depthwise_conv2d(
+        blurred, kernel[1], strides=[1, 1, 1, 1], padding="VALID"
+    )
 
     return blurred
 
@@ -62,13 +83,15 @@ def _gauss_downsample(inputs, kernel):
 def _gauss_upsample(inputs, kernel):
     channels = inputs.shape[-1]
     if channels is None:
-        raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+        raise ValueError(
+            "Channel dimension of the inputs should be defined. Found `None`."
+        )
 
     paddings = ((0, 0), (0, 0), (0, 0), (0, channels * 3))
     upsampled = tf.pad(inputs, paddings)
     upsampled = tf.nn.depth_to_space(upsampled, 2)
 
-    return _gauss_filter(upsampled, (kernel[0] * 2., kernel[1] * 2.))
+    return _gauss_filter(upsampled, (kernel[0] * 2.0, kernel[1] * 2.0))
 
 
 def _laplacian_pyramid(inputs, levels, kernel, residual):
@@ -93,12 +116,12 @@ def _weight_pyramid(inputs, levels, residual, weight_pooling):
     if inputs is None:
         return [None] * (levels + int(residual))
 
-    if weight_pooling in {'min', 'max'}:
+    if weight_pooling in {"min", "max"}:
         pooling = tf.nn.max_pool2d
-    elif 'mean' == weight_pooling:
+    elif "mean" == weight_pooling:
         pooling = tf.nn.avg_pool2d
     else:
-        raise ValueError('Unknown weight pooling mode')
+        raise ValueError("Unknown weight pooling mode")
 
     pyramid = []
     current = inputs
@@ -106,10 +129,10 @@ def _weight_pyramid(inputs, levels, residual, weight_pooling):
         current = _pad_odd(current)
         pyramid.append(current)
 
-        if 'min' == weight_pooling:
+        if "min" == weight_pooling:
             current = -current
-        current = pooling(current, ksize=2, strides=2, padding='VALID')
-        if 'min' == weight_pooling:
+        current = pooling(current, ksize=2, strides=2, padding="VALID")
+        if "min" == weight_pooling:
             current = -current
 
     if residual:
@@ -118,20 +141,25 @@ def _weight_pyramid(inputs, levels, residual, weight_pooling):
     return pyramid
 
 
-def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma, residual, weight_pooling):
+def laplacian_pyramid_loss(
+    y_true, y_pred, sample_weight, levels, size, sigma, residual, weight_pooling
+):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype=None, rank=4, channel='same')
+        y_true, y_pred, sample_weight, dtype=None, rank=4, channel="same"
+    )
 
     kernel = _gauss_kernel(size, sigma)
     kernel = np.tile(kernel[..., None, None], (1, 1, y_pred.shape[-1], 1))
-    kernel = tf.cast(kernel, y_pred.dtype), tf.cast(kernel.transpose([1, 0, 2, 3]), y_pred.dtype)
+    kernel = tf.cast(kernel, y_pred.dtype), tf.cast(
+        kernel.transpose([1, 0, 2, 3]), y_pred.dtype
+    )
 
     true_size, static_size = get_shape(y_true, axis=[1, 2])
     if static_size:
         true_size = min(true_size)
     else:
         true_size = tf.minimum(*true_size)
-    assert_true_shape = tf.assert_greater(true_size, 2 ** levels)
+    assert_true_shape = tf.assert_greater(true_size, 2**levels)
     with tf.control_dependencies([assert_true_shape]):
         pyr_pred = _laplacian_pyramid(y_pred, levels, kernel, residual)
         pyr_true = _laplacian_pyramid(y_true, levels, kernel, residual)
@@ -139,9 +167,11 @@ def laplacian_pyramid_loss(y_true, y_pred, sample_weight, levels, size, sigma, r
 
     losses = [tf.abs(_true - _pred) for _true, _pred in zip(pyr_true, pyr_pred)]
     weights = _weight_pyramid(sample_weight, levels, residual, weight_pooling)
-    losses = [weighted_loss(loss, weight) for loss, weight in zip(losses, weights)]
+    losses = [
+        weighted_loss(loss, weight) for loss, weight in zip(losses, weights)
+    ]
 
-    losses = [loss * (2 ** i) for i, loss in enumerate(losses)]
+    losses = [loss * (2**i) for i, loss in enumerate(losses)]
     losses = sum(losses)
 
     return losses

@@ -1,35 +1,53 @@
 import tensorflow as tf
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
+from keras.src.saving import register_keras_serializable
+
 from segme.loss.common_loss import validate_input
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 
-@register_keras_serializable(package='SegMe>Loss')
+@register_keras_serializable(package="SegMe>Loss")
 class StrongerTeacherLoss(WeightedLossFunctionWrapper):
-    """ Proposed in: 'Knowledge Distillation from A Stronger Teacher'
+    """Proposed in: 'Knowledge Distillation from A Stronger Teacher'
 
     Implements equations [8] and [9] in https://arxiv.org/pdf/2205.10536.pdf
     """
 
-    def __init__(self, temperature=1., reduction=Reduction.AUTO, name='stronger_teacher_loss'):
-        super().__init__(stronger_teacher_loss, reduction=reduction, name=name, temperature=temperature)
+    def __init__(
+        self,
+        temperature=1.0,
+        reduction="sum_over_batch_size",
+        name="stronger_teacher_loss",
+    ):
+        super().__init__(
+            stronger_teacher_loss,
+            reduction=reduction,
+            name=name,
+            temperature=temperature,
+        )
 
 
 def stronger_teacher_loss(y_true, y_pred, sample_weight, temperature):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype=None, rank=None, channel='same')
+        y_true, y_pred, sample_weight, dtype=None, rank=None, channel="same"
+    )
 
-    if sample_weight is not None and sample_weight.shape.rank != y_true.shape.rank:
-        raise ValueError('Sample weights and `y_true`/`y_true` ranks must be equal.')
+    if (
+        sample_weight is not None
+        and sample_weight.shape.rank != y_true.shape.rank
+    ):
+        raise ValueError(
+            "Sample weights and `y_true`/`y_true` ranks must be equal."
+        )
 
-    inv_temperature = 1. / temperature
+    inv_temperature = 1.0 / temperature
     y_true = tf.nn.softmax(y_true * inv_temperature, axis=-1)
     y_pred = tf.nn.softmax(y_pred * inv_temperature, axis=-1)
 
     # Inter-class loss is not sensitive to sample weights
-    loss = _inter_class_relation(y_true, y_pred, None) + _intra_class_relation(y_true, y_pred, sample_weight)
-    loss *= temperature ** 2
+    loss = _inter_class_relation(y_true, y_pred, None) + _intra_class_relation(
+        y_true, y_pred, sample_weight
+    )
+    loss *= temperature**2
 
     return loss
 
@@ -53,7 +71,7 @@ def _cosine_similarity(u, v, weights=None):
     epsilon = 1.55e-5 if tf.float16 in {u.dtype, v.dtype} else 1e-12
     inv_norm = tf.math.rsqrt(tf.maximum(uu * vv, epsilon))
 
-    return - uv * inv_norm
+    return -uv * inv_norm
 
 
 def _pearson_correlation(a, b, weights=None):

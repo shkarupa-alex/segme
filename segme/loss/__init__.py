@@ -11,8 +11,10 @@ from segme.loss.heinsen_tree import HeinsenTreeLoss
 from segme.loss.kl_divergence import KLDivergenceLoss
 from segme.loss.laplace_edge import LaplaceEdgeCrossEntropy
 from segme.loss.laplacian_pyramid import LaplacianPyramidLoss
-from segme.loss.mean_absolute import MeanAbsoluteClassificationError, MeanAbsoluteRegressionError
-from segme.loss.mean_squared import MeanSquaredClassificationError, MeanSquaredRegressionError
+from segme.loss.mean_absolute import MeanAbsoluteClassificationError
+from segme.loss.mean_absolute import MeanAbsoluteRegressionError
+from segme.loss.mean_squared import MeanSquaredClassificationError
+from segme.loss.mean_squared import MeanSquaredRegressionError
 from segme.loss.normalized_focal import NormalizedFocalCrossEntropy
 from segme.loss.region_mutual import RegionMutualInformationLoss
 from segme.loss.rt_exclusion import ReflectionTransmissionExclusionLoss

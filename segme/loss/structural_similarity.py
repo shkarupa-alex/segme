@@ -1,26 +1,46 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras import backend
+from keras.src import backend
+from keras.src.saving import register_keras_serializable
 from scipy.special import softmax as np_softmax
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.ops.image_ops_impl import _ssim_helper
+
+from segme.common.shape import get_shape
 from segme.loss.common_loss import validate_input
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
-from segme.common.shape import get_shape
 
 
-@register_keras_serializable(package='SegMe>Loss')
+@register_keras_serializable(package="SegMe>Loss")
 class StructuralSimilarityLoss(WeightedLossFunctionWrapper):
-    """ Proposed in: 'Optimizing the Latent Space of Generative Networks'
+    """Proposed in: 'Optimizing the Latent Space of Generative Networks'
 
     Implements Lap1 in https://arxiv.org/pdf/1707.05776.pdf
     """
 
-    def __init__(self, max_val=1., factors=(0.0448, 0.2856, 0.3001, 0.2363, 0.1333), size=11, sigma=2.0, k1=0.01,
-                 k2=0.03, weight_pooling='mean', reduction=Reduction.AUTO, name='structural_similarity_loss'):
-        super().__init__(structural_similarity_loss, reduction=reduction, name=name, max_val=max_val, factors=factors,
-                         size=size, sigma=sigma, k1=k1, k2=k2, weight_pooling=weight_pooling)
+    def __init__(
+        self,
+        max_val=1.0,
+        factors=(0.0448, 0.2856, 0.3001, 0.2363, 0.1333),
+        size=11,
+        sigma=2.0,
+        k1=0.01,
+        k2=0.03,
+        weight_pooling="mean",
+        reduction="sum_over_batch_size",
+        name="structural_similarity_loss",
+    ):
+        super().__init__(
+            structural_similarity_loss,
+            reduction=reduction,
+            name=name,
+            max_val=max_val,
+            factors=factors,
+            size=size,
+            sigma=sigma,
+            k1=k1,
+            k2=k2,
+            weight_pooling=weight_pooling,
+        )
 
 
 def _ssim_level(y_true, y_pred, max_val, kernels, k1, k2):
@@ -29,13 +49,18 @@ def _ssim_level(y_true, y_pred, max_val, kernels, k1, k2):
     compensation = 1.0 - tf.reduce_sum(tf.square(kernels[0] * kernels[1]))
 
     def _reducer(x):
-        x = tf.nn.depthwise_conv2d(x, kernels[0], strides=[1, 1, 1, 1], padding='VALID')
-        x = tf.nn.depthwise_conv2d(x, kernels[1], strides=[1, 1, 1, 1], padding='VALID')
+        x = tf.nn.depthwise_conv2d(
+            x, kernels[0], strides=[1, 1, 1, 1], padding="VALID"
+        )
+        x = tf.nn.depthwise_conv2d(
+            x, kernels[1], strides=[1, 1, 1, 1], padding="VALID"
+        )
 
         return x
 
     luminance, contrast_structure = _ssim_helper(
-        y_true, y_pred, _reducer, max_val, compensation, k1, k2)
+        y_true, y_pred, _reducer, max_val, compensation, k1, k2
+    )
 
     similarity = luminance * contrast_structure
 
@@ -46,44 +71,58 @@ def _pad_odd(inputs):
     (height, width), _ = get_shape(inputs, axis=[1, 2])
     hpad, wpad = height % 2, width % 2
     paddings = [[0, 0], [0, hpad], [0, wpad], [0, 0]]
-    padded = tf.pad(inputs, paddings, 'SYMMETRIC')
+    padded = tf.pad(inputs, paddings, "SYMMETRIC")
 
     return padded
 
 
-def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernels, k1, k2, weight_pooling):
+def _ssim_pyramid(
+    y_true,
+    y_pred,
+    sample_weight,
+    max_val,
+    factors,
+    kernels,
+    k1,
+    k2,
+    weight_pooling,
+):
     ksize = (kernels[0].shape[0], kernels[1].shape[1])
 
-    if weight_pooling in {'min', 'max'}:
+    if weight_pooling in {"min", "max"}:
         pooling = tf.nn.max_pool2d
-    elif 'mean' == weight_pooling:
+    elif "mean" == weight_pooling:
         pooling = tf.nn.avg_pool2d
     else:
-        raise ValueError('Unknown weight pooling mode')
+        raise ValueError("Unknown weight pooling mode")
 
     pyramid = []
     for i, f in enumerate(factors):
         last_level = len(factors) - 1 == i
 
         similarity, contrast_structure = _ssim_level(
-            y_true, y_pred, max_val=max_val, kernels=kernels, k1=k1, k2=k2)
+            y_true, y_pred, max_val=max_val, kernels=kernels, k1=k1, k2=k2
+        )
         value = similarity if last_level else contrast_structure
         value = tf.nn.relu(value) ** f
 
         if sample_weight is not None:
-            if 'min' == weight_pooling:
+            if "min" == weight_pooling:
                 sample_weight = -sample_weight
-            weight = pooling(sample_weight, ksize=ksize, strides=1, padding='VALID')
-            if 'min' == weight_pooling:
+            weight = pooling(
+                sample_weight, ksize=ksize, strides=1, padding="VALID"
+            )
+            if "min" == weight_pooling:
                 weight = -weight
 
-            weight = tf.cast(weight > 0., y_pred.dtype)
+            weight = tf.cast(weight > 0.0, y_pred.dtype)
             weight = tf.stop_gradient(weight)
 
             value *= weight
             value = tf.math.divide_no_nan(
                 tf.reduce_sum(value, axis=[1, 2]),
-                tf.reduce_sum(weight, axis=[1, 2]))
+                tf.reduce_sum(weight, axis=[1, 2]),
+            )
         else:
             value = tf.reduce_mean(value, axis=[1, 2])
         pyramid.append(value)
@@ -97,17 +136,23 @@ def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernels, k1, 
             assert_true_shape = tf.assert_greater(true_size, 2)
             with tf.control_dependencies([assert_true_shape]):
                 y_true = _pad_odd(y_true)
-                y_true = tf.nn.avg_pool2d(y_true, ksize=2, strides=2, padding='VALID')
+                y_true = tf.nn.avg_pool2d(
+                    y_true, ksize=2, strides=2, padding="VALID"
+                )
 
                 y_pred = _pad_odd(y_pred)
-                y_pred = tf.nn.avg_pool2d(y_pred, ksize=2, strides=2, padding='VALID')
+                y_pred = tf.nn.avg_pool2d(
+                    y_pred, ksize=2, strides=2, padding="VALID"
+                )
 
                 if sample_weight is not None:
                     sample_weight = _pad_odd(sample_weight)
-                    if 'min' == weight_pooling:
+                    if "min" == weight_pooling:
                         sample_weight = -sample_weight
-                    sample_weight = pooling(sample_weight, ksize=2, strides=2, padding='VALID')
-                    if 'min' == weight_pooling:
+                    sample_weight = pooling(
+                        sample_weight, ksize=2, strides=2, padding="VALID"
+                    )
+                    if "min" == weight_pooling:
                         sample_weight = -sample_weight
 
     pyramid = tf.stack(pyramid, axis=-1)
@@ -117,11 +162,11 @@ def _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernels, k1, 
 
 
 def _separated_fspecial_gauss(size, sigma):
-    coords = np.arange(size, dtype='float32')
-    coords -= (size - 1) / 2.
+    coords = np.arange(size, dtype="float32")
+    coords -= (size - 1) / 2.0
 
-    g = coords ** 2
-    g *= -0.5 / (sigma ** 2)
+    g = coords**2
+    g *= -0.5 / (sigma**2)
 
     g = g.reshape((1, -1)) + g.reshape((-1, 1))
     g = g.reshape((1, -1))  # For tf.nn.softmax().
@@ -147,22 +192,45 @@ def _ssim_kernel(size, sigma, channels, dtype):
     return kernel0, kernel1
 
 
-def structural_similarity_loss(y_true, y_pred, sample_weight, max_val, factors, size, sigma, k1, k2, weight_pooling):
+def structural_similarity_loss(
+    y_true,
+    y_pred,
+    sample_weight,
+    max_val,
+    factors,
+    size,
+    sigma,
+    k1,
+    k2,
+    weight_pooling,
+):
     y_true, y_pred, sample_weight = validate_input(
-        y_true, y_pred, sample_weight, dtype=None, rank=4, channel='same')
+        y_true, y_pred, sample_weight, dtype=None, rank=4, channel="same"
+    )
 
     kernels = _ssim_kernel(size, sigma, y_pred.shape[-1], y_pred.dtype)
 
     max_delta = tf.reduce_max(y_true) - tf.reduce_min(y_true)
     assert_true_delta = tf.assert_less(max_delta, max_val + backend.epsilon())
     with tf.control_dependencies([assert_true_delta]):
-        loss = 1. - _ssim_pyramid(y_true, y_pred, sample_weight, max_val, factors, kernels, k1, k2, weight_pooling)
+        loss = 1.0 - _ssim_pyramid(
+            y_true,
+            y_pred,
+            sample_weight,
+            max_val,
+            factors,
+            kernels,
+            k1,
+            k2,
+            weight_pooling,
+        )
 
     if sample_weight is not None:
-        valid_weight = tf.cast(sample_weight > 0., y_pred.dtype)
+        valid_weight = tf.cast(sample_weight > 0.0, y_pred.dtype)
         batch_weight = tf.math.divide_no_nan(
             tf.reduce_sum(sample_weight, axis=[1, 2, 3]),
-            tf.reduce_sum(valid_weight, axis=[1, 2, 3]) + backend.epsilon())
+            tf.reduce_sum(valid_weight, axis=[1, 2, 3]) + backend.epsilon(),
+        )
         loss *= batch_weight
 
     return loss
