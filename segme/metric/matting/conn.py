@@ -1,15 +1,17 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.metrics import SumOverBatchSize
-from tf_keras.src.utils import losses_utils, metrics_utils
+from keras.src import ops
+from keras.src.metrics import reduction_metrics
+from keras.src.saving import register_keras_serializable
+from keras.src.losses.loss import squeeze_or_expand_to_same_rank
 from tfmiss.image import connected_components
+
 from segme.common.shape import get_shape
 
 
-@register_keras_serializable(package='SegMe>Metric>Matting')
-class Conn(SumOverBatchSize):
-    def __init__(self, step=0.1, name='conn', dtype=None):
+@register_keras_serializable(package="SegMe>Metric>Matting")
+class Conn(reduction_metrics.Sum):
+    def __init__(self, step=0.1, name="conn", dtype=None):
         """Creates a `ConnectivityError` instance for matting task (by default downscales input by 255).
 
         Args:
@@ -22,40 +24,42 @@ class Conn(SumOverBatchSize):
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         dtype_true = tf.dtypes.as_dtype(y_true.dtype)
-        scale_true = dtype_true.max if dtype_true.is_integer else 1.
-        y_true = tf.cast(y_true, self._dtype) / scale_true
+        scale_true = dtype_true.max if dtype_true.is_integer else 1.0
+        y_true = tf.cast(y_true, self.dtype) / scale_true
 
         dtype_pred = tf.dtypes.as_dtype(y_pred.dtype)
-        scale_pred = dtype_pred.max if dtype_pred.is_integer else 1.
-        y_pred = tf.cast(y_pred, self._dtype) / scale_pred
+        scale_pred = dtype_pred.max if dtype_pred.is_integer else 1.0
+        y_pred = tf.cast(y_pred, self.dtype) / scale_pred
 
         if sample_weight is not None:
-            sample_weight = tf.cast(sample_weight, self._dtype)
+            sample_weight = tf.cast(sample_weight, self.dtype)
 
-        [y_true, y_pred], sample_weight = metrics_utils.ragged_assert_compatible_and_get_flat_values(
-            [y_true, y_pred], sample_weight)
+        y_pred, y_true = squeeze_or_expand_to_same_rank(
+            y_pred, y_true, sample_weight
+        )
+        if sample_weight is not None:
+            y_pred_rank = len(y_pred.shape)
+            sample_weight_rank = len(sample_weight.shape)
 
-        if sample_weight is None:
-            y_pred, y_true = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true, sample_weight)
-        else:
-            y_pred, y_true, sample_weight = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true, sample_weight)
+            if y_pred_rank == sample_weight_rank + 1:
+                sample_weight = ops.expand_dims(sample_weight, axis=-1)
 
         values = connectivity_error(y_true, y_pred, self.step, sample_weight)
 
         return super().update_state(values)
 
     def result(self):
-        return super().result() / 1000.
+        return super().result() / 1000.0
 
     def get_config(self):
         config = super().get_config()
-        config.update({'step': self.step})
+        config.update({"step": self.step})
 
         return config
 
 
 def connectivity_error(y_true, y_pred, step, sample_weight=None):
-    thresh_steps = list(np.arange(step, step + 1., step))
+    thresh_steps = list(np.arange(step, step + 1.0, step))
 
     true_shape, _ = get_shape(y_true)
     batch, height, width, channels = true_shape
@@ -69,12 +73,17 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
         squezed_labels = tf.transpose(component_labels, [0, 3, 1, 2])
         squezed_labels = tf.reshape(squezed_labels, [batch * channels, -1])
 
-        component_sizes = tf.math.bincount(squezed_labels, minlength=minmax_len, maxlength=minmax_len, axis=-1)
+        component_sizes = tf.math.bincount(
+            squezed_labels, minlength=minmax_len, maxlength=minmax_len, axis=-1
+        )
         component_sizes = tf.reshape(component_sizes, [batch, channels, -1])
-        component_sizes *= tf.concat([
-            tf.zeros([batch, channels, 1], dtype=component_sizes.dtype),
-            tf.ones_like(component_sizes)[..., 1:]
-        ], axis=-1)
+        component_sizes *= tf.concat(
+            [
+                tf.zeros([batch, channels, 1], dtype=component_sizes.dtype),
+                tf.ones_like(component_sizes)[..., 1:],
+            ],
+            axis=-1,
+        )
 
         component_max = tf.argmax(component_sizes, axis=-1)[..., None, None]
         component_max = tf.transpose(component_max, [0, 2, 3, 1])
@@ -82,7 +91,7 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
         component_back = component_labels != component_max
         thresh_map.append(component_back)
 
-    thresh_map.append(tf.ones_like(y_true, dtype='bool'))
+    thresh_map.append(tf.ones_like(y_true, dtype="bool"))
 
     thresh_map = tf.stack(thresh_map, axis=-1)
     thresh_map = tf.reshape(thresh_map, [batch, -1, len(thresh_steps) + 1])
@@ -91,8 +100,8 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
 
     pred_d = y_pred - thresh_map
     true_d = y_true - thresh_map
-    pred_phi = 1. - pred_d * tf.cast(pred_d >= 0.15, y_pred.dtype)
-    true_phi = 1. - true_d * tf.cast(true_d >= 0.15, y_true.dtype)
+    pred_phi = 1.0 - pred_d * tf.cast(pred_d >= 0.15, y_pred.dtype)
+    true_phi = 1.0 - true_d * tf.cast(true_d >= 0.15, y_true.dtype)
 
     result = tf.abs(pred_phi - true_phi)
 
