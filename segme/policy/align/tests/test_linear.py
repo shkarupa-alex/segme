@@ -1,41 +1,16 @@
 import tensorflow as tf
-from tf_keras import mixed_precision
-from tf_keras.src.testing_infra import test_combinations
+from keras.src import testing
+
 from segme.policy.align.linear import BilinearFeatureAlignment
-from segme.testing_utils import layer_multi_io_test
 
 
-@test_combinations.run_all_keras_modes
-class TestBilinearFeatureAlignment(test_combinations.TestCase):
-    def setUp(self):
-        super(TestBilinearFeatureAlignment, self).setUp()
-        self.default_policy = mixed_precision.global_policy()
-
-    def tearDown(self):
-        super(TestBilinearFeatureAlignment, self).tearDown()
-        mixed_precision.set_global_policy(self.default_policy)
-
+class TestBilinearFeatureAlignment(testing.TestCase):
     def test_layer(self):
-        layer_multi_io_test(
+        self.run_layer_test(
             BilinearFeatureAlignment,
-            kwargs={'filters': 6},
-            input_shapes=[(2, 16, 16, 4), (2, 8, 8, 8)],
-            input_dtypes=['float32'] * 2,
-            expected_output_shapes=[(None, 16, 16, 6)],
-            expected_output_dtypes=['float32']
+            init_kwargs={"filters": 6},
+            input_shape=((2, 16, 16, 4), (2, 8, 8, 8)),
+            input_dtype=("float32",) * 2,
+            expected_output_shape=(2, 16, 16, 6),
+            expected_output_dtype="float32",
         )
-
-    def test_fp16(self):
-        mixed_precision.set_global_policy('mixed_float16')
-        layer_multi_io_test(
-            BilinearFeatureAlignment,
-            kwargs={'filters': 6},
-            input_shapes=[(2, 16, 16, 4), (2, 8, 8, 8)],
-            input_dtypes=['float16'] * 2,
-            expected_output_shapes=[(None, 16, 16, 6)],
-            expected_output_dtypes=['float16']
-        )
-
-
-if __name__ == '__main__':
-    tf.test.main()

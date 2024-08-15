@@ -1,6 +1,8 @@
 import contextlib
+
 import tensorflow as tf
-from tf_keras.utils import deserialize_keras_object, serialize_keras_object
+from keras.src.saving.serialization_lib import serialize_keras_object, deserialize_keras_object
+
 from segme.policy.backbone.backbone import BACKBONES
 
 
@@ -15,18 +17,25 @@ class BackbonePolicy:
     def __init__(self, name):
         self._name = name
         if not isinstance(self._name, str):
-            raise TypeError(f'Policy name must be a string, got {self._name}')
+            raise TypeError(f"Policy name must be a string, got {self._name}")
 
-        if not self._name.count('-'):
-            raise ValueError('Policy name should cotain 2 parts separated with "-"')
+        if not self._name.count("-"):
+            raise ValueError(
+                'Policy name should cotain 2 parts separated with "-"'
+            )
 
-        name_parts = self._name.split('-')
-        self._arch_type, self._init_type = name_parts[0], '-'.join(name_parts[1:])
+        name_parts = self._name.split("-")
+        self._arch_type, self._init_type = name_parts[0], "-".join(
+            name_parts[1:]
+        )
         if self._arch_type not in BACKBONES:
-            raise ValueError(f'Backbone {self._arch_type} not registered')
-        if not (self._init_type in {'imagenet', 'none'} or tf.io.gfile.exists(self._init_type)):
-            raise ValueError(f'Unknown init type {self._init_type}')
-        if 'none' == self._init_type:
+            raise ValueError(f"Backbone {self._arch_type} not registered")
+        if not (
+            self._init_type in {"imagenet", "none"}
+            or tf.io.gfile.exists(self._init_type)
+        ):
+            raise ValueError(f"Unknown init type {self._init_type}")
+        if "none" == self._init_type:
             self._init_type = None
 
     @property
@@ -45,7 +54,7 @@ class BackbonePolicy:
         return f'Backbone policy "{self._name}"'
 
     def get_config(self):
-        return {'name': self._name}
+        return {"name": self._name}
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
@@ -58,7 +67,7 @@ _global_policy = None
 
 
 def default_policy():
-    return BackbonePolicy('resnet_rs_50-imagenet')
+    return BackbonePolicy("resnet_rs_50-imagenet")
 
 
 def global_policy():
@@ -101,6 +110,7 @@ def deserialize(config, custom_objects=None):
 
     return deserialize_keras_object(
         config,
-        module_objects={'BackbonePolicy': BackbonePolicy},
+        module_objects={"BackbonePolicy": BackbonePolicy},
         custom_objects=custom_objects,
-        printable_module_name='backbone policy')
+        printable_module_name="backbone policy",
+    )

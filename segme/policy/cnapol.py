@@ -1,8 +1,10 @@
 import contextlib
-from tf_keras.utils import deserialize_keras_object, serialize_keras_object
+
+from keras.src.saving.serialization_lib import serialize_keras_object, deserialize_keras_object
+
+from segme.policy.act import ACTIVATIONS
 from segme.policy.conv import CONVOLUTIONS
 from segme.policy.norm import NORMALIZATIONS
-from segme.policy.act import ACTIVATIONS
 
 
 class ConvNormActPolicy:
@@ -18,18 +20,20 @@ class ConvNormActPolicy:
     def __init__(self, name):
         self._name = name
         if not isinstance(self._name, str):
-            raise TypeError(f'Policy name must be a string, got {self._name}')
+            raise TypeError(f"Policy name must be a string, got {self._name}")
 
-        if self._name.count('-') != 2:
-            raise ValueError('Policy name should cotain 3 parts separated with "-"')
+        if self._name.count("-") != 2:
+            raise ValueError(
+                'Policy name should cotain 3 parts separated with "-"'
+            )
 
-        self._conv_type, self._norm_type, self._act_type = self._name.split('-')
+        self._conv_type, self._norm_type, self._act_type = self._name.split("-")
         if self._conv_type not in CONVOLUTIONS:
-            raise ValueError(f'Convolution {self._conv_type} not registered')
+            raise ValueError(f"Convolution {self._conv_type} not registered")
         if self._norm_type not in NORMALIZATIONS:
-            raise ValueError(f'Normalization {self._norm_type} not registered')
+            raise ValueError(f"Normalization {self._norm_type} not registered")
         if self._act_type not in ACTIVATIONS:
-            raise ValueError(f'Activation {self._act_type} not registered')
+            raise ValueError(f"Activation {self._act_type} not registered")
 
     @property
     def name(self):
@@ -51,7 +55,7 @@ class ConvNormActPolicy:
         return f'ConvNormAct policy "{self._name}"'
 
     def get_config(self):
-        return {'name': self._name}
+        return {"name": self._name}
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
@@ -64,7 +68,7 @@ _global_policy = None
 
 
 def default_policy():
-    return ConvNormActPolicy('conv-bn-relu')
+    return ConvNormActPolicy("conv-bn-relu")
 
 
 def global_policy():
@@ -107,6 +111,7 @@ def deserialize(config, custom_objects=None):
 
     return deserialize_keras_object(
         config,
-        module_objects={'ConvNormActPolicy': ConvNormActPolicy},
+        module_objects={"ConvNormActPolicy": ConvNormActPolicy},
         custom_objects=custom_objects,
-        printable_module_name='conv/norm/act policy')
+        printable_module_name="conv/norm/act policy",
+    )

@@ -1,11 +1,11 @@
-from tf_keras import layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import layers
+from keras.src.saving import register_keras_serializable
+from keras.src.layers.input_spec import InputSpec
 from segme.common.carafe import CarafeConvolution
 from segme.common.resize import NearestInterpolation
 
 
-@register_keras_serializable(package='SegMe>Policy>Align>FADE')
+@register_keras_serializable(package="SegMe>Policy>Align>FADE")
 class FadeFeatureAlignment(layers.Layer):
     """
     Proposed in "FADE: Fusing the Assets of Decoder and Encoder for Task-Agnostic Upsampling"
@@ -15,25 +15,38 @@ class FadeFeatureAlignment(layers.Layer):
     def __init__(self, filters, kernel_size=5, embedding_size=64, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
-            layers.InputSpec(ndim=4),  # fine
-            layers.InputSpec(ndim=4)]  # coarse
+            InputSpec(ndim=4),  # fine
+            InputSpec(ndim=4),
+        ]  # coarse
 
         self.filters = filters
         self.kernel_size = kernel_size
         self.embedding_size = embedding_size
 
-    @shape_type_conversion
     def build(self, input_shape):
-        self.intnear = NearestInterpolation(None)
+        self.intnear = NearestInterpolation(None, dtype=self.dtype_policy)
 
-        self.gate = layers.Conv2D(1, 1, activation='sigmoid')
-        self.kernel = SemiShift(self.kernel_size ** 2, max(3, self.kernel_size - 2), self.embedding_size)
-        self.carafe = CarafeConvolution(self.kernel_size)
+        self.gate = layers.Conv2D(1, 1, activation="sigmoid", dtype=self.dtype_policy)
+        self.gate.build(input_shape[1])
 
-        # in original version coarse and fine features should have same channel size
-        # here we project them to the same channel size before merging
-        self.fine = layers.Conv2D(self.filters, 1)
-        self.coarse = layers.Conv2D(self.filters, 1)
+        self.kernel = SemiShift(
+            self.kernel_size**2,
+            max(3, self.kernel_size - 2),
+            self.embedding_size, dtype=self.dtype_policy
+        )
+        self.kernel.build(input_shape)
+
+        self.carafe = CarafeConvolution(self.kernel_size, dtype=self.dtype_policy)
+        self.carafe.build([input_shape[1], input_shape[0][:-1] + (self.kernel_size**2,)])
+
+        self.coarse = layers.Conv2D(self.filters, 1, dtype=self.dtype_policy)
+        self.coarse.build(input_shape[0][:-1] + (input_shape[1][-1],))
+
+        # in original version coarse and fine features should have same channel
+        # size, here we project them to the same channel size before merging
+        self.fine = layers.Conv2D(self.filters, 1, dtype=self.dtype_policy)
+        self.fine.build(input_shape[0][:-1] + (self.filters,))
+
 
         super().build(input_shape)
 
@@ -47,46 +60,54 @@ class FadeFeatureAlignment(layers.Layer):
         coarse = self.carafe([coarse, kernel])
         coarse = self.coarse(coarse)
 
-        fine = self.fine(coarse)
+        fine = self.fine(coarse) # TODO
 
-        outputs = gate * fine + (1. - gate) * coarse
+        outputs = gate * fine + (1.0 - gate) * coarse
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[0][:-1] + (self.filters,)
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            'filters': self.filters,
-            'kernel_size': self.kernel_size,
-            'embedding_size': self.embedding_size
-        })
+        config.update(
+            {
+                "filters": self.filters,
+                "kernel_size": self.kernel_size,
+                "embedding_size": self.embedding_size,
+            }
+        )
 
         return config
 
 
-@register_keras_serializable(package='SegMe>Policy>Align>FADE')
+@register_keras_serializable(package="SegMe>Policy>Align>FADE")
 class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
     def __init__(self, filters, kernel_size, embedding_size, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
-            layers.InputSpec(ndim=4),  # fine
-            layers.InputSpec(ndim=4)]  # coarse
+            InputSpec(ndim=4),  # fine
+            InputSpec(ndim=4),
+        ]  # coarse
 
         self.filters = filters
         self.kernel_size = kernel_size
         self.embedding_size = embedding_size
 
-    @shape_type_conversion
     def build(self, input_shape):
-        self.fine = layers.Conv2D(self.embedding_size, 1)
-        self.coarse = layers.Conv2D(self.embedding_size, 1, use_bias=False)
-        self.content = layers.Conv2D(self.filters, self.kernel_size, padding='same')
+        self.fine = layers.Conv2D(self.embedding_size, 1, dtype=self.dtype_policy)
+        self.fine.build(input_shape[0])
 
-        self.internear = NearestInterpolation()
+        self.coarse = layers.Conv2D(self.embedding_size, 1, use_bias=False, dtype=self.dtype_policy)
+        self.coarse.build(input_shape[1])
+
+        self.content = layers.Conv2D(
+            self.filters, self.kernel_size, padding="same", dtype=self.dtype_policy
+        )
+        self.content.build(input_shape[0][:-1] + (self.embedding_size,))
+
+        self.internear = NearestInterpolation(dtype=self.dtype_policy)
 
         super().build(input_shape)
 
@@ -94,7 +115,7 @@ class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
         fine, coarse = inputs
 
         fine = self.fine(fine)
-        fine = self.content(fine)
+        fine = self.content(fine) # TODO: 2 conv without act?
 
         coarse = self.coarse(coarse)
         coarse = self.content(coarse)
@@ -104,16 +125,17 @@ class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[0][:-1] + (self.filters,)
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            'filters': self.filters,
-            'kernel_size': self.kernel_size,
-            'embedding_size': self.embedding_size
-        })
+        config.update(
+            {
+                "filters": self.filters,
+                "kernel_size": self.kernel_size,
+                "embedding_size": self.embedding_size,
+            }
+        )
 
         return config

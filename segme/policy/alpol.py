@@ -1,5 +1,8 @@
 import contextlib
-from tf_keras.utils import deserialize_keras_object, serialize_keras_object
+
+from keras.src.saving.serialization_lib import deserialize_keras_object
+from keras.src.saving.serialization_lib import serialize_keras_object
+
 from segme.policy.align.align import ALIGNERS
 
 
@@ -13,10 +16,10 @@ class AlignPolicy:
     def __init__(self, name):
         self._name = name
         if not isinstance(self._name, str):
-            raise TypeError(f'Policy name must be a string, got {self._name}')
+            raise TypeError(f"Policy name must be a string, got {self._name}")
 
         if self._name not in ALIGNERS:
-            raise ValueError(f'Align method {self._name} not registered')
+            raise ValueError(f"Align method {self._name} not registered")
 
     @property
     def name(self):
@@ -26,7 +29,7 @@ class AlignPolicy:
         return f'Align policy "{self._name}"'
 
     def get_config(self):
-        return {'name': self._name}
+        return {"name": self._name}
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
@@ -39,7 +42,7 @@ _global_policy = None
 
 
 def default_policy():
-    return AlignPolicy('linear')
+    return AlignPolicy("linear")
 
 
 def global_policy():
@@ -82,6 +85,7 @@ def deserialize(config, custom_objects=None):
 
     return deserialize_keras_object(
         config,
-        module_objects={'AlignPolicy': AlignPolicy},
+        module_objects={"AlignPolicy": AlignPolicy},
         custom_objects=custom_objects,
-        printable_module_name='align policy')
+        printable_module_name="align policy",
+    )
