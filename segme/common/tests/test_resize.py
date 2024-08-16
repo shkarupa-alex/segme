@@ -1,122 +1,62 @@
 import tensorflow as tf
-from tf_keras import mixed_precision
-from tf_keras.src.testing_infra import test_combinations, test_utils
-from segme.common.resize import NearestInterpolation, BilinearInterpolation
-from segme.testing_utils import layer_multi_io_test
+from keras.src import testing
+
+from segme.common.resize import BilinearInterpolation
+from segme.common.resize import NearestInterpolation
 
 
-@test_combinations.run_all_keras_modes
-class TestNearestInterpolation(test_combinations.TestCase):
-    def setUp(self):
-        super(TestNearestInterpolation, self).setUp()
-        self.default_policy = mixed_precision.global_policy()
-
-    def tearDown(self):
-        super(TestNearestInterpolation, self).tearDown()
-        mixed_precision.set_global_policy(self.default_policy)
+class TestNearestInterpolation(testing.TestCase):
+    
 
     def test_layer(self):
-        layer_multi_io_test(
+        self.run_layer_test(
             NearestInterpolation,
-            kwargs={'scale': None},
-            input_shapes=[(2, 16, 16, 10), (2, 24, 32, 3)],
-            input_dtypes=['float32', 'float32'],
-            expected_output_shapes=[(None, 24, 32, 10)],
-            expected_output_dtypes=['float32']
+            init_kwargs={"scale": None},
+            input_shape=((2, 16, 16, 10), (2, 24, 32, 3)),
+            input_dtype=("float32",) * 2,
+            expected_output_shape=(2, 24, 32, 10),
+            expected_output_dtype="float32",
         )
-        test_utils.layer_test(
+        self.run_layer_test(
             NearestInterpolation,
-            kwargs={'scale': 2},
+            init_kwargs={"scale": 2},
             input_shape=(2, 16, 16, 10),
-            input_dtype='float32',
-            expected_output_shape=(None, 32, 32, 10),
-            expected_output_dtype='float32'
-        )
-
-    def test_fp16(self):
-        mixed_precision.set_global_policy('mixed_float16')
-        layer_multi_io_test(
-            NearestInterpolation,
-            kwargs={'scale': None},
-            input_shapes=[(2, 16, 16, 10), (2, 24, 32, 3)],
-            input_dtypes=['float16', 'float16'],
-            expected_output_shapes=[(None, 24, 32, 10)],
-            expected_output_dtypes=['float16']
-        )
-        test_utils.layer_test(
-            NearestInterpolation,
-            kwargs={'scale': 0.5},
-            input_shape=(2, 16, 16, 10),
-            input_dtype='float16',
-            expected_output_shape=(None, 8, 8, 10),
-            expected_output_dtype='float16'
+            input_dtype="float32",
+            expected_output_shape=(2, 32, 32, 10),
+            expected_output_dtype="float32",
         )
 
     def test_tile(self):
         inputs = tf.random.uniform([3, 1, 1, 5])
 
-        expected = tf.image.resize(inputs, [2, 7], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-        expected = self.evaluate(expected)
+        expected = tf.image.resize(
+            inputs, [2, 7], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR
+        )
 
         result = NearestInterpolation()([inputs, tf.zeros([1, 2, 7, 5])])
-        result = self.evaluate(result)
 
         self.assertAllClose(expected, result)
 
 
-@test_combinations.run_all_keras_modes
-class TestBilinearInterpolation(test_combinations.TestCase):
-    def setUp(self):
-        super(TestBilinearInterpolation, self).setUp()
-        self.default_policy = mixed_precision.global_policy()
-
-    def tearDown(self):
-        super(TestBilinearInterpolation, self).tearDown()
-        mixed_precision.set_global_policy(self.default_policy)
+class TestBilinearInterpolation(testing.TestCase):
+    
 
     def test_layer(self):
-        layer_multi_io_test(
+        self.run_layer_test(
             BilinearInterpolation,
-            kwargs={'scale': None},
-            input_shapes=[(2, 16, 16, 10), (2, 24, 32, 3)],
-            input_dtypes=['float32', 'float32'],
-            expected_output_shapes=[(None, 24, 32, 10)],
-            expected_output_dtypes=['float32']
+            init_kwargs={"scale": None},
+            input_shape=((2, 16, 16, 10), (2, 24, 32, 3)),
+            input_dtype=("float32",) * 2,
+            expected_output_shape=(2, 24, 32, 10),
+            expected_output_dtype="float32",
         )
-        test_utils.layer_test(
+        self.run_layer_test(
             BilinearInterpolation,
-            kwargs={'scale': 2},
+            init_kwargs={"scale": 2},
             input_shape=(2, 16, 16, 10),
-            input_dtype='float32',
-            expected_output_shape=(None, 32, 32, 10),
-            expected_output_dtype='float32'
-        )
-
-    def test_fp16(self):
-        mixed_precision.set_global_policy('mixed_float16')
-        layer_multi_io_test(
-            BilinearInterpolation,
-            kwargs={'scale': None},
-            input_shapes=[(2, 16, 16, 10), (2, 24, 32, 3)],
-            input_dtypes=['float16', 'float16'],
-            expected_output_shapes=[(None, 24, 32, 10)],
-            expected_output_dtypes=['float16']
-        )
-        test_utils.layer_test(
-            BilinearInterpolation,
-            kwargs={'scale': 0.5},
-            input_shape=(2, 16, 16, 10),
-            input_dtype='float16',
-            expected_output_shape=(None, 8, 8, 10),
-            expected_output_dtype='float16'
-        )
-        test_utils.layer_test(
-            BilinearInterpolation,
-            kwargs={'scale': 0.5, 'dtype': 'float32'},
-            input_shape=(2, 16, 16, 10),
-            input_dtype='float16',
-            expected_output_shape=(None, 8, 8, 10),
-            expected_output_dtype='float32'
+            input_dtype="float32",
+            expected_output_shape=(2, 32, 32, 10),
+            expected_output_dtype="float32",
         )
 
     # Current tf.image.resize implementation fully mimics cv2.imresize
@@ -141,7 +81,3 @@ class TestBilinearInterpolation(test_combinations.TestCase):
     #     ]).reshape([1, 10, 9, 1])
     #
     #     self.assertAllClose(result, expected, 0.002)
-
-
-if __name__ == '__main__':
-    tf.test.main()

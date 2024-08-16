@@ -1,10 +1,9 @@
 import tensorflow as tf
-from tf_keras import layers
-from tensorflow.python.framework import test_util
+from keras.src import layers
+
 from segme.common.shape import get_shape
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class TestGetShape(tf.test.TestCase):
     def test_static(self):
         inputs = tf.zeros([2, 16, 8, 3])
@@ -17,13 +16,13 @@ class TestGetShape(tf.test.TestCase):
         self.assertTrue(fully_defined)
         self.assertListEqual(result, [16, 8])
 
-        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype='int64')
+        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype="int64")
         self.assertTrue(fully_defined)
         self.assertListEqual(result, [16, 8])
 
-        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype='float32')
+        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype="float32")
         self.assertTrue(fully_defined)
-        self.assertListEqual(result, [16., 8.])
+        self.assertListEqual(result, [16.0, 8.0])
 
     def test_mixed(self):
         inputs = layers.Input(shape=[16, None, 3])
@@ -45,13 +44,13 @@ class TestGetShape(tf.test.TestCase):
         self.assertTrue(fully_defined)
         self.assertListEqual(result, [16, 8])
 
-        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype='int64')
+        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype="int64")
         self.assertTrue(fully_defined)
         self.assertListEqual(result, [16, 8])
 
-        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype='float32')
+        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype="float32")
         self.assertTrue(fully_defined)
-        self.assertListEqual(result, [16., 8.])
+        self.assertListEqual(result, [16.0, 8.0])
 
     def test_sparse(self):
         inputs = layers.Input(shape=[16, 8, 3], sparse=True)
@@ -65,13 +64,13 @@ class TestGetShape(tf.test.TestCase):
         self.assertTrue(fully_defined)
         self.assertListEqual(result, [16, 8])
 
-        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype='int64')
+        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype="int64")
         self.assertTrue(fully_defined)
         self.assertListEqual(result, [16, 8])
 
-        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype='float32')
+        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype="float32")
         self.assertTrue(fully_defined)
-        self.assertListEqual(result, [16., 8.])
+        self.assertListEqual(result, [16.0, 8.0])
 
     def test_ragged(self):
         inputs = layers.Input(shape=[16, 8, 3], ragged=True)
@@ -85,14 +84,10 @@ class TestGetShape(tf.test.TestCase):
         self.assertTrue(fully_defined)
         self.assertListEqual(result, [16, 8])
 
-        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype='int64')
+        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype="int64")
         self.assertTrue(fully_defined)
         self.assertListEqual(result, [16, 8])
 
-        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype='float32')
+        result, fully_defined = get_shape(inputs, axis=[1, 2], dtype="float32")
         self.assertTrue(fully_defined)
-        self.assertListEqual(result, [16., 8.])
-
-
-if __name__ == '__main__':
-    tf.test.main()
+        self.assertListEqual(result, [16.0, 8.0])

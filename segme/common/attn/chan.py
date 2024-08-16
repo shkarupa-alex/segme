@@ -1,39 +1,52 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras import initializers, layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import initializers
+from keras.src import layers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
+
 from segme.common.convnormact import Conv
 from segme.common.shape import get_shape
+from segme.common.attn.mincon import MinConstraint
 
 
-@register_keras_serializable(package='SegMe>Common')
+@register_keras_serializable(package="SegMe>Common")
 class ChannelAttention(layers.Layer):
     def __init__(self, num_heads, qkv_bias=True, proj_bias=True, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
+        self.input_spec = InputSpec(ndim=4)
 
         self.num_heads = num_heads
         self.qkv_bias = qkv_bias
         self.proj_bias = proj_bias
 
-    @shape_type_conversion
     def build(self, input_shape):
         self.channels = input_shape[-1]
         if self.channels is None:
-            raise ValueError('Channel dimensions of the inputs should be defined. Found `None`.')
+            raise ValueError(
+                "Channel dimensions of the inputs should be defined. Found `None`."
+            )
 
-        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name='qkv')
+        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name="qkv", dtype=self.dtype_policy)
+        self.qkv.build(input_shape)
+
         if self.qkv_bias:
-            self.q_bias = self.add_weight('q_bias', shape=[self.channels], initializer='zeros')
-            self.v_bias = self.add_weight('v_bias', shape=[self.channels], initializer='zeros')
+            self.q_bias = self.add_weight(
+                name="q_bias", shape=[self.channels], initializer="zeros"
+            )
+            self.v_bias = self.add_weight(
+                name="v_bias", shape=[self.channels], initializer="zeros"
+            )
 
         self.scale = self.add_weight(
-            'scale', shape=[self.num_heads, 1, 1],
-            initializer=initializers.constant(np.log(10., dtype=self.dtype)),
-            constraint=lambda s: tf.minimum(s, np.log(100., dtype=self.dtype)))
+            name="scale",
+            shape=[self.num_heads, 1, 1],
+            initializer=initializers.Constant(np.log(10.0, dtype=self.dtype)),
+            constraint=MinConstraint(np.log(100.0, dtype=self.dtype)),
+        )
 
-        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name='proj')
+        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name="proj", dtype=self.dtype_policy)
+        self.proj.build(input_shape)
 
         super().build(input_shape)
 
@@ -48,7 +61,16 @@ class ChannelAttention(layers.Layer):
         if 1 == self.num_heads:
             qkv = tf.reshape(qkv, [batch, 1, height * width, 3, self.channels])
         else:
-            qkv = tf.reshape(qkv, [batch, height * width, self.num_heads, 3, self.channels // self.num_heads])
+            qkv = tf.reshape(
+                qkv,
+                [
+                    batch,
+                    height * width,
+                    self.num_heads,
+                    3,
+                    self.channels // self.num_heads,
+                ],
+            )
             qkv = tf.transpose(qkv, [0, 2, 1, 3, 4])
         q, k, v = tf.unstack(qkv, 3, axis=-2)
 
@@ -58,7 +80,9 @@ class ChannelAttention(layers.Layer):
         attn = tf.matmul(q * tf.exp(self.scale), k, transpose_a=True)
         attn = tf.nn.softmax(attn)
 
-        outputs = tf.transpose(tf.matmul(attn, v, transpose_b=True), perm=[0, 3, 1, 2])
+        outputs = tf.transpose(
+            tf.matmul(attn, v, transpose_b=True), perm=[0, 3, 1, 2]
+        )
         outputs = tf.reshape(outputs, [batch, height, width, self.channels])
 
         outputs = self.proj(outputs)
@@ -66,17 +90,18 @@ class ChannelAttention(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape
 
     def get_config(self):
         config = super().get_config()
 
-        config.update({
-            'num_heads': self.num_heads,
-            'qkv_bias': self.qkv_bias,
-            'proj_bias': self.proj_bias
-        })
+        config.update(
+            {
+                "num_heads": self.num_heads,
+                "qkv_bias": self.qkv_bias,
+                "proj_bias": self.proj_bias,
+            }
+        )
 
         return config

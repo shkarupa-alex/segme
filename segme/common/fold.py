@@ -1,22 +1,23 @@
 import tensorflow as tf
-from tf_keras import layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import layers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 
 
-@register_keras_serializable(package='SegMe>Common')
+@register_keras_serializable(package="SegMe>Common")
 class Fold(layers.Layer):
     def __init__(self, size, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
+        self.input_spec = InputSpec(ndim=4)
 
         self.size = int(size)
 
-    @shape_type_conversion
     def build(self, input_shape):
         channels = input_shape[-1]
         if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+            raise ValueError(
+                "Channel dimension of the inputs should be defined. Found `None`."
+            )
 
         super().build(input_shape)
 
@@ -25,39 +26,41 @@ class Fold(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         output_shape = [
             input_shape[0],
             None if input_shape[1] is None else input_shape[1] // self.size,
             None if input_shape[2] is None else input_shape[2] // self.size,
-            input_shape[3] * self.size ** 2
+            input_shape[3] * self.size**2,
         ]
 
         return output_shape
 
     def get_config(self):
         config = super().get_config()
-        config.update({'size': self.size})
+        config.update({"size": self.size})
 
         return config
 
 
-@register_keras_serializable(package='SegMe>Common')
+@register_keras_serializable(package="SegMe>Common")
 class UnFold(layers.Layer):
     def __init__(self, size, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
+        self.input_spec = InputSpec(ndim=4)
 
         self.size = int(size)
 
-    @shape_type_conversion
     def build(self, input_shape):
         channels = input_shape[-1]
         if channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
-        if channels % self.size ** 2:
-            raise ValueError('Channel size must be divisible by unfold size^2 without reminder.')
+            raise ValueError(
+                "Channel dimension of the inputs should be defined. Found `None`."
+            )
+        if channels % self.size**2:
+            raise ValueError(
+                "Channel size must be divisible by unfold size^2 without reminder."
+            )
 
         super().build(input_shape)
 
@@ -66,19 +69,18 @@ class UnFold(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         output_shape = [
             input_shape[0],
             None if input_shape[1] is None else input_shape[1] * self.size,
             None if input_shape[2] is None else input_shape[2] * self.size,
-            input_shape[3] // self.size ** 2
+            input_shape[3] // self.size**2,
         ]
 
         return output_shape
 
     def get_config(self):
         config = super().get_config()
-        config.update({'size': self.size})
+        config.update({"size": self.size})
 
         return config

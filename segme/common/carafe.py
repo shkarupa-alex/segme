@@ -1,38 +1,45 @@
 import tensorflow as tf
-from tf_keras import layers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import layers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
+
 from segme.common.resize import NearestInterpolation
 from segme.common.shape import get_shape
 
 
-@register_keras_serializable(package='SegMe>Common>Align>FADE')
+@register_keras_serializable(package="SegMe>Common>Align>FADE")
 class CarafeConvolution(layers.Layer):
     def __init__(self, kernel_size, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
-            layers.InputSpec(ndim=4),  # features
-            layers.InputSpec(ndim=4)]  # mask
+            InputSpec(ndim=4),  # features
+            InputSpec(ndim=4),
+        ]  # mask
 
         self.kernel_size = kernel_size
 
-    @shape_type_conversion
     def build(self, input_shape):
         self.channels = [shape[-1] for shape in input_shape]
         if None in self.channels:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+            raise ValueError(
+                "Channel dimension of the inputs should be defined. Found `None`."
+            )
         self.input_spec = [
-            layers.InputSpec(ndim=4, axes={-1: self.channels[0]}),
-            layers.InputSpec(ndim=4, axes={-1: self.channels[1]})]
+            InputSpec(ndim=4, axes={-1: self.channels[0]}),
+            InputSpec(ndim=4, axes={-1: self.channels[1]}),
+        ]
 
-        self.internear = NearestInterpolation()
+        self.internear = NearestInterpolation(dtype=self.dtype_policy)
 
-        self.group_size = self.channels[1] // (self.kernel_size ** 2)
-        if self.group_size < 1 or self.channels[1] != self.group_size * self.kernel_size ** 2:
-            raise ValueError('Wrong mask channel dimension.')
+        self.group_size = self.channels[1] // (self.kernel_size**2)
+        if (
+            self.group_size < 1
+            or self.channels[1] != self.group_size * self.kernel_size**2
+        ):
+            raise ValueError("Wrong mask channel dimension.")
 
         if self.channels[0] % self.group_size:
-            raise ValueError('Unable to split features into groups.')
+            raise ValueError("Unable to split features into groups.")
 
         super().build(input_shape)
 
@@ -43,27 +50,49 @@ class CarafeConvolution(layers.Layer):
         output_shape = self.compute_output_shape([features.shape, masks.shape])
 
         features = tf.image.extract_patches(
-            features, [1, self.kernel_size, self.kernel_size, 1], [1] * 4, [1] * 4, 'SAME')
+            features,
+            [1, self.kernel_size, self.kernel_size, 1],
+            [1] * 4,
+            [1] * 4,
+            "SAME",
+        )
 
         if False and 1 == self.group_size:
             features = self.internear([features, masks])
-            features = tf.reshape(features, (batch, height, width, self.kernel_size ** 2, self.channels[0]))
+            features = tf.reshape(
+                features,
+                (batch, height, width, self.kernel_size**2, self.channels[0]),
+            )
 
             masks = tf.nn.softmax(masks)[..., None]
 
             outputs = tf.matmul(features, masks, transpose_a=True)
         else:
             features_shape0, _ = get_shape(features)
-            features_shape1 = features_shape0[:-1] + [self.kernel_size ** 2, self.channels[0]]
+            features_shape1 = features_shape0[:-1] + [
+                self.kernel_size**2,
+                self.channels[0],
+            ]
             features = tf.reshape(features, features_shape1)
             features = tf.transpose(features, [0, 1, 2, 4, 3])
             features = tf.reshape(features, features_shape0)
             features = self.internear([features, masks])
             features = tf.reshape(
                 features,
-                (batch, height, width, self.group_size, self.channels[0] // self.group_size, self.kernel_size ** 2))
+                (
+                    batch,
+                    height,
+                    width,
+                    self.group_size,
+                    self.channels[0] // self.group_size,
+                    self.kernel_size**2,
+                ),
+            )
 
-            masks = tf.reshape(masks, (batch, height, width, self.group_size, self.kernel_size ** 2))
+            masks = tf.reshape(
+                masks,
+                (batch, height, width, self.group_size, self.kernel_size**2),
+            )
             masks = tf.nn.softmax(masks)[..., None]
 
             outputs = tf.matmul(features, masks)
@@ -73,12 +102,11 @@ class CarafeConvolution(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[1][:-1] + (self.channels[0],)
 
     def get_config(self):
         config = super().get_config()
-        config.update({'kernel_size': self.kernel_size})
+        config.update({"kernel_size": self.kernel_size})
 
         return config
