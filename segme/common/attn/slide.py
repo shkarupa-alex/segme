@@ -1,14 +1,16 @@
 import numpy as np
 import tensorflow as tf
+from keras.src import backend
+from keras.src import constraints
 from keras.src import initializers
-from keras.src import layers, constraints, backend
+from keras.src import layers
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
+from segme.common.attn.mincon import MinConstraint
 from segme.common.attn.relbias import RelativeBias
 from segme.common.convnormact import Conv
 from segme.common.shape import get_shape
-from segme.common.attn.mincon import MinConstraint
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -39,11 +41,13 @@ class SlideAttention(layers.Layer):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
         if self.channels % self.num_heads:
             raise ValueError(
-                "Channel dimensions of the inputs should be a multiple of the number of heads."
+                "Channel dimensions of the inputs should be a multiple of "
+                "the number of heads."
             )
 
         self.v_units = self.channels // self.num_heads
@@ -54,11 +58,16 @@ class SlideAttention(layers.Layer):
                 i for i in range(1, self.v_units + 1) if not self.v_units % i
             ]
             raise ValueError(
-                f"Provided QK units value is not supported. Allowed values are: {qk_allowed}."
+                f"Provided QK units value is not supported. Allowed values "
+                f"are: {qk_allowed}."
             )
 
         self.qkv = Conv(
-            self.qk_channels * 2 + self.channels, 1, use_bias=False, name="qkv", dtype=self.dtype_policy
+            self.qk_channels * 2 + self.channels,
+            1,
+            use_bias=False,
+            name="qkv",
+            dtype=self.dtype_policy,
         )
         self.qkv.build(input_shape)
 
@@ -108,11 +117,18 @@ class SlideAttention(layers.Layer):
             self.window_size,
             self.num_heads,
             cpb_units=self.cpb_units,
-            name="rel_bias", dtype=self.dtype_policy
+            name="rel_bias",
+            dtype=self.dtype_policy,
         )
         self.rel_bias.build(None)
 
-        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name="proj", dtype=self.dtype_policy)
+        self.proj = Conv(
+            self.channels,
+            1,
+            use_bias=self.proj_bias,
+            name="proj",
+            dtype=self.dtype_policy,
+        )
         self.proj.build(input_shape)
 
         super().build(input_shape)
@@ -251,11 +267,19 @@ class DeformableConstraint(constraints.Constraint):
     def __call__(self, w):
         w = backend.convert_to_tensor(w)
 
-        if 4 != len(w.shape) or self.window_size != self.static_mask.shape[0] or self.window_size != self.static_mask.shape[1] or self.window_size ** 2 != self.static_mask.shape[3]:
+        if (
+            4 != len(w.shape)
+            or self.window_size != self.static_mask.shape[0]
+            or self.window_size != self.static_mask.shape[1]
+            or self.window_size**2 != self.static_mask.shape[3]
+        ):
             raise ValueError(
-                f"Expecting weight shape to be ({self.window_size}, {self.window_size}, *, {self.window_size ** 2}), got {w.shape}")
+                f"Expecting weight shape to be ({self.window_size}, "
+                f"{self.window_size}, *, {self.window_size ** 2}), "
+                f"got {w.shape}"
+            )
 
         return tf.where(self.static_mask, 1.0, w)
 
     def get_config(self):
-        return {'window_size': self.window_size}
+        return {"window_size": self.window_size}

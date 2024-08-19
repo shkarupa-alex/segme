@@ -1,12 +1,10 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.fba import FBAFusion
 
 
 class TestFBAFusion(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -24,9 +22,9 @@ class TestFBAFusion(testing.TestCase):
             ),
             input_dtype=("float32",) * 4,
             expected_output_shape=(
-                (2,128, 128, 3),
-                (2,128, 128, 3),
-                (2,128, 128, 1),
+                (2, 128, 128, 3),
+                (2, 128, 128, 3),
+                (2, 128, 128, 1),
             ),
             expected_output_dtype=("float32",) * 3,
         )
@@ -45,9 +43,9 @@ class TestFBAFusion(testing.TestCase):
             ),
             input_dtype=("float32",) * 4,
             expected_output_shape=(
-                (2,128, 128, 3),
-                (2,128, 128, 3),
-                (2,128, 128, 1),
+                (2, 128, 128, 3),
+                (2, 128, 128, 3),
+                (2, 128, 128, 1),
             ),
             expected_output_dtype=("float32",) * 3,
         )

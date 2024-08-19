@@ -16,7 +16,8 @@ class Fold(layers.Layer):
         channels = input_shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         super().build(input_shape)
@@ -55,11 +56,13 @@ class UnFold(layers.Layer):
         channels = input_shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
         if channels % self.size**2:
             raise ValueError(
-                "Channel size must be divisible by unfold size^2 without reminder."
+                "Channel size must be divisible by unfold size^2 "
+                "without reminder."
             )
 
         super().build(input_shape)

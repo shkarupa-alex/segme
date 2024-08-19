@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-from tf_keras import backend
+from keras.src import backend
 from tensorflow_hub import KerasLayer
 
 
@@ -10,14 +10,23 @@ class Refiner:
         self.model = KerasLayer(hub_uri, trainable=False)
 
         self.image = tf.Variable(
-            trainable=False, shape=(1, None, None, 3), dtype='uint8',
-            initial_value=np.zeros((1, 0, 0, 3)).astype('uint8'))
+            trainable=False,
+            shape=(1, None, None, 3),
+            dtype="uint8",
+            initial_value=np.zeros((1, 0, 0, 3)).astype("uint8"),
+        )
         self.mask = tf.Variable(
-            trainable=False, shape=(1, None, None, 1), dtype='uint8',
-            initial_value=np.zeros((1, 0, 0, 1)).astype('uint8'))
+            trainable=False,
+            shape=(1, None, None, 1),
+            dtype="uint8",
+            initial_value=np.zeros((1, 0, 0, 1)).astype("uint8"),
+        )
         self.prev = tf.Variable(
-            trainable=False, shape=(1, None, None, 1), dtype='uint8',
-            initial_value=np.zeros((1, 0, 0, 1)).astype('uint8'))
+            trainable=False,
+            shape=(1, None, None, 1),
+            dtype="uint8",
+            initial_value=np.zeros((1, 0, 0, 1)).astype("uint8"),
+        )
 
     def __call__(self, image, mask, fast=None, max_size=960, up_scale=1):
         if fast is None:
@@ -27,8 +36,8 @@ class Refiner:
         if fast:
             return fine
 
-        fine = (fine > 127).astype('uint8') * 255
-        coarse = (coarse > 127).astype('uint8') * 255
+        fine = (fine > 127).astype("uint8") * 255
+        coarse = (coarse > 127).astype("uint8") * 255
 
         fine = self._local_step(image, fine, coarse, max_size, up_scale)
 
@@ -38,21 +47,31 @@ class Refiner:
         height_width = image.shape[:2]
 
         if max(height_width) < max_size:
-            image = Refiner._resize_max_side(image, max_size, cv2.INTER_LANCZOS4)
+            image = Refiner._resize_max_side(
+                image, max_size, cv2.INTER_LANCZOS4
+            )
             mask = Refiner._resize_max_side(mask, max_size, cv2.INTER_LANCZOS4)
         elif max(height_width) > max_size:
             image = Refiner._resize_max_side(image, max_size, cv2.INTER_AREA)
             mask = Refiner._resize_max_side(mask, max_size, cv2.INTER_AREA)
-        mask = (mask > 127).astype('uint8') * 255
+        mask = (mask > 127).astype("uint8") * 255
 
         fine, coarse = self._safe_predict(image, mask)
 
         if max(height_width) < max_size:
-            fine = Refiner._resize_fixed_size(fine, height_width, interpolation=cv2.INTER_AREA)
-            coarse = Refiner._resize_fixed_size(coarse, height_width, interpolation=cv2.INTER_AREA)
+            fine = Refiner._resize_fixed_size(
+                fine, height_width, interpolation=cv2.INTER_AREA
+            )
+            coarse = Refiner._resize_fixed_size(
+                coarse, height_width, interpolation=cv2.INTER_AREA
+            )
         elif max(height_width) > max_size:
-            fine = Refiner._resize_fixed_size(fine, height_width, interpolation=cv2.INTER_LANCZOS4)
-            coarse = Refiner._resize_fixed_size(coarse, height_width, interpolation=cv2.INTER_LANCZOS4)
+            fine = Refiner._resize_fixed_size(
+                fine, height_width, interpolation=cv2.INTER_LANCZOS4
+            )
+            coarse = Refiner._resize_fixed_size(
+                coarse, height_width, interpolation=cv2.INTER_LANCZOS4
+            )
 
         return fine, coarse
 
@@ -64,9 +83,11 @@ class Refiner:
             up_size = round(up_size)
             image = Refiner._resize_max_side(image, up_size, cv2.INTER_LANCZOS4)
             fine = Refiner._resize_max_side(fine, up_size, cv2.INTER_LANCZOS4)
-            fine = (fine > 127).astype('uint8') * 255
-            coarse = Refiner._resize_max_side(coarse, up_size, cv2.INTER_LANCZOS4)
-            coarse = (coarse > 127).astype('uint8') * 255
+            fine = (fine > 127).astype("uint8") * 255
+            coarse = Refiner._resize_max_side(
+                coarse, up_size, cv2.INTER_LANCZOS4
+            )
+            coarse = (coarse > 127).astype("uint8") * 255
 
         height, width = fine.shape[:2]
         grid_mask = np.zeros_like(fine, dtype=np.uint32)
@@ -110,7 +131,9 @@ class Refiner:
                 part_mean = (part_mask > 127).astype(np.float32).mean()
                 if part_mean > 0.9 or part_mean < 0.1:
                     continue
-                grid_fine, _ = self._safe_predict(part_image, part_mask, part_prev)
+                grid_fine, _ = self._safe_predict(
+                    part_image, part_mask, part_prev
+                )
 
                 # Padding
                 pred_sx = pred_sy = 0
@@ -130,36 +153,42 @@ class Refiner:
                     end_y -= padding
                     pred_ey -= padding
 
-                grid_mask[start_y:end_y, start_x:end_x] += grid_fine[pred_sy:pred_ey, pred_sx:pred_ex]
+                grid_mask[start_y:end_y, start_x:end_x] += grid_fine[
+                    pred_sy:pred_ey, pred_sx:pred_ex
+                ]
                 grid_weight[start_y:end_y, start_x:end_x] += 1
 
         # Final full resolution output
         grid_weight_ = grid_weight.astype(np.float32) + backend.epsilon()
-        grid_mask = np.round(grid_mask.astype(np.float32) / grid_weight_).astype(np.uint8)
+        grid_mask = np.round(
+            grid_mask.astype(np.float32) / grid_weight_
+        ).astype(np.uint8)
         fine = np.where(grid_weight == 0, fine, grid_mask)
 
         if up_scale > 1:
-            fine = Refiner._resize_fixed_size(fine, src_shape, interpolation=cv2.INTER_AREA)
+            fine = Refiner._resize_fixed_size(
+                fine, src_shape, interpolation=cv2.INTER_AREA
+            )
 
         return fine
 
     def _safe_predict(self, image, mask, prev=None):
         if len(image.shape) != 3:
-            raise ValueError('Wrong image supplied')
-        if image.dtype != 'uint8':
-            raise ValueError('Wrong image dtype')
+            raise ValueError("Wrong image supplied")
+        if image.dtype != "uint8":
+            raise ValueError("Wrong image dtype")
         if len(mask.shape) != 2:
-            raise ValueError('Wrong mask supplied')
-        if mask.dtype != 'uint8':
-            raise ValueError('Wrong mask dtype')
+            raise ValueError("Wrong mask supplied")
+        if mask.dtype != "uint8":
+            raise ValueError("Wrong mask dtype")
         if set(np.unique(mask)) - {0, 255}:
-            raise ValueError('Wrong mask values')
+            raise ValueError("Wrong mask values")
         if prev is not None and len(prev.shape) != 2:
-            raise ValueError('Wrong prev supplied')
-        if prev is not None and prev.dtype != 'uint8':
-            raise ValueError('Wrong prev dtype')
+            raise ValueError("Wrong prev supplied")
+        if prev is not None and prev.dtype != "uint8":
+            raise ValueError("Wrong prev dtype")
         if prev is not None and set(np.unique(prev)) - {0, 255}:
-            raise ValueError('Wrong prev values')
+            raise ValueError("Wrong prev values")
 
         height, width = image.shape[:2]
         h_pad = (24 - height % 24) % 24
@@ -167,14 +196,19 @@ class Refiner:
 
         _image = np.pad(image, ((0, h_pad), (0, w_pad), (0, 0)))
         _mask = np.pad(mask, ((0, h_pad), (0, w_pad)))
-        _prev = _mask if prev is None else np.pad(prev, ((0, h_pad), (0, w_pad)))
+        _prev = (
+            _mask if prev is None else np.pad(prev, ((0, h_pad), (0, w_pad)))
+        )
 
         self.image.assign(_image[None])
         self.mask.assign(_mask[None, ..., None])
         self.prev.assign(_prev[None, ..., None])
 
         fine, coarse = self.model([self.image, self.mask, self.prev])
-        fine, coarse = fine[0, :height, :width, 0], coarse[0, :height, :width, 0]
+        fine, coarse = (
+            fine[0, :height, :width, 0],
+            coarse[0, :height, :width, 0],
+        )
         fine = np.round(fine.numpy() * 255).astype(np.uint8)
         coarse = np.round(coarse.numpy() * 255).astype(np.uint8)
 
@@ -183,17 +217,21 @@ class Refiner:
     @staticmethod
     def _resize_max_side(image, max_size, interpolation=cv2.INTER_LINEAR):
         if len(image.shape) > 3 or len(image.shape) < 2:
-            raise ValueError('Wrong image supplied')
+            raise ValueError("Wrong image supplied")
 
         aspect = max_size / max(image.shape[:2])
 
-        return cv2.resize(image, (0, 0), fx=aspect, fy=aspect, interpolation=interpolation)
+        return cv2.resize(
+            image, (0, 0), fx=aspect, fy=aspect, interpolation=interpolation
+        )
 
     @staticmethod
     def _resize_fixed_size(image, height_width, interpolation=cv2.INTER_LINEAR):
         if len(image.shape) > 3 or len(image.shape) < 2:
-            raise ValueError('Wrong image supplied')
+            raise ValueError("Wrong image supplied")
         if len(height_width) != 2:
-            raise ValueError('Wrong desired size supplied')
+            raise ValueError("Wrong desired size supplied")
 
-        return cv2.resize(image, height_width[::-1], interpolation=interpolation)
+        return cv2.resize(
+            image, height_width[::-1], interpolation=interpolation
+        )

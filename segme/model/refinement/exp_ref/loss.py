@@ -1,5 +1,8 @@
-from segme.loss import CrossEntropyLoss, MeanAbsoluteClassificationError, MeanSquaredClassificationError, \
-    SobelEdgeLoss, WeightedLossFunctionWrapper
+from segme.loss import CrossEntropyLoss
+from segme.loss import MeanAbsoluteClassificationError
+from segme.loss import MeanSquaredClassificationError
+from segme.loss import SobelEdgeLoss
+from segme.loss import WeightedLossFunctionWrapper
 
 
 def _loss_8(y_true, y_pred, sample_weight=None):
@@ -7,15 +10,19 @@ def _loss_8(y_true, y_pred, sample_weight=None):
 
 
 def _loss_4(y_true, y_pred, sample_weight=None):
-    return 0.5 * CrossEntropyLoss()(y_true, y_pred, sample_weight) + \
-           0.5 * MeanAbsoluteClassificationError()(y_true, y_pred, sample_weight) + \
-           0.5 * MeanSquaredClassificationError()(y_true, y_pred, sample_weight)
+    return (
+        0.5 * CrossEntropyLoss()(y_true, y_pred, sample_weight)
+        + 0.5 * MeanAbsoluteClassificationError()(y_true, y_pred, sample_weight)
+        + 0.5 * MeanSquaredClassificationError()(y_true, y_pred, sample_weight)
+    )
 
 
 def _loss_2(y_true, y_pred, sample_weight=None):
-    return 1.0 * MeanAbsoluteClassificationError()(y_true, y_pred, sample_weight) + \
-           0.5 * MeanSquaredClassificationError()(y_true, y_pred, sample_weight) + \
-           2.0 * SobelEdgeLoss()(y_true, y_pred, sample_weight)
+    return (
+        1.0 * MeanAbsoluteClassificationError()(y_true, y_pred, sample_weight)
+        + 0.5 * MeanSquaredClassificationError()(y_true, y_pred, sample_weight)
+        + 2.0 * SobelEdgeLoss()(y_true, y_pred, sample_weight)
+    )
 
 
 def total_losses():

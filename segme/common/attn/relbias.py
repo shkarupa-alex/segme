@@ -69,14 +69,14 @@ class RelativeBias(layers.Layer):
                     activation="relu",
                     kernel_initializer="he_uniform",
                     name="expand",
-                    dtype=self.dtype_policy
+                    dtype=self.dtype_policy,
                 ),
                 layers.Dense(
                     self.num_heads,
                     activation="sigmoid",
                     use_bias=False,
                     name="squeeze",
-                    dtype=self.dtype_policy
+                    dtype=self.dtype_policy,
                 ),
             ],
             name="cpb",

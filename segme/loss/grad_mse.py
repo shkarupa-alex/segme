@@ -5,16 +5,19 @@ from keras.src.saving import register_keras_serializable
 
 from segme.loss.common_loss import validate_input
 from segme.loss.common_loss import weighted_loss
-
-from segme.metric.matting.grad import _togray, _gauss_filter, _gauss_gradient
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
+from segme.metric.matting.grad import _gauss_filter
+from segme.metric.matting.grad import _gauss_gradient
+from segme.metric.matting.grad import _togray
 
 
 @register_keras_serializable(package="SegMe>Loss")
 class GradientMeanSquaredError(WeightedLossFunctionWrapper):
     """Proposed in: 'Learning-based Sampling for Natural Image Matting'
 
-    Implements Equation [7] in https://openaccess.thecvf.com/content_CVPR_2019/papers/Tang_Learning-Based_Sampling_for_Natural_Image_Matting_CVPR_2019_paper.pdf
+    Implements Equation [7] in https://openaccess.thecvf.com/
+    content_CVPR_2019/papers/
+    Tang_Learning-Based_Sampling_for_Natural_Image_Matting_CVPR_2019_paper.pdf
     """
 
     def __init__(

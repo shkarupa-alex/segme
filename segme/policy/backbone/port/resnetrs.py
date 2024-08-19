@@ -1,15 +1,15 @@
+import sys
 from functools import partial
 
-import sys
 import tensorflow as tf
 from keras.src import backend
 from keras.src import layers
 from keras.src import models
 from keras.src.applications import imagenet_utils
-
 from keras.src.dtype_policies import dtype_policy
 from keras.src.ops import operation_utils
 from keras.src.utils import file_utils
+from keras.src.utils import naming
 
 from segme.common.convnormact import Act
 from segme.common.convnormact import Conv
@@ -112,6 +112,7 @@ CONV_KERNEL_INITIALIZER = {
 }
 
 CONV_KWARGS = {"use_bias": False, "kernel_initializer": CONV_KERNEL_INITIALIZER}
+
 
 def get_survival_probability(init_rate, block_num, total_blocks):
     """Get survival probability based on block number and initial rate."""
@@ -309,16 +310,19 @@ def ResNetRS(
         weights in {*weights_allow_list, None} or tf.io.gfile.exists(weights)
     ):
         raise ValueError(
-            "The `weights` argument should be either `None` (random initialization), `imagenet` (pre-training on "
-            "ImageNet, with highest available input shape), or the path to the weights file to be loaded. "
-            f"For ResNetRS{depth} the following weight variants are available {weights_allow_list} (default=highest). "
-            f"Received weights={weights}"
+            f"The `weights` argument should be either `None` (random "
+            f"initialization), `imagenet` (pre-training on ImageNet, with "
+            f"highest available input shape), or the path to the weights file "
+            f"to be loaded. For ResNetRS{depth} the following weight variants "
+            f"are available {weights_allow_list} (default=highest). Received "
+            f"weights={weights}"
         )
 
     if weights in weights_allow_list and include_top and classes != 1000:
         raise ValueError(
-            f"If using `weights` as `imagenet` or any of {weights_allow_list} with `include_top` as true, "
-            f"`classes` should be 1000. Received classes={classes}"
+            f"If using `weights` as `imagenet` or any of {weights_allow_list} "
+            f"with `include_top` as true, `classes` should be 1000. Received "
+            f"classes={classes}"
         )
 
     input_shape = imagenet_utils.obtain_input_shape(

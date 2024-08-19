@@ -1,28 +1,33 @@
 import tensorflow as tf
-from tf_keras import backend, layers, models
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.control_flow_util import smart_cond
-from tf_keras.src.utils.tf_utils import shape_type_conversion
-from segme.common.convnormact import Conv, Act
+from keras.src import layers
+from keras.src import models
+from keras.src import ops
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
+
+from segme.common.convnormact import Act
+from segme.common.convnormact import Conv
+from segme.common.head import ClassificationActivation
+from segme.common.head import HeadProjection
 from segme.common.ppm import PyramidPooling
-from segme.common.sequence import Sequence
-from segme.common.head import HeadProjection, ClassificationActivation
 from segme.common.resize import BilinearInterpolation
-from segme.model.refinement.cascade_psp.upsample import Upsample
+from segme.common.sequence import Sequence
 from segme.model.refinement.cascade_psp.encoder import Encoder
+from segme.model.refinement.cascade_psp.upsample import Upsample
 
 
-@register_keras_serializable(package='SegMe>Model>Refinement>CascadePSP')
+@register_keras_serializable(package="SegMe>Model>Refinement>CascadePSP")
 class CascadePSP(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
-            layers.InputSpec(ndim=4, axes={-1: 3}, dtype='uint8'),  # image
-            layers.InputSpec(ndim=4, axes={-1: 1}, dtype='uint8'),  # mask
-            layers.InputSpec(ndim=4, axes={-1: 1}, dtype='uint8'),  # previous prediction
+            InputSpec(ndim=4, axes={-1: 3}, dtype="uint8"),  # image
+            InputSpec(ndim=4, axes={-1: 1}, dtype="uint8"),  # mask
+            InputSpec(
+                ndim=4, axes={-1: 1}, dtype="uint8"
+            ),  # previous prediction
         ]
 
-    @shape_type_conversion
     def build(self, input_shape):
         self.bone = Encoder()
         self.intbysamp = BilinearInterpolation(None)
@@ -33,33 +38,20 @@ class CascadePSP(layers.Layer):
         self.up2 = Upsample(256)
         self.up3 = Upsample(32)
 
-        self.final8 = Sequence([
-            Conv(32, 1),
-            Act(),
-            HeadProjection(1)
-        ])
+        self.final8 = Sequence([Conv(32, 1), Act(), HeadProjection(1)])
 
-        self.final4 = Sequence([
-            Conv(32, 1),
-            Act(),
-            HeadProjection(1)
-        ])
-        self.final1 = Sequence([
-            Conv(32, 1),
-            Act(),
-            HeadProjection(1)
-        ])
+        self.final4 = Sequence([Conv(32, 1), Act(), HeadProjection(1)])
+        self.final1 = Sequence([Conv(32, 1), Act(), HeadProjection(1)])
 
         self.act = ClassificationActivation()
 
         super().build(input_shape)
 
-    def call(self, inputs, training=None, **kwargs):
-        if training is None:
-            training = backend.learning_phase()
-
+    def call(self, inputs, training=False, **kwargs):
         image, mask, prev = inputs
-        no_prev = tf.logical_or(tf.cast(training, 'bool'), tf.reduce_all(tf.equal(mask, prev)))
+        no_prev = tf.logical_or(
+            tf.cast(training, "bool"), tf.reduce_all(tf.equal(mask, prev))
+        )
 
         image = tf.cast(image, self.compute_dtype)
         mask = tf.cast(mask, self.compute_dtype)
@@ -68,10 +60,11 @@ class CascadePSP(layers.Layer):
         """
         First iteration, s8 output
         """
-        pred_s8_1, scale_s8_1 = smart_cond(
+        pred_s8_1, scale_s8_1 = ops.cond(
             no_prev,
             lambda: self._estimate_s8(image, mask),
-            lambda: (tf.cast(prev / 255., 'float32'), tf.identity(prev)))
+            lambda: (tf.cast(prev / 255.0, "float32"), tf.identity(prev)),
+        )
 
         """
         Second iteration, s4 output
@@ -83,13 +76,13 @@ class CascadePSP(layers.Layer):
         mask_s8_2 = self.final8(out2_s8)
         mask_s8_2 = self.intbysamp([mask_s8_2, image])
         pred_s8_2 = self.act(mask_s8_2)
-        scale_s8_2 = tf.cast(pred_s8_2 * 255., self.compute_dtype)
+        scale_s8_2 = tf.cast(pred_s8_2 * 255.0, self.compute_dtype)
 
         out2_s4 = self.up1([out2_s8, feats4])
         mask_s4_2 = self.final4(out2_s4)
         mask_s4_2 = self.intbysamp([mask_s4_2, image])
         pred_s4_2 = self.act(mask_s4_2)
-        scale_s4_2 = tf.cast(pred_s4_2 * 255., self.compute_dtype)
+        scale_s4_2 = tf.cast(pred_s4_2 * 255.0, self.compute_dtype)
 
         """
         Third iteration, s1 output
@@ -117,7 +110,14 @@ class CascadePSP(layers.Layer):
         """
         Final output
         """
-        preds = [pred_s1_3, pred_s4_3, pred_s8_3, pred_s4_2, pred_s8_2, pred_s8_1]
+        preds = [
+            pred_s1_3,
+            pred_s4_3,
+            pred_s8_3,
+            pred_s4_2,
+            pred_s8_2,
+            pred_s8_1,
+        ]
 
         return preds
 
@@ -129,27 +129,29 @@ class CascadePSP(layers.Layer):
         mask_s8 = self.final8(out1)
         mask_s8 = self.intbysamp([mask_s8, image])
         pred_s8 = self.act(mask_s8)
-        scale_s8 = tf.cast(pred_s8 * 255., self.compute_dtype)
+        scale_s8 = tf.cast(pred_s8 * 255.0, self.compute_dtype)
 
         return pred_s8, scale_s8
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return [input_shape[0][:-1] + (1,)] * 6
 
     def compute_output_signature(self, input_signature):
         outptut_signature = super().compute_output_signature(input_signature)
 
-        return [tf.TensorSpec(dtype='float32', shape=os.shape) for os in outptut_signature]
+        return [
+            tf.TensorSpec(dtype="float32", shape=os.shape)
+            for os in outptut_signature
+        ]
 
 
 def build_cascade_psp():
     inputs = [
-        layers.Input(name='image', shape=[None, None, 3], dtype='uint8'),
-        layers.Input(name='mask', shape=[None, None, 1], dtype='uint8'),
-        layers.Input(name='prev', shape=[None, None, 1], dtype='uint8'),
+        layers.Input(name="image", shape=(None, None, 3), dtype="uint8"),
+        layers.Input(name="mask", shape=(None, None, 1), dtype="uint8"),
+        layers.Input(name="prev", shape=(None, None, 1), dtype="uint8"),
     ]
     outputs = CascadePSP()(inputs)
-    model = models.Model(inputs=inputs, outputs=outputs, name='cascade_psp')
+    model = models.Model(inputs=inputs, outputs=outputs, name="cascade_psp")
 
     return model

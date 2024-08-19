@@ -4,9 +4,10 @@ from keras.src import layers
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 from keras.src.utils.argument_validation import standardize_tuple
-# from keras.src.utils.control_flow_util import ops.cond
 
 from segme.common.shape import get_shape
+
+# from keras.src.utils.control_flow_util import ops.cond
 
 
 @register_keras_serializable(package="SegMe>Common")

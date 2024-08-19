@@ -8,7 +8,8 @@ from keras.src import models
 from keras.src.applications import imagenet_utils
 from keras.src.dtype_policies import dtype_policy
 from keras.src.ops import operation_utils
-from keras.src.utils import file_utils, naming
+from keras.src.utils import file_utils
+from keras.src.utils import naming
 
 from segme.common.attn.swin import SwinAttention
 from segme.common.convnormact import Act
@@ -78,7 +79,8 @@ def MLP(expand_ratio=4.0, path_drop=0.0, gamma_initializer="ones", name=None):
         channels = inputs.shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         expand_filters = int(channels * expand_ratio)
@@ -115,7 +117,8 @@ def AttnBlock(
         channels = inputs.shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         x = SwinAttention(
@@ -271,7 +274,8 @@ def HardSwin(
             x = layers.Flatten(name="ma_flat")(x)
         else:
             raise ValueError(
-                f"Expecting pooling to be one of None/avg/max/ma. Found: {pooling}"
+                f"Expecting pooling to be one of None/avg/max/ma. "
+                f"Found: {pooling}"
             )
 
         imagenet_utils.validate_activation(classifier_activation, weights)

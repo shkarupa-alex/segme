@@ -1,7 +1,5 @@
 import unittest
 
-import tensorflow as tf
-
 from segme.policy.cnapol import ConvNormActPolicy
 from segme.policy.cnapol import default_policy
 from segme.policy.cnapol import deserialize

@@ -1,8 +1,9 @@
 import copy
 import inspect
 
-from keras.src import layers, api_export
-from keras.src.saving import get_registered_object, serialization_lib
+from keras.src import api_export
+from keras.src import layers
+from keras.src.saving import get_registered_object
 
 
 class Registry:
@@ -26,7 +27,6 @@ class Registry:
             raise ValueError(f"Expected key be a string, got {key}")
 
         if key in self.__registry:
-            old = self.__registry[key]
             raise ValueError(f'Key "{key}" already registered')
 
     def __getitem__(self, key):
@@ -54,11 +54,11 @@ class LayerRegistry(Registry):
         elif inspect.isclass(value):
             if not issubclass(value, layers.Layer):
                 raise ValueError(
-                    f"Expected keras.src.layers.Layer subclass, got {value}"
+                    f"Expected keras.layers.Layer subclass, got {value}"
                 )
         else:
             raise ValueError(
-                f"Only serialized layer config and keras.src.layers.Layer subclass "
+                f"Only serialized layer config and keras.layers.Layer subclass "
                 f"can be registered, got {value}"
             )
 
@@ -103,7 +103,7 @@ class LayerRegistry(Registry):
                 raise ValueError(f"Can't find class for {value}")
         else:
             raise ValueError(
-                f"Only serialized layer config and keras.src.layers.Layer subclass "
+                f"Only serialized layer config and keras.layers.Layer subclass "
                 f'can be registered, got {value} for key "{key}"'
             )
 

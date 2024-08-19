@@ -7,7 +7,6 @@ from keras.src import testing
 from segme.loss.clip_foundation import ClipFoundationLoss
 from segme.loss.clip_foundation import clip_foundation_loss
 from segme.loss.tests.test_common_loss import MULTI_LOGITS
-from segme.loss.tests.test_common_loss import MULTI_TARGETS
 from segme.loss.tests.test_common_loss import MULTI_WEIGHTS
 
 
@@ -140,7 +139,8 @@ class TestClipFoundationLoss(testing.TestCase):
     #
     #     loss = ClipFoundationLoss()
     #     result0 = loss(targets, probs)
-    #     result1 = sum([loss(targets[i:i + 1], probs[i:i + 1]) for i in range(2)]) / 2
+    #     result1 = sum([
+    #       loss(targets[i:i + 1], probs[i:i + 1]) for i in range(2)]) / 2
     #
     #     self.assertAlmostEqual(result0, result1, decimal=6)
 
@@ -148,7 +148,6 @@ class TestClipFoundationLoss(testing.TestCase):
         model = models.Sequential([layers.Dense(4, activation="linear")])
         model.compile(
             loss="SegMe>Loss>ClipFoundationLoss",
-            
         )
         model.fit(np.zeros((2, 8, 8, 4)), np.zeros((2, 8, 8, 8), "float32"))
         models.Sequential.from_config(model.get_config())

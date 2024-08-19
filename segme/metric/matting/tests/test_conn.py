@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-import tensorflow as tf
-from keras.src import backend, testing
+from keras.src import backend
+from keras.src import testing
 
 from segme.metric.matting.conn import Conn
 
@@ -51,8 +51,9 @@ class TestConn(testing.TestCase):
             pred[None, ..., None],
             trim[None, ..., None],
         )
-        # originally 7.3960791, but due to same size of some components and different algorithms
-        # tf and matlab Connected Component choose different main object at this particular image
+        # originally 7.3960791, but due to same size of some components and
+        # different algorithms TF and MatLab Connected Component choose
+        # different main object at this particular image
         self.assertAlmostEqual(metric.result(), 0.007499468, decimal=8)
 
     def test_unweighted(self):

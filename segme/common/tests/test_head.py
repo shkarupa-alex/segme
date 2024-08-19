@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.head import ClassificationActivation
@@ -9,7 +8,6 @@ from segme.common.head import HeadProjection
 
 
 class TestHeadProjection(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -31,7 +29,6 @@ class TestHeadProjection(testing.TestCase):
 
 
 class TestClassificationActivation(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -40,7 +37,7 @@ class TestClassificationActivation(testing.TestCase):
             input_shape=(2, 16, 16, 3),
             input_dtype="float32",
             expected_output_shape=(2, 16, 16, 3),
-            expected_output_dtype="float32"
+            expected_output_dtype="float32",
         )
         self.run_layer_test(
             ClassificationActivation,
@@ -48,12 +45,11 @@ class TestClassificationActivation(testing.TestCase):
             input_shape=(2, 16, 16, 1),
             input_dtype="float32",
             expected_output_shape=(2, 16, 16, 1),
-            expected_output_dtype="float32"
+            expected_output_dtype="float32",
         )
 
 
 class TestClassificationHead(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -67,7 +63,7 @@ class TestClassificationHead(testing.TestCase):
             input_dtype="float32",
             expected_output_shape=(2, 16, 16, 2),
             expected_output_dtype="float32",
-            run_mixed_precision_check=False
+            run_mixed_precision_check=False,
         )
         self.run_layer_test(
             ClassificationHead,
@@ -80,7 +76,7 @@ class TestClassificationHead(testing.TestCase):
             input_dtype="float16",
             expected_output_shape=(2, 16, 16, 1),
             expected_output_dtype="float32",
-            run_mixed_precision_check=False
+            run_mixed_precision_check=False,
         )
         self.run_layer_test(
             ClassificationHead,
@@ -93,7 +89,7 @@ class TestClassificationHead(testing.TestCase):
             input_dtype="float16",
             expected_output_shape=(2, 16, 16, 4),
             expected_output_dtype="float32",
-            run_mixed_precision_check=False
+            run_mixed_precision_check=False,
         )
         self.run_layer_test(
             ClassificationHead,
@@ -107,12 +103,11 @@ class TestClassificationHead(testing.TestCase):
             input_dtype="float16",
             expected_output_shape=(2, 16, 16, 4),
             expected_output_dtype="float32",
-            run_mixed_precision_check=False
+            run_mixed_precision_check=False,
         )
 
 
 class TestClassificationUncertainty(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(

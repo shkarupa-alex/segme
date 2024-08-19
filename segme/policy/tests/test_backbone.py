@@ -1,8 +1,5 @@
 import unittest
 
-import numpy as np
-import tensorflow as tf
-
 from segme.policy.backbone.backbone import BACKBONES
 
 

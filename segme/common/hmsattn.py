@@ -1,127 +1,99 @@
-from keras.src import backend
+import keras
 from keras.src import layers
-from keras.src.layers.input_spec import InputSpec
-from keras.src.saving import register_keras_serializable
-# from keras.src.utils.control_flow_util import ops.cond
+from keras.src import models
 
 from segme.common.convnormact import ConvNormAct
 from segme.common.resize import BilinearInterpolation
 from segme.common.sequence import Sequence
 
 
-@register_keras_serializable(package="SegMe>Common")
-class HierarchicalMultiScaleAttention(layers.Wrapper):
-    """Proposed in: https://arxiv.org/abs/2005.10821
+def HierarchicalMultiScaleAttention(
+    model, features, logits, scales, filters=256, dropout=0.0
+):
+    if not isinstance(model, keras.Model):
+        raise ValueError(
+            f"Expecting teacher model to be an instance of `keras.Model`. "
+            f"Got: {type(model)}"
+        )
 
-    Arguments:
-      layer: The `Layer` instance to be wrapped.
-    """
+    scales = sorted({1.0} | set(scales), reverse=True)
+    if len(scales) < 2:
+        raise ValueError(
+            "Expecting `scales` to have at least one more scale except `1`."
+        )
 
-    def __init__(
-        self,
-        layer,
-        scales=((0.5,), (0.25, 0.5, 2.0)),
-        filters=256,
-        dropout=0.0,
-        **kwargs
-    ):
-        super().__init__(layer, **kwargs)
-        self.input_spec = InputSpec(ndim=4)
-        self.scales = scales
-        self.filters = filters
-        self.dropout = dropout
+    model = models.Model(
+        inputs=model.inputs[0],
+        outputs=(
+            model.get_layer(name=features).output,
+            model.get_layer(name=logits).output,
+        ),
+    )
 
-        if 2 != len(scales) or not all(
-            [isinstance(s, (list, tuple)) for s in scales]
-        ):
-            raise ValueError(
-                "Expecting `scales` to be a train/eval pair of scale lists/tuples."
-            )
+    inputs = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
 
-        self.train_scales = sorted({1.0} | set(scales[0]), reverse=True)
-        self.eval_scales = sorted({1.0} | set(scales[1]), reverse=True)
+    outputs = None
+    for i, scale in enumerate(scales):
+        _inputs = BilinearInterpolation(scale, name=f"resize_inputs{i}")(inputs)
+        _features, _logits = model(_inputs)
 
-        if len(self.train_scales) < 2 or len(self.eval_scales) < 2:
-            raise ValueError(
-                "Expecting `scales` to have at least one more scale except `1`."
-            )
+        if outputs is None:
+            outputs = _logits
+            continue
 
-    def build(self, input_shape=None):
-        if not self.layer.built:
-            self.layer.build(input_shape)
-            self.layer.built = True
-        current_shape = self.layer.compute_output_shape(input_shape)
-
-        self.attention = Sequence(
+        _attention = Sequence(
             [
-                ConvNormAct(self.filters, 3, name="cna0", dtype=self.dtype_policy),
-                ConvNormAct(self.filters, 3, name="cna1", dtype=self.dtype_policy),
-                layers.Dropout(self.dropout, name="drop", dtype=self.dtype_policy),
+                ConvNormAct(filters, 3, name=f"attention{i}_cna1"),
+                ConvNormAct(filters, 3, name=f"attention{i}_cna2"),
+                layers.Dropout(dropout, name=f"attention{i}_drop"),
                 layers.Conv2D(
-                    1, 1, activation="sigmoid", use_bias=False, name="proj", dtype=self.dtype_policy
+                    1,
+                    1,
+                    activation="sigmoid",
+                    use_bias=False,
+                    name=f"attention{i}_proj",
                 ),
             ],
-            name="attention", dtype=self.dtype_policy
-        )
-        self.attention.build(current_shape[1])
-
-        self.intbyscale = {
-            str(scale): BilinearInterpolation(scale, dtype=self.dtype_policy)
-            for scale in set(self.train_scales + self.eval_scales)
-        }
-        self.intbysample = BilinearInterpolation(None, dtype=self.dtype_policy)
-
-        super().build(input_shape)
-
-    def call(self, inputs, training=False, **kwargs):
-        return self._branch(inputs, self.train_scales if training else self.eval_scales)
-
-    def _branch(self, inputs, scales):
-        outputs = None
-
-        for scale in scales:  # TODO: check order
-            _inputs = self.intbyscale[str(scale)](
-                inputs
-            )  # TODO: bicubic? +antialiasing?
-            _outputs, _features = self.layer.call(_inputs)
-            _outputs = self.intbysample([_outputs, _inputs])
-
-            if outputs is None:
-                # store largest
-                outputs = _outputs
-                continue
-
-            _attention = self.attention(_features)
-            _attention = self.intbysample([_attention, _inputs])
-
-            if scale >= 1.0:
-                # downscale previous
-                outputs = self.intbysample([outputs, _outputs])
-                outputs = _attention * _outputs + (1.0 - _attention) * outputs
-            else:
-                # upscale current
-                _outputs = _attention * _outputs
-                _outputs = self.intbysample([_outputs, outputs])
-                _attention = self.intbysample([_attention, outputs])
-
-                outputs = _outputs + (1 - _attention) * outputs
-
-        return outputs
-
-    def compute_output_shape(self, input_shape):
-        return (
-            input_shape[:-1]
-            + self.layer.compute_output_shape(input_shape)[0][-1:]
+            name=f"attention{i}",
+        )(_features)
+        _attention = BilinearInterpolation(None, name=f"resize_attention{i}")(
+            [_attention, _inputs]
         )
 
-    def get_config(self):
-        config = super().get_config()
-        config.update(
-            {
-                "scales": self.scales,
-                "filters": self.filters,
-                "dropout": self.dropout,
-            }
-        )
+        if scale >= 1.0:
+            # downscale previous
+            outputs = BilinearInterpolation(None, name=f"resize_outputs{i}")(
+                [outputs, _logits]
+            )
+            outputs = layers.add(
+                [
+                    layers.multiply([_attention, _logits])
+                    + layers.multiply(
+                        [layers.subtract([1.0, _attention]), outputs]
+                    )
+                ]
+            )
+        else:
+            # upscale current
+            _logits = layers.multiply(
+                [_attention, _logits], name=f"multiply_outputs{i}_left"
+            )
+            _logits = BilinearInterpolation(
+                None, name=f"resize_outputs{i}_left"
+            )([_logits, outputs])
+            _attention = BilinearInterpolation(
+                None, name=f"resize_outputs{i}_right"
+            )([_attention, outputs])
 
-        return config
+            outputs = layers.add(
+                [
+                    _logits,
+                    layers.multiply(
+                        [layers.subtract([1.0, _attention]), outputs]
+                    ),
+                ]
+            )
+
+    model = models.Model(inputs=inputs, outputs=outputs)
+
+    return model

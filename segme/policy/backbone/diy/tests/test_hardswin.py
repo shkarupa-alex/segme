@@ -1,9 +1,7 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.backbone import Backbone
-from segme.policy import cnapol
 from segme.policy.backbone.diy.hardswin import HardSwinTiny
 
 
@@ -228,7 +226,7 @@ class TestModel(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "hardswin_tiny-none"},
             input_shape=(2, 256, 256, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 64, 64, 96),
                 (2, 32, 32, 192),
@@ -243,7 +241,7 @@ class TestModel(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "hardswin_small-none"},
             input_shape=(2, 256, 256, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 64, 64, 96),
                 (2, 32, 32, 192),
@@ -258,7 +256,7 @@ class TestModel(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "hardswin_base-none"},
             input_shape=(2, 384, 384, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 96, 96, 128),
                 (2, 48, 48, 256),
@@ -273,7 +271,7 @@ class TestModel(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "hardswin_large-none"},
             input_shape=(2, 384, 384, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 96, 96, 192),
                 (2, 48, 48, 384),

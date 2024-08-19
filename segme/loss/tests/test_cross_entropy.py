@@ -130,7 +130,6 @@ class TestCrossEntropyLoss(testing.TestCase):
         model = models.Sequential([layers.Dense(5, activation="sigmoid")])
         model.compile(
             loss="SegMe>Loss>CrossEntropyLoss",
-            
         )
         model.fit(np.zeros((2, 64, 64, 1)), np.zeros((2, 64, 64, 1), "int32"))
         models.Sequential.from_config(model.get_config())

@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.src import layers
 from keras.src import models
-# from keras.src.engine.data_adapter import unpack_x_y_sample_weight
+from keras.src.engine.data_adapter import unpack_x_y_sample_weight
 from keras.src.saving import register_keras_serializable
 from tensorflow.python.framework import convert_to_constants
 
@@ -38,7 +38,7 @@ class ModelDistillation(models.Model):
     def set_teacher(self, model, jit_compile=None):
         if not isinstance(model, models.Model):
             raise ValueError(
-                f"Expecting teacher model to be an instance of keras.Model. "
+                f"Expecting teacher model to be an instance of `keras.Model`. "
                 f"Got: {type(model)}"
             )
 
@@ -81,7 +81,8 @@ class ModelDistillation(models.Model):
         else:
             if metrics is not None or weighted_metrics is not None:
                 raise ValueError(
-                    "User defined `metrics` and `weighted_metrics` not supported."
+                    "User defined `metrics` and `weighted_metrics` "
+                    "not supported."
                 )
             loss = self.dist_loss
 
@@ -107,7 +108,8 @@ class ModelDistillation(models.Model):
     def train_step(self, data):
         if self.teacher_fn is None:
             raise ValueError(
-                'Expecting teacher model to be set through "set_teacher" method.'
+                "Expecting teacher model to be set through "
+                "`set_teacher` method."
             )
 
         x, y, sample_weight = unpack_x_y_sample_weight(data)
@@ -139,7 +141,8 @@ class ModelDistillation(models.Model):
     def test_step(self, data):
         if self.teacher_fn is None:
             raise ValueError(
-                'Expecting teacher model to be set through "set_teacher" method.'
+                "Expecting teacher model to be set through `set_teacher` "
+                "method."
             )
 
         x, y, sample_weight = unpack_x_y_sample_weight(data)

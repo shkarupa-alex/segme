@@ -11,9 +11,11 @@ from segme.loss.laplacian_pyramid import laplacian_pyramid_loss
 
 class TestGaussKernel(testing.TestCase):
     def test_value(self):
-        # Differs from https://gist.github.com/MarcoForte/a07c40a2b721739bb5c5987671aa5270#file-laplacian_loss-py-L7
+        # Differs from https://gist.github.com/MarcoForte/
+        # a07c40a2b721739bb5c5987671aa5270#file-laplacian_loss-py-L7
         # expected = np.array(
-        #     [[1, 4, 6, 4, 1], [4, 16, 24, 16, 4], [6, 24, 36, 24, 6], [4, 16, 24, 16, 4], [1, 4, 6, 4, 1]], 'uint8')
+        #     [[1, 4, 6, 4, 1], [4, 16, 24, 16, 4], [6, 24, 36, 24, 6],
+        #     [4, 16, 24, 16, 4], [1, 4, 6, 4, 1]], 'uint8')
         expected = np.array(
             [
                 [1, 4, 6, 4, 1],
@@ -2213,8 +2215,12 @@ class TestLaplacianPyramidLoss(testing.TestCase):
 
         loss = LaplacianPyramidLoss(levels=4, size=5, sigma=1.056)
         result = loss(targets, probs)
-        self.assertAlmostEqual(result, 6.9706078, decimal=5)  # without residual
-        # self.assertAlmostEqual(result, 6.944648) # without residual, with manual kernel
+
+        # Without residual
+        self.assertAlmostEqual(result, 6.9706078, decimal=5)
+
+        # Without residual, with manual kernel
+        # self.assertAlmostEqual(result, 6.944648)
 
         loss = LaplacianPyramidLoss(
             levels=4, size=5, sigma=1.056, residual=True
@@ -2415,7 +2421,6 @@ class TestLaplacianPyramidLoss(testing.TestCase):
         model = models.Sequential([layers.Dense(3, activation="sigmoid")])
         model.compile(
             loss="SegMe>Loss>LaplacianPyramidLoss",
-            
         )
         model.fit(
             np.zeros((2, 224, 224, 5)), np.zeros((2, 224, 224, 3), "int32")

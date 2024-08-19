@@ -1,7 +1,6 @@
-import tensorflow as tf
 from keras.src import layers
-from keras.src.saving import register_keras_serializable
 from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 from tfmiss.keras.layers import DCNv2
 
 from segme.common.convnormact import Act
@@ -13,7 +12,8 @@ from segme.common.sequence import Sequence
 @register_keras_serializable(package="SegMe>Policy>Align>Deformable")
 class DeformableFeatureAlignment(layers.Layer):
     """
-    Proposed in "FaPN: Feature-aligned Pyramid Network for Dense Image Prediction"
+    Proposed in "FaPN: Feature-aligned Pyramid Network for Dense Image
+    Prediction"
     https://arxiv.org/pdf/2108.07058.pdf
     """
 
@@ -34,18 +34,27 @@ class DeformableFeatureAlignment(layers.Layer):
         self.select.build(input_shape[0])
 
         self.offset = Conv(
-            self.filters * 2, 1, use_bias=False, kernel_initializer="he_uniform", dtype=self.dtype_policy
+            self.filters * 2,
+            1,
+            use_bias=False,
+            kernel_initializer="he_uniform",
+            dtype=self.dtype_policy,
         )
-        self.offset.build(input_shape[0][:-1] + (self.filters + input_shape[1][-1],))
+        self.offset.build(
+            input_shape[0][:-1] + (self.filters + input_shape[1][-1],)
+        )
 
         self.dcn = DCNv2(
             self.filters,
             3,
             padding="same",
             deformable_groups=self.deformable_groups,
-            custom_alignment=True, dtype=self.dtype_policy
+            custom_alignment=True,
+            dtype=self.dtype_policy,
         )
-        self.dcn.build([input_shape[1], input_shape[0][:-1] + (self.filters * 2,)])
+        self.dcn.build(
+            [input_shape[1], input_shape[0][:-1] + (self.filters * 2,)]
+        )
 
         self.act = Act(dtype=self.dtype_policy)
 
@@ -93,26 +102,35 @@ class FeatureSelection(layers.Layer):
         channels = input_shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
         self.input_spec = InputSpec(ndim=4, axes={-1: channels})
 
         self.attend = Sequence(
             [
-                layers.GlobalAveragePooling2D(keepdims=True, dtype=self.dtype_policy),
+                layers.GlobalAveragePooling2D(
+                    keepdims=True, dtype=self.dtype_policy
+                ),
                 layers.Conv2D(
                     channels,
                     1,
                     activation="sigmoid",
                     use_bias=False,
-                    kernel_initializer="he_uniform", dtype=self.dtype_policy
+                    kernel_initializer="he_uniform",
+                    dtype=self.dtype_policy,
                 ),
-            ], dtype=self.dtype_policy
+            ],
+            dtype=self.dtype_policy,
         )
         self.attend.build(input_shape)
 
         self.conv = Conv(
-            self.filters, 1, use_bias=False, kernel_initializer="he_uniform", dtype=self.dtype_policy
+            self.filters,
+            1,
+            use_bias=False,
+            kernel_initializer="he_uniform",
+            dtype=self.dtype_policy,
         )
         self.conv.build(input_shape)
 
@@ -121,7 +139,7 @@ class FeatureSelection(layers.Layer):
     def call(self, inputs, **kwargs):
         attention = self.attend(inputs)
         outputs = inputs * (
-            attention + 1.
+            attention + 1.0
         )  # same as inputs * attention + inputs
         outputs = self.conv(outputs)
 

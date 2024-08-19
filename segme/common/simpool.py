@@ -23,19 +23,28 @@ class SimPool(layers.Layer):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         self.kv_norm = Norm(name="kv_norm", dtype=self.dtype_policy)
         self.kv_norm.build(input_shape)
 
         self.q_proj = Conv(
-            self.channels, 1, use_bias=self.qkv_bias, name="q_proj", dtype=self.dtype_policy
+            self.channels,
+            1,
+            use_bias=self.qkv_bias,
+            name="q_proj",
+            dtype=self.dtype_policy,
         )
         self.q_proj.build((input_shape[0], 1, 1, input_shape[-1]))
 
         self.k_proj = Conv(
-            self.channels, 1, use_bias=self.qkv_bias, name="k_proj", dtype=self.dtype_policy
+            self.channels,
+            1,
+            use_bias=self.qkv_bias,
+            name="k_proj",
+            dtype=self.dtype_policy,
         )
         self.k_proj.build(input_shape)
 

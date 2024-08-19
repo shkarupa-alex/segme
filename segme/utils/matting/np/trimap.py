@@ -18,7 +18,8 @@ def alpha_trimap(alpha, size):
         iterations = np.array([size, size])
     else:
         raise ValueError(
-            "Expecting `size` to be a single margin or a tuple of [min; max] margins."
+            "Expecting `size` to be a single margin or "
+            "a tuple of [min; max] margins."
         )
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))

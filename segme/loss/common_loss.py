@@ -1,5 +1,4 @@
 import tensorflow as tf
-from keras.src import backend
 from keras.src import ops
 
 from segme.common.shape import get_shape
@@ -22,7 +21,7 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
             raise ValueError(f"Sample weights must have rank {rank}.")
 
     if y_pred.shape.rank != y_true.shape.rank:
-        raise ValueError(f"Labels and predictions ranks must be equal.")
+        raise ValueError("Labels and predictions ranks must be equal.")
 
     if y_pred.shape[-1] is None or y_true.shape[-1] is None:
         raise ValueError(
@@ -137,7 +136,8 @@ def weighted_loss(loss, sample_weight, sample_axes=None, reduce_axes=None):
         bad_axes = set(sample_axes) - set(range(1, loss.shape.rank))
         if bad_axes:
             raise ValueError(
-                f"Some sample axes can not belong to provided inputs: {bad_axes}."
+                f"Some sample axes can not belong to provided "
+                f"inputs: {bad_axes}."
             )
 
     if reduce_axes is None:
@@ -146,7 +146,8 @@ def weighted_loss(loss, sample_weight, sample_axes=None, reduce_axes=None):
         bad_axes = set(reduce_axes) - set(range(1, loss.shape.rank))
         if bad_axes:
             raise ValueError(
-                f"Some reduction axes can not belong to provided inputs: {bad_axes}."
+                f"Some reduction axes can not belong to provided "
+                f"inputs: {bad_axes}."
             )
 
     if sample_weight is not None:
@@ -381,7 +382,8 @@ def iou(
         denominator = y_or
     else:
         # iou = true_pos / (true_pos + false_pos + false_neg) = \
-        #   y_pred_1h * y_true_1h / (y_pred_1h + y_true_1h - y_pred_1h * y_true_1h)
+        #   y_pred_1h * y_true_1h / (
+        #   y_pred_1h + y_true_1h - y_pred_1h * y_true_1h)
         numerator = y_and
         denominator = y_or - y_and
 

@@ -1,7 +1,5 @@
 import unittest
 
-import numpy as np
-import tensorflow as tf
 from keras.src import testing
 
 from segme.policy.act import ACTIVATIONS

@@ -1,11 +1,9 @@
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.split import Split
 
 
 class TestSplit(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(

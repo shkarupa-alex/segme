@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+
 from segme.utils.matting.tf.aug import augment_alpha
 from segme.utils.matting.tf.aug import augment_trimap
 

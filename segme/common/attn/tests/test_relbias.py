@@ -1,12 +1,12 @@
 import numpy as np
 import tensorflow as tf
-from keras.src import testing, backend
+from keras.src import backend
+from keras.src import testing
 
 from segme.common.attn.relbias import RelativeBias
 
 
 class TestRelativeBias(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(

@@ -1,5 +1,5 @@
 import inspect
-import tensorflow as tf
+
 from keras.src import layers
 from keras.src.saving import register_keras_serializable
 
@@ -29,7 +29,7 @@ class Sequence(layers.Layer):
 
         if not isinstance(item, layers.Layer):
             raise ValueError(
-                f"Expected keras.src.layers.Layer instance, got {item}"
+                f"Expected keras.layers.Layer instance, got {item}"
             )
 
         self.items.append(item)

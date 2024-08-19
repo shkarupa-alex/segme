@@ -9,7 +9,6 @@ from segme.common.pad import with_divisible_pad
 
 
 class TestSymmetricPadding(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -65,7 +64,6 @@ class OddConstrainedLayer(layers.Layer):
 
 
 class TestWithDivisiblePad(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -75,8 +73,7 @@ class TestWithDivisiblePad(testing.TestCase):
             input_dtype="float32",
             expected_output_shape=(2, 8, 10, 3),
             expected_output_dtype="float32",
-            custom_objects={"OddConstrainedLayer": OddConstrainedLayer}
-
+            custom_objects={"OddConstrainedLayer": OddConstrainedLayer},
         )
 
     def test_value(self):

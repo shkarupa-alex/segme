@@ -26,7 +26,8 @@ class HeadProjection(layers.Layer):
             self.kernel_size,
             padding="same",
             kernel_initializer=self.kernel_initializer,
-            name="proj", dtype=self.dtype_policy
+            name="proj",
+            dtype=self.dtype_policy,
         )
         self.proj.build(input_shape)
 
@@ -63,7 +64,8 @@ class ClassificationActivation(layers.Layer):
         channels = input_shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         activation = "softmax" if channels > 1 else "sigmoid"
@@ -100,7 +102,8 @@ class ClassificationHead(layers.Layer):
             self.classes,
             kernel_size=self.kernel_size,
             kernel_initializer=self.kernel_initializer,
-            name="proj", dtype=self.dtype_policy,
+            name="proj",
+            dtype=self.dtype_policy,
         )
         self.proj.build(input_shape)
 
@@ -156,7 +159,8 @@ class ClassificationUncertainty(layers.Layer):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         self.input_spec = InputSpec(min_ndim=2, axes={-1: self.channels})

@@ -100,7 +100,8 @@ def make_coords(inputs, dtype=None):
     if isinstance(inputs, (tuple, list)):
         if 3 != len(inputs):
             raise ValueError(
-                f"Expected inputs to be a list or tuple with batch/height/width values, got {inputs}"
+                f"Expected inputs to be a list or tuple with "
+                f"batch/height/width values, got {inputs}"
             )
         batch, height, width = inputs
     else:
@@ -142,7 +143,8 @@ def query_features(
     symmetric_pad=False,
 ):
     """
-    Proposed in "Learning Continuous Image Representation with Local Implicit Image Function"
+    Proposed in "Learning Continuous Image Representation with Local Implicit
+    Image Function"
     https://arxiv.org/abs/2012.09161
     """
     features = tf.convert_to_tensor(features)

@@ -11,7 +11,8 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 @register_keras_serializable(package="SegMe>Loss")
 class AdaptivePixelIntensityLoss(WeightedLossFunctionWrapper):
-    """Proposed in: 'TRACER: Extreme Attention Guided Salient Object Tracing Network'
+    """Proposed in: 'TRACER: Extreme Attention Guided Salient Object Tracing
+    Network'
 
     Implements Equation (12) from https://arxiv.org/pdf/2112.07380.pdf
     """

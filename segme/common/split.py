@@ -11,8 +11,8 @@ class Split(layers.Layer):
 
         if not isinstance(num_or_size_splits, (int, list, tuple)):
             raise ValueError(
-                f"Expected type of `num_or_size_splits` to be `int`, `list` or `tuple`. "
-                f"Got {type(self.num_or_size_splits)}"
+                f"Expected type of `num_or_size_splits` to be `int`, `list` "
+                f"or `tuple`. Got {type(self.num_or_size_splits)}"
             )
 
         self.num_or_size_splits = num_or_size_splits
@@ -37,7 +37,8 @@ class Split(layers.Layer):
             and sum(self.num_or_size_splits) != channels
         ):
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         super().build(input_shape)

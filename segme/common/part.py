@@ -24,7 +24,8 @@ def partition_apply(
         channels = inputs.shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
 
         if part_type not in _PARTITION_TYPES:
@@ -103,7 +104,8 @@ def partition_reverse(
         channels = inputs.shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
 
         if part_type not in _PARTITION_TYPES:
@@ -218,7 +220,8 @@ def halo_partition(
         channels = inputs.shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
 
         if halo_size < window_size:
@@ -251,15 +254,21 @@ def halo_partition(
         # Non-fused implementation with window partition step
         # halo_factor = halo_size / window_size
         # if halo_factor % 1:
-        #     halo_height = tf.cast(tf.math.ceil(tf.cast(height, 'float32') * halo_factor), height.dtype)
-        #     halo_width = tf.cast(tf.math.ceil(tf.cast(width, 'float32') * halo_factor), width.dtype)
+        #     halo_height = tf.cast(tf.math.ceil(
+        #         tf.cast(height, 'float32') * halo_factor), height.dtype)
+        #     halo_width = tf.cast(tf.math.ceil(
+        #         tf.cast(width, 'float32') * halo_factor), width.dtype)
         # else:
-        #     halo_height, halo_width = height * int(halo_factor), width * int(halo_factor)
+        #     halo_height = height * int(halo_factor)
+        #     halo_width = width * int(halo_factor)
         # outputs = tf.reshape(outputs, [
-        #     -1, height_blocks, width_blocks, halo_size, dilation_rate, halo_size, dilation_rate, channels])
+        #     -1, height_blocks, width_blocks, halo_size, dilation_rate,
+        #     halo_size, dilation_rate, channels])
         # outputs = tf.transpose(outputs, [0, 1, 3, 4, 2, 5, 6, 7])
         # outputs = tf.reshape(outputs, [-1, halo_height, halo_width, channels])
-        # outputs = partition_apply(outputs, halo_height, halo_width, 'window_size', halo_size, dilation_rate)
+        # outputs = partition_apply(
+        #     outputs, halo_height, halo_width, 'window_size',
+        #     halo_size, dilation_rate)
 
         outputs = tf.reshape(
             outputs,
@@ -303,7 +312,8 @@ def partition_apply_fused(
         channels = inputs.shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
 
         if part_type not in _PARTITION_TYPES:
@@ -400,7 +410,8 @@ def partition_reverse_fused(
         head_channels = inputs.shape[-1]
         if head_channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
 
         if part_type not in _PARTITION_TYPES:
@@ -531,7 +542,8 @@ def halo_partition_fused(
         channels = inputs.shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
 
         if halo_size < window_size:

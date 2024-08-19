@@ -275,7 +275,6 @@ class TestHardGradientMeanAbsoluteError(testing.TestCase):
         model = models.Sequential([layers.Dense(1, activation="sigmoid")])
         model.compile(
             loss="SegMe>Loss>HardGradientMeanAbsoluteError",
-            
         )
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "int32"))
         models.Sequential.from_config(model.get_config())

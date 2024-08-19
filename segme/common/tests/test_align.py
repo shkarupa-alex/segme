@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.align import Align
@@ -31,7 +30,7 @@ class TestAlign(testing.TestCase):
                 Align,
                 init_kwargs={"filters": 4},
                 input_shape=((2, 16, 16, 3), (2, 8, 8, 6)),
-                input_dtype=("float32",)* 2,
+                input_dtype=("float32",) * 2,
                 expected_output_shape=(2, 16, 16, 4),
                 expected_output_dtype="float32",
             )

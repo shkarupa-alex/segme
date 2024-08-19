@@ -1,7 +1,5 @@
 import unittest
 
-import tensorflow as tf
-
 from segme.policy.bbpol import BackbonePolicy
 from segme.policy.bbpol import default_policy
 from segme.policy.bbpol import deserialize

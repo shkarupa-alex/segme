@@ -1,7 +1,8 @@
 import tensorflow as tf
 from keras.src import layers
-from keras.src.saving import register_keras_serializable
 from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
+
 from segme.common.convnormact import Conv
 from segme.common.convnormact import Norm
 from segme.common.resize import NearestInterpolation
@@ -11,7 +12,8 @@ from segme.common.shape import get_shape
 @register_keras_serializable(package="SegMe>Policy>Align>SAPA")
 class SapaFeatureAlignment(layers.Layer):
     """
-    Proposed in "SAPA: Similarity-Aware Point Affiliation for Feature Upsampling"
+    Proposed in "SAPA: Similarity-Aware Point Affiliation for Feature
+    Upsampling"
     https://arxiv.org/pdf/2209.12866.pdf
     """
 
@@ -27,21 +29,29 @@ class SapaFeatureAlignment(layers.Layer):
         self.embedding_size = embedding_size
 
     def build(self, input_shape):
-        self.norm_fine = Norm(policy="conv-ln1em5-relu", dtype=self.dtype_policy)
+        self.norm_fine = Norm(
+            policy="conv-ln1em5-relu", dtype=self.dtype_policy
+        )
         self.norm_fine.build(input_shape[0])
 
-        self.norm_coarse = Norm(policy="conv-ln1em5-relu", dtype=self.dtype_policy)
+        self.norm_coarse = Norm(
+            policy="conv-ln1em5-relu", dtype=self.dtype_policy
+        )
         self.norm_coarse.build(input_shape[1])
 
         self.intnear = NearestInterpolation(None, dtype=self.dtype_policy)
 
-        self.query_gate = layers.Conv2D(1, 1, activation="sigmoid", dtype=self.dtype_policy)
+        self.query_gate = layers.Conv2D(
+            1, 1, activation="sigmoid", dtype=self.dtype_policy
+        )
         self.query_gate.build(input_shape[1])
 
         self.query_fine = Conv(self.embedding_size, 1, dtype=self.dtype_policy)
         self.query_fine.build(input_shape[0])
 
-        self.query_coarse = Conv(self.embedding_size, 1, dtype=self.dtype_policy)
+        self.query_coarse = Conv(
+            self.embedding_size, 1, dtype=self.dtype_policy
+        )
         self.query_coarse.build(input_shape[1])
 
         self.key = Conv(self.embedding_size, 1, dtype=self.dtype_policy)
@@ -181,11 +191,13 @@ class LocalAttention(layers.Layer):
         outputs.set_shape(shape)
 
         # query = tf.transpose(query, [0, 1, 3, 2, 4, 5])
-        # query = tf.reshape(query, [q_batch, k_height, k_width, h_scale * w_scale, self.channels[0]])
+        # query = tf.reshape(query, [
+        #   q_batch, k_height, k_width, h_scale * w_scale, self.channels[0]])
         # attention = tf.matmul(query, key, transpose_b=True)
         # attention = tf.nn.softmax(attention)
         # outputs = tf.matmul(attention, value)
-        # outputs = tf.reshape(outputs, [v_batch, v_height, v_width, h_scale, w_scale, self.channels[2]])
+        # outputs = tf.reshape(outputs, [
+        #   v_batch, v_height, v_width, h_scale, w_scale, self.channels[2]])
         # outputs = tf.transpose(outputs, [0, 1, 3, 2, 4, 5])
 
         return outputs

@@ -1,4 +1,3 @@
-import cv2
 import tensorflow as tf
 
 from segme.common.shape import get_shape
@@ -28,7 +27,8 @@ def alpha_trimap(alpha, size, name=None):
             iterations = size, size
         else:
             raise ValueError(
-                "Expecting `size` to be a single margin or a tuple of [min; max] margins."
+                "Expecting `size` to be a single margin or "
+                "a tuple of [min; max] margins."
             )
 
         eroded = tf.cast(tf.equal(alpha, 255), "int32")

@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.fold import Fold
@@ -18,7 +17,6 @@ class TestFold(testing.TestCase):
 
 
 class TestUnFold(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(

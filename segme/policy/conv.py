@@ -1,8 +1,7 @@
-import numpy as np
 import tensorflow as tf
-from keras.src import ops
 from keras.src import initializers
 from keras.src import layers
+from keras.src import ops
 from keras.src.backend.tensorflow.nn import _convert_data_format
 from keras.src.saving import register_keras_serializable
 
@@ -55,11 +54,14 @@ class FixedConv(layers.Conv2D):
 
         if max(self.strides) > 1 and max(self.dilation_rate) > 1:
             raise ValueError(
-                f"`strides > 1` not supported in conjunction with `dilation_rate > 1`. "
-                f"Received: strides={self.strides} and dilation_rate={self.dilation_rate}"
+                f"`strides > 1` not supported in conjunction with "
+                f"`dilation_rate > 1`. Received: strides={self.strides} and "
+                f"dilation_rate={self.dilation_rate}"
             )
 
-        self._tf_data_format = _convert_data_format(self.data_format, self.rank + 2)
+        self._tf_data_format = _convert_data_format(
+            self.data_format, self.rank + 2
+        )
 
     def convolution_op(self, inputs, kernel):
         paddings = "VALID" if "same" != self.padding else "SAME"
@@ -94,7 +96,8 @@ class FixedConv(layers.Conv2D):
             not tf.config.list_physical_devices("GPU")
             and max(self.dilation_rate) > 1
         ):
-            # Current libxsmm and customized CPU implementations do not yet support dilation rates > 1
+            # Current libxsmm and customized CPU implementations do not yet
+            # support dilation rates > 1
             return tf.nn.convolution(
                 inputs,
                 kernel,
@@ -165,11 +168,14 @@ class FixedDepthwiseConv(layers.DepthwiseConv2D):
 
         if max(self.strides) > 1 and max(self.dilation_rate) > 1:
             raise ValueError(
-                f"`strides > 1` not supported in conjunction with `dilation_rate > 1`. "
-                f"Received: strides={self.strides} and dilation_rate={self.dilation_rate}"
+                f"`strides > 1` not supported in conjunction with "
+                f"`dilation_rate > 1`. Received: strides={self.strides} and "
+                f"dilation_rate={self.dilation_rate}"
             )
 
-        self._tf_data_format = _convert_data_format(self.data_format, self.rank + 2)
+        self._tf_data_format = _convert_data_format(
+            self.data_format, self.rank + 2
+        )
 
     def _conv_op(self, inputs, kernel):
         strides = (
@@ -513,7 +519,8 @@ class SpectralDepthwiseConv(FixedDepthwiseConv):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         self.u = self.add_weight(

@@ -1,263 +1,387 @@
-import tensorflow as tf
-from tf_keras import layers, models
-from tf_keras.applications.imagenet_utils import preprocess_input
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.tf_utils import shape_type_conversion
-from segme.common.head import HeadProjection, ClassificationActivation, ClassificationHead
+import numpy as np
+from keras.src import layers
+from keras.src import models
+from keras.src.utils import naming
+
+from segme.common.convnormact import ConvNormAct
+from segme.common.head import ClassificationActivation
+from segme.common.head import ClassificationHead
+from segme.common.head import HeadProjection
 from segme.common.resize import BilinearInterpolation
-from segme.model.sod.u2_net.rsu7 import RSU7
-from segme.model.sod.u2_net.rsu6 import RSU6
-from segme.model.sod.u2_net.rsu5 import RSU5
-from segme.model.sod.u2_net.rsu4 import RSU4
-from segme.model.sod.u2_net.rsu4f import RSU4F
+from segme.policy import dtpol
 
 
-@register_keras_serializable(package='SegMe>Model>SOD>U2Net')
-class U2Net(layers.Layer):
-    """ Reference: https://arxiv.org/pdf/2005.09007.pdf """
+def _RSU7(mid_features, out_features, name=None):
+    if name is None:
+        counter = naming.get_uid("rsu7")
+        name = f"rsu7_{counter}"
 
-    def __init__(self, classes, **kwargs):
-        super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
+    def apply(x):
+        x0 = ConvNormAct(out_features, 3, name=f"{name}_cna0")(x)
 
-        self.classes = classes
+        x1 = ConvNormAct(mid_features, 3, name=f"{name}_cna1")(x0)
 
-    @shape_type_conversion
-    def build(self, input_shape):
-        self.pool = layers.MaxPool2D(2, padding='same')
-        self.resize = BilinearInterpolation(None)
+        x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        x2 = ConvNormAct(mid_features, 3, name=f"{name}_cna2")(x2)
 
-        self.stage1 = RSU7(32, 64)
-        self.stage2 = RSU6(32, 128)
-        self.stage3 = RSU5(64, 256)
-        self.stage4 = RSU4(128, 512)
-        self.stage5 = RSU4F(256, 512)
-        self.stage6 = RSU4F(256, 512)
+        x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        x3 = ConvNormAct(mid_features, 3, name=f"{name}_cna3")(x3)
 
-        self.stage5d = RSU4F(256, 512)
-        self.stage4d = RSU4(128, 256)
-        self.stage3d = RSU5(64, 128)
-        self.stage2d = RSU6(32, 64)
-        self.stage1d = RSU7(16, 64)
+        x4 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool3")(x3)
+        x4 = ConvNormAct(mid_features, 3, name=f"{name}_cna4")(x4)
 
-        self.proj1 = HeadProjection(self.classes, 3)
-        self.proj2 = HeadProjection(self.classes, 3)
-        self.proj3 = HeadProjection(self.classes, 3)
-        self.proj4 = HeadProjection(self.classes, 3)
-        self.proj5 = HeadProjection(self.classes, 3)
-        self.proj6 = HeadProjection(self.classes, 3)
-        self.act = ClassificationActivation()
+        x5 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool4")(x4)
+        x5 = ConvNormAct(mid_features, 3, name=f"{name}_cna5")(x5)
 
-        self.head = ClassificationHead(self.classes)
+        x6 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool5")(x5)
+        x6 = ConvNormAct(mid_features, 3, name=f"{name}_cna6")(x6)
 
-        super().build(input_shape)
+        x7 = ConvNormAct(mid_features, 3, dilation_rate=2, name=f"{name}_cna7")(
+            x6
+        )
 
-    def call(self, inputs, **kwargs):
-        outputs = preprocess_input(tf.cast(inputs, self.compute_dtype), mode='torch')
+        x6d = layers.concatenate([x7, x6], axis=-1, name=f"{name}_concat6d")
+        x6d = ConvNormAct(mid_features, 3, name=f"{name}_cna6d")(x6d)
 
-        outputs1 = self.stage1(outputs)
-        outputs = self.pool(outputs1)
+        x5d = BilinearInterpolation(2, name=f"{name}_resize5d")(x6d)
+        x5d = layers.concatenate([x5d, x5], axis=-1, name=f"{name}_concat5d")
+        x5d = ConvNormAct(mid_features, 3, name=f"{name}_cna5d")(x5d)
 
-        outputs2 = self.stage2(outputs)
-        outputs = self.pool(outputs2)
+        x4d = BilinearInterpolation(2, name=f"{name}_resize4d")(x5d)
+        x4d = layers.concatenate([x4d, x4], axis=-1, name=f"{name}_concat4d")
+        x4d = ConvNormAct(mid_features, 3, name=f"{name}_cna4d")(x4d)
 
-        outputs3 = self.stage3(outputs)
-        outputs = self.pool(outputs3)
+        x3d = BilinearInterpolation(2, name=f"{name}_resize3d")(x4d)
+        x3d = layers.concatenate([x3d, x3], axis=-1, name=f"{name}_concat3d")
+        x3d = ConvNormAct(mid_features, 3, name=f"{name}_cna3d")(x3d)
 
-        outputs4 = self.stage4(outputs)
-        outputs = self.pool(outputs4)
+        x2d = BilinearInterpolation(2, name=f"{name}_resize2d")(x3d)
+        x2d = layers.concatenate([x2d, x2], axis=-1, name=f"{name}_concat2d")
+        x2d = ConvNormAct(mid_features, 3, name=f"{name}_cna2d")(x2d)
 
-        outputs5 = self.stage5(outputs)
-        outputs = self.pool(outputs5)
+        x1d = BilinearInterpolation(2, name=f"{name}_resize1d")(x2d)
+        x1d = layers.concatenate([x1d, x1], axis=-1, name=f"{name}_concat1d")
+        x1d = ConvNormAct(out_features, 3, name=f"{name}_cna1d")(x1d)
 
-        outputs6 = self.stage6(outputs)
-        hx6up = self.resize([outputs6, outputs5])
+        return layers.add([x1d, x0], name=f"{name}_add")
 
-        # decoder
-        outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
-        outputs5dup = self.resize([outputs5d, outputs4])
+    return apply
 
-        outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
-        outputs4dup = self.resize([outputs4d, outputs3])
 
-        outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = self.resize([outputs3d, outputs2])
+def _RSU6(mid_features, out_features, name=None):
+    if name is None:
+        counter = naming.get_uid("rsu6")
+        name = f"rsu6_{counter}"
 
-        outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = self.resize([outputs2d, outputs1])
+    def apply(x):
+        x0 = ConvNormAct(out_features, 3, name=f"{name}_cna0")(x)
 
-        outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
+        x1 = ConvNormAct(mid_features, 3, name=f"{name}_cna1")(x0)
 
-        # side output
-        n1 = self.proj1(outputs1d)
+        x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        x2 = ConvNormAct(mid_features, 3, name=f"{name}_cna2")(x2)
 
-        n2 = self.proj2(outputs2d)
-        n2 = self.resize([n2, n1])
+        x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        x3 = ConvNormAct(mid_features, 3, name=f"{name}_cna3")(x3)
 
-        n3 = self.proj3(outputs3d)
-        n3 = self.resize([n3, n1])
+        x4 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool3")(x3)
+        x4 = ConvNormAct(mid_features, 3, name=f"{name}_cna4")(x4)
 
-        n4 = self.proj4(outputs4d)
-        n4 = self.resize([n4, n1])
+        x5 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool4")(x4)
+        x5 = ConvNormAct(mid_features, 3, name=f"{name}_cna5")(x5)
 
-        n5 = self.proj5(outputs5d)
-        n5 = self.resize([n5, n1])
+        x6 = ConvNormAct(mid_features, 3, dilation_rate=2, name=f"{name}_cna6")(
+            x5
+        )
 
-        n6 = self.proj6(outputs6)
-        n6 = self.resize([n6, n1])
+        x5d = layers.concatenate([x6, x5], axis=-1, name=f"{name}_concat5d")
+        x5d = ConvNormAct(mid_features, 3, name=f"{name}_cna5d")(x5d)
 
-        h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
-        h1 = self.act(n1)
-        h2 = self.act(n2)
-        h3 = self.act(n3)
-        h4 = self.act(n4)
-        h5 = self.act(n5)
-        h6 = self.act(n6)
+        x4d = BilinearInterpolation(2, name=f"{name}_resize4d")(x5d)
+        x4d = layers.concatenate([x4d, x4], axis=-1, name=f"{name}_concat4d")
+        x4d = ConvNormAct(mid_features, 3, name=f"{name}_cna4d")(x4d)
 
-        return h, h1, h2, h3, h4, h5, h6
+        x3d = BilinearInterpolation(2, name=f"{name}_resize3d")(x4d)
+        x3d = layers.concatenate([x3d, x3], axis=-1, name=f"{name}_concat3d")
+        x3d = ConvNormAct(mid_features, 3, name=f"{name}_cna3d")(x3d)
 
-    @shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return (self.head.compute_output_shape(input_shape),) * 7
+        x2d = BilinearInterpolation(2, name=f"{name}_resize2d")(x3d)
+        x2d = layers.concatenate([x2d, x2], axis=-1, name=f"{name}_concat2d")
+        x2d = ConvNormAct(mid_features, 3, name=f"{name}_cna2d")(x2d)
 
-    def compute_output_signature(self, input_signature):
-        return (self.head.compute_output_signature(input_signature),) * 7
+        x1d = BilinearInterpolation(2, name=f"{name}_resize1d")(x2d)
+        x1d = layers.concatenate([x1d, x1], axis=-1, name=f"{name}_concat1d")
+        x1d = ConvNormAct(out_features, 3, name=f"{name}_cna1d")(x1d)
 
-    def get_config(self):
-        config = super().get_config()
-        config.update({'classes': self.classes})
+        return layers.add([x1d, x0])
 
-        return config
+    return apply
 
 
-@register_keras_serializable(package='SegMe>Model>SOD>U2Net')
-class U2NetP(layers.Layer):
-    """ Reference: https://arxiv.org/pdf/2005.09007.pdf """
+def _RSU5(mid_features, out_features, name=None):
+    if name is None:
+        counter = naming.get_uid("rsu5")
+        name = f"rsu5_{counter}"
 
-    def __init__(self, classes, **kwargs):
-        super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
-        self.classes = classes
+    def apply(x):
+        x0 = ConvNormAct(out_features, 3, name=f"{name}_cna0")(x)
 
-    @shape_type_conversion
-    def build(self, input_shape):
-        self.pool = layers.MaxPool2D(2, padding='same')
-        self.resize = BilinearInterpolation(None)
+        x1 = ConvNormAct(mid_features, 3, name=f"{name}_cna1")(x0)
 
-        self.stage1 = RSU7(16, 64)
-        self.stage2 = RSU6(16, 64)
-        self.stage3 = RSU5(16, 64)
-        self.stage4 = RSU4(16, 64)
-        self.stage5 = RSU4F(16, 64)
-        self.stage6 = RSU4F(16, 64)
+        x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        x2 = ConvNormAct(mid_features, 3, name=f"{name}_cna2")(x2)
 
-        self.stage5d = RSU4F(16, 64)
-        self.stage4d = RSU4(16, 64)
-        self.stage3d = RSU5(16, 64)
-        self.stage2d = RSU6(16, 64)
-        self.stage1d = RSU7(16, 64)
+        x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        x3 = ConvNormAct(mid_features, 3, name=f"{name}_cna3")(x3)
 
-        self.proj1 = HeadProjection(self.classes, 3)
-        self.proj2 = HeadProjection(self.classes, 3)
-        self.proj3 = HeadProjection(self.classes, 3)
-        self.proj4 = HeadProjection(self.classes, 3)
-        self.proj5 = HeadProjection(self.classes, 3)
-        self.proj6 = HeadProjection(self.classes, 3)
-        self.act = ClassificationActivation()
+        x4 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool3")(x3)
+        x4 = ConvNormAct(mid_features, 3, name=f"{name}_cna4")(x4)
 
-        self.head = ClassificationHead(self.classes)
+        x5 = ConvNormAct(mid_features, 3, dilation_rate=2, name=f"{name}_cna5")(
+            x4
+        )
 
-        super().build(input_shape)
+        x4d = layers.concatenate([x5, x4], axis=-1, name=f"{name}_concat4d")
+        x4d = ConvNormAct(mid_features, 3, name=f"{name}_cna4d")(x4d)
 
-    def call(self, inputs, **kwargs):
-        outputs = preprocess_input(tf.cast(inputs, self.compute_dtype), mode='torch')
+        x3d = BilinearInterpolation(2, name=f"{name}_resize3d")(x4d)
+        x3d = layers.concatenate([x3d, x3], axis=-1, name=f"{name}_concat3d")
+        x3d = ConvNormAct(mid_features, 3, name=f"{name}_cna3d")(x3d)
 
-        outputs1 = self.stage1(outputs)
-        outputs = self.pool(outputs1)
+        x2d = BilinearInterpolation(2, name=f"{name}_resize2d")(x3d)
+        x2d = layers.concatenate([x2d, x2], axis=-1, name=f"{name}_concat2d")
+        x2d = ConvNormAct(mid_features, 3, name=f"{name}_cna2d")(x2d)
 
-        outputs2 = self.stage2(outputs)
-        outputs = self.pool(outputs2)
+        x1d = BilinearInterpolation(2, name=f"{name}_resize1d")(x2d)
+        x1d = layers.concatenate([x1d, x1], axis=-1, name=f"{name}_concat1d")
+        x1d = ConvNormAct(out_features, 3, name=f"{name}_cna1d")(x1d)
 
-        outputs3 = self.stage3(outputs)
-        outputs = self.pool(outputs3)
+        return layers.add([x1d, x0], name=f"{name}_add")
 
-        outputs4 = self.stage4(outputs)
-        outputs = self.pool(outputs4)
+    return apply
 
-        outputs5 = self.stage5(outputs)
-        outputs = self.pool(outputs5)
 
-        outputs6 = self.stage6(outputs)
-        hx6up = self.resize([outputs6, outputs5])
+def _RSU4(mid_features, out_features, name=None):
+    if name is None:
+        counter = naming.get_uid("rsu4")
+        name = f"rsu4_{counter}"
 
-        # decoder
-        outputs5d = self.stage5d(tf.concat([hx6up, outputs5], axis=-1))
-        outputs5dup = self.resize([outputs5d, outputs4])
+    def apply(x):
+        x0 = ConvNormAct(out_features, 3, name=f"{name}_cna0")(x)
 
-        outputs4d = self.stage4d(tf.concat([outputs5dup, outputs4], axis=-1))
-        outputs4dup = self.resize([outputs4d, outputs3])
+        x1 = ConvNormAct(mid_features, 3, name=f"{name}_cna1")(x0)
 
-        outputs3d = self.stage3d(tf.concat([outputs4dup, outputs3], axis=-1))
-        outputs3dup = self.resize([outputs3d, outputs2])
+        x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        x2 = ConvNormAct(mid_features, 3, name=f"{name}_cna2")(x2)
 
-        outputs2d = self.stage2d(tf.concat([outputs3dup, outputs2], axis=-1))
-        outputs2dup = self.resize([outputs2d, outputs1])
+        x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        x3 = ConvNormAct(mid_features, 3, name=f"{name}_cna3")(x3)
 
-        outputs1d = self.stage1d(tf.concat([outputs2dup, outputs1], axis=-1))
+        x4 = ConvNormAct(mid_features, 3, dilation_rate=2, name=f"{name}_cna4")(
+            x3
+        )
 
-        # side output
-        n1 = self.proj1(outputs1d)
+        x3d = layers.concatenate([x4, x3], axis=-1, name=f"{name}_concat3d")
+        x3d = ConvNormAct(mid_features, 3, name=f"{name}_cna3d")(x3d)
 
-        n2 = self.proj2(outputs2d)
-        n2 = self.resize([n2, n1])
+        x2d = BilinearInterpolation(2, name=f"{name}_resize2d")(x3d)
+        x2d = layers.concatenate([x2d, x2], axis=-1, name=f"{name}_concat2d")
+        x2d = ConvNormAct(mid_features, 3, name=f"{name}_cna2d")(x2d)
 
-        n3 = self.proj3(outputs3d)
-        n3 = self.resize([n3, n1])
+        x1d = BilinearInterpolation(2, name=f"{name}_resize1d")(x2d)
+        x1d = layers.concatenate([x1d, x1], axis=-1, name=f"{name}_concat1d")
+        x1d = ConvNormAct(out_features, 3, name=f"{name}_cna1d")(x1d)
 
-        n4 = self.proj4(outputs4d)
-        n4 = self.resize([n4, n1])
+        return layers.add([x1d, x0], name=f"{name}_add")
 
-        n5 = self.proj5(outputs5d)
-        n5 = self.resize([n5, n1])
+    return apply
 
-        n6 = self.proj6(outputs6)
-        n6 = self.resize([n6, n1])
 
-        h = self.head(tf.concat([n1, n2, n3, n4, n5, n6], axis=-1))
-        h1 = self.act(n1)
-        h2 = self.act(n2)
-        h3 = self.act(n3)
-        h4 = self.act(n4)
-        h5 = self.act(n5)
-        h6 = self.act(n6)
+def _RSU4f(mid_features, out_features, name=None):
+    if name is None:
+        counter = naming.get_uid("rsu4f")
+        name = f"rsu4f_{counter}"
 
-        return h, h1, h2, h3, h4, h5, h6
+    def apply(x):
+        x0 = ConvNormAct(out_features, 3, name=f"{name}_cna0")(x)
 
-    @shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return (self.head.compute_output_shape(input_shape),) * 7
+        x1 = ConvNormAct(mid_features, 3, name=f"{name}_cna1")(x0)
 
-    def compute_output_signature(self, input_signature):
-        return (self.head.compute_output_signature(input_signature),) * 7
+        x2 = ConvNormAct(mid_features, 3, dilation_rate=2, name=f"{name}_cna2")(
+            x1
+        )
 
-    def get_config(self):
-        config = super().get_config()
-        config.update({'classes': self.classes})
+        x3 = ConvNormAct(mid_features, 3, dilation_rate=4, name=f"{name}_cna3")(
+            x2
+        )
 
-        return config
+        x4 = ConvNormAct(mid_features, 3, dilation_rate=8, name=f"{name}_cna4")(
+            x3
+        )
 
+        x3d = layers.concatenate([x4, x3], axis=-1, name=f"{name}_concat3d")
+        x3d = ConvNormAct(
+            mid_features, 3, dilation_rate=4, name=f"{name}_cna3d"
+        )(x3d)
 
-def build_u2_net(classes):
-    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
-    outputs = U2Net(classes)(inputs)
-    model = models.Model(inputs=inputs, outputs=outputs, name='u2_net')
+        x2d = layers.concatenate([x3d, x2], axis=-1, name=f"{name}_concat2d")
+        x2d = ConvNormAct(
+            mid_features, 3, dilation_rate=2, name=f"{name}_cna2d"
+        )(x2d)
+
+        x1d = layers.concatenate([x2d, x1], axis=-1, name=f"{name}_concat1d")
+        x1d = ConvNormAct(out_features, 3, name=f"{name}_cna1d")(x1d)
+
+        return layers.add([x1d, x0], name=f"{name}_add")
+
+    return apply
+
+
+def U2Net(classes, dtype=None):
+    if dtype is not None:
+        with dtpol.policy_scope(dtype):
+            return U2Net(classes, dtype=None)
+
+    inputs = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
+
+    x = layers.Normalization(
+        mean=np.array([0.485, 0.456, 0.406], "float32") * 255.0,
+        variance=(np.array([0.229, 0.224, 0.225], "float32") * 255.0) ** 2,
+        name="normalize",
+    )(inputs)
+
+    x1 = _RSU7(32, 64, name="stage1")(x)
+
+    x2 = layers.MaxPooling2D(2, padding="same", name="pool1")(x1)
+    x2 = _RSU6(32, 128, name="stage2")(x2)
+
+    x3 = layers.MaxPooling2D(2, padding="same", name="pool2")(x2)
+    x3 = _RSU5(64, 256, name="stage3")(x3)
+
+    x4 = layers.MaxPooling2D(2, padding="same", name="pool3")(x3)
+    x4 = _RSU4(128, 512, name="stage4")(x4)
+
+    x5 = layers.MaxPooling2D(2, padding="same", name="pool4")(x4)
+    x5 = _RSU4f(256, 512, name="stage5")(x5)
+
+    x6 = layers.MaxPooling2D(2, padding="same", name="pool5")(x5)
+    x6 = _RSU4f(256, 512, name="stage6")(x6)
+
+    x5d = BilinearInterpolation(2, name="resize5d")(x6)
+    x5d = layers.concatenate([x5d, x5], axis=-1, name="concat5d")
+    x5d = _RSU4f(256, 512, name="stage5d")(x5d)
+
+    x4d = BilinearInterpolation(2, name="resize4d")(x5d)
+    x4d = layers.concatenate([x4d, x4], axis=-1, name="concat4d")
+    x4d = _RSU4(128, 256, name="stage4d")(x4d)
+
+    x3d = BilinearInterpolation(2, name="resize3d")(x4d)
+    x3d = layers.concatenate([x3d, x3], axis=-1, name="concat3d")
+    x3d = _RSU5(64, 128, name="stage3d")(x3d)
+
+    x2d = BilinearInterpolation(2, name="resize2d")(x3d)
+    x2d = layers.concatenate([x2d, x2], axis=-1, name="concat2d")
+    x2d = _RSU6(32, 64, name="stage2d")(x2d)
+
+    x1d = BilinearInterpolation(2, name="resize1d")(x2d)
+    x1d = layers.concatenate([x1d, x1], axis=-1, name="concat1d")
+    x1d = _RSU7(16, 64, name="stage1d")(x1d)
+
+    heads = [x1d, x2d, x3d, x4d, x5d, x6]
+    heads = [
+        HeadProjection(classes, 3, name=f"stage{i + 1}d_proj")(h)
+        for i, h in enumerate(heads)
+    ]
+    heads = heads[:1] + [
+        BilinearInterpolation(2 ** (i + 1), name=f"stage{i + 2}d_resize")(h)
+        for i, h in enumerate(heads[1:])
+    ]
+
+    head0 = layers.concatenate(heads, axis=-1, name="stage0d_concat")
+    head0 = ClassificationHead(classes, name="stage0d_head_act")(head0)
+
+    heads = [
+        ClassificationActivation(name=f"stage{i + 1}d_act")(h)
+        for i, h in enumerate(heads)
+    ]
+
+    outputs = (head0,) + tuple(heads)
+
+    model = models.Model(inputs=inputs, outputs=outputs, name="u2net")
 
     return model
 
 
-def build_u2_netp(classes):
-    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
-    outputs = U2NetP(classes)(inputs)
-    model = models.Model(inputs=inputs, outputs=outputs, name='u2_netp')
+def U2NetP(classes, dtype=None):
+    if dtype is not None:
+        with dtpol.policy_scope(dtype):
+            return U2NetP(classes, dtype=None)
+
+    inputs = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
+
+    x = layers.Normalization(
+        mean=np.array([0.485, 0.456, 0.406], "float32") * 255.0,
+        variance=(np.array([0.229, 0.224, 0.225], "float32") * 255.0) ** 2,
+        name="normalize",
+    )(inputs)
+
+    x1 = _RSU7(16, 64, name="stage1")(x)
+
+    x2 = layers.MaxPooling2D(2, padding="same", name="pool1")(x1)
+    x2 = _RSU6(16, 64, name="stage2")(x2)
+
+    x3 = layers.MaxPooling2D(2, padding="same", name="pool2")(x2)
+    x3 = _RSU5(16, 64, name="stage3")(x3)
+
+    x4 = layers.MaxPooling2D(2, padding="same", name="pool3")(x3)
+    x4 = _RSU4(16, 64, name="stage4")(x4)
+
+    x5 = layers.MaxPooling2D(2, padding="same", name="pool4")(x4)
+    x5 = _RSU4f(16, 64, name="stage5")(x5)
+
+    x6 = layers.MaxPooling2D(2, padding="same", name="pool5")(x5)
+    x6 = _RSU4f(16, 64, name="stage6")(x6)
+
+    x5d = BilinearInterpolation(2, name="resize5d")(x6)
+    x5d = layers.concatenate([x5d, x5], axis=-1, name="concat5d")
+    x5d = _RSU4f(16, 64, name="stage5d")(x5d)
+
+    x4d = BilinearInterpolation(2, name="resize4d")(x5d)
+    x4d = layers.concatenate([x4d, x4], axis=-1, name="concat4d")
+    x4d = _RSU4(16, 64, name="stage4d")(x4d)
+
+    x3d = BilinearInterpolation(2, name="resize3d")(x4d)
+    x3d = layers.concatenate([x3d, x3], axis=-1, name="concat3d")
+    x3d = _RSU5(16, 64, name="stage3d")(x3d)
+
+    x2d = BilinearInterpolation(2, name="resize2d")(x3d)
+    x2d = layers.concatenate([x2d, x2], axis=-1, name="concat2d")
+    x2d = _RSU6(16, 64, name="stage2d")(x2d)
+
+    x1d = BilinearInterpolation(2, name="resize1d")(x2d)
+    x1d = layers.concatenate([x1d, x1], axis=-1, name="concat1d")
+    x1d = _RSU7(16, 64, name="stage1d")(x1d)
+
+    heads = [x1d, x2d, x3d, x4d, x5d, x6]
+    heads = [
+        HeadProjection(classes, 3, name=f"stage{i + 1}d_proj")(h)
+        for i, h in enumerate(heads)
+    ]
+    heads = heads[:1] + [
+        BilinearInterpolation(2 ** (i + 1), name=f"stage{i + 2}d_resize")(h)
+        for i, h in enumerate(heads[1:])
+    ]
+
+    head0 = layers.concatenate(heads, axis=-1, name="stage0d_concat")
+    head0 = ClassificationHead(classes, name="stage0d_head_act")(head0)
+
+    heads = [
+        ClassificationActivation(name=f"stage{i + 1}d_act")(h)
+        for i, h in enumerate(heads)
+    ]
+
+    outputs = (head0,) + tuple(heads)
+
+    model = models.Model(inputs=inputs, outputs=outputs, name="u2netp")
 
     return model

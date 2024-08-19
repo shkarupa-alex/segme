@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import layers
 from keras.src import testing
 
@@ -26,7 +25,6 @@ class LogitsWithGuidance(layers.Layer):
 
 
 class TestHierarchicalMultiScaleAttention(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -41,7 +39,7 @@ class TestHierarchicalMultiScaleAttention(testing.TestCase):
             input_dtype="float32",
             expected_output_shape=(2, 128, 128, 2),
             expected_output_dtype="float32",
-            custom_objects={"LogitsWithGuidance": LogitsWithGuidance}
+            custom_objects={"LogitsWithGuidance": LogitsWithGuidance},
         )
         self.run_layer_test(
             HierarchicalMultiScaleAttention,
@@ -55,5 +53,5 @@ class TestHierarchicalMultiScaleAttention(testing.TestCase):
             input_dtype="float32",
             expected_output_shape=(2, 128, 128, 2),
             expected_output_dtype="float32",
-            custom_objects={"LogitsWithGuidance": LogitsWithGuidance}
+            custom_objects={"LogitsWithGuidance": LogitsWithGuidance},
         )

@@ -1,11 +1,9 @@
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.simpool import SimPool
 
 
 class TestSimPool(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(

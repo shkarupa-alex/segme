@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-
 from keras.src import backend
+
 from segme.common.part import _PARTITION_TYPES
 from segme.common.part import halo_partition
 from segme.common.part import halo_partition_fused
@@ -2590,7 +2590,7 @@ class TestHaloPartitionFused(tf.test.TestCase):
             [3, 24, 48, 2 * 4 * 5]
         )
         height, width = inputs.shape[1:3]
-        size, channels = 4, 20
+        size = 4
 
         for halo_size in [4, 6, 8]:
             pad = (halo_size - size) // 2

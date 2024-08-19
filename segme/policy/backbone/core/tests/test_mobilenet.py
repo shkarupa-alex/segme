@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.backbone import Backbone
@@ -13,7 +12,7 @@ class TestMobileNet(testing.TestCase):
                 "policy": "mobilenet_v3_small-imagenet",
             },
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 112, 112, 16),
                 (2, 56, 56, 72),
@@ -29,7 +28,7 @@ class TestMobileNet(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "mobilenet_v3_large-none"},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 112, 112, 64),
                 (2, 56, 56, 72),

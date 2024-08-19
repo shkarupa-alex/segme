@@ -13,7 +13,8 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 class RegionMutualInformationLoss(WeightedLossFunctionWrapper):
     """Proposed in: 'Region Mutual Information Loss for Semantic Segmentation'
 
-    Implements right sum part in equation [16] in https://arxiv.org/pdf/1910.12037.pdf
+    Implements right sum part in equation [16] in
+    https://arxiv.org/pdf/1910.12037.pdf
     """
 
     def __init__(
@@ -139,7 +140,8 @@ def _rmi_lower_bound(y_true, y_pred, pool_stride, pool_way, rmi_radius):
     y_true = tf.transpose(y_true, [0, 3, 1, 2])
     y_pred = tf.transpose(y_pred, [0, 3, 1, 2])
 
-    # Combine the high dimension points from label and probability map. New shape [N, C, radius^2, H, W]
+    # Combine the high dimension points from label and probability map.
+    # New shape [N, C, radius^2, H, W]
     la_vectors, pr_vectors = _map_get_pairs(y_true, y_pred, radius=rmi_radius)
 
     la_vectors = tf.reshape(la_vectors, [batch, channel, square_radius, -1])
@@ -164,10 +166,10 @@ def _rmi_lower_bound(y_true, y_pred, pool_stride, pool_way, rmi_radius):
     pr_cov_inv = tf.linalg.inv(pr_cov + diag_matrix)
     la_pr_cov = tf.matmul(la_vectors, pr_vectors, transpose_b=True)
 
-    # The approxiamation of the variance, det(c A) = c^n det(A), A is in n x n shape;
-    # then log det(c A) = n log(c) + log det(A).
-    # appro_var = appro_var / n_points, we do not divide the appro_var by number of points here,
-    # and the purpose is to avoid underflow issue.
+    # The approxiamation of the variance, det(c A) = c^n det(A),
+    # A is in n x n shape; then log det(c A) = n log(c) + log det(A).
+    # appro_var = appro_var / n_points, we do not divide the appro_var by
+    # number of points here, and the purpose is to avoid underflow issue.
     # If A = A^T, A^-1 = (A^-1)^T.
     appro_var = la_cov - tf.matmul(
         tf.matmul(la_pr_cov, pr_cov_inv), la_pr_cov, transpose_b=True

@@ -7,7 +7,6 @@ from segme.common.impfunc import query_features
 
 
 class TestGridSample(tf.test.TestCase):
-    
 
     features = [  # 2 x 3 x 8 x 2
         [
@@ -373,7 +372,6 @@ class TestGridSample(tf.test.TestCase):
 
 
 class TestMakeCoords(tf.test.TestCase):
-    
 
     def test_value(self):
         expected = np.array(
@@ -501,7 +499,6 @@ class TestMakeCoords(tf.test.TestCase):
 
 
 class TestQueryFeatures(tf.test.TestCase):
-    
 
     def test_simple(self):
         features = (
@@ -2309,7 +2306,8 @@ class TestQueryFeatures(tf.test.TestCase):
             "float32",
         )
 
-        # Channel order in torch.nn.functional.unfold id different from tf.image.extract_patches
+        # Channel order in torch.nn.functional.unfold id different from
+        # tf.image.extract_patches
         expected = np.concatenate(
             [
                 np.concatenate(

@@ -7,7 +7,8 @@ from keras.src.saving import register_keras_serializable
 @register_keras_serializable(package="SegMe>Metric>Classification")
 class HeinsenTreeAccuracy(Metric):
     def __init__(self, tree_paths, name="heinsen_tree_accuracy", dtype=None):
-        """Creates a `HeinsenTreeAccuracy` instance for tree classification task.
+        """Creates a `HeinsenTreeAccuracy` instance for tree classification
+        task.
 
         Args:
             name: (Optional) string name of the metric instance.

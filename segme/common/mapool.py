@@ -19,7 +19,8 @@ class MultiHeadAttentionPooling(layers.Layer):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
         self.input_spec = InputSpec(min_ndim=3, axes={-1: self.channels})
 
@@ -29,18 +30,27 @@ class MultiHeadAttentionPooling(layers.Layer):
         )
 
         # noinspection PyAttributeOutsideInit
-        self.ln_q = Norm(policy="conv-ln1em5-relu", name="ln_q", dtype=self.dtype_policy)
+        self.ln_q = Norm(
+            policy="conv-ln1em5-relu", name="ln_q", dtype=self.dtype_policy
+        )
         self.ln_q.build(self.query.shape)
 
         # noinspection PyAttributeOutsideInit
-        self.ln_k = Norm(policy="conv-ln1em5-relu", name="ln_k", dtype=self.dtype_policy)
+        self.ln_k = Norm(
+            policy="conv-ln1em5-relu", name="ln_k", dtype=self.dtype_policy
+        )
         self.ln_k.build(input_shape)
 
         # noinspection PyAttributeOutsideInit
         self.mhsa = layers.MultiHeadAttention(
-            self.heads, self.channels // self.heads, name="mhsa", dtype=self.dtype_policy
+            self.heads,
+            self.channels // self.heads,
+            name="mhsa",
+            dtype=self.dtype_policy,
         )
-        self.mhsa.build(self.query.shape, (input_shape[0], None, input_shape[-1]))
+        self.mhsa.build(
+            self.query.shape, (input_shape[0], None, input_shape[-1])
+        )
 
         super().build(input_shape)
 

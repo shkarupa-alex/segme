@@ -1,4 +1,3 @@
-import tensorflow as tf
 from absl.testing import parameterized
 from keras.src import testing
 from keras.src.applications import imagenet_utils
@@ -22,7 +21,8 @@ class TestResNetRS(testing.TestCase, parameterized.TestCase):
     def test_port(self):
         test_image = file_utils.get_file(
             "elephant.jpg",
-            "https://storage.googleapis.com/tensorflow/keras.src-applications/tests/elephant.jpg",
+            "https://storage.googleapis.com/tensorflow/"
+            "keras-applications/tests/elephant.jpg",
         )
         image = image_utils.load_img(
             test_image, target_size=(224, 224), interpolation="bicubic"
@@ -42,7 +42,7 @@ class TestResNetRS(testing.TestCase, parameterized.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "resnet_rs_50-imagenet"},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 112, 112, 64),
                 (2, 56, 56, 256),
@@ -59,7 +59,7 @@ class TestResNetRS(testing.TestCase, parameterized.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": f"resnet_rs_{size}-none"},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 112, 112, 64),
                 (2, 56, 56, 256),
@@ -77,7 +77,7 @@ class TestResNetRS(testing.TestCase, parameterized.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": f"resnet_rs_50-{init}"},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 112, 112, 64),
                 (2, 56, 56, 256),
@@ -93,14 +93,13 @@ class TestResNetRS(testing.TestCase, parameterized.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "resnet_rs_50_s8-imagenet"},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 112, 112, 64),
                 (2, 56, 56, 256),
                 (2, 28, 28, 512),
                 (2, 28, 28, 1024),
                 (2, 28, 28, 2048),
-
                 # (2, 112, 112, 64),
                 # (2, 56, 56, 256),
                 # (2, 28, 28, 512),

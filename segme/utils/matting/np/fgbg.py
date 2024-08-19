@@ -11,7 +11,8 @@ def solve_fgbg(
     big_steps=2,
     grad_weight=0.1,
 ):
-    # Based on https://github.com/pymatting/pymatting/blob/master/pymatting/foreground/estimate_foreground_ml.py
+    # Based on https://github.com/pymatting/pymatting/blob/master/pymatting/
+    # foreground/estimate_foreground_ml.py
 
     if 3 != len(image.shape):
         raise ValueError("Expecting `image` rank to be 3.")

@@ -22,7 +22,8 @@ class CarafeConvolution(layers.Layer):
         self.channels = [shape[-1] for shape in input_shape]
         if None in self.channels:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
         self.input_spec = [
             InputSpec(ndim=4, axes={-1: self.channels[0]}),

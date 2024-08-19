@@ -107,7 +107,6 @@ class TestKLDivergenceLoss(testing.TestCase):
         model = models.Sequential([layers.Dense(10, activation="linear")])
         model.compile(
             loss="SegMe>Loss>KLDivergenceLoss",
-            
         )
         model.fit(np.zeros((2, 8, 8, 1)), np.zeros((2, 8, 8, 10), "float32"))
         models.Sequential.from_config(model.get_config())

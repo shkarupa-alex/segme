@@ -1,6 +1,7 @@
 import contextlib
 
-from keras.src.saving.serialization_lib import serialize_keras_object, deserialize_keras_object
+from keras.src.saving.serialization_lib import deserialize_keras_object
+from keras.src.saving.serialization_lib import serialize_keras_object
 
 from segme.policy.act import ACTIVATIONS
 from segme.policy.conv import CONVOLUTIONS

@@ -5,9 +5,9 @@ from keras.src import layers
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
+from segme.common.attn.mincon import MinConstraint
 from segme.common.convnormact import Conv
 from segme.common.shape import get_shape
-from segme.common.attn.mincon import MinConstraint
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -24,10 +24,17 @@ class ChannelAttention(layers.Layer):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
 
-        self.qkv = Conv(self.channels * 3, 1, use_bias=False, name="qkv", dtype=self.dtype_policy)
+        self.qkv = Conv(
+            self.channels * 3,
+            1,
+            use_bias=False,
+            name="qkv",
+            dtype=self.dtype_policy,
+        )
         self.qkv.build(input_shape)
 
         if self.qkv_bias:
@@ -45,7 +52,13 @@ class ChannelAttention(layers.Layer):
             constraint=MinConstraint(np.log(100.0, dtype=self.dtype)),
         )
 
-        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name="proj", dtype=self.dtype_policy)
+        self.proj = Conv(
+            self.channels,
+            1,
+            use_bias=self.proj_bias,
+            name="proj",
+            dtype=self.dtype_policy,
+        )
         self.proj.build(input_shape)
 
         super().build(input_shape)

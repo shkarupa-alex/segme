@@ -67,7 +67,8 @@ def heinsen_tree_loss(
         )
     if y_pred.shape[-1] != tree_classes:
         raise ValueError(
-            f"Number of classes in logits must match one in the tree. Got {y_pred.shape[-1]} vs {tree_classes}."
+            f"Number of classes in logits must match one in the tree. "
+            f"Got {y_pred.shape[-1]} vs {tree_classes}."
         )
 
     class_path = {p[-1]: p for p in tree_paths}

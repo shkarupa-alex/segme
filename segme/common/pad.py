@@ -14,7 +14,8 @@ class SymmetricPadding(layers.ZeroPadding2D):
 
         if max(self.padding[0] + self.padding[1]) > 1:
             raise ValueError(
-                "Symmetric padding can lead to misbehavior when padding size > 1"
+                "Symmetric padding can lead to misbehavior when "
+                "padding size > 1"
             )
 
     def call(self, inputs):

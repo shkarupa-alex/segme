@@ -314,7 +314,8 @@ def rand_augment_full(
 
         if len(ops) < levels:
             raise ValueError(
-                f"Number of levels ({levels}) must be greater or equal to number of augmentations {len(ops)}."
+                f"Number of levels ({levels}) must be greater or "
+                f"equal to number of augmentations {len(ops)}."
             )
 
         dtype = image.dtype

@@ -1,6 +1,4 @@
 import numpy as np
-import tensorflow as tf
-from absl.testing import parameterized
 from keras.src import testing
 
 from segme.policy.backbone.diy.coma import CoMATiny

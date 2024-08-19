@@ -13,7 +13,8 @@ class CalibratedFocalCrossEntropy(WeightedLossFunctionWrapper):
     """Proposed in: 'Calibrating Deep Neural Networks using Focal Loss'
 
     Implements Equations from https://arxiv.org/pdf/2002.09437.pdf
-    Note: remember to use focal loss trick: initialize last layer's bias with small negative value like -1.996
+    Note: remember to use focal loss trick: initialize last layer's bias with
+    small negative value like -1.996
     """
 
     def __init__(

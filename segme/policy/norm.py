@@ -1,15 +1,14 @@
 import math
 
 import tensorflow as tf
-from keras.src import backend, constraints
+from keras.src import backend
+from keras.src import constraints
 from keras.src import initializers
 from keras.src import layers
-from keras.src.layers.input_spec import InputSpec
 from keras.src import regularizers
+from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
-
-from segme.common.shape import get_shape
 from segme.policy.registry import LayerRegistry
 
 NORMALIZATIONS = LayerRegistry()
@@ -26,11 +25,10 @@ NORMALIZATIONS.register("ln1em5")(
     }
 )
 
+
 @NORMALIZATIONS.register("bn")
 @register_keras_serializable(package="SegMe>Policy>Normalization")
 class BatchNorm(layers.BatchNormalization):
-    """Overload for data_format understanding"""
-
     def __init__(
         self,
         data_format=None,
@@ -81,8 +79,6 @@ class BatchNorm(layers.BatchNormalization):
 @NORMALIZATIONS.register("ln")
 @register_keras_serializable(package="SegMe>Policy>Normalization")
 class LayerNorm(layers.LayerNormalization):
-    """Overload for data_format understanding"""
-
     def __init__(
         self,
         data_format=None,
@@ -127,19 +123,14 @@ class LayerNorm(layers.LayerNormalization):
 @NORMALIZATIONS.register("lwn")
 @register_keras_serializable(package="SegMe>Policy>Normalization")
 class LayerwiseNorm(LayerNorm):
-    """Overload for exact paper implementation"""
-
     def build(self, input_shape):
-        self.axis = list(range(1, len(input_shape)))
+        self.axis = list(range(1, len(input_shape)))  # TODO
         super().build(input_shape)
 
 
 @NORMALIZATIONS.register("gn")
 @register_keras_serializable(package="SegMe>Policy>Normalization")
 class GroupNorm(layers.GroupNormalization):
-    # TODO
-    """Overload for fused implementation, groups estimation and BCHW issue fix"""
-
     def __init__(
         self,
         groups=None,
@@ -178,19 +169,22 @@ class GroupNorm(layers.GroupNormalization):
         self.channels = input_shape[self.axis]
         if self.channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         if self._groups is None:
-            # Best results in paper obtained with groups=32 or channels_per_group=16
+            # Best results in paper obtained with groups=32
+            # or channels_per_group=16
             best_cpg = self.channels // (
                 2 ** math.floor(math.log2(self.channels) / 2)
             )
             best_grp = min(32, self.channels // min(16, best_cpg))
             if self.channels % best_grp:
                 raise ValueError(
-                    f"Unable to choose best number of groups for the number of channels ({self.channels}). "
-                    f"It supposed to be somewhere near {best_grp}."
+                    f"Unable to choose best number of groups for the number "
+                    f"of channels ({self.channels}). It supposed to be "
+                    f"somewhere near {best_grp}."
                 )
 
             self.groups = best_grp
@@ -200,12 +194,14 @@ class GroupNorm(layers.GroupNormalization):
             self.groups = self._groups
             if self.channels < self.groups:
                 raise ValueError(
-                    f"Number of groups ({self.groups}) cannot be more than the number of channels ({self.channels})."
+                    f"Number of groups ({self.groups}) cannot be more than "
+                    f"the number of channels ({self.channels})."
                 )
 
             if self.channels % self.groups:
                 raise ValueError(
-                    f"Number of groups ({self.groups}) must be a multiple of the number of channels ({self.channels})."
+                    f"Number of groups ({self.groups}) must be a multiple of "
+                    f"the number of channels ({self.channels})."
                 )
 
         super().build(input_shape)
@@ -222,8 +218,6 @@ class GroupNorm(layers.GroupNormalization):
 @NORMALIZATIONS.register("frn")
 @register_keras_serializable(package="SegMe>Policy>Normalization")
 class FilterResponseNorm(layers.Layer):
-    """Rewrite for any shape support"""
-
     def __init__(
         self,
         data_format=None,
@@ -259,7 +253,8 @@ class FilterResponseNorm(layers.Layer):
         )
         if channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         axis = list(range(1, len(input_shape)))

@@ -2,7 +2,6 @@ import itertools
 import unittest
 
 import numpy as np
-import tensorflow as tf
 from keras.src import layers
 from keras.src import testing
 

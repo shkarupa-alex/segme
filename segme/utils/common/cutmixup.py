@@ -81,7 +81,8 @@ def cut_mix(image, label, weight, alpha, classes, name=None):
                 )
             if weight.shape[-1] is None:
                 raise ValueError(
-                    "Expecting channel dimension of the `weight` to be defined. Found `None`."
+                    "Expecting channel dimension of the `weight` to be "
+                    "defined. Found `None`."
                 )
 
         (batch, height, width), _ = get_shape(image, axis=[0, 1, 2])
@@ -156,7 +157,8 @@ def mix_up(image, label, weight, alpha, classes, name=None):
                 )
             if weight.shape[-1] is None:
                 raise ValueError(
-                    "Expecting channel dimension of the `weight` to be defined. Found `None`."
+                    "Expecting channel dimension of the `weight` to be "
+                    "defined. Found `None`."
                 )
 
         (batch,), _ = get_shape(image, axis=[0])

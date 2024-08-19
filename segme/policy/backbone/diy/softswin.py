@@ -7,10 +7,12 @@ from keras.src import models
 from keras.src.applications import imagenet_utils
 from keras.src.dtype_policies import dtype_policy
 from keras.src.ops import operation_utils
-from keras.src.utils import file_utils, naming
+from keras.src.utils import file_utils
+from keras.src.utils import naming
 
+from segme.common.convnormact import Act
 from segme.common.convnormact import Conv
-from segme.common.convnormact import Norm, Act
+from segme.common.convnormact import Norm
 from segme.common.mapool import MultiHeadAttentionPooling
 from segme.common.simpool import SimPool
 from segme.policy import cnapol
@@ -22,7 +24,8 @@ BASE_URL = (
     "https://github.com/shkarupa-alex/segme/releases/download/2.2.1/{}.h5"
 )
 WEIGHT_URLS = {
-    # 'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu': BASE_URL.format('softswin_tiny_distill_swin2_small'),
+    # 'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu':
+    # BASE_URL.format('softswin_tiny_distill_swin2_small'),
 }
 WEIGHT_HASHES = {
     # 'soft_swin_tiny__distill_swin2_small__conv_ln1em5_gelu':
@@ -198,7 +201,8 @@ def SoftSwin(
             x = layers.Flatten(name="ma_flat")(x)
         else:
             raise ValueError(
-                f"Expecting pooling to be one of None/avg/max/ma. Found: {pooling}"
+                f"Expecting pooling to be one of None/avg/max/ma. "
+                f"Found: {pooling}"
             )
 
         imagenet_utils.validate_activation(classifier_activation, weights)

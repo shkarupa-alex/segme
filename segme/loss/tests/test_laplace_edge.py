@@ -79,7 +79,8 @@ class TestLaplaceEdgeCrossEntropy(testing.TestCase):
         loss = LaplaceEdgeCrossEntropy(from_logits=True)
         result = loss(BINARY_TARGETS, BINARY_LOGITS)
 
-        # self.assertAlmostEqual(result, 3.879105925) # for zero padding and 1-channel BCE
+        # For zero padding and 1-channel BCE
+        # self.assertAlmostEqual(result, 3.879105925)
         self.assertAlmostEqual(result, 4.2626038, decimal=4)
 
     def test_weight(self):
@@ -116,7 +117,6 @@ class TestLaplaceEdgeCrossEntropy(testing.TestCase):
         model = models.Sequential([layers.Dense(5, activation="sigmoid")])
         model.compile(
             loss="SegMe>Loss>LaplaceEdgeCrossEntropy",
-
         )
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "int32"))
         models.Sequential.from_config(model.get_config())

@@ -1,14 +1,16 @@
 import numpy as np
 import tensorflow as tf
-from keras.src.metrics import reduction_metrics
+from keras.src import ops
 from keras.src.losses.loss import squeeze_or_expand_to_same_rank
+from keras.src.metrics import reduction_metrics
 from keras.src.saving import register_keras_serializable
 
 
 @register_keras_serializable(package="SegMe>Metric>Matting")
 class Grad(reduction_metrics.Sum):
     def __init__(self, sigma=1.4, name="grad", dtype=None):
-        """Creates a `GradientError` instance for matting task (by default downscales input by 255).
+        """Creates a `GradientError` instance for matting task (by default
+        downscales input by 255).
 
         Args:
             name: (Optional) string name of the metric instance.
@@ -119,7 +121,8 @@ def gradient_error(y_true, y_pred, sigma, sample_weight=None):
     channels = y_pred.shape[-1]
     if channels is None:
         raise ValueError(
-            "Channel dimension of the predictions should be defined. Found `None`."
+            "Channel dimension of the predictions should be defined. "
+            "Found `None`."
         )
 
     y_pred = _togray(y_pred)

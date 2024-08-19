@@ -1,7 +1,5 @@
 import unittest
 
-import tensorflow as tf
-
 from segme.policy.alpol import AlignPolicy
 from segme.policy.alpol import default_policy
 from segme.policy.alpol import deserialize

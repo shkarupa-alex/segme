@@ -513,7 +513,9 @@ class TestSsimLevel(testing.TestCase):
             .astype("float32")
         )
 
-        # expected = tf.image.ssim(y_true, y_pred, max_val=1., filter_size=11, filter_sigma=1.5, k1=0.01, k2=0.03)
+        # expected = tf.image.ssim(
+        #   y_true, y_pred, max_val=1., filter_size=11, filter_sigma=1.5,
+        #   k1=0.01, k2=0.03)
         # 0.5326015949249268 when compensation = 1
 
         kernels = _ssim_kernel(size=11, sigma=1.5, channels=2, dtype="float32")
@@ -2695,8 +2697,8 @@ class TestStructuralSimilarityLoss(testing.TestCase):
         )
 
         # expected = 1. - tf.image.ssim_multiscale(
-        #     targets, probs, 1., power_factors=(0.1001, 0.2363, 0.1333), filter_size=5, filter_sigma=1.5,
-        #     k1=0.01, k2=0.03)
+        #     targets, probs, 1., power_factors=(0.1001, 0.2363, 0.1333),
+        #     filter_size=5, filter_sigma=1.5, k1=0.01, k2=0.03)
 
         loss = StructuralSimilarityLoss(
             factors=(0.1001, 0.2363, 0.1333), size=5, sigma=1.5
@@ -2900,7 +2902,6 @@ class TestStructuralSimilarityLoss(testing.TestCase):
         model = models.Sequential([layers.Dense(1, activation="sigmoid")])
         model.compile(
             loss="SegMe>Loss>StructuralSimilarityLoss",
-            
         )
         model.fit(
             np.zeros((2, 224, 224, 1)), np.zeros((2, 224, 224, 1), "int32")

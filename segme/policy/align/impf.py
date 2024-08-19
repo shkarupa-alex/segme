@@ -1,8 +1,9 @@
 import numpy as np
 import tensorflow as tf
 from keras.src import layers
-from keras.src.saving import register_keras_serializable
 from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
+
 from segme.common.convnormact import Conv
 from segme.common.convnormact import ConvNormAct
 from segme.common.impfunc import make_coords
@@ -13,7 +14,8 @@ from segme.common.sequence import Sequence
 @register_keras_serializable(package="SegMe>Policy>Align>LIIF")
 class ImplicitFeatureAlignment(layers.Layer):
     """
-    Proposed in "Learning Implicit Feature Alignment Function for Semantic Segmentation"
+    Proposed in "Learning Implicit Feature Alignment Function for Semantic
+    Segmentation"
     https://arxiv.org/pdf/2206.08655.pdf
     """
 
@@ -26,7 +28,8 @@ class ImplicitFeatureAlignment(layers.Layer):
         self.channels = [shape[-1] for shape in input_shape]
         if None in self.channels:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
         self.input_spec = [
             InputSpec(ndim=4, axes={-1: c}) for c in self.channels
@@ -38,15 +41,17 @@ class ImplicitFeatureAlignment(layers.Layer):
             pe.build(input_shape[0][:-1] + (2,))
             self.posemb.append(pe)
 
-
         self.imnet = Sequence(
             [
                 ConvNormAct(self.filters * 2, 1, dtype=self.dtype_policy),
                 ConvNormAct(self.filters, 1, dtype=self.dtype_policy),
                 Conv(self.filters, 1, dtype=self.dtype_policy),
-            ], dtype=self.dtype_policy
+            ],
+            dtype=self.dtype_policy,
         )
-        self.imnet.build(input_shape[0][:-1] + (sum(self.channels) + 26 * len(input_shape),))
+        self.imnet.build(
+            input_shape[0][:-1] + (sum(self.channels) + 26 * len(input_shape),)
+        )
 
         super().build(input_shape)
 
@@ -84,7 +89,8 @@ class ImplicitFeatureAlignment(layers.Layer):
 @register_keras_serializable(package="SegMe>Policy>Align>LIIF")
 class SpatialEncoding(layers.Layer):
     """
-    Proposed in "Learning Implicit Feature Alignment Function for Semantic Segmentation"
+    Proposed in "Learning Implicit Feature Alignment Function for Semantic
+    Segmentation"
     https://arxiv.org/pdf/2206.08655.pdf
     """
 
@@ -99,7 +105,8 @@ class SpatialEncoding(layers.Layer):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
         self.input_spec = InputSpec(
             ndim=len(input_shape), axes={-1: self.channels}
@@ -137,9 +144,7 @@ class SpatialEncoding(layers.Layer):
         return outputs
 
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (
-            self.channels * (self.embed_dim * 2 + 1),
-        )
+        return input_shape[:-1] + (self.channels * (self.embed_dim * 2 + 1),)
 
     def get_config(self):
         config = super().get_config()

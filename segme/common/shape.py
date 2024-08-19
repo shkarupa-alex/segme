@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.framework import sparse_tensor
 
 
 def get_shape(inputs, axis=None, dtype="int32", name=None):

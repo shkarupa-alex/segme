@@ -1,11 +1,9 @@
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.ppm import PyramidPooling
 
 
 class TestPyramidPooling(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(

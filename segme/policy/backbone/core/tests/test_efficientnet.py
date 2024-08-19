@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.backbone import Backbone
@@ -13,7 +12,7 @@ class TestEfficientNet(testing.TestCase):
                 "policy": "efficientnet_v2_small-imagenet",
             },
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 112, 112, 24),
                 (2, 56, 56, 48),
@@ -32,7 +31,7 @@ class TestEfficientNet(testing.TestCase):
                 "policy": "efficientnet_v2_medium-none",
             },
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 112, 112, 24),
                 (2, 56, 56, 48),
@@ -51,7 +50,7 @@ class TestEfficientNet(testing.TestCase):
                 "policy": "efficientnet_v2_large-none",
             },
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 112, 112, 32),
                 (2, 56, 56, 64),

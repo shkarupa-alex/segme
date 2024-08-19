@@ -1,12 +1,10 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.carafe import CarafeConvolution
 
 
 class TestCarafeConvolution(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(

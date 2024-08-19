@@ -44,7 +44,8 @@ class StructuralSimilarityLoss(WeightedLossFunctionWrapper):
 
 
 def _ssim_level(y_true, y_pred, max_val, kernels, k1, k2):
-    # The correct compensation factor is `1.0 - tf.reduce_sum(tf.square(kernel))`,
+    # The correct compensation factor is
+    # `1.0 - tf.reduce_sum(tf.square(kernel))`,
     # but MATLAB implementation of MS-SSIM uses just 1.0
     compensation = 1.0 - tf.reduce_sum(tf.square(kernels[0] * kernels[1]))
 

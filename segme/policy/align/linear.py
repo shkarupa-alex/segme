@@ -1,6 +1,7 @@
 from keras.src import layers
-from keras.src.saving import register_keras_serializable
 from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
+
 from segme.common.convnormact import Conv
 from segme.common.resize import BilinearInterpolation
 
@@ -20,7 +21,8 @@ class BilinearFeatureAlignment(layers.Layer):
         channels = [shape[-1] for shape in input_shape]
         if None in channels:
             raise ValueError(
-                "Channel dimension of the inputs should be deleftd. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
         self.input_spec = [
             InputSpec(ndim=4, axes={-1: channels[0]}),

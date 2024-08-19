@@ -1,8 +1,9 @@
 import numpy as np
-import tensorflow as tf
-from keras.src import testing, backend
+from keras.src import backend
+from keras.src import testing
 
-from segme.common.attn.slide import SlideAttention, DeformableConstraint
+from segme.common.attn.slide import DeformableConstraint
+from segme.common.attn.slide import SlideAttention
 
 
 class TestSlideAttention(testing.TestCase):
@@ -136,14 +137,32 @@ class TestSlideAttention(testing.TestCase):
             expected_output_dtype="float32",
         )
 
+
 class TestDeformableConstraint(testing.TestCase):
     def test_value(self):
-        kernel = np.random.uniform(high=0.1, size=(3, 3, 2, 9)).astype('float32')
+        kernel = np.random.uniform(high=0.1, size=(3, 3, 2, 9)).astype(
+            "float32"
+        )
         result = DeformableConstraint(3)(kernel)
         result = backend.convert_to_numpy(result)
-        result = result.round().astype('int32')
+        result = result.round().astype("int32")
 
         self.assertTrue((result[:, :, 0] == result[:, :, 1]).all())
-        self.assertTrue((result[0, 0, 0] == np.array([1, 0, 0, 0, 0, 0, 0, 0, 0], "int32")).all())
-        self.assertTrue((result[0, 1, 0] == np.array([0, 1, 0, 0, 0, 0, 0, 0, 0], "int32")).all())
-        self.assertTrue((result[1, 0, 0] == np.array([0, 0, 0, 1, 0, 0, 0, 0, 0], "int32")).all())
+        self.assertTrue(
+            (
+                result[0, 0, 0]
+                == np.array([1, 0, 0, 0, 0, 0, 0, 0, 0], "int32")
+            ).all()
+        )
+        self.assertTrue(
+            (
+                result[0, 1, 0]
+                == np.array([0, 1, 0, 0, 0, 0, 0, 0, 0], "int32")
+            ).all()
+        )
+        self.assertTrue(
+            (
+                result[1, 0, 0]
+                == np.array([0, 0, 0, 1, 0, 0, 0, 0, 0], "int32")
+            ).all()
+        )

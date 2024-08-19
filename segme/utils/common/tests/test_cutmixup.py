@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 
 from segme.utils.common.augs.tests.testing_utils import aug_samples

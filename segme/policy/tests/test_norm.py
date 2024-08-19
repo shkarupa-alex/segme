@@ -1,9 +1,9 @@
 import unittest
 
 import numpy as np
-import tensorflow as tf
 from absl.testing import parameterized
-from keras.src import backend, layers
+from keras.src import backend
+from keras.src import layers
 from keras.src import testing
 
 from segme.policy.norm import NORMALIZATIONS
@@ -166,7 +166,9 @@ class TestLayerwiseNorm(testing.TestCase, parameterized.TestCase):
 
         if "float16" == dtype:
             inputs = inputs.astype(dtype)
-            builtin = layers.LayerNormalization(axis=[1, 2, 3], dtype="mixed_float16")
+            builtin = layers.LayerNormalization(
+                axis=[1, 2, 3], dtype="mixed_float16"
+            )
             custom = LayerwiseNorm(data_format=dformat, dtype="mixed_float16")
         else:
             builtin = layers.LayerNormalization(axis=[1, 2, 3])
@@ -753,7 +755,8 @@ class TestFilterResponseNorm(testing.TestCase, parameterized.TestCase):
 
         if "float16" == dtype:
             custom = FilterResponseNorm(
-                data_format=dformat, dtype="mixed_float16")
+                data_format=dformat, dtype="mixed_float16"
+            )
         else:
             custom = FilterResponseNorm(data_format=dformat)
 

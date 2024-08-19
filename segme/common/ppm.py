@@ -23,20 +23,28 @@ class PyramidPooling(layers.Layer):
         for size in self.sizes:
             s = Sequence(
                 [
-                    AdaptiveAveragePooling(size, name="pool",
-                                           dtype=self.dtype_policy),
-                    ConvNormAct(self.filters, 1, name="cna",
-                                dtype=self.dtype_policy),
+                    AdaptiveAveragePooling(
+                        size, name="pool", dtype=self.dtype_policy
+                    ),
+                    ConvNormAct(
+                        self.filters, 1, name="cna", dtype=self.dtype_policy
+                    ),
                 ],
-                name=f"stage_{size}", dtype=self.dtype_policy,
+                name=f"stage_{size}",
+                dtype=self.dtype_policy,
             )
             s.build(input_shape)
             self.stages.append(s)
 
         self.interpolate = BilinearInterpolation(None, dtype=self.dtype_policy)
 
-        self.bottleneck = ConvNormAct(self.filters, 3, name="bottleneck", dtype=self.dtype_policy)
-        self.bottleneck.build(input_shape[:-1] + (input_shape[-1] + self.filters * len(self.sizes),))
+        self.bottleneck = ConvNormAct(
+            self.filters, 3, name="bottleneck", dtype=self.dtype_policy
+        )
+        self.bottleneck.build(
+            input_shape[:-1]
+            + (input_shape[-1] + self.filters * len(self.sizes),)
+        )
 
         super().build(input_shape)
 

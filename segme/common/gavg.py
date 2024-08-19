@@ -13,7 +13,9 @@ class GlobalAverage(layers.Layer):
         self.input_spec = InputSpec(ndim=4)
 
     def build(self, input_shape):
-        self.pool = layers.GlobalAveragePooling2D(keepdims=True, dtype=self.dtype_policy)
+        self.pool = layers.GlobalAveragePooling2D(
+            keepdims=True, dtype=self.dtype_policy
+        )
 
         super().build(input_shape)
 

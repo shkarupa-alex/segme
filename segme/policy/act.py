@@ -44,7 +44,8 @@ class TLU(layers.Layer):
         channels = input_shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         tau_shape = [1] * (len(input_shape) - 1) + [channels]

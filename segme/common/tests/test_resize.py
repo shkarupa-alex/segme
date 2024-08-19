@@ -6,7 +6,6 @@ from segme.common.resize import NearestInterpolation
 
 
 class TestNearestInterpolation(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -39,7 +38,6 @@ class TestNearestInterpolation(testing.TestCase):
 
 
 class TestBilinearInterpolation(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -66,7 +64,8 @@ class TestBilinearInterpolation(testing.TestCase):
     #     result = resize_by_sample([target, sample])
     #     result = self.evaluate(result)
     #
-    #     # See https://github.com/tensorflow/tensorflow/issues/6720#issuecomment-644111750
+    #     # See https://github.com/tensorflow/tensorflow/issues/
+    #       6720#issuecomment-644111750
     #     expected = np.array([
     #         [0., 0.25, 0.5, 0.75, 1., 1.25, 1.5, 1.75, 2.],
     #         [0.667, 0.917, 1.167, 1.417, 1.667, 1.917, 2.167, 2.417, 2.667],

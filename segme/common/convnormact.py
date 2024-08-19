@@ -1,8 +1,8 @@
 from keras.src import constraints
 from keras.src import initializers
 from keras.src import layers
-from keras.src.layers.input_spec import InputSpec
 from keras.src import regularizers
+from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
 from segme.policy import cnapol

@@ -116,7 +116,6 @@ class TestSobelEdgeLoss(testing.TestCase):
         model = models.Sequential([layers.Dense(5, activation="sigmoid")])
         model.compile(
             loss="SegMe>Loss>SobelEdgeLoss",
-            
         )
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "int32"))
         models.Sequential.from_config(model.get_config())

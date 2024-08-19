@@ -9,7 +9,8 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 @register_keras_serializable(package="SegMe>Loss")
 class HardGradientMeanAbsoluteError(WeightedLossFunctionWrapper):
-    """Proposed in: 'Boosting Robustness of Image Matting with Context Assembling and Strong Data Augmentation'
+    """Proposed in: 'Boosting Robustness of Image Matting with Context
+    Assembling and Strong Data Augmentation'
 
     Implements Equation [4] in https://arxiv.org/pdf/2201.06889.pdf
     """

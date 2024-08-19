@@ -4,9 +4,8 @@ from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
 from segme.common.convnormact import ConvNormAct
-from segme.common.sequence import Sequence
-from segme.common.shape import get_shape
 from segme.common.resize import NearestInterpolation
+from segme.common.sequence import Sequence
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -31,46 +30,83 @@ class AtrousSpatialPyramidPooling(layers.Layer):
         rate0, rate1, rate2 = self._stride_rates[self.stride]
         self.conv3r0 = Sequence(
             [
-                ConvNormAct(None, 3, dilation_rate=rate0, name="dna", dtype=self.dtype_policy),
-                ConvNormAct(self.filters, 1, name="pna", dtype=self.dtype_policy),
+                ConvNormAct(
+                    None,
+                    3,
+                    dilation_rate=rate0,
+                    name="dna",
+                    dtype=self.dtype_policy,
+                ),
+                ConvNormAct(
+                    self.filters, 1, name="pna", dtype=self.dtype_policy
+                ),
             ],
-            name="conv3r0", dtype=self.dtype_policy,
+            name="conv3r0",
+            dtype=self.dtype_policy,
         )
         self.conv3r0.build(input_shape)
 
         self.conv3r1 = Sequence(
             [
-                ConvNormAct(None, 3, dilation_rate=rate1, name="dna", dtype=self.dtype_policy),
-                ConvNormAct(self.filters, 1, name="pna", dtype=self.dtype_policy),
+                ConvNormAct(
+                    None,
+                    3,
+                    dilation_rate=rate1,
+                    name="dna",
+                    dtype=self.dtype_policy,
+                ),
+                ConvNormAct(
+                    self.filters, 1, name="pna", dtype=self.dtype_policy
+                ),
             ],
-            name="conv3r1", dtype=self.dtype_policy,
+            name="conv3r1",
+            dtype=self.dtype_policy,
         )
         self.conv3r1.build(input_shape)
 
         self.conv3r2 = Sequence(
             [
-                ConvNormAct(None, 3, dilation_rate=rate2, name="dna", dtype=self.dtype_policy),
-                ConvNormAct(self.filters, 1, name="pna", dtype=self.dtype_policy),
+                ConvNormAct(
+                    None,
+                    3,
+                    dilation_rate=rate2,
+                    name="dna",
+                    dtype=self.dtype_policy,
+                ),
+                ConvNormAct(
+                    self.filters, 1, name="pna", dtype=self.dtype_policy
+                ),
             ],
-            name="conv3r2", dtype=self.dtype_policy,
+            name="conv3r2",
+            dtype=self.dtype_policy,
         )
         self.conv3r2.build(input_shape)
 
         self.pool = Sequence(
             [
-                layers.GlobalAveragePooling2D(keepdims=True, dtype=self.dtype_policy),
-                ConvNormAct(self.filters, 1, name="cna", dtype=self.dtype_policy),
+                layers.GlobalAveragePooling2D(
+                    keepdims=True, dtype=self.dtype_policy
+                ),
+                ConvNormAct(
+                    self.filters, 1, name="cna", dtype=self.dtype_policy
+                ),
             ],
-            name="pool", dtype=self.dtype_policy,
+            name="pool",
+            dtype=self.dtype_policy,
         )
         self.pool.build(input_shape)
 
         self.proj = Sequence(
             [
-                ConvNormAct(self.filters, 1, name="cna", dtype=self.dtype_policy),
-                layers.Dropout(self.dropout, name="drop", dtype=self.dtype_policy),
+                ConvNormAct(
+                    self.filters, 1, name="cna", dtype=self.dtype_policy
+                ),
+                layers.Dropout(
+                    self.dropout, name="drop", dtype=self.dtype_policy
+                ),
             ],
-            name="pool", dtype=self.dtype_policy,
+            name="pool",
+            dtype=self.dtype_policy,
         )
         self.proj.build(input_shape[:-1] + (self.filters * 5,))
 
@@ -84,8 +120,11 @@ class AtrousSpatialPyramidPooling(layers.Layer):
             self.conv3r2(inputs),
         ]
 
-        shape, _ = get_shape(outputs[0])
-        outputs.append(tf.broadcast_to(self.pool(inputs), shape))
+        pool = self.pool(inputs)
+        pool = NearestInterpolation(None, dtype=self.dtype_policy)(
+            [pool, inputs]
+        )
+        outputs.append(pool)
 
         outputs = tf.concat(outputs, axis=-1)
         outputs = self.proj(outputs)

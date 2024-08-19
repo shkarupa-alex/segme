@@ -16,7 +16,8 @@ class BinaryBoundaryAccuracy(BinaryAccuracy):
         name="binary_boundary_accuracy",
         dtype=None,
     ):
-        """Creates an `Accuracy` metric instance estimated only in `radius` pixels from boundary.
+        """Creates an `Accuracy` metric instance estimated only in `radius`
+        pixels from boundary.
 
         Args:
             radius: (Optional) int radius of boundary
@@ -50,7 +51,8 @@ class BinaryApproximateBoundaryAccuracy(BinaryBoundaryAccuracy):
         name="binary_approximate_boundary_accuracy",
         dtype=None,
     ):
-        """Creates an `Accuracy` metric instance estimated only in `radius` pixels from boundary.
+        """Creates an `Accuracy` metric instance estimated only in `radius`
+        pixels from boundary.
         Approximating 3x3 ellipse kernel with square one.
 
         Args:
@@ -69,7 +71,8 @@ class SparseCategoricalBoundaryAccuracy(SparseCategoricalAccuracy):
     def __init__(
         self, radius=1, name="sparse_categorical_boundary_accuracy", dtype=None
     ):
-        """Creates a `SparseCategoricalAccuracy` metric instance estimated only in `radius` pixels from boundary.
+        """Creates a `SparseCategoricalAccuracy` metric instance estimated
+        only in `radius` pixels from boundary.
 
         Args:
             radius: (Optional) int radius of boundary
@@ -107,7 +110,8 @@ class SparseCategoricalApproximateBoundaryAccuracy(
         name="sparse_categorical_approximate_boundary_accuracy",
         dtype=None,
     ):
-        """Creates a `SparseCategoricalAccuracy` metric instance estimated only in `radius` pixels from boundary.
+        """Creates a `SparseCategoricalAccuracy` metric instance estimated
+        only in `radius` pixels from boundary.
         Approximating 3x3 ellipse kernel with square one.
 
         Args:
@@ -122,7 +126,7 @@ class SparseCategoricalApproximateBoundaryAccuracy(
 
 def boundary_weight(y_true, radius, strict, sample_weight):
     if 4 != len(y_true.shape):
-        raise ValueError(f"Labels must have rank 4.")
+        raise ValueError("Labels must have rank 4.")
 
     if strict:
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))[..., None]

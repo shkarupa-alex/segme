@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.backbone import Backbone
@@ -10,7 +9,7 @@ class TestSwinV1(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_tiny_224-imagenet"},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 56, 56, 96),
                 (2, 28, 28, 192),
@@ -25,7 +24,7 @@ class TestSwinV1(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_small_224-none"},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 56, 56, 96),
                 (2, 28, 28, 192),
@@ -40,7 +39,7 @@ class TestSwinV1(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_base_224-none"},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 56, 56, 128),
                 (2, 28, 28, 256),
@@ -55,7 +54,7 @@ class TestSwinV1(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_base_384-none"},
             input_shape=(2, 384, 384, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 96, 96, 128),
                 (2, 48, 48, 256),
@@ -70,7 +69,7 @@ class TestSwinV1(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_large_224-none"},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 56, 56, 192),
                 (2, 28, 28, 384),
@@ -85,7 +84,7 @@ class TestSwinV1(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_large_384-none"},
             input_shape=(2, 384, 384, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 96, 96, 192),
                 (2, 48, 48, 384),
@@ -102,7 +101,7 @@ class TestSwinV2(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_v2_tiny_256-imagenet"},
             input_shape=(2, 256, 256, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 64, 64, 96),
                 (2, 32, 32, 192),
@@ -117,7 +116,7 @@ class TestSwinV2(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_v2_small_256-none"},
             input_shape=(2, 256, 256, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 64, 64, 96),
                 (2, 32, 32, 192),
@@ -132,7 +131,7 @@ class TestSwinV2(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_v2_base_256-none"},
             input_shape=(2, 256, 256, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 64, 64, 128),
                 (2, 32, 32, 256),
@@ -147,7 +146,7 @@ class TestSwinV2(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_v2_base_384-none"},
             input_shape=(2, 384, 384, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 96, 96, 128),
                 (2, 48, 48, 256),
@@ -162,7 +161,7 @@ class TestSwinV2(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_v2_large_256-none"},
             input_shape=(2, 256, 256, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 64, 64, 192),
                 (2, 32, 32, 384),
@@ -177,7 +176,7 @@ class TestSwinV2(testing.TestCase):
             Backbone,
             init_kwargs={"scales": None, "policy": "swin_v2_large_384-none"},
             input_shape=(2, 384, 384, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=(
                 (2, 96, 96, 192),
                 (2, 48, 48, 384),

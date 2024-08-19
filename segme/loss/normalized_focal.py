@@ -13,8 +13,10 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 class NormalizedFocalCrossEntropy(WeightedLossFunctionWrapper):
     """Proposed in: 'AdaptIS: Adaptive Instance Selection Network'
 
-    Implements Equations (Appendix A) from https://arxiv.org/pdf/1909.07829v1.pdf
-    Note: remember to use focal loss trick: initialize last layer's bias with small negative value like -1.996
+    Implements Equations (Appendix A) from
+    https://arxiv.org/pdf/1909.07829v1.pdf
+    Note: remember to use focal loss trick: initialize last layer's bias with
+    small negative value like -1.996
     """
 
     def __init__(

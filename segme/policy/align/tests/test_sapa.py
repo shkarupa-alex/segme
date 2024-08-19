@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import testing
 
 from segme.policy.align.sapa import LocalAttention

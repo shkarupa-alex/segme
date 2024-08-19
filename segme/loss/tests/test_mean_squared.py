@@ -128,7 +128,6 @@ class TestMeanSquaredClassificationError(testing.TestCase):
         model = models.Sequential([layers.Dense(5, activation="sigmoid")])
         model.compile(
             loss="SegMe>Loss>MeanSquaredClassificationError",
-            
         )
         model.fit(np.zeros((2, 64, 64, 1)), np.zeros((2, 64, 64, 1), "int32"))
         models.Sequential.from_config(model.get_config())
@@ -231,7 +230,6 @@ class TestMeanSquaredRegressionError(testing.TestCase):
         model = models.Sequential([layers.Dense(5)])
         model.compile(
             loss="SegMe>Loss>MeanSquaredRegressionError",
-            
         )
         model.fit(np.zeros((2, 64, 64, 1)), np.zeros((2, 64, 64, 5), "float32"))
         models.Sequential.from_config(model.get_config())

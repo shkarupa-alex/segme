@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import testing
 
 from segme.policy.align.impf import ImplicitFeatureAlignment

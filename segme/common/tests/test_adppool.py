@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from keras.src import layers, backend
+from keras.src import backend
+from keras.src import layers
 from keras.src import models
 from keras.src import testing
 
@@ -8,7 +9,6 @@ from segme.common.adppool import AdaptiveAveragePooling
 
 
 class TestAdaptiveAveragePooling(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -28,7 +28,6 @@ class TestAdaptiveAveragePooling(testing.TestCase):
             expected_output_dtype="float32",
         )
 
-
     def test_value(self):
         shape = [2, 16, 16, 3]
         data = np.arange(0, np.prod(shape)).reshape(shape).astype("float32")
@@ -40,7 +39,7 @@ class TestAdaptiveAveragePooling(testing.TestCase):
         )
 
         result = AdaptiveAveragePooling(2)(data)
-        result=backend.convert_to_numpy(result).astype("int32")
+        result = backend.convert_to_numpy(result).astype("int32")
         self.assertListEqual(
             result.ravel().tolist(),
             [
@@ -142,7 +141,5 @@ class TestAdaptiveAveragePooling(testing.TestCase):
         inputs = layers.Input([None, None, 3], dtype="float32")
         outputs = AdaptiveAveragePooling(3)(inputs)
         model = models.Model(inputs=inputs, outputs=outputs)
-        model.compile(
-            "adam", "mse"
-        )
+        model.compile("adam", "mse")
         model.fit(dataset)

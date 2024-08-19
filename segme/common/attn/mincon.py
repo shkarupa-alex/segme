@@ -1,5 +1,6 @@
-from keras.src import backend, ops
+from keras.src import backend
 from keras.src import constraints
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 
@@ -16,4 +17,4 @@ class MinConstraint(constraints.Constraint):
         return w
 
     def get_config(self):
-        return {'min_value': self.min_value}
+        return {"min_value": self.min_value}

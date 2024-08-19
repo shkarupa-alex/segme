@@ -36,8 +36,8 @@ def _filter_boundaries(contours, mask, condition):
         if len(boundary_) > 0:
             boundaries_.append(boundary_)
 
-        # Check if the first and the last boundaries are connected
-        # If yes, invert the first boundary and attach it after the last boundary
+        # Check if the first and the last boundaries are connected. If yes,
+        # invert the first boundary and attach it after the last boundary
         if len(boundaries_) > 1:
             first_x, first_y = boundaries_[0][0]
             last_x, last_y = boundaries_[-1][-1]
@@ -62,11 +62,12 @@ def _filter_boundaries(contours, mask, condition):
 
 def _approximate_rdp(boundaries, epsilon=1.0):
     # Approximate each boundary by DP algorithm
-    # https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+    # https://en.wikipedia.org/wiki/Ramer–Douglas–Peucker_algorithm
 
     total_points = 0
 
-    # Polygon approximate of each boundary and count the total control points number of all the boundaries
+    # Polygon approximate of each boundary and count the total control
+    # points number of all the boundaries
     for i in range(0, len(boundaries)):
         total_points += len(cv2.approxPolyDP(boundaries[i], epsilon, False))
 
@@ -85,14 +86,16 @@ def _relax_hce(y_true, y_pred, y_true_skeleton, relax=5, epsilon=2.0):
         "bool"
     )
 
-    # Get the relaxed False Positive regions for computing the human efforts in correcting them
+    # Get the relaxed False Positive regions for computing the human efforts
+    # in correcting them
     fp_ = fp & union_
     for i in range(0, relax):
         fp_ = cv2.dilate(fp_.astype("uint8"), disk(1)).astype("bool")
         fp_ &= ~(tp | fn)
     fp_ &= fp
 
-    # Get the relaxed False Negative regions for computing the human efforts in correcting them
+    # Get the relaxed False Negative regions for computing the human efforts
+    # in correcting them
     fn_ = fn & union_
     for i in range(0, relax):
         fn_ = cv2.dilate(fn_.astype("uint8"), disk(1)).astype("bool")

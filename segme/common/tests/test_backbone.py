@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import models
 from keras.src import testing
 
@@ -34,7 +33,7 @@ class TestBackbone(testing.TestCase):
             Backbone,
             init_kwargs={"scales": [2, 8]},
             input_shape=(2, 224, 224, 3),
-            input_dtype="int16",
+            input_dtype="uint8",
             expected_output_shape=((2, 112, 112, 64), (2, 28, 28, 512)),
             expected_output_dtype=("float32",) * 2,
         )
@@ -57,7 +56,7 @@ class TestBackbone(testing.TestCase):
                 Backbone,
                 init_kwargs={"scales": None},
                 input_shape=(2, 224, 224, 3),
-                input_dtype="int16",
+                input_dtype="uint8",
                 expected_output_shape=(
                     (2, 56, 56, 96),
                     (2, 28, 28, 192),
@@ -66,7 +65,6 @@ class TestBackbone(testing.TestCase):
                 ),
                 expected_output_dtype=("float32",) * 4,
             )
-
 
     def test_policy_scope_memorize(self):
         with bbpol.policy_scope("swin_tiny_224-none"):

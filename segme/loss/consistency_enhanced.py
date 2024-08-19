@@ -1,4 +1,3 @@
-import tensorflow as tf
 from keras.src import backend
 from keras.src.saving import register_keras_serializable
 
@@ -11,7 +10,8 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 @register_keras_serializable(package="SegMe>Loss")
 class ConsistencyEnhancedLoss(WeightedLossFunctionWrapper):
-    """Proposed in: 'Multi-scale Interactive Network for Salient Object Detection'
+    """Proposed in: 'Multi-scale Interactive Network for Salient Object
+    Detection'
 
     Implements Equation [9] in https://arxiv.org/pdf/2007.09062.pdf
     """

@@ -1,10 +1,8 @@
 import unittest
 from functools import partial
 
-import tensorflow as tf
 from keras.src import applications
 from keras.src import layers
-from keras.src import models
 
 from segme.common.pad import (
     SymmetricPadding,  # requred to be registered as serializable

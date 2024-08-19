@@ -3,7 +3,8 @@ import numpy as np
 
 
 def solve_fg(image, alpha, kappa=1.0, steps=16):
-    # Based on https://github.com/kfeng123/LSA-Matting/blob/master/tools/reestimate_foreground_final.py
+    # Based on https://github.com/kfeng123/LSA-Matting/blob/master/tools/
+    # reestimate_foreground_final.py
 
     if 3 != len(image.shape):
         raise ValueError("Expecting `image` rank to be 3.")

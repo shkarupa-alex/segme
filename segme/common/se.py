@@ -21,28 +21,34 @@ class SE(layers.Layer):
         channels = input_shape[-1]
         if channels is None:
             raise ValueError(
-                "Channel dimension of the inputs should be defined. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
 
         filters = max(1, int(channels * self.ratio))
         self.se = Sequence(
             [
-                layers.GlobalAveragePooling2D(keepdims=True, name="pool", dtype=self.dtype_policy),
+                layers.GlobalAveragePooling2D(
+                    keepdims=True, name="pool", dtype=self.dtype_policy
+                ),
                 ConvAct(
                     filters,
                     1,
                     kernel_initializer="variance_scaling",
-                    name="fc0", dtype=self.dtype_policy,
+                    name="fc0",
+                    dtype=self.dtype_policy,
                 ),
                 layers.Conv2D(
                     channels,
                     1,
                     activation="sigmoid",
                     kernel_initializer="variance_scaling",
-                    name="fc1", dtype=self.dtype_policy,
+                    name="fc1",
+                    dtype=self.dtype_policy,
                 ),
             ],
-            name="se", dtype=self.dtype_policy,
+            name="se",
+            dtype=self.dtype_policy,
         )
         self.se.build(input_shape)
 

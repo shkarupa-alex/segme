@@ -2842,7 +2842,9 @@ class TestRmiLowerBound(testing.TestCase):
             rmi_radius=3,
         )
 
-        # self.assertAlmostEqual(np.mean(result).item(), -11.195279121398926, decimal=4)  # sum by channels
+        # Sum by channels
+        # self.assertAlmostEqual(
+        #   np.mean(result).item(), -11.195279121398926, decimal=4)
         self.assertAlmostEqual(
             np.mean(result).item(), -3.731760263442993, decimal=6
         )
@@ -2856,7 +2858,8 @@ class TestRmiLowerBound(testing.TestCase):
             rmi_radius=3,
         )
 
-        # self.assertAlmostEqual(np.mean(result).item(), -9.124303817749023)  # sum by channels
+        # Sum by channels
+        # self.assertAlmostEqual(np.mean(result).item(), -9.124303817749023)
         self.assertAlmostEqual(
             np.mean(result).item(), -3.0414345264434814, decimal=6
         )
@@ -2870,8 +2873,12 @@ class TestRmiLowerBound(testing.TestCase):
             rmi_radius=3,
         )
 
-        # self.assertAlmostEqual(np.mean(result).item(), -10.84033489227295, decimal=3)  # sum by channels
-        # self.assertAlmostEqual(np.mean(result).item(), -3.6134753227233887, decimal=6) # nn resize for y_true
+        # self.assertAlmostEqual(
+        #   np.mean(result).item(), -10.84033489227295,
+        #   decimal=3)  # sum by channels
+        # self.assertAlmostEqual(
+        #   np.mean(result).item(), -3.6134753227233887,
+        #   decimal=6) # nn resize for y_true
         self.assertAlmostEqual(
             np.mean(result).item(), -3.6334142684936523, decimal=6
         )
@@ -3239,7 +3246,6 @@ class TestRegionMutualInformationLoss(testing.TestCase):
         model = models.Sequential([layers.Dense(5, activation="sigmoid")])
         model.compile(
             loss="SegMe>Loss>RegionMutualInformationLoss",
-
         )
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "int32"))
         models.Sequential.from_config(model.get_config())

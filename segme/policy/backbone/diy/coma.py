@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import backend
 from keras.src import initializers
 from keras.src import layers
@@ -8,17 +7,18 @@ from keras.src.applications import imagenet_utils
 from keras.src.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.src.dtype_policies import dtype_policy
 from keras.src.ops import operation_utils
-from keras.src.utils import file_utils, naming
+from keras.src.utils import file_utils
+from keras.src.utils import naming
 
 from segme.common.attn.slide import SlideAttention
 from segme.common.attn.swin import SwinAttention
 from segme.common.convnormact import Act
 from segme.common.convnormact import Conv
 from segme.common.convnormact import Norm
-from segme.common.mapool import MultiHeadAttentionPooling
-from segme.common.simpool import SimPool
 from segme.common.drop import DropPath
 from segme.common.grn import GRN
+from segme.common.mapool import MultiHeadAttentionPooling
+from segme.common.simpool import SimPool
 from segme.policy import cnapol
 
 WEIGHT_URLS = {}
@@ -145,10 +145,8 @@ def MLPConv(
                 "Found `None`."
             )
 
-        if expand_ratio < 1.:
-            raise ValueError(
-                "Expansion ratio must be greater or equal to 1."
-            )
+        if expand_ratio < 1.0:
+            raise ValueError("Expansion ratio must be greater or equal to 1.")
         expand_filters = int(channels * expand_ratio)
 
         if fused:
@@ -171,7 +169,7 @@ def MLPConv(
             )(x)
         x = Act(name=f"{name}_act")(x)
 
-        if filters == channels and expand_ratio > 2.:
+        if filters == channels and expand_ratio > 2.0:
             x = GRN(center=False, name=f"{name}_grn")(x)  # From ConvNeXt2
 
         x = Conv(filters, 1, use_bias=False, name=f"{name}_squeeze")(x)
@@ -334,25 +332,32 @@ def CoMA(
     """Inspired with:
 
     09.06.2023 FasterViT: Fast Vision Transformers with Hierarchical Attention
-        ! initial layers are memory-bound and better for compute-intensive operations, such as dense convolution
-        ! later layers are math-limited and better for layer normalization, squeeze-and-excitation or attention
+        ! initial layers are memory-bound and better for compute-intensive
+          operations, such as dense convolution
+        ! later layers are math-limited and better for layer normalization,
+          squeeze-and-excitation or attention
         ~ stride-2 stem with bn and relu
         - stage architecture CCTT
         - windows interaction through attention with averaged windows
-    11.05.2023 EfficientViT: Memory Efficient Vision Transformer with Cascaded Group Attention
+    11.05.2023 EfficientViT: Memory Efficient Vision Transformer with Cascaded
+      Group Attention
         + overlapping patch embedding
-        ~ Q, K (=16) and MLP (=x2) dimensions are largely trimmed for late stages
+        ~ Q, K (=16) and MLP (=x2) dimensions are largely trimmed for late
+          stages
         ~ depth-wise convolution over q and before MLP
         - fewer attention blocks (more MLPs)
         - feeding each head with only a split of the full features
     14.04.2023 DINOv2: Learning Robust Visual Features without Supervision
-        ? efficient stochastic depth (slice instead of drop) // not working with XLA
+        ? efficient stochastic depth (slice instead of drop) // not working
+          with XLA
         - fast and memory-efficient FlashAttention
-    09.04.2023 Slide-Transformer: Hierarchical Vision Transformer with Local Self-Attention
+    09.04.2023 Slide-Transformer: Hierarchical Vision Transformer with Local
+      Self-Attention
         + depth-wise convolution with fixed weights instead of im2col
         + depth-wise convolution with learnable weights for deformable attention
         ~ local attention with kernel size 3 for stage 1 & 2
-    02.01.2023 ConvNeXt V2: Co-designing and Scaling ConvNets with Masked Autoencoders
+    02.01.2023 ConvNeXt V2: Co-designing and Scaling ConvNets with Masked
+      Autoencoders
         + global response normalization
     23.12.2022 A Close Look at Spatial Modeling: From Attention to Convolution
         + depth-wise convolution in MLP
@@ -363,7 +368,8 @@ def CoMA(
         + deeper but thinner
         - focal-modulation instead of self-attention
         - context aggregation
-    10.11.2022 Demystify Transformers & Convolutions in Modern Image Deep Networks
+    10.11.2022 Demystify Transformers & Convolutions in Modern Image Deep
+      Networks
         + overlapped patch embedding and reduction
         - haloing for local-attention spatial token mixer
     24.10.2022 MetaFormer Baselines for Vision
@@ -397,12 +403,14 @@ def CoMA(
     02.03.2022 A ConvNet for the 2020s
         + adding normalization layers wherever spatial resolution is changed
         ~ stage ratio 1:1:9:1
-    28.10.2021 SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    28.10.2021 SegFormer: Simple and Efficient Design for Semantic Segmentation
+      with Transformers
         + overlapped reduction
         + depth-wise convolution in MLP
         - reduce length for efficient self-attention
     24.10.2021 Leveraging Batch Normalization for Vision Transformers
-        ! BN is faster than LN in early stages when input has larger spatial resolution and smaller channel number
+        ! BN is faster than LN in early stages when input has larger spatial
+          resolution and smaller channel number
         - BN in MLP
         - BN in attention
     15.09.2021 CoAtNet: Marrying Convolution and Attention for All Data Sizes
@@ -411,10 +419,12 @@ def CoMA(
         ~ stage ratio 1:3:7:1
         - stage architecture CCTT
     23.06.2021 EfficientNetV2: Smaller Models and Faster Training
-        ! depth-wise convolutions are slow in early layers but effective in later
+        ! depth-wise convolutions are slow in early layers but effective in
+          later
         ! adjusts regularization according to image size
         ~ non-uniform capacity scaling
-    07.06.2021 Scaling Local Self-Attention for Parameter Efficient Visual Backbones
+    07.06.2021 Scaling Local Self-Attention for Parameter Efficient Visual
+      Backbones
         ! accuracy consistently improves as the window size increases
         - overlapping window with halo = 1/2 of window size
         - stage architecture CCTT
@@ -596,14 +606,15 @@ def CoMA(
             x = layers.Flatten(name="ma_flat")(x)
         else:
             raise ValueError(
-                f"Expecting pooling to be one of None/avg/max/ma. Found: {pooling}"
+                f"Expecting pooling to be one of None/avg/max/ma. "
+                f"Found: {pooling}"
             )
 
         imagenet_utils.validate_activation(classifier_activation, weights)
         x = layers.Dense(classes, name="head")(x)
-        x = layers.Activation(classifier_activation, dtype="float32", name="pred")(
-            x
-        )
+        x = layers.Activation(
+            classifier_activation, dtype="float32", name="pred"
+        )(x)
 
     if input_tensor is not None:
         inputs = operation_utils.get_source_inputs(input_tensor)

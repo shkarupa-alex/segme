@@ -2298,7 +2298,6 @@ class TestReflectionTransmissionExclusionLoss(testing.TestCase):
         model = models.Sequential([layers.Dense(1, activation="sigmoid")])
         model.compile(
             loss="SegMe>Loss>ReflectionTransmissionExclusionLoss",
-            
         )
         model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "float32"))
         models.Sequential.from_config(model.get_config())

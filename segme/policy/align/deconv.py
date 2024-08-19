@@ -21,7 +21,8 @@ class DeconvolutionFeatureAlignment(layers.Layer):
         channels = [shape[-1] for shape in input_shape]
         if None in channels:
             raise ValueError(
-                "Channel dimension of the inputs should be deleftd. Found `None`."
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
             )
         self.input_spec = [
             InputSpec(ndim=4, axes={-1: channels[0]}),
@@ -29,14 +30,20 @@ class DeconvolutionFeatureAlignment(layers.Layer):
         ]
 
         self.resize = layers.Conv2DTranspose(
-            channels[1], self.kernel_size, strides=2, padding="same", dtype=self.dtype_policy
+            channels[1],
+            self.kernel_size,
+            strides=2,
+            padding="same",
+            dtype=self.dtype_policy,
         )
         self.resize.build(input_shape[1])
 
         self.lateral = Conv(channels[0], 1, dtype=self.dtype_policy)
         self.lateral.build(input_shape[0])
 
-        self.proj = Conv(self.filters, 3, dtype=self.dtype_policy)  # Originally ConvNormAct
+        self.proj = Conv(
+            self.filters, 3, dtype=self.dtype_policy
+        )  # Originally ConvNormAct
         self.proj.build(input_shape[0][:-1] + (sum(channels),))
 
         super().build(input_shape)

@@ -72,7 +72,8 @@ class TestStrongerTeacherLoss(testing.TestCase):
         loss = StrongerTeacherLoss()
         result = loss(targets, MULTI_LOGITS)
 
-        # Original: -0.2666435 (1.7333565 - 2) (difference in cosine similarity normalization)
+        # Original: -0.2666435 (1.7333565 - 2) (difference in cosine
+        # similarity normalization)
         self.assertAlmostEqual(result, -0.2088526, decimal=6)
 
     def test_weight(self):
@@ -98,7 +99,8 @@ class TestStrongerTeacherLoss(testing.TestCase):
     #
     #     loss = StrongerTeacherLoss()
     #     result0 = loss(targets, probs)
-    #     result1 = sum([loss(targets[i:i + 1], probs[i:i + 1]) for i in range(2)]) / 2
+    #     result1 = sum([
+    #       loss(targets[i:i + 1], probs[i:i + 1]) for i in range(2)]) / 2
     #
     #     self.assertAlmostEqual(result0, result1, decimal=6)
 
@@ -106,7 +108,6 @@ class TestStrongerTeacherLoss(testing.TestCase):
         model = models.Sequential([layers.Dense(10, activation="linear")])
         model.compile(
             loss="SegMe>Loss>StrongerTeacherLoss",
-            
         )
         model.fit(np.zeros((2, 8, 8, 1)), np.zeros((2, 8, 8, 10), "float32"))
         models.Sequential.from_config(model.get_config())

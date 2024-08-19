@@ -9,7 +9,8 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 @register_keras_serializable(package="SegMe>Loss")
 class GeneralizedDiceLoss(WeightedLossFunctionWrapper):
-    """Proposed in: 'Generalised Dice overlap as a deep learning loss function for highly unbalanced segmentations'
+    """Proposed in: 'Generalised Dice overlap as a deep learning loss function
+    for highly unbalanced segmentations'
 
     Implements Equations from https://arxiv.org/pdf/1707.03237v3.pdf
     """

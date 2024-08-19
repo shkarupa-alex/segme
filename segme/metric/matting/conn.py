@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
 from keras.src import ops
+from keras.src.losses.loss import squeeze_or_expand_to_same_rank
 from keras.src.metrics import reduction_metrics
 from keras.src.saving import register_keras_serializable
-from keras.src.losses.loss import squeeze_or_expand_to_same_rank
 from tfmiss.image import connected_components
 
 from segme.common.shape import get_shape
@@ -12,7 +12,8 @@ from segme.common.shape import get_shape
 @register_keras_serializable(package="SegMe>Metric>Matting")
 class Conn(reduction_metrics.Sum):
     def __init__(self, step=0.1, name="conn", dtype=None):
-        """Creates a `ConnectivityError` instance for matting task (by default downscales input by 255).
+        """Creates a `ConnectivityError` instance for matting task (by default
+        downscales input by 255).
 
         Args:
             step: (Optional) float percents for threshold step estimating

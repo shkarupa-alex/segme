@@ -1,11 +1,9 @@
-import tensorflow as tf
 from keras.src import testing
 
 from segme.common.mbconv import MBConv
 
 
 class TestMBConv(testing.TestCase):
-    
 
     def test_layer(self):
         self.run_layer_test(
@@ -178,4 +176,3 @@ class TestMBConv(testing.TestCase):
             expected_output_shape=(2, 8, 8, 4),
             expected_output_dtype="float32",
         )
-

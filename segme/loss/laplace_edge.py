@@ -12,7 +12,8 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 @register_keras_serializable(package="SegMe>Loss")
 class LaplaceEdgeCrossEntropy(WeightedLossFunctionWrapper):
-    """Proposed in: 'Pyramid Feature Attention Network for Saliency detection (2019)'
+    """Proposed in: 'Pyramid Feature Attention Network for Saliency detection
+    (2019)'
 
     Implements Equation [10] in https://arxiv.org/pdf/1903.00179.pdf
     Compute edge loss with Laplace operator
@@ -66,9 +67,7 @@ def laplace_edge_cross_entropy(
     y_true_edge = tf.stop_gradient(y_true_edge)
     y_pred_edge = laplace(y_prob_1h, kernel)[..., None]
 
-    loss = ops.binary_crossentropy(
-        y_true_edge, y_pred_edge, from_logits=False
-    )
+    loss = ops.binary_crossentropy(y_true_edge, y_pred_edge, from_logits=False)
     loss = tf.reduce_mean(loss, axis=-1)
     loss = weighted_loss(loss, sample_weight)
 

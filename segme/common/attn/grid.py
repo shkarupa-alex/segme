@@ -1,17 +1,18 @@
 import numpy as np
 import tensorflow as tf
 from keras.src import initializers
-from keras.src import layers, ops
+from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
+from segme.common.attn.mincon import MinConstraint
 from segme.common.attn.relbias import RelativeBias
 from segme.common.convnormact import Conv
 from segme.common.pad import with_divisible_pad
 from segme.common.part import partition_apply
 from segme.common.part import partition_apply_fused
 from segme.common.part import partition_reverse_fused
-from segme.common.attn.mincon import MinConstraint
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -42,11 +43,13 @@ class GridAttention(layers.Layer):
         self.channels = input_shape[-1]
         if self.channels is None:
             raise ValueError(
-                "Channel dimensions of the inputs should be defined. Found `None`."
+                "Channel dimensions of the inputs should be defined. "
+                "Found `None`."
             )
         if self.channels % self.num_heads:
             raise ValueError(
-                "Channel dimensions of the inputs should be a multiple of the number of heads."
+                "Channel dimensions of the inputs should be a multiple of "
+                "the number of heads."
             )
 
         self.v_units = self.channels // self.num_heads
@@ -54,7 +57,11 @@ class GridAttention(layers.Layer):
         self.qk_channels = self.qk_units * self.num_heads
 
         self.qkv = Conv(
-            self.qk_channels * 2 + self.channels, 1, use_bias=False, name="qkv", dtype=self.dtype_policy
+            self.qk_channels * 2 + self.channels,
+            1,
+            use_bias=False,
+            name="qkv",
+            dtype=self.dtype_policy,
         )
         self.qkv.build(input_shape)
 
@@ -79,11 +86,18 @@ class GridAttention(layers.Layer):
             self.pretrain_window,
             self.num_heads,
             cpb_units=self.cpb_units,
-            name="rel_bias", dtype=self.dtype_policy
+            name="rel_bias",
+            dtype=self.dtype_policy,
         )
         self.rel_bias.build(None)
 
-        self.proj = Conv(self.channels, 1, use_bias=self.proj_bias, name="proj", dtype=self.dtype_policy)
+        self.proj = Conv(
+            self.channels,
+            1,
+            use_bias=self.proj_bias,
+            name="proj",
+            dtype=self.dtype_policy,
+        )
         self.proj.build(input_shape)
 
         super().build(input_shape)

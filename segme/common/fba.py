@@ -1,6 +1,5 @@
 import tensorflow as tf
-from keras.src import backend
-from keras.src import layers, ops
+from keras.src import layers
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 

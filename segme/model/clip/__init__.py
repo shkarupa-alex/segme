@@ -1,1 +1,2 @@
-from segme.model.clip.data import Clip, make_dataset
+from segme.model.clip.data import Clip
+from segme.model.clip.data import make_dataset

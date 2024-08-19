@@ -1,4 +1,5 @@
 import tensorflow as tf
+from keras.src import ops
 from tensorflow.python.ops import data_flow_ops
 
 from segme.common.shape import get_shape
@@ -73,7 +74,7 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
             indices = tf.range(batch, dtype="int32")
             indices_, indices = indices[switch_some], indices[~switch_some]
 
-            image = smart_cond(
+            image = ops.cond(
                 square_size,
                 lambda: _some(image, switch_some, image_fn, indices, indices_),
                 lambda: _all(image, image_fn, switch_all),
@@ -82,7 +83,7 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
             if masks is not None:
                 temp = []
                 for mask in masks:
-                    mask = smart_cond(
+                    mask = ops.cond(
                         square_size,
                         lambda: _some(
                             mask, switch_some, mask_fn, indices, indices_
@@ -93,7 +94,7 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
                 masks = temp
 
             if weight is not None:
-                weight = smart_cond(
+                weight = ops.cond(
                     square_size,
                     lambda: _some(
                         weight, switch_some, weight_fn, indices, indices_
@@ -199,7 +200,8 @@ def validate(image, masks, weight, name=None):
             raise ValueError("Expecting `image` rank to be 4.")
         if image_.shape[-1] is None:
             raise ValueError(
-                "Expecting channel dimension of the `image` to be defined. Found `None`."
+                "Expecting channel dimension of the `image` to be defined. "
+                "Found `None`."
             )
 
         if masks is not None:
@@ -212,7 +214,8 @@ def validate(image, masks, weight, name=None):
                     raise ValueError("Expecting `masks` items rank to be 4.")
                 if mask_.shape[-1] is None:
                     raise ValueError(
-                        "Expecting channel dimension of the `mask` to be defined. Found `None`."
+                        "Expecting channel dimension of the `mask` to be "
+                        "defined. Found `None`."
                     )
                 masks_.append(mask_)
         else:
@@ -224,7 +227,8 @@ def validate(image, masks, weight, name=None):
                 raise ValueError("Expecting `weight` rank to be 4.")
             if weight_.shape[-1] is None:
                 raise ValueError(
-                    "Expecting channel dimension of the `weight` to be defined. Found `None`."
+                    "Expecting channel dimension of the `weight` to be "
+                    "defined. Found `None`."
                 )
         else:
             weight_ = None

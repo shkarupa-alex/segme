@@ -1,6 +1,6 @@
 import numpy as np
-import tensorflow as tf
-from keras.src import backend, testing
+from keras.src import backend
+from keras.src import testing
 
 from segme.metric.classification.tree import HeinsenTreeAccuracy
 
