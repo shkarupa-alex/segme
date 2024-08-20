@@ -4,7 +4,6 @@ from segme.common.aspp import AtrousSpatialPyramidPooling
 
 
 class TestAtrousSpatialPyramidPooling(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             AtrousSpatialPyramidPooling,

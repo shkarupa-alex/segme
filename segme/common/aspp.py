@@ -1,5 +1,5 @@
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -126,7 +126,7 @@ class AtrousSpatialPyramidPooling(layers.Layer):
         )
         outputs.append(pool)
 
-        outputs = tf.concat(outputs, axis=-1)
+        outputs = ops.concatenate(outputs, axis=-1)
         outputs = self.proj(outputs)
 
         return outputs
