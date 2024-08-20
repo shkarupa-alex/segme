@@ -1,10 +1,11 @@
-import tensorflow as tf
+import math
+
+from keras.src import KerasTensor
 from keras.src import backend
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
-
-from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -17,8 +18,8 @@ class DropPath(layers.Dropout):
         if 0.0 == self.rate or not training:
             return inputs
 
-        batch_size, _ = get_shape(inputs, axis=[0])
-        noise_shape = batch_size + [1] * (inputs.shape.rank - 1)
+        batch_size = ops.shape(inputs)[:1]
+        noise_shape = batch_size + (1,) * (inputs.shape.rank - 1)
 
         return backend.random.dropout(
             inputs,
@@ -35,116 +36,101 @@ class DropPath(layers.Dropout):
 
 
 @register_keras_serializable(package="SegMe>Common")
-class SlicePath(layers.Layer):
+class SlicePath(layers.Dropout):
+    """Proposed in https://arxiv.org/pdf/2304.07193"""
     def __init__(self, rate, seed=None, **kwargs):
-        super().__init__(**kwargs)
+        kwargs.pop("noise_shape", None)
+        super().__init__(rate=rate, seed=seed, **kwargs)
         self.input_spec = InputSpec(min_ndim=1)
 
-        if not 0.0 <= rate <= 1.0:
-            raise ValueError(
-                f"Invalid value {rate} received for `rate`. "
-                f"Expected a value between 0 and 1."
-            )
-
-        self.rate = rate
-        self.seed = seed
-
     def call(self, inputs, training=False, **kwargs):
-        [batch_size], _ = get_shape(inputs, axis=[0])
+        batch_size = ops.shape(inputs)[0]
+        indices = ops.arange(0, batch_size, dtype="int32")
 
-        if 0.0 == self.rate:
-            return self.skip(inputs, batch_size)
+        if 0.0 == self.rate or not training:
+            return inputs, indices
 
-        if training:
-            return self.slice(inputs, batch_size)
-        else:
-            return self.skip(inputs, batch_size)
+        keep_size = ops.cast(batch_size, self.compute_dtype) * (1.0 - self.rate)
+        keep_size = ops.ceil(keep_size / 8.0) * 8.0
+        keep_size = ops.cast(keep_size, "int32")
+        keep_size = ops.minimum(keep_size, batch_size)
 
-    def skip(self, inputs, batch_size):
-        return tf.identity(inputs), tf.range(batch_size)
+        indices = ops.random.shuffle(indices, seed=self.seed_generator)
 
-    def slice(self, inputs, batch_size):
-        keep_size = tf.cast(batch_size, "float32") * (1.0 - self.rate)
-        keep_size = tf.math.ceil(keep_size / 8.0) * 8.0
-        keep_size = tf.cast(keep_size, "int32")
-        keep_size = tf.minimum(keep_size, batch_size)
-
-        indices = tf.range(batch_size)
-        indices = tf.random.shuffle(indices, self.seed)
-
-        outputs = tf.gather(inputs, indices[:keep_size], axis=0)
-
+        outputs = ops.take(inputs, indices[:keep_size], axis=0)
         return outputs, indices
 
     def compute_output_shape(self, input_shape):
-        return (None,) + input_shape[1:], input_shape[:1]
+        if input_shape[0] is None:
+            keep_size = None
+        else:
+            keep_size = input_shape[0] * (1.0 - self.rate)
+            keep_size = int(math.ceil(keep_size / 8.0) * 8.0)
+            keep_size = min(keep_size, input_shape[0])
+
+        return (keep_size,) + input_shape[1:], input_shape[:1]
+
+    def compute_output_spec(self, inputs, training=False):
+        output_spec = super().compute_output_spec(inputs, training=training)
+
+        return output_spec[0], KerasTensor(output_spec[1].shape, dtype="int32")
 
     def get_config(self):
         config = super().get_config()
-        config.update({"rate": self.rate, "seed": self.seed})
+        del config["noise_shape"]
 
         return config
 
 
 @register_keras_serializable(package="SegMe>Common")
 class RestorePath(layers.Layer):
-    def __init__(self, rate, seed=None, **kwargs):
-        super().__init__(seed=seed, **kwargs)
+    """Proposed in https://arxiv.org/pdf/2304.07193"""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.input_spec = [
             InputSpec(min_ndim=1),
             InputSpec(ndim=1, dtype="int32"),
         ]
 
-        self.rate = rate
-        self.seed = seed
-
     def call(self, inputs, training=False, **kwargs):
         outputs, indices = inputs
 
-        if 0.0 == self.rate or not training:
+        if not training:
             return outputs
 
-        return self.restore(outputs, indices)
+        outputs_shape = ops.shape(outputs)
+        batch_size = ops.size(indices)
 
-    def restore(self, outputs, indices):
-        outputs_shape, _ = get_shape(outputs)
-        keep_size = outputs_shape[0]
-        batch_size = tf.size(indices)
-
-        keep_up = tf.cast(batch_size, "float32") / tf.cast(keep_size, "float32")
-        keep_min = (1.0 - self.rate) * keep_up
-        keep_max = (2.0 - self.rate) * keep_up
-        noise_shape = [keep_size] + [1] * (outputs.shape.rank - 1)
-        random_mask = self._random_generator.random_uniform(
-            noise_shape, minval=keep_min, maxval=keep_max
+        outputs = ops.cond(
+            ops.equal(outputs_shape[0], batch_size),
+            lambda: outputs,
+            lambda: self.restore(outputs, indices, outputs_shape, batch_size),
         )
 
-        inv_keep = 1.0 / (1.0 - self.rate)
-        random_mask = tf.cast(random_mask >= 1.0, outputs.dtype) * inv_keep
+        return outputs
 
-        drops = tf.zeros(
-            [batch_size - keep_size] + outputs_shape[1:], dtype=outputs.dtype
+    def restore(self, outputs, indices, outputs_shape, batch_size):
+        outputs *= ops.cast(batch_size, self.compute_dtype) / ops.cast(
+            outputs_shape[0], self.compute_dtype
         )
-        outputs = tf.concat([outputs * random_mask, drops], axis=0)
+        drops = ops.zeros(
+            (batch_size - outputs_shape[0],) + outputs_shape[1:],
+            dtype=outputs.dtype,
+        )
+        outputs = ops.concatenate([outputs, drops], axis=0)
 
-        indices = tf.argsort(indices)
-        outputs = tf.gather(outputs, indices, axis=0)
+        indices = ops.argsort(indices)
+        outputs = ops.take(outputs, indices, axis=0)
 
         return outputs
 
     def compute_output_shape(self, input_shape):
-        return (None,) + input_shape[0][1:]
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({"rate": self.rate, "seed": self.seed})
-
-        return config
+        return input_shape[1][:1] + input_shape[0][1:]
 
 
 @register_keras_serializable(package="SegMe>Common")
 class DropBlock(layers.Dropout):
-    """Proposed in: https://arxiv.org/pdf/1810.12890.pdf"""
+    """Proposed in: https://arxiv.org/pdf/1810.12890"""
 
     def __init__(self, rate, size, seed=None, **kwargs):
         kwargs.pop("noise_shape", None)
@@ -169,13 +155,14 @@ class DropBlock(layers.Dropout):
         if 0.0 == self.rate or not training:
             return inputs
 
-        shape, _ = get_shape(inputs)
+        shape = ops.shape(inputs)
+
         mask = backend.random.uniform(
             shape, dtype=self.compute_dtype, seed=self.seed_generator
         )
-        mask = tf.cast(mask < self.rate / self.size**2, self.compute_dtype)
-        mask = 1.0 - tf.nn.max_pool2d(mask, self.size, 1, "SAME")
-        mask = mask / tf.reduce_mean(mask, axis=[1, 2], keepdims=True)
+        mask = ops.cast(mask < self.rate / self.size**2, self.compute_dtype)
+        mask = 1.0 - ops.max_pool(mask, self.size, strides=1, padding="same")
+        mask = mask / ops.mean(mask, axis=[1, 2], keepdims=True)
 
         outputs = inputs * mask
 
@@ -183,7 +170,7 @@ class DropBlock(layers.Dropout):
 
     def get_config(self):
         config = super().get_config()
-        config.update({"rate": self.rate, "size": self.size})
+        config.update({"size": self.size})
         del config["noise_shape"]
 
         return config
