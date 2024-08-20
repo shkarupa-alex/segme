@@ -4,7 +4,6 @@ from segme.common.ppm import PyramidPooling
 
 
 class TestPyramidPooling(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             PyramidPooling,

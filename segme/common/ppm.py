@@ -1,5 +1,5 @@
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -51,7 +51,7 @@ class PyramidPooling(layers.Layer):
     def call(self, inputs, **kwargs):
         outputs = [stage(inputs) for stage in self.stages]
         outputs = [self.interpolate([output, inputs]) for output in outputs]
-        outputs = tf.concat([inputs] + outputs, axis=-1)
+        outputs = ops.concatenate([inputs] + outputs, axis=-1)
         outputs = self.bottleneck(outputs)
 
         return outputs
