@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 from segme.loss.common_loss import validate_input
@@ -23,13 +23,13 @@ def soft_mean_absolute_error(y_true, y_pred, sample_weight, beta):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=None, channel="same"
     )
-    beta = tf.cast(beta, dtype=y_pred.dtype)
+    beta = ops.cast(beta, dtype=y_pred.dtype)
 
     error = y_pred - y_true
-    abs_error = tf.abs(error)
-    square_error = tf.square(error)
+    abs_error = ops.abs(error)
+    square_error = ops.square(error)
 
-    loss = tf.where(
+    loss = ops.where(
         abs_error < beta, square_error * (0.5 / beta), abs_error - 0.5 * beta
     )
     loss = weighted_loss(loss, sample_weight)

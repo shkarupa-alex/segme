@@ -1,12 +1,12 @@
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
 from segme.common.convnormact import Conv
 from segme.common.convnormact import Norm
 from segme.common.resize import NearestInterpolation
-from segme.common.shape import get_shape
+from segme.ops import extract_patches
 
 
 @register_keras_serializable(package="SegMe>Policy>Align>SAPA")
@@ -14,7 +14,7 @@ class SapaFeatureAlignment(layers.Layer):
     """
     Proposed in "SAPA: Similarity-Aware Point Affiliation for Feature
     Upsampling"
-    https://arxiv.org/pdf/2209.12866.pdf
+    https://arxiv.org/pdf/2209.12866
     """
 
     def __init__(self, filters, kernel_size=5, embedding_size=64, **kwargs):
@@ -141,64 +141,78 @@ class LocalAttention(layers.Layer):
         query, key, value = inputs
         shape = self.compute_output_shape([i.shape for i in inputs])
 
-        (q_batch, q_height, q_width), _ = get_shape(query, axis=[0, 1, 2])
-        (k_batch, k_height, k_width), _ = get_shape(key, axis=[0, 1, 2])
-        (v_batch, v_height, v_width), _ = get_shape(value, axis=[0, 1, 2])
+        q_batch, q_height, q_width = ops.shape(query)[:3]
+        k_batch, k_height, k_width = ops.shape(key)[:3]
+        v_batch, v_height, v_width = ops.shape(value)[:3]
 
-        assert_batch = tf.assert_equal(
-            (q_batch == k_batch) & (k_batch == v_batch),
-            True,
-            "Batch dimension of the query, key and value should be equal.",
-        )
-        assert_size = tf.assert_equal(
-            (k_height == v_height) & (k_width == v_width),
-            True,
-            "Spatial dimensions of the key and value should be equal.",
-        )
-        assert_scale = tf.assert_equal(
-            (q_height % k_height == 0) & (q_width % k_width == 0),
-            True,
-            "Query-to-key/value scale value should be integer.",
-        )
-        with tf.control_dependencies([assert_batch, assert_size, assert_scale]):
-            h_scale = q_height // k_height
-            w_scale = q_width // k_width
+        if (
+            isinstance(q_batch, int)
+            and isinstance(k_batch, int)
+            and isinstance(v_batch, int)
+            and not (q_batch == k_batch == v_batch)
+        ):
+            raise ValueError(
+                "Batch dimension of the query, key and value should be equal."
+            )
+        if (
+            isinstance(k_height, int)
+            and isinstance(v_height, int)
+            and isinstance(k_width, int)
+            and isinstance(v_width, int)
+            and (k_height != v_height or k_width != v_width)
+        ):
+            raise ValueError(
+                "Spatial dimensions of the key and value should be equal."
+            )
+        if (
+            isinstance(q_height, int)
+            and isinstance(k_height, int)
+            and isinstance(q_width, int)
+            and isinstance(k_width, int)
+            and (q_height % k_height != 0 or q_width % k_width != 0)
+        ):
+            raise ValueError(
+                "Query-to-key/value scale value should be integer."
+            )
 
-        query = tf.reshape(
+        h_scale = q_height // k_height
+        w_scale = q_width // k_width
+
+        query = ops.reshape(
             query,
             [q_batch, k_height, h_scale, k_width, w_scale, self.channels[0]],
         )
 
-        key = tf.image.extract_patches(key, **self.patch_kwargs)
-        key = tf.reshape(
+        key = extract_patches(key, **self.patch_kwargs)
+        key = ops.reshape(
             key,
             [k_batch, k_height, k_width, self.kernel_size**2, self.channels[1]],
         )
 
-        value = tf.image.extract_patches(value, **self.patch_kwargs)
-        value = tf.reshape(
+        value = extract_patches(value, **self.patch_kwargs)
+        value = ops.reshape(
             value,
             [v_batch, v_height, v_width, self.kernel_size**2, self.channels[2]],
         )
 
-        attention = tf.einsum("ijklmn,ijlon->ijklmo", query, key)
-        attention = tf.nn.softmax(attention)
+        attention = ops.einsum("ijklmn,ijlon->ijklmo", query, key)
+        attention = ops.softmax(attention)
 
-        outputs = tf.einsum("ijklmn,ijlno->ijklmo", attention, value)
-        outputs = tf.reshape(
+        outputs = ops.einsum("ijklmn,ijlno->ijklmo", attention, value)
+        outputs = ops.reshape(
             outputs, [v_batch, q_height, q_width, self.channels[2]]
         )
         outputs.set_shape(shape)
 
-        # query = tf.transpose(query, [0, 1, 3, 2, 4, 5])
-        # query = tf.reshape(query, [
+        # query = ops.transpose(query, [0, 1, 3, 2, 4, 5])
+        # query = ops.reshape(query, [
         #   q_batch, k_height, k_width, h_scale * w_scale, self.channels[0]])
-        # attention = tf.matmul(query, key, transpose_b=True)
-        # attention = tf.nn.softmax(attention)
-        # outputs = tf.matmul(attention, value)
-        # outputs = tf.reshape(outputs, [
+        # attention = ops.matmul(query, ops.moveaxis(key, -1, -2))
+        # attention = ops.softmax(attention)
+        # outputs = ops.matmul(attention, value)
+        # outputs = ops.reshape(outputs, [
         #   v_batch, v_height, v_width, h_scale, w_scale, self.channels[2]])
-        # outputs = tf.transpose(outputs, [0, 1, 3, 2, 4, 5])
+        # outputs = ops.transpose(outputs, [0, 1, 3, 2, 4, 5])
 
         return outputs
 

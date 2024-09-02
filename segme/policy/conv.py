@@ -1,10 +1,11 @@
-import tensorflow as tf
 from keras.src import initializers
 from keras.src import layers
 from keras.src import ops
-from keras.src.backend.tensorflow.nn import _convert_data_format
 from keras.src.saving import register_keras_serializable
 
+from segme.ops import fixed_conv
+from segme.ops import fixed_depthwise_conv
+from segme.ops import l2_normalize
 from segme.policy.registry import LayerRegistry
 
 CONVOLUTIONS = LayerRegistry()
@@ -52,70 +53,14 @@ class FixedConv(layers.Conv2D):
             **kwargs,
         )
 
-        if max(self.strides) > 1 and max(self.dilation_rate) > 1:
-            raise ValueError(
-                f"`strides > 1` not supported in conjunction with "
-                f"`dilation_rate > 1`. Received: strides={self.strides} and "
-                f"dilation_rate={self.dilation_rate}"
-            )
-
-        self._tf_data_format = _convert_data_format(
-            self.data_format, self.rank + 2
-        )
-
     def convolution_op(self, inputs, kernel):
-        paddings = "VALID" if "same" != self.padding else "SAME"
-
-        if (
-            "SAME" == paddings
-            and max(self.kernel_size) > 1
-            and max(self.strides) > 1
-        ):
-            pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
-            pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
-
-            pad_hb = min(
-                pad_h // 2, max(0, self.kernel_size[0] - self.strides[0])
-            )
-            pad_wb = min(
-                pad_w // 2, max(0, self.kernel_size[1] - self.strides[1])
-            )
-
-            paddings = (
-                (0, 0),
-                (pad_hb, pad_h - pad_hb),
-                (pad_wb, pad_w - pad_wb),
-            )
-            paddings = (
-                ((0, 0),) + paddings
-                if self.data_format == "channels_first"
-                else paddings + ((0, 0),)
-            )
-
-        if (
-            not tf.config.list_physical_devices("GPU")
-            and max(self.dilation_rate) > 1
-        ):
-            # Current libxsmm and customized CPU implementations do not yet
-            # support dilation rates > 1
-            return tf.nn.convolution(
-                inputs,
-                kernel,
-                strides=self.strides,
-                padding=paddings,
-                dilations=self.dilation_rate,
-                data_format=self._tf_data_format,
-                name=self.__class__.__name__,
-            )
-
-        return tf.nn.conv2d(
+        return fixed_conv(
             inputs,
             kernel,
-            strides=self.strides,
-            padding=paddings,
-            dilations=self.dilation_rate,
-            data_format=self._tf_data_format,
-            name=self.__class__.__name__,
+            strides=list(self.strides),
+            padding=self.padding,
+            dilation_rate=self.dilation_rate,
+            data_format=self.data_format,
         )
 
     def get_config(self):
@@ -166,58 +111,14 @@ class FixedDepthwiseConv(layers.DepthwiseConv2D):
             **kwargs,
         )
 
-        if max(self.strides) > 1 and max(self.dilation_rate) > 1:
-            raise ValueError(
-                f"`strides > 1` not supported in conjunction with "
-                f"`dilation_rate > 1`. Received: strides={self.strides} and "
-                f"dilation_rate={self.dilation_rate}"
-            )
-
-        self._tf_data_format = _convert_data_format(
-            self.data_format, self.rank + 2
-        )
-
     def _conv_op(self, inputs, kernel):
-        strides = (
-            (1, 1) + self.strides
-            if self.data_format == "channels_first"
-            else (1,) + self.strides + (1,)
-        )
-        paddings = "VALID" if "same" != self.padding else "SAME"
-
-        if (
-            "SAME" == paddings
-            and max(self.kernel_size) > 1
-            and max(self.strides) > 1
-        ):
-            pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
-            pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
-
-            pad_hb = min(
-                pad_h // 2, max(0, self.kernel_size[0] - self.strides[0])
-            )
-            pad_wb = min(
-                pad_w // 2, max(0, self.kernel_size[1] - self.strides[1])
-            )
-
-            paddings = (
-                (0, 0),
-                (pad_hb, pad_h - pad_hb),
-                (pad_wb, pad_w - pad_wb),
-            )
-            paddings = (
-                ((0, 0),) + paddings
-                if self.data_format == "channels_first"
-                else paddings + ((0, 0),)
-            )
-
-        return tf.nn.depthwise_conv2d(
+        return fixed_depthwise_conv(
             inputs,
             kernel,
-            strides=strides,
-            padding=paddings,
-            dilations=self.dilation_rate,
-            data_format=self._tf_data_format,
+            strides=self.strides,
+            padding=self.padding,
+            dilation_rate=self.dilation_rate,
+            data_format=self.data_format,
         )
 
     def call(self, inputs):
@@ -264,49 +165,11 @@ class FixedDepthwiseConv(layers.DepthwiseConv2D):
 class StandardizedConv(FixedConv):
     """Implements https://arxiv.org/abs/1903.10520"""
 
-    def __init__(
-        self,
-        filters,
-        kernel_size,
-        strides=(1, 1),
-        padding="valid",
-        data_format=None,
-        dilation_rate=(1, 1),
-        activation=None,
-        use_bias=True,
-        kernel_initializer="glorot_uniform",
-        bias_initializer="zeros",
-        kernel_regularizer=None,
-        bias_regularizer=None,
-        activity_regularizer=None,
-        kernel_constraint=None,
-        bias_constraint=None,
-        **kwargs,
-    ):
-        super().__init__(
-            filters=filters,
-            kernel_size=kernel_size,
-            strides=strides,
-            padding=padding,
-            data_format=data_format,
-            dilation_rate=dilation_rate,
-            activation=activation,
-            use_bias=use_bias,
-            kernel_initializer=kernel_initializer,
-            bias_initializer=bias_initializer,
-            kernel_regularizer=kernel_regularizer,
-            bias_regularizer=bias_regularizer,
-            activity_regularizer=activity_regularizer,
-            kernel_constraint=kernel_constraint,
-            bias_constraint=bias_constraint,
-            **kwargs,
-        )
-
-    def _standardize_kernel(self, kernel, dtype=None):
-        kernel = tf.cast(kernel, "float32")
-        mean, var = tf.nn.moments(kernel, axes=[0, 1, 2], keepdims=True)
-        kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
-        kernel = tf.cast(kernel, dtype or self.compute_dtype)
+    def _standardize_kernel(self, kernel):
+        kernel = ops.cast(kernel, "float32")
+        mean, var = ops.moments(kernel, axes=[0, 1, 2], keepdims=True)
+        kernel = ops.batch_normalization(kernel, mean, var, -1, epsilon=1e-5)
+        kernel = ops.cast(kernel, self.compute_dtype)
 
         return kernel
 
@@ -321,47 +184,11 @@ class StandardizedConv(FixedConv):
 class StandardizedDepthwiseConv(FixedDepthwiseConv):
     """Implements https://arxiv.org/abs/1903.10520"""
 
-    def __init__(
-        self,
-        kernel_size,
-        strides=(1, 1),
-        padding="valid",
-        data_format=None,
-        dilation_rate=(1, 1),
-        activation=None,
-        use_bias=True,
-        kernel_initializer="glorot_uniform",
-        bias_initializer="zeros",
-        kernel_regularizer=None,
-        bias_regularizer=None,
-        activity_regularizer=None,
-        kernel_constraint=None,
-        bias_constraint=None,
-        **kwargs,
-    ):
-        super().__init__(
-            kernel_size=kernel_size,
-            strides=strides,
-            padding=padding,
-            data_format=data_format,
-            dilation_rate=dilation_rate,
-            activation=activation,
-            use_bias=use_bias,
-            kernel_initializer=kernel_initializer,
-            bias_initializer=bias_initializer,
-            kernel_regularizer=kernel_regularizer,
-            bias_regularizer=bias_regularizer,
-            activity_regularizer=activity_regularizer,
-            kernel_constraint=kernel_constraint,
-            bias_constraint=bias_constraint,
-            **kwargs,
-        )
-
-    def _standardize_kernel(self, kernel, dtype=None):
-        kernel = tf.cast(kernel, "float32")
-        mean, var = tf.nn.moments(kernel, axes=[0, 1], keepdims=True)
-        kernel = tf.nn.batch_normalization(kernel, mean, var, None, None, 1e-5)
-        kernel = tf.cast(kernel, dtype or self.compute_dtype)
+    def _standardize_kernel(self, kernel):
+        kernel = ops.cast(kernel, "float32")
+        mean, var = ops.moments(kernel, axes=[0, 1], keepdims=True)
+        kernel = ops.batch_normalization(kernel, mean, var, -1, epsilon=1e-5)
+        kernel = ops.cast(kernel, self.compute_dtype)
 
         return kernel
 
@@ -424,43 +251,31 @@ class SpectralConv(FixedConv):
             shape=(1, self.filters),
             initializer=initializers.TruncatedNormal(stddev=0.02),
             trainable=False,
-            name="sn_u",
+            name="u",
             dtype=self.dtype,
         )
 
         super().build(input_shape)
 
-    def before_train(self, inputs):
-        kernel = tf.cast(self.kernel, self.dtype)
-        u = tf.cast(self.u, self.dtype)
-
-        w = tf.reshape(kernel, [-1, self.filters])
-
-        for _ in range(self.power_iterations):
-            v = tf.math.l2_normalize(tf.matmul(u, w, transpose_b=True))
-            u = tf.math.l2_normalize(tf.matmul(v, w))
-
-        sigma = tf.matmul(tf.matmul(v, w), u, transpose_b=True)
-        kernel = tf.reshape(kernel / sigma, self.kernel.shape)
-        kernel = tf.stop_gradient(kernel)
-        u = tf.stop_gradient(u)
-
-        kernel_update = self.kernel.value.assign(kernel, read_value=False)
-        u_update = self.u.value.assign(u, read_value=False)
-        with tf.control_dependencies([kernel_update, u_update]):
-            outputs = tf.identity(inputs)
-
-        return outputs
-
     def call(self, inputs, training=False):
         if training:
-            outputs = self.before_train(inputs)
-        else:
-            outputs = inputs
+            kernel, u = self.kernel, self.u
+            w = ops.reshape(kernel, [-1, self.filters])
 
-        outputs = super().call(outputs)
+            for _ in range(self.power_iterations):
+                v = l2_normalize(ops.matmul(u, ops.moveaxis(w, -1, -2)))
+                u = l2_normalize(ops.matmul(v, w))
 
-        return outputs
+            sigma = ops.matmul(ops.matmul(v, w), ops.moveaxis(u, -1, -2))
+            kernel = ops.reshape(kernel / sigma, self.kernel.shape)
+
+            kernel = ops.stop_gradient(kernel)
+            u = ops.stop_gradient(u)
+
+            self.kernel.assign(kernel)
+            self.u.assign(u)
+
+        return super().call(inputs)
 
     def get_config(self):
         config = super().get_config()
@@ -483,6 +298,7 @@ class SpectralDepthwiseConv(FixedDepthwiseConv):
         dilation_rate=(1, 1),
         activation=None,
         use_bias=True,
+        power_iterations=1,
         kernel_initializer="glorot_uniform",
         bias_initializer="zeros",
         kernel_regularizer=None,
@@ -490,7 +306,6 @@ class SpectralDepthwiseConv(FixedDepthwiseConv):
         activity_regularizer=None,
         kernel_constraint=None,
         bias_constraint=None,
-        power_iterations=1,
         **kwargs,
     ):
         super().__init__(
@@ -527,43 +342,31 @@ class SpectralDepthwiseConv(FixedDepthwiseConv):
             shape=(1, self.channels),
             initializer=initializers.TruncatedNormal(stddev=0.02),
             trainable=False,
-            name="sn_u",
+            name="u",
             dtype=self.dtype,
         )
 
         super().build(input_shape)
 
-    def before_train(self, inputs):
-        kernel = tf.cast(self.kernel, self.dtype)
-        u = tf.cast(self.u, self.dtype)
-
-        w = tf.reshape(kernel, [-1, self.channels])
-
-        for _ in range(self.power_iterations):
-            v = tf.math.l2_normalize(tf.matmul(u, w, transpose_b=True))
-            u = tf.math.l2_normalize(tf.matmul(v, w))
-
-        sigma = tf.matmul(tf.matmul(v, w), u, transpose_b=True)
-        kernel = tf.reshape(kernel / sigma, self.kernel.shape)
-        kernel = tf.stop_gradient(kernel)
-        u = tf.stop_gradient(u)
-
-        kernel_update = self.kernel.value.assign(kernel, read_value=False)
-        u_update = self.u.value.assign(u, read_value=False)
-        with tf.control_dependencies([kernel_update, u_update]):
-            outputs = tf.identity(inputs)
-
-        return outputs
-
     def call(self, inputs, training=False):
         if training:
-            outputs = self.before_train(inputs)
-        else:
-            outputs = inputs
+            kernel, u = self.kernel, self.u
+            w = ops.reshape(kernel, [-1, self.channels])
 
-        outputs = super().call(outputs)
+            for _ in range(self.power_iterations):
+                v = l2_normalize(ops.matmul(u, ops.moveaxis(w, -1, -2)))
+                u = l2_normalize(ops.matmul(v, w))
 
-        return outputs
+            sigma = ops.matmul(ops.matmul(v, w), ops.moveaxis(u, -1, -2))
+            kernel = ops.reshape(kernel / sigma, self.kernel.shape)
+
+            kernel = ops.stop_gradient(kernel)
+            u = ops.stop_gradient(u)
+
+            self.kernel.assign(kernel)
+            self.u.assign(u)
+
+        return super().call(inputs)
 
     def get_config(self):
         config = super().get_config()

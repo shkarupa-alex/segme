@@ -1,20 +1,10 @@
 import numpy as np
 from keras.src import testing
 
-from segme.model.matting.fba_matting.twomap import Twomap
+from segme.model.matting.fba_matting.twomap import twomap_transform
 
 
-class TestTwomap(testing.TestCase):
-    def test_layer(self):
-        self.run_layer_test(
-            Twomap,
-            init_kwargs={},
-            input_shape=(2, 64, 64, 1),
-            input_dtype="uint8",
-            expected_output_shape=(2, 64, 64, 2),
-            expected_output_dtype="float32",
-        )
-
+class TestTwomapTrasform(testing.TestCase):
     def test_value(self):
         trimap = np.array(
             [
@@ -176,7 +166,7 @@ class TestTwomap(testing.TestCase):
         expected = _twomap(trimap)
         expected = (expected * 255.0).astype("uint8")
 
-        result = Twomap()(trimap[None, ..., None])[0]
+        result = twomap_transform(trimap[None, ..., None])[0]
 
         self.assertAllClose(expected, result)
 

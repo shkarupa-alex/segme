@@ -1,231 +1,345 @@
-import tensorflow as tf
 from keras.src import layers
 from keras.src import models
-from keras.src.engine.data_adapter import unpack_x_y_sample_weight
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
-from tensorflow.python.framework import convert_to_constants
 
-from segme.loss.cross_entropy import CrossEntropyLoss
+from segme.backend import model_inference_fn
 from segme.loss.kl_divergence import KLDivergenceLoss
 from segme.loss.soft_mae import SoftMeanAbsoluteError
 from segme.loss.stronger_teacher import StrongerTeacherLoss
 
 
 @register_keras_serializable(package="SegMe>Common")
-class ModelDistillation(models.Model):
+class ModelDistillation(models.Functional):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.teacher_fn = None
-        self.dist_prep = self.distillation_preprocessor()
-        self.targ_prep = self.target_preprocessor()
-        self.dist_loss = self.distillation_loss()
-        self.targ_loss = self.target_loss()
-
-    def distillation_preprocessor(self):
-        return layers.Activation(
-            "linear", dtype="float32", name="distill_head_prep"
-        )
-
-    def target_preprocessor(self):
-        raise NotImplementedError
-
-    def distillation_loss(self):
-        raise NotImplementedError
-
-    def target_loss(self):
-        raise NotImplementedError
-
-    def set_teacher(self, model, jit_compile=None):
-        if not isinstance(model, models.Model):
-            raise ValueError(
-                f"Expecting teacher model to be an instance of `keras.Model`. "
-                f"Got: {type(model)}"
-            )
-
-        teacher_sp = [tf.TensorSpec(i.shape, i.dtype) for i in model.inputs]
-        teacher_sp = teacher_sp[0] if 1 == len(teacher_sp) else teacher_sp
-        teacher_fn = tf.function(
-            lambda x: self.dist_prep(model(x, training=False)),
-            jit_compile=jit_compile,
-            reduce_retracing=True,
-        )
-        teacher_fn = teacher_fn.get_concrete_function(teacher_sp)
-        teacher_fn = convert_to_constants.convert_variables_to_constants_v2(
-            teacher_fn
-        )
-        self.teacher_fn = teacher_fn
+        self.teacher = None
 
     def compile(
         self,
+        teacher,
+        jit_compile_teacher="auto",
         optimizer="rmsprop",
         loss=None,
-        metrics=None,
         loss_weights=None,
+        metrics=None,
         weighted_metrics=None,
-        run_eagerly=None,
-        steps_per_execution=None,
-        jit_compile=None,
-        **kwargs,
+        run_eagerly=False,
+        steps_per_execution=1,
+        jit_compile="auto",
+        auto_scale_loss=True,
     ):
-        if loss is not None or loss_weights is not None:
+        self.teacher = model_inference_fn(teacher, jit_compile_teacher)
+
+        if not isinstance(loss, dict):
             raise ValueError(
-                "User defined `loss` and `loss_weights` not supported."
+                f"Loss should be a dict with `student` and `teacher` keys. "
+                f"Got: {type(loss)}"
+            )
+        if {"student", "teacher"}.difference(loss.keys()):
+            raise ValueError(
+                f"Loss should be a dict with `student` and `teacher` keys. "
+                f"Got: {loss.keys()}"
             )
 
-        if self.targ_loss:
-            loss = [self.dist_loss, self.targ_loss]
-            if metrics is not None:
-                metrics = [None, metrics]
-            if weighted_metrics is not None:
-                weighted_metrics = [None, weighted_metrics]
-        else:
-            if metrics is not None or weighted_metrics is not None:
-                raise ValueError(
-                    "User defined `metrics` and `weighted_metrics` "
-                    "not supported."
-                )
-            loss = self.dist_loss
+        if loss_weights is not None and not isinstance(loss_weights, dict):
+            raise ValueError(
+                f"Loss weights should be a dict with `student` and `teacher` "
+                f"keys. Got: {type(loss_weights)}"
+            )
+        if loss_weights is not None and {"student", "teacher"}.difference(
+            loss_weights.keys()
+        ):
+            raise ValueError(
+                f"Loss weights should be a dict with `student` and `teacher` "
+                f"keys. Got: {loss_weights.keys()}"
+            )
+
+        if metrics is not None and not isinstance(metrics, dict):
+            raise ValueError(
+                f"Metrics should be a dict with `student` key. "
+                f"Got: {type(metrics)}"
+            )
+        if metrics is not None and {"student"}.difference(metrics.keys()):
+            raise ValueError(
+                f"Metrics should be a dict with `student` key. "
+                f"Got: {metrics.keys()}"
+            )
+
+        if weighted_metrics is not None and not isinstance(
+            weighted_metrics, dict
+        ):
+            raise ValueError(
+                f"Weighted metrics should be a dict with `student` key. "
+                f"Got: {type(weighted_metrics)}"
+            )
+        if weighted_metrics is not None and {"student"}.difference(
+            weighted_metrics.keys()
+        ):
+            raise ValueError(
+                f"Weighted metrics should be a dict with `student` key. "
+                f"Got: {weighted_metrics.keys()}"
+            )
 
         super().compile(
             optimizer=optimizer,
             loss=loss,
+            loss_weights=loss_weights,
             metrics=metrics,
-            loss_weights=None,
             weighted_metrics=weighted_metrics,
             run_eagerly=run_eagerly,
             steps_per_execution=steps_per_execution,
             jit_compile=jit_compile,
-            **kwargs,
+            auto_scale_loss=auto_scale_loss,
         )
 
-    def _get_compile_args(self, user_metrics=True):
-        compile_args = super()._get_compile_args(user_metrics)
-        compile_args["loss"] = None
-        compile_args["loss_weights"] = None
+    def __call__(self, x, training=None):
+        if isinstance(x, dict) and "student" in x:
+            xs = x["student"]
+        else:
+            xs = x
 
-        return compile_args
-
-    def train_step(self, data):
-        if self.teacher_fn is None:
+        y_pred = super().__call__(xs, training=training)
+        if not isinstance(y_pred, dict):
             raise ValueError(
-                "Expecting teacher model to be set through "
-                "`set_teacher` method."
+                f"Student model should return a dict with `student` and "
+                f"`teacher` keys. Got: {type(y_pred)}"
+            )
+        if {"student", "teacher"}.difference(y_pred.keys()):
+            raise ValueError(
+                f"Student model should return a dict with `student` and "
+                f"`teacher` keys. Got: {y_pred.keys()}"
             )
 
-        x, y, sample_weight = unpack_x_y_sample_weight(data)
+        return y_pred
 
-        if isinstance(x, dict) and "teacher" in x and "student" in x:
-            xt, xs = x["teacher"], x["student"]
-        else:
-            xt, xs = x, x
-
-        yt = self.teacher_fn(xt)
-        y = [yt, y] if self.targ_loss else yt
-        sample_weight = [None, sample_weight] if self.targ_loss else None
-
-        with tf.GradientTape() as tape:
-            y_pred = self(xs, training=True)
-
-            if self.targ_loss:
-                y_pred = [self.dist_prep(y_pred), self.targ_prep(y_pred)]
-            else:
-                y_pred = self.dist_prep(y_pred)
-
-            loss = self.compute_loss(xs, y, y_pred, sample_weight)
-
-        self._validate_target_and_loss(y, loss)
-        self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
-
-        return self.compute_metrics(xs, y, y_pred, sample_weight)
-
-    def test_step(self, data):
-        if self.teacher_fn is None:
+    def compute_loss(
+        self,
+        x=None,
+        y=None,
+        y_pred=None,
+        sample_weight=None,
+        training=True,
+    ):
+        if self.teacher is None:
             raise ValueError(
-                "Expecting teacher model to be set through `set_teacher` "
-                "method."
+                "Expecting teacher model to be set through `compile` method."
             )
 
-        x, y, sample_weight = unpack_x_y_sample_weight(data)
-
-        if isinstance(x, dict) and "teacher" in x and "student" in x:
-            xt, xs = x["teacher"], x["student"]
+        if isinstance(x, dict) and "teacher" in x:
+            xt = x["teacher"]
         else:
-            xt, xs = x, x
+            xt = x
 
-        yt = self.teacher_fn(xt)
-        y = [yt, y] if self.targ_loss else yt
-        sample_weight = [None, sample_weight] if self.targ_loss else None
+        yt = self.teacher(xt)
+        if isinstance(yt, (list, tuple)):
+            if 1 != len(yt):
+                raise ValueError("Unexpected teacher output.")
+            yt = yt[0]
+        yt = ops.stop_gradient(yt)
+        y = {
+            "student": ops.cast(y, "float32"),
+            "teacher": ops.cast(yt, "float32"),
+        }
 
-        y_pred = self(xs, training=False)
-        if self.targ_loss:
-            y_pred = [self.dist_prep(y_pred), self.targ_prep(y_pred)]
-        else:
-            y_pred = self.dist_prep(y_pred)
+        if not isinstance(y_pred, dict):
+            raise ValueError(
+                f"Student model should return a dict with `student` and "
+                f"`teacher` keys. Got: {type(y_pred)}"
+            )
+        if {"student", "teacher"}.difference(y_pred.keys()):
+            raise ValueError(
+                f"Student model should return a dict with `student` and "
+                f"`teacher` keys. Got: {y_pred.keys()}"
+            )
 
-        self.compute_loss(xs, y, y_pred, sample_weight)
+        if sample_weight is not None and not isinstance(sample_weight, dict):
+            sample_weight = {"student": sample_weight, "teacher": None}
+        if sample_weight is not None and {"student", "teacher"}.difference(
+            sample_weight.keys()
+        ):
+            raise ValueError(
+                f"Sample weights should be a dict with `student` and "
+                f"`teacher` keys. Got: {sample_weight.keys()}"
+            )
 
-        return self.compute_metrics(xs, y, y_pred, sample_weight)
+        return super().compute_loss(
+            x=x,
+            y=y,
+            y_pred=y_pred,
+            sample_weight=sample_weight,
+            training=training,
+        )
+
+    def compute_metrics(self, x, y, y_pred, sample_weight=None):
+        y = {
+            "student": ops.cast(y, "float32"),
+        }
+
+        if not isinstance(y_pred, dict):
+            raise ValueError(
+                f"Student model should return a dict with `student` and "
+                f"`teacher` keys. Got: {type(y_pred)}"
+            )
+        if {"student", "teacher"}.difference(y_pred.keys()):
+            raise ValueError(
+                f"Student model should return a dict with `student` and "
+                f"`teacher` keys. Got: {y_pred.keys()}"
+            )
+        y_pred = {"student": y_pred["student"]}
+
+        if sample_weight is not None and not isinstance(sample_weight, dict):
+            sample_weight = {"student": sample_weight}
+        if sample_weight is not None and {"student"}.difference(
+            sample_weight.keys()
+        ):
+            raise ValueError(
+                f"Sample weights should be a dict with `student` key. "
+                f"Got: {sample_weight.keys()}"
+            )
+
+        return super().compute_metrics(
+            x=x, y=y, y_pred=y_pred, sample_weight=sample_weight
+        )
 
 
-@register_keras_serializable(package="SegMe>Common")
-class FeatureDistillation(ModelDistillation):
+def FeatureDistillation(
+    student,
+    teacher,
+    jit_compile_teacher="auto",
+    optimizer="rmsprop",
+    run_eagerly=False,
+    steps_per_execution=1,
+    jit_compile="auto",
+    auto_scale_loss=True,
+):
     """Proposed in: https://arxiv.org/abs/2205.14141"""
-
-    def distillation_preprocessor(self):
-        return layers.LayerNormalization(
+    teacher = models.Model(
+        inputs=teacher.inputs,
+        outputs=layers.LayerNormalization(
             center=False,
             scale=False,
             epsilon=1.001e-5,
             dtype="float32",
-            name="distill_head_prep",
-        )
+            name="teacher_whiten",
+        )(teacher.outputs[0]),
+    )
 
-    def target_preprocessor(self):
-        return None
+    model = ModelDistillation(
+        inputs=student.inputs,
+        outputs={
+            "student": layers.Activation("linear", name="student")(
+                student.outputs[0]
+            ),
+            "teacher": layers.Conv2D(
+                teacher.outputs[0].shape[-1], 1, name="teacher"
+            )(student.outputs[0]),
+        },
+    )
+    model.compile(
+        teacher,
+        jit_compile_teacher=jit_compile_teacher,
+        optimizer=optimizer,
+        loss={"student": None, "teacher": SoftMeanAbsoluteError(beta=2.0)},
+        loss_weights=None,
+        metrics=None,
+        weighted_metrics=None,
+        run_eagerly=run_eagerly,
+        steps_per_execution=steps_per_execution,
+        jit_compile=jit_compile,
+        auto_scale_loss=auto_scale_loss,
+    )
 
-    def distillation_loss(self):
-        return SoftMeanAbsoluteError(beta=2.0)
-
-    def target_loss(self):
-        return None
+    return model
 
 
-@register_keras_serializable(package="SegMe>Common")
-class KullbackLeibler(ModelDistillation):
-    def distillation_preprocessor(self):
-        return layers.Activation(
-            "linear", dtype="float32", name="distill_head_prep"
-        )
+def KullbackLeibler(
+    student,
+    teacher,
+    loss=None,
+    loss_weights=None,
+    metrics=None,
+    weighted_metrics=None,
+    jit_compile_teacher="auto",
+    optimizer="rmsprop",
+    run_eagerly=False,
+    steps_per_execution=1,
+    jit_compile="auto",
+    auto_scale_loss=True,
+):
+    if loss_weights is None:
+        loss_weights = 1.0
 
-    def target_preprocessor(self):
-        return layers.Activation(
-            "linear", dtype="float32", name="target_head_prep"
-        )
+    model = ModelDistillation(
+        inputs=student.inputs,
+        outputs={
+            "student": layers.Activation("linear", name="student")(
+                student.outputs[0]
+            ),
+            "teacher": layers.Activation("linear", name="teacher")(
+                student.outputs[0]
+            ),
+        },
+    )
+    model.compile(
+        teacher,
+        jit_compile_teacher=jit_compile_teacher,
+        optimizer=optimizer,
+        loss={"student": loss, "teacher": KLDivergenceLoss()},
+        loss_weights={"student": loss_weights, "teacher": 1.0},
+        metrics={"student": metrics, "teacher": None},
+        weighted_metrics={"student": weighted_metrics, "teacher": None},
+        run_eagerly=run_eagerly,
+        steps_per_execution=steps_per_execution,
+        jit_compile=jit_compile,
+        auto_scale_loss=auto_scale_loss,
+    )
 
-    def distillation_loss(self):
-        return KLDivergenceLoss()
-
-    def target_loss(self):
-        return CrossEntropyLoss(from_logits=True, label_smoothing=0.1)
+    return model
 
 
-@register_keras_serializable(package="SegMe>Common")
-class StrongerTeacher(ModelDistillation):
+def StrongerTeacher(
+    student,
+    teacher,
+    loss=None,
+    loss_weights=None,
+    metrics=None,
+    weighted_metrics=None,
+    jit_compile_teacher="auto",
+    optimizer="rmsprop",
+    run_eagerly=False,
+    steps_per_execution=1,
+    jit_compile="auto",
+    auto_scale_loss=True,
+):
     """Proposed in: https://arxiv.org/abs/2205.10536"""
 
-    def distillation_preprocessor(self):
-        return layers.Activation(
-            "linear", dtype="float32", name="distill_head_prep"
-        )
+    if loss_weights is None:
+        loss_weights = 1.0
 
-    def target_preprocessor(self):
-        return layers.Activation(
-            "linear", dtype="float32", name="target_head_prep"
-        )
+    model = ModelDistillation(
+        inputs=student.inputs,
+        outputs={
+            "student": layers.Activation("linear", name="student")(
+                student.outputs[0]
+            ),
+            "teacher": layers.Activation("linear", name="teacher")(
+                student.outputs[0]
+            ),
+        },
+    )
+    model.compile(
+        teacher,
+        jit_compile_teacher=jit_compile_teacher,
+        optimizer=optimizer,
+        loss={"student": loss, "teacher": StrongerTeacherLoss()},
+        loss_weights={"student": loss_weights, "teacher": 2.0},
+        metrics={"student": metrics, "teacher": None},
+        weighted_metrics={"student": weighted_metrics, "teacher": None},
+        run_eagerly=run_eagerly,
+        steps_per_execution=steps_per_execution,
+        jit_compile=jit_compile,
+        auto_scale_loss=auto_scale_loss,
+    )
 
-    def distillation_loss(self):
-        # TODO: *2
-        return StrongerTeacherLoss()
-
-    def target_loss(self):
-        return CrossEntropyLoss(from_logits=True, label_smoothing=0.1)
+    return model

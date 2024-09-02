@@ -1,16 +1,15 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
-from segme.common.shape import get_shape
 from segme.utils.common.augs.common import apply
-from segme.utils.common.augs.common import transform
 from segme.utils.common.augs.common import unwrap
 from segme.utils.common.augs.common import validate
 from segme.utils.common.augs.common import wrap
 
 
 def rotate(image, masks, weight, prob, degrees, replace=None, name=None):
-    with tf.name_scope(name or "rotate"):
+    with backend.name_scope(name or "rotate"):
         return apply(
             image,
             masks,
@@ -27,7 +26,7 @@ def rotate(image, masks, weight, prob, degrees, replace=None, name=None):
 
 
 def rotate_cw(image, masks, weight, prob, name=None):
-    with tf.name_scope(name or "rotate_cw"):
+    with backend.name_scope(name or "rotate_cw"):
         return apply(
             image,
             masks,
@@ -40,7 +39,7 @@ def rotate_cw(image, masks, weight, prob, name=None):
 
 
 def rotate_ccw(image, masks, weight, prob, name=None):
-    with tf.name_scope(name or "rotate_ccw"):
+    with backend.name_scope(name or "rotate_ccw"):
         return apply(
             image,
             masks,
@@ -53,36 +52,40 @@ def rotate_ccw(image, masks, weight, prob, name=None):
 
 
 def _rotate(image, degrees, interpolation, replace=None, name=None):
-    with tf.name_scope(name or "rotate_"):
+    with backend.name_scope(name or "rotate_"):
         image, _, _ = validate(image, None, None)
 
-        radians = tf.cast(-degrees * np.pi / 180.0, "float32")[None]
-        (height, width), _ = get_shape(image, axis=[1, 2], dtype="float32")
+        radians = ops.cast(-degrees * np.pi / 180.0, "float32")[None]
+        height, width = ops.shape(image)[1:3]
+        height = ops.cast(height, "float32")
+        width = ops.cast(width, "float32")
 
         h_offset = (
             (width - 1)
-            - (tf.cos(radians) * (width - 1) - tf.sin(radians) * (height - 1))
+            - (ops.cos(radians) * (width - 1) - ops.sin(radians) * (height - 1))
         ) / 2.0
         v_offset = (
             (height - 1)
-            - (tf.sin(radians) * (width - 1) + tf.cos(radians) * (height - 1))
+            - (ops.sin(radians) * (width - 1) + ops.cos(radians) * (height - 1))
         ) / 2.0
-        matrix = tf.concat(
+        matrix = ops.concatenate(
             [
-                tf.cos(radians)[:, None],
-                -tf.sin(radians)[:, None],
+                ops.cos(radians)[:, None],
+                -ops.sin(radians)[:, None],
                 h_offset[:, None],
-                tf.sin(radians)[:, None],
-                tf.cos(radians)[:, None],
+                ops.sin(radians)[:, None],
+                ops.cos(radians)[:, None],
                 v_offset[:, None],
-                tf.zeros((1, 2), "float32"),
+                ops.zeros((1, 2), "float32"),
             ],
             axis=1,
         )
 
         image = wrap(image)
-        image = transform(
-            image, matrix, fill_mode="constant", interpolation=interpolation
+        image = ops.image.affine_transform(
+            image,
+            matrix,
+            interpolation=interpolation,
         )
         image = unwrap(image, replace)
 
@@ -90,20 +93,20 @@ def _rotate(image, degrees, interpolation, replace=None, name=None):
 
 
 def _rotate_cw(image, name=None):
-    with tf.name_scope(name or "rotate_cw_"):
+    with backend.name_scope(name or "rotate_cw_"):
         image, _, _ = validate(image, None, None)
 
-        image = tf.transpose(image, [0, 2, 1, 3])
-        image = tf.reverse(image, [2])
+        image = ops.transpose(image, [0, 2, 1, 3])
+        image = ops.flip(image, axis=2)
 
         return image
 
 
 def _rotate_ccw(image, name=None):
-    with tf.name_scope(name or "rotate_ccw_"):
+    with backend.name_scope(name or "rotate_ccw_"):
         image, _, _ = validate(image, None, None)
 
-        image = tf.transpose(image, [0, 2, 1, 3])
-        image = tf.reverse(image, [1])
+        image = ops.transpose(image, [0, 2, 1, 3])
+        image = ops.flip(image, axis=1)
 
         return image

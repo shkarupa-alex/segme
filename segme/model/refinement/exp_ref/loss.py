@@ -25,9 +25,9 @@ def _loss_2(y_true, y_pred, sample_weight=None):
     )
 
 
-def total_losses():
+def _total_losses():
     return [_loss_2, _loss_4, _loss_8]
 
 
 def exp_ref_losses():
-    return [WeightedLossFunctionWrapper(tl) for tl in total_losses()]
+    return [WeightedLossFunctionWrapper(tl) for tl in _total_losses()]

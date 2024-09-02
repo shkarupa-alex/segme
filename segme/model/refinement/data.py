@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from keras.src import ops
 
 from segme.common.impfunc import make_coords
 from segme.utils.albumentations import drop_unapplied
@@ -642,7 +643,7 @@ def _transform_examples(
         examples["label"],
         examples["weight"],
     )
-    masks = tf.cast(masks > 127, "uint8") * 255
+    masks = ops.cast(masks > 127, "uint8") * 255
 
     if augment:
         images, [masks, labels], weights = rand_augment_safe(
@@ -650,22 +651,24 @@ def _transform_examples(
         )
 
     features = {"image": images, "mask": masks}
-    labels = tf.cast(labels > 127, "int32")
-    weights = tf.cast(weights, "float32") / 20.0
+    labels = ops.cast(labels > 127, "int32")
+    weights = ops.cast(weights, "float32") / 20.0
 
     if with_coord:
-        features["coord"] = make_coords([batch_size, CROP_SIZE, CROP_SIZE])
+        features["coord"] = make_coords(batch_size, CROP_SIZE, CROP_SIZE)
 
     if with_prev:
         features["prev"] = masks
 
     if with_time:
-        time = tf.random.uniform([batch_size], maxval=with_time, dtype="int32")
+        time = ops.random.uniform([batch_size], maxval=with_time, dtype="int32")
 
-        probs = tf.gather(tf.linspace(0.8, 0.0, 6), time)[:, None, None, None]
-        noise = tf.random.uniform([batch_size] + masks.shape.as_list()[1:])
-        trans = tf.cast(noise < probs, "uint8")
-        sample = trans * tf.cast(labels, "uint8") * 255 + (1 - trans) * masks
+        probs = ops.take(tf.linspace(0.8, 0.0, 6), time, axis=0)[
+            :, None, None, None
+        ]
+        noise = ops.random.uniform([batch_size] + masks.shape.as_list()[1:])
+        trans = ops.cast(noise < probs, "uint8")
+        sample = trans * ops.cast(labels, "uint8") * 255 + (1 - trans) * masks
 
         features["mask"] = sample
         features["time"] = time

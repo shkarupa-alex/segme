@@ -1,5 +1,5 @@
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -14,15 +14,19 @@ class Fusion(layers.Layer):
         ]
         self.la = 0.1
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs, training=False, **kwargs):
         image, alfgbg = inputs
-        image = tf.cast(image, "float32")
-        alfgbg = tf.cast(alfgbg, "float32")
+        alfgbg = ops.cast(alfgbg, "float32")
+        alpha, foreground, background = ops.split(alfgbg, [1, 4], axis=-1)
 
-        alpha, foreground, background = tf.split(alfgbg, [1, 3, 3], axis=-1)
-        alpha = tf.clip_by_value(alpha, 0.0, 1.0)
-        foreground = tf.nn.sigmoid(foreground)
-        background = tf.nn.sigmoid(background)
+        if training:
+            return alfgbg, alpha, foreground, background
+
+        image = ops.cast(image, "float32")
+
+        alpha = ops.clip(alpha, 0.0, 1.0)
+        foreground = ops.sigmoid(foreground)
+        background = ops.sigmoid(background)
 
         # TODO: https://github.com/MarcoForte/FBA_Matting/issues/55
         alpha_sqr = alpha**2
@@ -36,20 +40,18 @@ class Fusion(layers.Layer):
             - alpha_sqr * (background - foreground)
             + image
         )
-        foreground = tf.clip_by_value(foreground, 0.0, 1.0)
-        background = tf.clip_by_value(background, 0.0, 1.0)
+        foreground = ops.clip(foreground, 0.0, 1.0)
+        background = ops.clip(background, 0.0, 1.0)
 
         imbg_diff = image - background
         fgbg_diff = foreground - background
-        alpha_numer = alpha * self.la + tf.reduce_sum(
+        alpha_numer = alpha * self.la + ops.sum(
             imbg_diff * fgbg_diff, axis=-1, keepdims=True
         )
-        alpha_denom = (
-            tf.reduce_sum(fgbg_diff**2, axis=-1, keepdims=True) + self.la
-        )
-        alpha = tf.clip_by_value(alpha_numer / alpha_denom, 0.0, 1.0)
+        alpha_denom = ops.sum(fgbg_diff**2, axis=-1, keepdims=True) + self.la
+        alpha = ops.clip(alpha_numer / alpha_denom, 0.0, 1.0)
 
-        alfgbg = tf.concat([alpha, foreground, background], axis=-1)
+        alfgbg = ops.concatenate([alpha, foreground, background], axis=-1)
 
         return alfgbg, alpha, foreground, background
 

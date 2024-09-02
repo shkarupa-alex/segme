@@ -1,8 +1,8 @@
 import unittest
 from functools import partial
 
-from keras.src import applications
 from keras.src import layers
+from keras.src.applications import resnet
 
 from segme.common.pad import (
     SymmetricPadding,  # requred to be registered as serializable
@@ -78,7 +78,7 @@ class TestLayerRegistry(unittest.TestCase):
         self.assertTupleEqual(instance.get_config()["kernel_size"], (3, 3))
 
         r.register("conv_arg_kwarg")({"class_name": "Conv2D"})
-        instance = r.new("conv_arg_kwarg", 16, 3, 2, activation="relu")
+        instance = r.new("conv_arg_kwarg", 16, 2, activation="relu")
         self.assertIsInstance(instance, layers.Conv2D)
         self.assertEqual(instance.get_config()["filters"], 16)
         self.assertTupleEqual(instance.get_config()["kernel_size"], (3, 3))
@@ -87,7 +87,7 @@ class TestLayerRegistry(unittest.TestCase):
 
         r.register("conv_arg_kwarg_same")({"class_name": "Conv2D"})
         with self.assertRaisesRegex(TypeError, "Got multiple values"):
-            r.new("conv_arg_kwarg_same", 16, 3, 2, strides=2)
+            r.new("conv_arg_kwarg_same", 16, 2, strides=2)
 
     def test_class(self):
         r = LayerRegistry()
@@ -114,7 +114,7 @@ class TestLayerRegistry(unittest.TestCase):
         self.assertTupleEqual(instance.get_config()["kernel_size"], (3, 3))
 
         r.register("conv_arg_kwarg")(layers.Conv2D)
-        instance = r.new("conv_arg_kwarg", 16, 3, 2, activation="relu")
+        instance = r.new("conv_arg_kwarg", 16, 2, activation="relu")
         self.assertIsInstance(instance, layers.Conv2D)
         self.assertEqual(instance.get_config()["filters"], 16)
         self.assertTupleEqual(instance.get_config()["kernel_size"], (3, 3))
@@ -123,7 +123,7 @@ class TestLayerRegistry(unittest.TestCase):
 
         r.register("conv_arg_kwarg_same")(layers.Conv2D)
         with self.assertRaisesRegex(TypeError, "Got multiple values"):
-            r.new("conv_arg_kwarg_same", 16, 3, 2, strides=2)
+            r.new("conv_arg_kwarg_same", 16, 2, strides=2)
 
 
 class TestBackboneRegistry(unittest.TestCase):
@@ -133,8 +133,8 @@ class TestBackboneRegistry(unittest.TestCase):
             (
                 partial(
                     wrap_bone,
-                    applications.resnet.ResNet50,
-                    applications.resnet.preprocess_input,
+                    resnet.ResNet50,
+                    "tf",
                 ),
                 [
                     None,
@@ -147,25 +147,25 @@ class TestBackboneRegistry(unittest.TestCase):
             )
         )
 
-        instance = r.new("resnet50", "imagenet", 3, None)
+        instance = r.new("resnet50", "imagenet", None)
         self.assertEqual(len(instance.trainable_weights), 0)
         self.assertEqual(len(instance.non_trainable_weights), 318)
 
-        instance = r.new("resnet50", None, 3, None)
+        instance = r.new("resnet50", None, None)
         instance.trainable = True
         self.assertEqual(len(instance.trainable_weights), 212)
         self.assertEqual(len(instance.non_trainable_weights), 106)
 
-        instance = r.new("resnet50", "imagenet", 3, None)
+        instance = r.new("resnet50", "imagenet", None)
         instance.trainable = True
         self.assertEqual(len(instance.trainable_weights), 212)
         self.assertEqual(len(instance.non_trainable_weights), 106)
 
-        instance = r.new("resnet50", "imagenet", 3, [2, 4])
+        instance = r.new("resnet50", "imagenet", [2, 4])
         self.assertEqual(len(instance.trainable_weights), 0)
         self.assertEqual(len(instance.non_trainable_weights), 66)
 
-        instance = r.new("resnet50", "imagenet", 3, [2, 4])
+        instance = r.new("resnet50", "imagenet", [2, 4])
         instance.trainable = True
         self.assertEqual(len(instance.trainable_weights), 44)
         self.assertEqual(len(instance.non_trainable_weights), 22)

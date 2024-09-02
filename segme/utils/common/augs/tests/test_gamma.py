@@ -1,11 +1,11 @@
-import tensorflow as tf
+from keras.src import testing
 
 from segme.utils.common.augs.gamma import _gamma
 from segme.utils.common.augs.tests.testing_utils import aug_samples
 from segme.utils.common.augs.tests.testing_utils import max_diff
 
 
-class TestGamma(tf.test.TestCase):
+class TestGamma(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("gamma")
         augmented = _gamma(inputs, 0.4, False)

@@ -21,19 +21,49 @@ def _RSU7(mid_features, out_features, name=None):
 
         x1 = ConvNormAct(mid_features, 3, name=f"{name}_cna1")(x0)
 
-        x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        # x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        x2 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad1"
+        )(x1)
+        x2 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool1")(
+            x2
+        )
         x2 = ConvNormAct(mid_features, 3, name=f"{name}_cna2")(x2)
 
-        x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        # x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        x3 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad2"
+        )(x2)
+        x3 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool2")(
+            x3
+        )
         x3 = ConvNormAct(mid_features, 3, name=f"{name}_cna3")(x3)
 
-        x4 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool3")(x3)
+        # x4 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool3")(x3)
+        x4 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad3"
+        )(x3)
+        x4 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool3")(
+            x4
+        )
         x4 = ConvNormAct(mid_features, 3, name=f"{name}_cna4")(x4)
 
-        x5 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool4")(x4)
+        # x5 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool4")(x4)
+        x5 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad4"
+        )(x4)
+        x5 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool4")(
+            x5
+        )
         x5 = ConvNormAct(mid_features, 3, name=f"{name}_cna5")(x5)
 
-        x6 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool5")(x5)
+        # x6 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool5")(x5)
+        x6 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad5"
+        )(x5)
+        x6 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool5")(
+            x6
+        )
         x6 = ConvNormAct(mid_features, 3, name=f"{name}_cna6")(x6)
 
         x7 = ConvNormAct(mid_features, 3, dilation_rate=2, name=f"{name}_cna7")(
@@ -78,16 +108,40 @@ def _RSU6(mid_features, out_features, name=None):
 
         x1 = ConvNormAct(mid_features, 3, name=f"{name}_cna1")(x0)
 
-        x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        # x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        x2 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad1"
+        )(x1)
+        x2 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool1")(
+            x2
+        )
         x2 = ConvNormAct(mid_features, 3, name=f"{name}_cna2")(x2)
 
-        x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        # x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        x3 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad2"
+        )(x2)
+        x3 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool2")(
+            x3
+        )
         x3 = ConvNormAct(mid_features, 3, name=f"{name}_cna3")(x3)
 
-        x4 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool3")(x3)
+        # x4 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool3")(x3)
+        x4 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad3"
+        )(x3)
+        x4 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool3")(
+            x4
+        )
         x4 = ConvNormAct(mid_features, 3, name=f"{name}_cna4")(x4)
 
-        x5 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool4")(x4)
+        # x5 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool4")(x4)
+        x5 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad4"
+        )(x4)
+        x5 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool4")(
+            x5
+        )
         x5 = ConvNormAct(mid_features, 3, name=f"{name}_cna5")(x5)
 
         x6 = ConvNormAct(mid_features, 3, dilation_rate=2, name=f"{name}_cna6")(
@@ -128,13 +182,31 @@ def _RSU5(mid_features, out_features, name=None):
 
         x1 = ConvNormAct(mid_features, 3, name=f"{name}_cna1")(x0)
 
-        x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        # x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        x2 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad1"
+        )(x1)
+        x2 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool1")(
+            x2
+        )
         x2 = ConvNormAct(mid_features, 3, name=f"{name}_cna2")(x2)
 
-        x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        # x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        x3 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad2"
+        )(x2)
+        x3 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool2")(
+            x3
+        )
         x3 = ConvNormAct(mid_features, 3, name=f"{name}_cna3")(x3)
 
-        x4 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool3")(x3)
+        # x4 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool3")(x3)
+        x4 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad3"
+        )(x3)
+        x4 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool3")(
+            x4
+        )
         x4 = ConvNormAct(mid_features, 3, name=f"{name}_cna4")(x4)
 
         x5 = ConvNormAct(mid_features, 3, dilation_rate=2, name=f"{name}_cna5")(
@@ -171,10 +243,22 @@ def _RSU4(mid_features, out_features, name=None):
 
         x1 = ConvNormAct(mid_features, 3, name=f"{name}_cna1")(x0)
 
-        x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        # x2 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool1")(x1)
+        x2 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad1"
+        )(x1)
+        x2 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool1")(
+            x2
+        )
         x2 = ConvNormAct(mid_features, 3, name=f"{name}_cna2")(x2)
 
-        x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        # x3 = layers.MaxPooling2D(2, padding="same", name=f"{name}_pool2")(x2)
+        x3 = layers.ZeroPadding2D(
+            padding=((1, 1), (1, 1)), name=f"{name}_pad2"
+        )(x2)
+        x3 = layers.MaxPooling2D(3, 2, padding="valid", name=f"{name}_pool2")(
+            x3
+        )
         x3 = ConvNormAct(mid_features, 3, name=f"{name}_cna3")(x3)
 
         x4 = ConvNormAct(mid_features, 3, dilation_rate=2, name=f"{name}_cna4")(
@@ -252,19 +336,29 @@ def U2Net(classes, dtype=None):
 
     x1 = _RSU7(32, 64, name="stage1")(x)
 
-    x2 = layers.MaxPooling2D(2, padding="same", name="pool1")(x1)
+    # x2 = layers.MaxPooling2D(2, padding="same", name="pool1")(x1)
+    x2 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad1")(x1)
+    x2 = layers.MaxPooling2D(3, 2, padding="valid", name="pool1")(x2)
     x2 = _RSU6(32, 128, name="stage2")(x2)
 
-    x3 = layers.MaxPooling2D(2, padding="same", name="pool2")(x2)
+    # x3 = layers.MaxPooling2D(2, padding="same", name="pool2")(x2)
+    x3 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad2")(x2)
+    x3 = layers.MaxPooling2D(3, 2, padding="valid", name="pool2")(x3)
     x3 = _RSU5(64, 256, name="stage3")(x3)
 
-    x4 = layers.MaxPooling2D(2, padding="same", name="pool3")(x3)
+    # x4 = layers.MaxPooling2D(2, padding="same", name="pool3")(x3)
+    x4 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad3")(x3)
+    x4 = layers.MaxPooling2D(3, 2, padding="valid", name="pool3")(x4)
     x4 = _RSU4(128, 512, name="stage4")(x4)
 
-    x5 = layers.MaxPooling2D(2, padding="same", name="pool4")(x4)
+    # x5 = layers.MaxPooling2D(2, padding="same", name="pool4")(x4)
+    x5 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad4")(x4)
+    x5 = layers.MaxPooling2D(3, 2, padding="valid", name="pool4")(x5)
     x5 = _RSU4f(256, 512, name="stage5")(x5)
 
-    x6 = layers.MaxPooling2D(2, padding="same", name="pool5")(x5)
+    # x6 = layers.MaxPooling2D(2, padding="same", name="pool5")(x5)
+    x6 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad5")(x5)
+    x6 = layers.MaxPooling2D(3, 2, padding="valid", name="pool5")(x6)
     x6 = _RSU4f(256, 512, name="stage6")(x6)
 
     x5d = BilinearInterpolation(2, name="resize5d")(x6)
@@ -307,7 +401,7 @@ def U2Net(classes, dtype=None):
 
     outputs = (head0,) + tuple(heads)
 
-    model = models.Model(inputs=inputs, outputs=outputs, name="u2net")
+    model = models.Model(inputs=inputs, outputs=outputs, name="u2_net")
 
     return model
 
@@ -327,19 +421,29 @@ def U2NetP(classes, dtype=None):
 
     x1 = _RSU7(16, 64, name="stage1")(x)
 
-    x2 = layers.MaxPooling2D(2, padding="same", name="pool1")(x1)
+    # x2 = layers.MaxPooling2D(2, padding="same", name="pool1")(x1)
+    x2 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad1")(x1)
+    x2 = layers.MaxPooling2D(3, 2, padding="valid", name="pool1")(x2)
     x2 = _RSU6(16, 64, name="stage2")(x2)
 
-    x3 = layers.MaxPooling2D(2, padding="same", name="pool2")(x2)
+    # x3 = layers.MaxPooling2D(2, padding="same", name="pool2")(x2)
+    x3 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad2")(x2)
+    x3 = layers.MaxPooling2D(3, 2, padding="valid", name="pool2")(x3)
     x3 = _RSU5(16, 64, name="stage3")(x3)
 
-    x4 = layers.MaxPooling2D(2, padding="same", name="pool3")(x3)
+    # x4 = layers.MaxPooling2D(2, padding="same", name="pool3")(x3)
+    x4 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad3")(x3)
+    x4 = layers.MaxPooling2D(3, 2, padding="valid", name="pool3")(x4)
     x4 = _RSU4(16, 64, name="stage4")(x4)
 
-    x5 = layers.MaxPooling2D(2, padding="same", name="pool4")(x4)
+    # x5 = layers.MaxPooling2D(2, padding="same", name="pool4")(x4)
+    x5 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad4")(x4)
+    x5 = layers.MaxPooling2D(3, 2, padding="valid", name="pool4")(x5)
     x5 = _RSU4f(16, 64, name="stage5")(x5)
 
-    x6 = layers.MaxPooling2D(2, padding="same", name="pool5")(x5)
+    # x6 = layers.MaxPooling2D(2, padding="same", name="pool5")(x5)
+    x6 = layers.ZeroPadding2D(padding=((1, 1), (1, 1)), name="pad5")(x5)
+    x6 = layers.MaxPooling2D(3, 2, padding="valid", name="pool5")(x6)
     x6 = _RSU4f(16, 64, name="stage6")(x6)
 
     x5d = BilinearInterpolation(2, name="resize5d")(x6)
@@ -382,6 +486,6 @@ def U2NetP(classes, dtype=None):
 
     outputs = (head0,) + tuple(heads)
 
-    model = models.Model(inputs=inputs, outputs=outputs, name="u2netp")
+    model = models.Model(inputs=inputs, outputs=outputs, name="u2_net_p")
 
     return model

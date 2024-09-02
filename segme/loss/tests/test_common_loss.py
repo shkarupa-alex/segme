@@ -1,5 +1,5 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import ops
 from keras.src import testing
 
 from segme.loss.common_loss import compute_gradient
@@ -29,7 +29,7 @@ class TestUtils(testing.TestCase):
         self.assertAllClose(weights, sample_weight)
 
     def test_to_logits(self):
-        expected1 = tf.constant(
+        expected1 = np.array(
             [
                 [
                     [
@@ -86,7 +86,7 @@ class TestUtils(testing.TestCase):
             ],
             "float32",
         )
-        expected4 = tf.constant(
+        expected4 = np.array(
             [
                 [
                     [
@@ -151,34 +151,34 @@ class TestUtils(testing.TestCase):
         )
 
         with self.assertRaisesRegex(ValueError, "Unable to restore logits"):
-            to_logits(tf.zeros((1, 2, 2, 1)), from_logits=False)
+            to_logits(ops.zeros((1, 2, 2, 1)), from_logits=False)
 
         with self.assertRaisesRegex(ValueError, "Unable to restore logits"):
-            to_logits(tf.zeros((1, 2, 2, 1)), from_logits=False)
+            to_logits(ops.zeros((1, 2, 2, 1)), from_logits=False)
 
         logits1, from_logits1 = to_logits(expected1, from_logits=True)
         self.assertAllClose(logits1, expected1, atol=1e-6)
         self.assertTrue(from_logits1)
 
-        probs1 = tf.nn.sigmoid(expected1)
-        probs1._keras_logits = tf.constant(expected1)
+        probs1 = ops.sigmoid(expected1)
+        probs1._keras_logits = np.array(expected1)
         logits1, from_logits1 = to_logits(probs1, from_logits=False)
         self.assertAllClose(logits1, expected1, atol=1e-6)
         self.assertTrue(from_logits1)
 
-        probs4 = tf.nn.sigmoid(expected4)
-        probs4._keras_logits = tf.constant(expected4)
+        probs4 = ops.sigmoid(expected4)
+        probs4._keras_logits = np.array(expected4)
         logits4, from_logits4 = to_logits(probs4, from_logits=False)
         self.assertAllClose(logits4, expected4, atol=1e-6)
         self.assertTrue(from_logits4)
 
         with self.assertRaisesRegex(ValueError, "does not represent logits"):
-            probs1 = tf.zeros((1, 2, 2, 1))
-            probs1._keras_logits = tf.zeros((1, 2, 2, 1))
+            probs1 = ops.zeros((1, 2, 2, 1))
+            probs1._keras_logits = ops.zeros((1, 2, 2, 1))
             to_logits(probs1, from_logits=True)
 
     def test_to_probs(self):
-        logits1 = tf.constant(
+        logits1 = np.array(
             [
                 [
                     [
@@ -235,7 +235,7 @@ class TestUtils(testing.TestCase):
             ],
             "float32",
         )
-        logits4 = tf.constant(
+        logits4 = np.array(
             [
                 [
                     [
@@ -302,19 +302,19 @@ class TestUtils(testing.TestCase):
         probs1, from_logits1 = to_probs(
             logits1, from_logits=True, force_binary=False
         )
-        expected1 = tf.nn.sigmoid(logits1)
+        expected1 = ops.sigmoid(logits1)
         self.assertAllClose(probs1, expected1, atol=1e-6)
         self.assertFalse(from_logits1)
 
         probs4, from_logits4 = to_probs(
             logits4, from_logits=True, force_binary=False
         )
-        expected4 = tf.nn.softmax(logits4)
+        expected4 = ops.softmax(logits4)
         self.assertAllClose(probs4, expected4, atol=1e-6)
         self.assertFalse(from_logits4)
 
     def test_to_1hot(self):
-        targets1 = tf.constant(
+        targets1 = np.array(
             [
                 [
                     [[0], [0], [1], [0]],
@@ -331,20 +331,20 @@ class TestUtils(testing.TestCase):
             ],
             "int32",
         )
-        targets4 = tf.constant(
+        targets4 = np.array(
             [[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], "int32"
         )
 
         targets1h, _ = to_1hot(
             targets1, np.zeros((2, 4, 4, 1), "float32"), False
         )
-        expected1h = tf.concat([1 - targets1, targets1], axis=-1)
+        expected1h = ops.concatenate([1 - targets1, targets1], axis=-1)
         self.assertAllClose(targets1h, expected1h, atol=1e-6)
 
         targets4h, _ = to_1hot(
             targets4, np.zeros((2, 4, 4, 4), "float32"), False
         )
-        expected4h = tf.constant(
+        expected4h = np.array(
             [
                 [
                     [[0, 1, 0, 0], [0, 0, 0, 1]],
@@ -371,13 +371,13 @@ class TestUtils(testing.TestCase):
                 ].mean(),
             ]
         )
-        loss, weight = tf.constant(loss), tf.constant(weight)
+        loss, weight = np.array(loss), np.array(weight)
 
         result = weighted_loss(loss, weight)
         self.assertAllClose(expected, result)
 
     def test_compute_gradient(self):
-        inputs = tf.constant(
+        inputs = np.array(
             [
                 [
                     [[0.0], [0.0], [1.0], [0.0]],
@@ -446,8 +446,8 @@ class TestUtils(testing.TestCase):
 
 class TestMAE(testing.TestCase):
     def test_zeros(self):
-        logits = -10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = -10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = mae(
             y_true=targets,
@@ -459,8 +459,8 @@ class TestMAE(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = 10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = 10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = mae(
             y_true=targets,
@@ -472,8 +472,8 @@ class TestMAE(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = -10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = -10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = mae(
             y_true=targets,
@@ -485,8 +485,8 @@ class TestMAE(testing.TestCase):
         self.assertAllClose(result, [1.0] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = 10 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = 10 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = mae(
             y_true=targets,
@@ -508,8 +508,8 @@ class TestMAE(testing.TestCase):
         self.assertAllClose(result, [0.375533, 0.417319])
 
         result = mae(
-            y_true=tf.cast(BINARY_TARGETS, "float32"),
-            y_pred=tf.nn.sigmoid(BINARY_LOGITS),
+            y_true=ops.cast(BINARY_TARGETS, "float32"),
+            y_pred=ops.sigmoid(BINARY_LOGITS),
             sample_weight=None,
             from_logits=False,
             regression=True,
@@ -591,8 +591,8 @@ class TestMAE(testing.TestCase):
 
 class TestMSE(testing.TestCase):
     def test_zeros(self):
-        logits = -10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = -10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = mse(
             y_true=targets,
@@ -604,8 +604,8 @@ class TestMSE(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = 10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = 10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = mse(
             y_true=targets,
@@ -617,8 +617,8 @@ class TestMSE(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = -10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = -10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = mse(
             y_true=targets,
@@ -630,8 +630,8 @@ class TestMSE(testing.TestCase):
         self.assertAllClose(result, [1.0] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = 10 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = 10 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = mse(
             y_true=targets,
@@ -653,8 +653,8 @@ class TestMSE(testing.TestCase):
         self.assertAllClose(result, [0.30168968, 0.35166395])
 
         result = mse(
-            y_true=tf.cast(BINARY_TARGETS, "float32"),
-            y_pred=tf.nn.sigmoid(BINARY_LOGITS),
+            y_true=ops.cast(BINARY_TARGETS, "float32"),
+            y_pred=ops.sigmoid(BINARY_LOGITS),
             sample_weight=None,
             from_logits=False,
             regression=True,
@@ -736,8 +736,8 @@ class TestMSE(testing.TestCase):
 
 class TestCrossentropy(testing.TestCase):
     def test_zeros(self):
-        logits = -10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = -10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = crossentropy(
             y_true=targets,
@@ -750,8 +750,8 @@ class TestCrossentropy(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = 10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = 10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = crossentropy(
             y_true=targets,
@@ -764,8 +764,8 @@ class TestCrossentropy(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = -10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = -10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = crossentropy(
             y_true=targets,
@@ -778,8 +778,8 @@ class TestCrossentropy(testing.TestCase):
         self.assertAllClose(result, [10.0] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = 10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = 10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = crossentropy(
             y_true=targets,
@@ -889,8 +889,8 @@ class TestCrossentropy(testing.TestCase):
         self.assertAllClose(result, [7.6590743])
 
     def test_multi_1hot(self):
-        targets = tf.one_hot(
-            tf.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
+        targets = ops.one_hot(
+            ops.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
         )
         result = crossentropy(
             y_true=targets,
@@ -903,8 +903,8 @@ class TestCrossentropy(testing.TestCase):
         self.assertAllClose(result, [5.34982])
 
     def test_multi_1hot_binary(self):
-        targets = tf.one_hot(
-            tf.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
+        targets = ops.one_hot(
+            ops.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
         )
         result = crossentropy(
             y_true=targets,
@@ -917,8 +917,8 @@ class TestCrossentropy(testing.TestCase):
         self.assertAllClose(result, [7.669404])
 
     def test_multi_1hot_smooth(self):
-        targets = tf.one_hot(
-            tf.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
+        targets = ops.one_hot(
+            ops.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
         )
         result = crossentropy(
             y_true=targets,
@@ -933,8 +933,8 @@ class TestCrossentropy(testing.TestCase):
 
 class TestIOU(testing.TestCase):
     def test_zeros(self):
-        logits = -10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = -10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = iou(
             y_true=targets, y_pred=logits, sample_weight=None, from_logits=True
@@ -942,8 +942,8 @@ class TestIOU(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = 10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = 10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = iou(
             y_true=targets, y_pred=logits, sample_weight=None, from_logits=True
@@ -951,8 +951,8 @@ class TestIOU(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = -10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = -10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = iou(
             y_true=targets, y_pred=logits, sample_weight=None, from_logits=True
@@ -960,8 +960,8 @@ class TestIOU(testing.TestCase):
         self.assertAllClose(result, [1.0] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = 10 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = 10 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = iou(
             y_true=targets, y_pred=logits, sample_weight=None, from_logits=True
@@ -1045,8 +1045,8 @@ class TestIOU(testing.TestCase):
 
 class TestDice(testing.TestCase):
     def test_zeros(self):
-        logits = -10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = -10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = iou(
             y_true=targets,
@@ -1058,8 +1058,8 @@ class TestDice(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = 10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = 10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = iou(
             y_true=targets,
@@ -1071,8 +1071,8 @@ class TestDice(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = tf.ones((3, 16, 16, 1), "float32") * (-10.0)
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        logits = ops.ones((3, 16, 16, 1), "float32") * (-10.0)
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = iou(
             y_true=targets,
@@ -1084,8 +1084,8 @@ class TestDice(testing.TestCase):
         self.assertAllClose(result, [1.0] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = 10.0 * tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        logits = 10.0 * ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = iou(
             y_true=targets,
@@ -1179,7 +1179,7 @@ class TestDice(testing.TestCase):
         self.assertAllClose(result, [0.606824])
 
 
-BINARY_LOGITS = tf.constant(
+BINARY_LOGITS = np.array(
     [
         [
             [
@@ -1236,7 +1236,7 @@ BINARY_LOGITS = tf.constant(
     ],
     "float32",
 )
-BINARY_TARGETS = tf.constant(
+BINARY_TARGETS = np.array(
     [
         [
             [[0], [0], [1], [0]],
@@ -1253,11 +1253,11 @@ BINARY_TARGETS = tf.constant(
     ],
     "int32",
 )
-BINARY_WEIGHTS = tf.concat(
-    [tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2
+BINARY_WEIGHTS = ops.concatenate(
+    [ops.ones((2, 4, 2, 1)), ops.zeros((2, 4, 2, 1))], axis=2
 )
 
-MULTI_LOGITS = tf.constant(
+MULTI_LOGITS = np.array(
     [
         [
             [
@@ -1320,9 +1320,9 @@ MULTI_LOGITS = tf.constant(
     ],
     "float32",
 )
-MULTI_TARGETS = tf.constant(
+MULTI_TARGETS = np.array(
     [[[[1], [3]], [[3], [3]], [[1], [2]], [[2], [1]]]], "int32"
 )
-MULTI_WEIGHTS = tf.concat(
-    [tf.ones((1, 4, 1, 1)), tf.zeros((1, 4, 1, 1))], axis=2
+MULTI_WEIGHTS = ops.concatenate(
+    [ops.ones((1, 4, 1, 1)), ops.zeros((1, 4, 1, 1))], axis=2
 )

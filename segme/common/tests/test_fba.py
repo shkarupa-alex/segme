@@ -5,7 +5,6 @@ from segme.common.fba import FBAFusion
 
 
 class TestFBAFusion(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             FBAFusion,

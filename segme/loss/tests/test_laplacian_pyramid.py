@@ -1,7 +1,5 @@
 import numpy as np
-import tensorflow as tf
-from keras.src import layers
-from keras.src import models
+from keras.src import ops
 from keras.src import testing
 
 from segme.loss.laplacian_pyramid import LaplacianPyramidLoss
@@ -41,8 +39,8 @@ class TestLaplacianPyramidLoss(testing.TestCase):
         self.assertEqual(loss.reduction, "none")
 
     def test_zeros(self):
-        probs = tf.zeros((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        probs = ops.zeros((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = laplacian_pyramid_loss(
             y_true=targets,
@@ -58,8 +56,8 @@ class TestLaplacianPyramidLoss(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=1e-4)
 
     def test_ones(self):
-        probs = tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        probs = ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = laplacian_pyramid_loss(
             y_true=targets,
@@ -75,8 +73,8 @@ class TestLaplacianPyramidLoss(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=1e-4)
 
     def test_false(self):
-        probs = tf.zeros((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        probs = ops.zeros((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = laplacian_pyramid_loss(
             y_true=targets,
@@ -92,8 +90,8 @@ class TestLaplacianPyramidLoss(testing.TestCase):
         self.assertAllClose(result, [0.356934] * 3, atol=1e-4)
 
     def test_true(self):
-        probs = tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        probs = ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = laplacian_pyramid_loss(
             y_true=targets,
@@ -109,7 +107,7 @@ class TestLaplacianPyramidLoss(testing.TestCase):
         self.assertAllClose(result, [0.356934] * 3, atol=1e-4)
 
     def test_even(self):
-        probs = tf.constant(
+        probs = np.array(
             [
                 [
                     [[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]],
@@ -123,7 +121,7 @@ class TestLaplacianPyramidLoss(testing.TestCase):
             ],
             "float32",
         )
-        targets = tf.constant(
+        targets = np.array(
             [
                 [
                     [[0], [0], [0], [0], [0], [0], [0]],
@@ -152,7 +150,7 @@ class TestLaplacianPyramidLoss(testing.TestCase):
         self.assertAllClose(result, [0.0])
 
     def test_value(self):
-        probs = tf.constant(
+        probs = np.array(
             [
                 0.5,
                 6.1,
@@ -1180,9 +1178,8 @@ class TestLaplacianPyramidLoss(testing.TestCase):
                 1.0,
             ],
             "float32",
-            shape=(1, 32, 32, 1),
-        )
-        targets = tf.constant(
+        ).reshape((1, 32, 32, 1))
+        targets = np.array(
             [
                 9.9,
                 4.6,
@@ -2210,8 +2207,7 @@ class TestLaplacianPyramidLoss(testing.TestCase):
                 3.1,
             ],
             "float32",
-            shape=(1, 32, 32, 1),
-        )
+        ).reshape((1, 32, 32, 1))
 
         loss = LaplacianPyramidLoss(levels=4, size=5, sigma=1.056)
         result = loss(targets, probs)
@@ -2229,7 +2225,7 @@ class TestLaplacianPyramidLoss(testing.TestCase):
         self.assertAlmostEqual(result, 7.6406145, decimal=5)  # with residual
 
     def test_weight(self):
-        logits = tf.constant(
+        logits = np.array(
             [
                 [
                     [
@@ -2286,7 +2282,7 @@ class TestLaplacianPyramidLoss(testing.TestCase):
             ],
             "float32",
         )
-        targets = tf.constant(
+        targets = np.array(
             [
                 [
                     [[0], [0], [1], [0]],
@@ -2303,10 +2299,10 @@ class TestLaplacianPyramidLoss(testing.TestCase):
             ],
             "int32",
         )
-        logits = tf.repeat(tf.repeat(logits, 16, axis=1), 16, axis=2)
-        targets = tf.repeat(tf.repeat(targets, 16, axis=1), 16, axis=2)
-        weights = tf.concat(
-            [tf.ones((2, 64, 32, 1)), tf.zeros((2, 64, 32, 1))], axis=2
+        logits = ops.repeat(ops.repeat(logits, 16, axis=1), 16, axis=2)
+        targets = ops.repeat(ops.repeat(targets, 16, axis=1), 16, axis=2)
+        weights = ops.concatenate(
+            [ops.ones((2, 64, 32, 1)), ops.zeros((2, 64, 32, 1))], axis=2
         )
 
         loss = LaplacianPyramidLoss(levels=2)
@@ -2321,7 +2317,7 @@ class TestLaplacianPyramidLoss(testing.TestCase):
         self.assertAlmostEqual(result, 1.0742356 * 2.0, decimal=6)
 
     def test_multi(self):
-        logits = tf.constant(
+        logits = np.array(
             [
                 [
                     [
@@ -2378,7 +2374,7 @@ class TestLaplacianPyramidLoss(testing.TestCase):
             ],
             "float32",
         )
-        targets = tf.constant(
+        targets = np.array(
             [
                 [
                     [[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]],
@@ -2395,8 +2391,8 @@ class TestLaplacianPyramidLoss(testing.TestCase):
             ],
             "float32",
         )
-        weights = tf.concat(
-            [tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2
+        weights = ops.concatenate(
+            [ops.ones((2, 4, 2, 1)), ops.zeros((2, 4, 2, 1))], axis=2
         )
 
         loss = LaplacianPyramidLoss(levels=1)
@@ -2417,12 +2413,13 @@ class TestLaplacianPyramidLoss(testing.TestCase):
 
         self.assertAlmostEqual(res0, res1, decimal=6)
 
-    def test_model(self):
-        model = models.Sequential([layers.Dense(3, activation="sigmoid")])
-        model.compile(
-            loss="SegMe>Loss>LaplacianPyramidLoss",
-        )
-        model.fit(
-            np.zeros((2, 224, 224, 5)), np.zeros((2, 224, 224, 3), "int32")
-        )
-        models.Sequential.from_config(model.get_config())
+    # TODO: https://github.com/keras-team/keras/issues/20112
+    # def test_model(self):
+    #     model = models.Sequential([layers.Dense(3, activation="sigmoid")])
+    #     model.compile(
+    #         loss="SegMe>Loss>LaplacianPyramidLoss",
+    #     )
+    #     model.fit(
+    #         np.zeros((2, 224, 224, 5)), np.zeros((2, 224, 224, 3), "int32")
+    #     )
+    #     models.Sequential.from_config(model.get_config())

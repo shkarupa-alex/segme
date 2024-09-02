@@ -151,7 +151,7 @@ class BackboneRegistry(Registry):
         if 6 != len(value[1]):
             raise ValueError(f"Expected 6 endpoints, got {value[1]}")
 
-    def new(self, arch, init, channels, scales):
+    def new(self, arch, init, scales, input_tensor=None):
         bad_scales = set(scales or []).difference(self.all_scales)
         if bad_scales:
             raise ValueError(f"Unsupported scales: {bad_scales}")
@@ -170,4 +170,4 @@ class BackboneRegistry(Registry):
                 bad_scales = [scales[sc] for sc in bad_idxs]
                 raise ValueError(f"Some scales are unavailable: {bad_scales}")
 
-        return model_fn(init, channels, curr_endpoints, arch)
+        return model_fn(init, curr_endpoints, arch, input_tensor=input_tensor)

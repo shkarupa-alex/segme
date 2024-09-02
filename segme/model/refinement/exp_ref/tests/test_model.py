@@ -2,6 +2,7 @@ import numpy as np
 from keras.src import testing
 
 from segme.model.refinement.exp_ref.model import ExpRef
+from segme.model.refinement.exp_ref.loss import exp_ref_losses
 
 
 class TestExpRef(testing.TestCase):
@@ -27,8 +28,7 @@ class TestExpRef(testing.TestCase):
         model = ExpRef()
         model.compile(
             optimizer="sgd",
-            loss="mse",
-            # jit_compile=False, # TODO
+            loss=exp_ref_losses(),
         )
         model.fit(
             [

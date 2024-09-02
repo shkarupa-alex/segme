@@ -1,5 +1,6 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 from keras.src.metrics import Metric
 from keras.src.saving import register_keras_serializable
 
@@ -34,62 +35,54 @@ class HeinsenTreeAccuracy(Metric):
             [path + [-1] * (self.num_levels - len(path)) for path in paths_mask]
         )
         valid_mask = paths_mask.T == np.arange(self.tree_classes)[None]
-        self.paths_mask = tf.cast(paths_mask, "int32")
-        self.valid_mask = tf.cast(valid_mask[None], "bool")
+        self.paths_mask = ops.cast(paths_mask, "int32")
+        self.valid_mask = ops.cast(valid_mask[None], "bool")
 
         self.total = self.add_weight(name="total", initializer="zeros")
         self.count = self.add_weight(name="count", initializer="zeros")
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        y_pred = tf.convert_to_tensor(y_pred, dtype=self.dtype)
+        y_pred = backend.convert_to_tensor(y_pred, dtype=self.dtype)
         if y_pred.shape[-1] != self.tree_classes:
             raise ValueError(
                 f"Number of classes in logits must match one in the tree. "
                 f"Got {y_pred.shape[-1]} vs {self.tree_classes}."
             )
 
-        y_true_tree = tf.reshape(y_true, [-1])
-        y_true_tree = tf.gather(self.paths_mask, y_true_tree)
+        y_true_tree = ops.reshape(y_true, [-1])
+        y_true_tree = ops.take(self.paths_mask, y_true_tree, axis=0)
 
         if sample_weight is not None:
-            sample_weight = tf.reshape(sample_weight, [-1])
+            sample_weight = ops.reshape(sample_weight, [-1])
 
-        y_pred_tree = tf.reshape(y_pred, [-1, 1, self.tree_classes])
-        y_pred_tree = tf.where(self.valid_mask, y_pred_tree, y_pred.dtype.min)
+        y_pred_tree = ops.reshape(y_pred, [-1, 1, self.tree_classes])
+        y_pred_tree = ops.where(self.valid_mask, y_pred_tree, y_pred.dtype.min)
 
-        y_pred_tree = tf.argmax(
-            y_pred_tree, axis=-1, output_type=y_true_tree.dtype
-        )
-        y_match_tree = tf.cast(y_true_tree == y_pred_tree, self.dtype)
-        y_valid_tree = tf.cast(y_true_tree != -1, self.dtype)
+        y_pred_tree = ops.argmax(y_pred_tree, axis=-1)
+        y_match_tree = ops.cast(y_true_tree == y_pred_tree, self.dtype)
+        y_valid_tree = ops.cast(y_true_tree != -1, self.dtype)
 
-        y_match_tree = tf.split(y_match_tree, self.num_levels, axis=-1)
+        y_match_tree = ops.split(y_match_tree, self.num_levels, axis=-1)
         c_match_tree = y_match_tree[:1]
         for i in range(1, self.num_levels):
             c_match_tree.append(
-                tf.minimum(c_match_tree[i - 1], y_match_tree[i])
+                ops.minimum(c_match_tree[i - 1], y_match_tree[i])
             )
-        y_match_tree = tf.concat(c_match_tree, axis=-1)
+        y_match_tree = ops.concatenate(c_match_tree, axis=-1)
 
-        values = tf.reduce_sum(y_match_tree, axis=-1) / tf.reduce_sum(
-            y_valid_tree, axis=-1
-        )
+        values = ops.sum(y_match_tree, axis=-1) / ops.sum(y_valid_tree, axis=-1)
         if sample_weight is not None:
             values *= sample_weight
-
-        value_sum = tf.reduce_sum(values)
-        with tf.control_dependencies([value_sum]):
-            update_total_op = self.total.assign_add(value_sum)
+        self.total.assign_add(ops.sum(values))
 
         if sample_weight is None:
-            num_values = tf.cast(tf.size(values), self.dtype)
+            num_values = ops.cast(ops.size(values), self.dtype)
         else:
-            num_values = tf.reduce_sum(sample_weight)
-        with tf.control_dependencies([update_total_op]):
-            return self.count.assign_add(num_values)
+            num_values = ops.sum(sample_weight)
+        self.count.assign_add(num_values)
 
     def result(self):
-        return tf.math.divide_no_nan(self.total, self.count)
+        return ops.divide_no_nan(self.total, self.count)
 
     def get_config(self):
         config = super().get_config()

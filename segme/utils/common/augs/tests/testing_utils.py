@@ -2,9 +2,9 @@ import os
 
 import cv2
 import numpy as np
-import tensorflow as tf
+from keras.src import ops
 
-from segme.utils.common.augs.common import convert
+from segme.ops import convert_image_dtype
 
 
 def aug_samples(aug_name, dtype="uint8"):
@@ -15,7 +15,7 @@ def aug_samples(aug_name, dtype="uint8"):
     files = sorted(files)
 
     inputs = np.stack([cv2.imread(os.path.join(datadir, f)) for f in files])
-    inputs = convert(inputs, dtype)
+    inputs = convert_image_dtype(inputs, dtype)
 
     expected = np.stack(
         [
@@ -25,14 +25,14 @@ def aug_samples(aug_name, dtype="uint8"):
             for f in files
         ]
     )
-    expected = convert(expected, dtype)
+    expected = convert_image_dtype(expected, dtype)
 
     return inputs, expected
 
 
 def max_diff(expected, augmented, axis=None):
-    expected = tf.cast(expected, "float32")
-    augmented = tf.cast(augmented, "float32")
-    diff = tf.reduce_max(tf.abs(expected - augmented), axis=axis)
+    expected = ops.cast(expected, "float32")
+    augmented = ops.cast(augmented, "float32")
+    diff = ops.max(ops.abs(expected - augmented), axis=axis)
 
     return diff

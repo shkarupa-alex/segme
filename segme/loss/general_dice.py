@@ -1,5 +1,5 @@
-import tensorflow as tf
 from keras.src import backend
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 from segme.loss.common_loss import iou
@@ -34,18 +34,17 @@ def generalized_dice_loss(y_true, y_pred, sample_weight, from_logits):
         y_true, y_pred, sample_weight, dtype="int64", rank=4, channel="sparse"
     )
 
-    y_true_1h = tf.one_hot(
-        tf.squeeze(y_true, -1), max(2, y_pred.shape[-1]), dtype=y_pred.dtype
+    y_true_1h = ops.one_hot(
+        ops.squeeze(y_true, -1), max(2, y_pred.shape[-1]), dtype=y_pred.dtype
     )
-    weight = tf.reduce_mean(y_true_1h, axis=[0, 1, 2], keepdims=True) ** 2
+    weight = ops.square(ops.mean(y_true_1h, axis=[0, 1, 2], keepdims=True))
     weight = (
-        tf.reduce_max(weight * y_true_1h, axis=-1, keepdims=True)
-        + backend.epsilon()
+        ops.max(weight * y_true_1h, axis=-1, keepdims=True) + backend.epsilon()
     )
     weight = 1.0 / weight
 
     sample_weight = weight if sample_weight is None else sample_weight * weight
-    sample_weight = tf.stop_gradient(sample_weight)
+    sample_weight = ops.stop_gradient(sample_weight)
 
     loss = iou(
         y_true,

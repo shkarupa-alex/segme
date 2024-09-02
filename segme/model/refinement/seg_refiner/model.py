@@ -9,6 +9,7 @@ from segme.common.convnormact import Norm
 from segme.common.head import ClassificationActivation
 from segme.common.resize import NearestInterpolation
 from segme.policy import cnapol
+from segme.policy import dtpol
 
 
 def _ResBlock(filters, dropout, name=None):
@@ -61,6 +62,18 @@ def SegRefiner(
     heads=4,
     dtype=None,
 ):
+    if dtype is not None:
+        with dtpol.policy_scope(dtype):
+            return SegRefiner(
+                filters=filters,
+                depth=depth,
+                atstrides=atstrides,
+                dropout=dropout,
+                mults=mults,
+                heads=heads,
+                dtype=None,
+            )
+
     with cnapol.policy_scope("conv-gn321em5-silu"):
         image = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
         mask = layers.Input(name="mask", shape=(None, None, 1), dtype="uint8")
@@ -69,11 +82,14 @@ def SegRefiner(
         combo = layers.concatenate(
             [
                 layers.Normalization(
-                    mean=[123.675, 116.28, 103.53],
-                    variance=np.array([58.395, 57.12, 57.375], "float32") ** 2,
-                    name="normalize",
+                    mean=np.array([0.485, 0.456, 0.406], "float32") * 255.0,
+                    variance=(
+                        np.array([0.229, 0.224, 0.225], "float32") * 255.0
+                    )
+                    ** 2,
+                    name="image_normalize",
                 )(image),
-                layers.Rescaling(1 / 255, name="rescale")(mask),
+                layers.Rescaling(1 / 255, name="mask_rescale")(mask),
             ],
             name="concat",
         )

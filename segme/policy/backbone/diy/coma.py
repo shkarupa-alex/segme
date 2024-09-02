@@ -17,8 +17,8 @@ from segme.common.convnormact import Conv
 from segme.common.convnormact import Norm
 from segme.common.drop import DropPath
 from segme.common.grn import GRN
-from segme.common.mapool import MultiHeadAttentionPooling
-from segme.common.simpool import SimPool
+from segme.common.pool import MultiHeadAttentionPooling
+from segme.common.pool import SimPool
 from segme.policy import cnapol
 
 WEIGHT_URLS = {}
@@ -348,8 +348,7 @@ def CoMA(
         - fewer attention blocks (more MLPs)
         - feeding each head with only a split of the full features
     14.04.2023 DINOv2: Learning Robust Visual Features without Supervision
-        ? efficient stochastic depth (slice instead of drop) // not working
-          with XLA
+        ? efficient stochastic depth (slice instead of drop)
         - fast and memory-efficient FlashAttention
     09.04.2023 Slide-Transformer: Hierarchical Vision Transformer with Local
       Self-Attention

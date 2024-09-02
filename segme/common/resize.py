@@ -1,28 +1,24 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
-
-from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package="SegMe>Common>Interpolation")
 class NearestInterpolation(layers.Layer):
     def __init__(self, scale=None, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = (
-            InputSpec(ndim=4)
-            if scale is not None
-            else [InputSpec(ndim=4), InputSpec(ndim=4)]
-        )  # targets, samples
+        if scale is not None:
+            self.input_spec = InputSpec(ndim=4)
+        else:
+            # targets, samples
+            self.input_spec = [InputSpec(ndim=4), InputSpec(ndim=4)]
 
         self.scale = None if scale is None else float(scale)
 
     def resize(self, inputs, size):
-        return tf.image.resize(
-            inputs, size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR
-        )
+        return ops.image.resize(inputs, size, interpolation="nearest")
 
     def call(self, inputs, **kwargs):
         if 1.0 == self.scale:
@@ -30,34 +26,30 @@ class NearestInterpolation(layers.Layer):
 
         if self.scale is None:
             targets, samples = inputs
-            new_size, static_size = get_shape(samples, axis=[1, 2])
+            new_size = ops.shape(samples)[1:3]
+            static_size = all(map(lambda x: isinstance(x, int), new_size))
         else:
             targets = inputs
-            new_size, static_size = get_shape(targets, axis=[1, 2])
+            new_size = ops.shape(targets)[1:3]
+            static_size = all(map(lambda x: isinstance(x, int), new_size))
 
             if static_size:
                 new_size = np.array(new_size) * self.scale
                 new_size = np.round(new_size).astype("int32")
             else:
-                new_size = tf.cast(new_size, self.compute_dtype) * self.scale
-                new_size = tf.cast(tf.round(new_size), "int32")
+                new_size = ops.cast(new_size, self.compute_dtype) * self.scale
+                new_size = ops.cast(ops.round(new_size), "int32")
 
-        if (1, 1) == targets.shape[1:3]:
-            repeats = (
-                [1] + new_size + [1]
-                if static_size
-                else tf.concat([[1], new_size, [1]], axis=-1)
-            )
-            outputs = tf.tile(targets, repeats)
+        target_size = ops.shape(targets)[1:3]
+        target_static = all(map(lambda x: isinstance(x, int), target_size))
+        if target_static and (1, 1) == target_size:
+            if static_size:
+                repeats = (1,) + new_size + (1,)
+            else:
+                repeats = ops.concatenate([(1,), new_size, (1,)], axis=-1)
+            outputs = ops.tile(targets, repeats)
         else:
             outputs = self.resize(targets, new_size)
-
-        if self.scale is None:
-            outputs.set_shape(
-                self.compute_output_shape([targets.shape, samples.shape])
-            )
-        else:
-            outputs.set_shape(self.compute_output_shape(inputs.shape))
 
         return outputs
 
@@ -90,13 +82,5 @@ class NearestInterpolation(layers.Layer):
 
 @register_keras_serializable(package="SegMe>Common>Interpolation")
 class BilinearInterpolation(NearestInterpolation):
-    def __init__(self, scale=None, **kwargs):
-        super().__init__(scale=scale, **kwargs)
-
     def resize(self, inputs, size):
-        outputs = tf.image.resize(
-            inputs, size, method=tf.image.ResizeMethod.BILINEAR
-        )
-        outputs = tf.saturate_cast(outputs, self.compute_dtype)
-
-        return outputs
+        return ops.image.resize(inputs, size, interpolation="bilinear")

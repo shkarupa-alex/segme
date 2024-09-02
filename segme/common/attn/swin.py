@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import initializers
 from keras.src import layers
 from keras.src import ops
@@ -7,13 +6,13 @@ from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
 from segme.common.attn.mincon import MinConstraint
+from segme.common.attn.part import partition_apply
+from segme.common.attn.part import partition_apply_fused
+from segme.common.attn.part import partition_reverse_fused
 from segme.common.attn.relbias import RelativeBias
 from segme.common.convnormact import Conv
 from segme.common.pad import with_divisible_pad
-from segme.common.part import partition_apply
-from segme.common.part import partition_apply_fused
-from segme.common.part import partition_reverse_fused
-from segme.common.shape import get_shape
+from segme.ops import l2_normalize
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -117,13 +116,16 @@ class SwinAttention(layers.Layer):
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
         if self.qkv_bias:
-            k_bias = tf.zeros([self.qk_channels], dtype=self.compute_dtype)
-            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, qkv_bias)
+            k_bias = ops.zeros([self.qk_channels], dtype=self.compute_dtype)
+            qkv_bias = ops.concatenate(
+                [self.q_bias, k_bias, self.v_bias], axis=0
+            )
+            qkv = ops.add(qkv, qkv_bias)
 
         apply_shift, shift_size = False, np.array([0, 0])
         if self.shift_dir is not None:
-            curr_size, static_size = get_shape(inputs, axis=[1, 2])
+            curr_size = ops.shape(inputs)[1:3]
+            static_size = all(map(lambda x: isinstance(x, int), curr_size))
             if static_size:
                 curr_size = np.array(curr_size)
                 with_shift = curr_size > self.current_window
@@ -134,19 +136,19 @@ class SwinAttention(layers.Layer):
                     * self.shift_dir
                 )
             else:
-                curr_size = tf.cast(curr_size, "int32")
+                curr_size = ops.cast(curr_size, "int32")
                 with_shift = curr_size > self.current_window
-                apply_shift = tf.reduce_any(with_shift)
+                apply_shift = ops.any(with_shift)
                 shift_size = (
                     self.shift_size
-                    * tf.cast(with_shift, curr_size.dtype)
+                    * ops.cast(with_shift, curr_size.dtype)
                     * self.shift_dir
                 )
 
         qkv = ops.cond(
             apply_shift,
-            lambda: tf.roll(qkv, -shift_size, [1, 2]),
-            lambda: tf.identity(qkv),
+            lambda: ops.roll(qkv, -shift_size, [1, 2]),
+            lambda: qkv,
         )
 
         outputs = with_divisible_pad(
@@ -159,8 +161,8 @@ class SwinAttention(layers.Layer):
 
         outputs = ops.cond(
             apply_shift,
-            lambda: tf.roll(outputs, shift_size, [1, 2]),
-            lambda: tf.identity(outputs),
+            lambda: ops.roll(outputs, shift_size, [1, 2]),
+            lambda: outputs,
         )
 
         outputs = self.proj(outputs)
@@ -179,13 +181,13 @@ class SwinAttention(layers.Layer):
                 self.current_window,
                 self.num_heads,
             )
-            q, k, v = tf.split(
-                qkv, [self.qk_units, self.qk_units, self.v_units], axis=-1
+            q, k, v = ops.split(
+                qkv, [self.qk_units, self.qk_units * 2], axis=-1
             )
         else:
-            q, k, v = tf.split(
+            q, k, v = ops.split(
                 qkv,
-                [self.qk_channels, self.qk_channels, self.channels],
+                [self.qk_channels, self.qk_channels * 2],
                 axis=-1,
             )
             q = partition_apply_fused(
@@ -237,22 +239,22 @@ class SwinAttention(layers.Layer):
         return outputs
 
     def qkv_attn(self, q, k, v, pad_size, pad_val, apply_shift, shift_size):
-        q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
-        k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
+        q = l2_normalize(q, axis=-1, epsilon=1.55e-5)
+        k = l2_normalize(k, axis=-1, epsilon=1.55e-5)
 
-        attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
+        attn = ops.matmul(q * ops.exp(self.scale), ops.moveaxis(k, -1, -2))
         attn += self.attn_mask(attn, pad_size, pad_val, apply_shift, shift_size)
-        attn = tf.nn.softmax(attn)
+        attn = ops.softmax(attn)
 
-        outputs = tf.matmul(attn, v)
+        outputs = ops.matmul(attn, v)
 
         return outputs
 
     def attn_mask(self, attention, pad_size, pad_val, apply_shift, shift_size):
         mask = self.rel_bias(None)
 
-        windows = tf.shape(attention)[1]
-        mask_ = tf.repeat(mask, windows, axis=1)
+        windows = ops.shape(attention)[1]
+        mask_ = ops.repeat(mask, windows, axis=1)
 
         mask = ops.cond(
             apply_shift,
@@ -260,7 +262,7 @@ class SwinAttention(layers.Layer):
             lambda: ops.cond(
                 sum(pad_val) > 0,
                 lambda: mask_ + self.pad_mask(pad_size, pad_val),
-                lambda: tf.identity(mask),
+                lambda: mask,
             ),
         )
 
@@ -271,8 +273,8 @@ class SwinAttention(layers.Layer):
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
-        mask = tf.zeros((1, src_height, src_width, 1), dtype="int64")
-        mask = tf.pad(
+        mask = ops.zeros((1, src_height, src_width, 1), dtype="int64")
+        mask = ops.pad(
             mask,
             [(0, 0), pad_val[:2], pad_val[2:], (0, 0)],
             constant_values=-100,
@@ -280,8 +282,8 @@ class SwinAttention(layers.Layer):
         mask = partition_apply(
             mask, pad_height, pad_width, "window_size", self.current_window, 1
         )
-        mask = tf.squeeze(mask, axis=-1)[:, :, None, None]
-        mask = tf.cast(mask, self.compute_dtype)
+        mask = ops.squeeze(mask, axis=-1)[:, :, None, None]
+        mask = ops.cast(mask, self.compute_dtype)
 
         return mask
 
@@ -290,11 +292,11 @@ class SwinAttention(layers.Layer):
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
-        height_shift, width_shift = tf.unstack(tf.abs(shift_size))
-        shift_height = tf.cast(
+        height_shift, width_shift = ops.unstack(ops.abs(shift_size))
+        shift_height = ops.cast(
             src_height > self.current_window, height_shift.dtype
         )
-        shift_width = tf.cast(
+        shift_width = ops.cast(
             src_width > self.current_window, width_shift.dtype
         )
 
@@ -317,16 +319,16 @@ class SwinAttention(layers.Layer):
         width_repeats = pad_val[2:3] + width_repeats + pad_val[3:]
 
         mask = np.arange(9, dtype="int32").reshape((3, 3)) + 1
-        mask = tf.pad(mask, [(1, 1), (1, 1)])[None, ..., None]
-        mask = tf.repeat(mask, height_repeats, axis=1)
-        mask = tf.repeat(mask, width_repeats, axis=2)
+        mask = ops.pad(mask, [(1, 1), (1, 1)])[None, ..., None]
+        mask = ops.repeat(mask, height_repeats, axis=1)
+        mask = ops.repeat(mask, width_repeats, axis=2)
         mask = partition_apply(
             mask, pad_height, pad_width, "window_size", self.current_window, 1
         )
-        mask = tf.squeeze(mask, axis=-1)
+        mask = ops.squeeze(mask, axis=-1)
         mask = mask[..., None] - mask[..., None, :]
-        mask = tf.where(mask == 0, 0.0, -100.0)
-        mask = tf.cast(mask, self.compute_dtype)
+        mask = ops.where(mask == 0, 0.0, -100.0)
+        mask = ops.cast(mask, self.compute_dtype)
         mask = mask[:, :, None]
 
         return mask

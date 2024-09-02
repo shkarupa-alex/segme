@@ -1,45 +1,43 @@
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
+from segme.ops import convert_image_dtype
 from segme.utils.common.augs.common import apply
-from segme.utils.common.augs.common import convert
 from segme.utils.common.augs.common import validate
 
 
 def gaussblur(image, masks, weight, prob, size, name=None):
-    with tf.name_scope(name or "gaussblur"):
+    with backend.name_scope(name or "gaussblur"):
         return apply(
             image,
             masks,
             weight,
             prob,
             lambda x: _gaussblur(x, size),
-            tf.identity,
-            tf.identity,
+            None,
+            None,
         )
 
 
 def _gaussblur(image, size, name=None):
-    with tf.name_scope(name or "gaussblur_"):
+    with backend.name_scope(name or "gaussblur_"):
         image, _, _ = validate(image, None, None)
 
         dtype = image.dtype
-        image = convert(image, "float32")
+        image = convert_image_dtype(image, "float32")
 
         sigma = 0.3 * ((size - 1) * 0.5 - 1) + 0.8
-        kernel = tf.cast(
-            tf.range(-size // 2 + 1, size // 2 + 1), dtype="float32"
+        kernel = ops.cast(
+            ops.arange(-size // 2 + 1, size // 2 + 1), dtype="float32"
         )
-        kernel = tf.exp(
-            -tf.pow(kernel, 2) / (2.0 * tf.pow(tf.cast(sigma, "float32"), 2))
+        kernel = ops.exp(
+            -ops.power(kernel, 2)
+            / (2.0 * ops.power(ops.cast(sigma, "float32"), 2))
         )
-        kernel /= tf.reduce_sum(kernel)
-        kernel = tf.tile(kernel[:, None, None], [1, image.shape[-1], 1])
+        kernel /= ops.sum(kernel)
+        kernel = ops.tile(kernel[:, None, None], [1, image.shape[-1], 1])
 
-        image = tf.nn.depthwise_conv2d(
-            image, kernel[None], [1] * 4, padding="SAME"
-        )
-        image = tf.nn.depthwise_conv2d(
-            image, kernel[:, None], [1] * 4, padding="SAME"
-        )
+        image = ops.depthwise_conv(image, kernel[None], 1, padding="same")
+        image = ops.depthwise_conv(image, kernel[:, None], 1, padding="same")
 
-        return convert(image, dtype, saturate=True)
+        return convert_image_dtype(image, dtype, saturate=True)

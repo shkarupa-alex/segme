@@ -29,19 +29,19 @@ class CascadePSP(layers.Layer):
         ]
 
     def build(self, input_shape):
-        self.bone = Encoder()
-        self.intbysamp = BilinearInterpolation(None)
+        self.bone = Encoder(dtype=self.dtype_policy)
+        self.intbysamp = BilinearInterpolation(dtype=self.dtype_policy)
 
-        self.psp = PyramidPooling(1024)
+        self.psp = PyramidPooling(1024, dtype=self.dtype_policy)
 
-        self.up1 = Upsample(512)
-        self.up2 = Upsample(256)
-        self.up3 = Upsample(32)
+        self.up1 = Upsample(512, dtype=self.dtype_policy)
+        self.up2 = Upsample(256, dtype=self.dtype_policy)
+        self.up3 = Upsample(32, dtype=self.dtype_policy)
 
-        self.final8 = Sequence([Conv(32, 1), Act(), HeadProjection(1)])
+        self.final8 = Sequence([Conv(32, 1, dtype=self.dtype_policy), Act(dtype=self.dtype_policy), HeadProjection(1, dtype=self.dtype_policy)], dtype=self.dtype_policy)
 
-        self.final4 = Sequence([Conv(32, 1), Act(), HeadProjection(1)])
-        self.final1 = Sequence([Conv(32, 1), Act(), HeadProjection(1)])
+        self.final4 = Sequence([Conv(32, 1, dtype=self.dtype_policy), Act(dtype=self.dtype_policy), HeadProjection(1, dtype=self.dtype_policy)], dtype=self.dtype_policy)
+        self.final1 = Sequence([Conv(32, 1, dtype=self.dtype_policy), Act(dtype=self.dtype_policy), HeadProjection(1, dtype=self.dtype_policy)], dtype=self.dtype_policy)
 
         self.act = ClassificationActivation()
 
@@ -50,12 +50,12 @@ class CascadePSP(layers.Layer):
     def call(self, inputs, training=False, **kwargs):
         image, mask, prev = inputs
         no_prev = tf.logical_or(
-            tf.cast(training, "bool"), tf.reduce_all(tf.equal(mask, prev))
+            ops.cast(training, "bool"), ops.all(tf.equal(mask, prev))
         )
 
-        image = tf.cast(image, self.compute_dtype)
-        mask = tf.cast(mask, self.compute_dtype)
-        prev = tf.cast(prev, self.compute_dtype)
+        image = ops.cast(image, self.compute_dtype)
+        mask = ops.cast(mask, self.compute_dtype)
+        prev = ops.cast(prev, self.compute_dtype)
 
         """
         First iteration, s8 output
@@ -63,31 +63,31 @@ class CascadePSP(layers.Layer):
         pred_s8_1, scale_s8_1 = ops.cond(
             no_prev,
             lambda: self._estimate_s8(image, mask),
-            lambda: (tf.cast(prev / 255.0, "float32"), tf.identity(prev)),
+            lambda: (ops.cast(prev / 255.0, "float32"), prev),
         )
 
         """
         Second iteration, s4 output
         """
-        inp2 = tf.concat([image, mask, scale_s8_1, scale_s8_1], axis=-1)
+        inp2 = ops.concatenate([image, mask, scale_s8_1, scale_s8_1], axis=-1)
         _, feats4, feats8 = self.bone(inp2)
 
         out2_s8 = self.psp(feats8)
         mask_s8_2 = self.final8(out2_s8)
         mask_s8_2 = self.intbysamp([mask_s8_2, image])
         pred_s8_2 = self.act(mask_s8_2)
-        scale_s8_2 = tf.cast(pred_s8_2 * 255.0, self.compute_dtype)
+        scale_s8_2 = ops.cast(pred_s8_2 * 255.0, self.compute_dtype)
 
         out2_s4 = self.up1([out2_s8, feats4])
         mask_s4_2 = self.final4(out2_s4)
         mask_s4_2 = self.intbysamp([mask_s4_2, image])
         pred_s4_2 = self.act(mask_s4_2)
-        scale_s4_2 = tf.cast(pred_s4_2 * 255.0, self.compute_dtype)
+        scale_s4_2 = ops.cast(pred_s4_2 * 255.0, self.compute_dtype)
 
         """
         Third iteration, s1 output
         """
-        inp3 = tf.concat([image, mask, scale_s8_2, scale_s4_2], axis=-1)
+        inp3 = ops.concatenate([image, mask, scale_s8_2, scale_s4_2], axis=-1)
 
         feats2, feats4, feats8 = self.bone(inp3)
         out3_s8 = self.psp(feats8)
@@ -104,7 +104,7 @@ class CascadePSP(layers.Layer):
         out3_s4 = self.up2([out3_s4, feats2])
         out3_s4 = self.up3([out3_s4, image])
 
-        mask_s1_3 = self.final1(tf.concat([out3_s4, image], axis=-1))
+        mask_s1_3 = self.final1(ops.concatenate([out3_s4, image], axis=-1))
         pred_s1_3 = self.act(mask_s1_3)
 
         """
@@ -122,14 +122,14 @@ class CascadePSP(layers.Layer):
         return preds
 
     def _estimate_s8(self, image, mask):
-        inp1 = tf.concat([image, mask, mask, mask], axis=-1)
+        inp1 = ops.concatenate([image, mask, mask, mask], axis=-1)
         _, _, feats8 = self.bone(inp1)
 
         out1 = self.psp(feats8)
         mask_s8 = self.final8(out1)
         mask_s8 = self.intbysamp([mask_s8, image])
         pred_s8 = self.act(mask_s8)
-        scale_s8 = tf.cast(pred_s8 * 255.0, self.compute_dtype)
+        scale_s8 = ops.cast(pred_s8 * 255.0, self.compute_dtype)
 
         return pred_s8, scale_s8
 

@@ -31,18 +31,15 @@ def DeepLabV3Plus(
                 dtype=None,
             )
 
-    inputs = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
+    backbone = Backbone([4, 32])
+    inputs = backbone.inputs[0]
+    fine, coarse = backbone.outputs
 
-    features = Backbone([4, 32])(inputs)
-
-    fine, coarse = features[-2:]
     fine = ConvNormAct(low_filters, 1, name="decoder_fine_proj")(fine)
     coarse = AtrousSpatialPyramidPooling(
         aspp_filters, aspp_stride, name="decoder_coarse_aspp"
     )(coarse)
-    coarse = BilinearInterpolation(None, name="decoder_coarse_resize")(
-        [coarse, fine]
-    )
+    coarse = BilinearInterpolation(name="decoder_coarse_resize")([coarse, fine])
 
     outputs = layers.concatenate([fine, coarse], axis=-1, name="decoder_concat")
     outputs = Sequence(
@@ -56,10 +53,7 @@ def DeepLabV3Plus(
     )(outputs)
 
     outputs = HeadProjection(classes, name="logits_proj")(outputs)
-
-    outputs = BilinearInterpolation(None, name="logits_resize")(
-        [outputs, inputs]
-    )
+    outputs = BilinearInterpolation(name="logits_resize")([outputs, inputs])
     outputs = ClassificationActivation(name="probs")(outputs)
 
     model = Model(inputs=inputs, outputs=outputs, name="deeplab_v3_plus")

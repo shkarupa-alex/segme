@@ -1,4 +1,6 @@
-import tensorflow as tf
+import numpy as np
+from keras.src import ops
+from keras.src import testing
 
 from segme.utils.common.augs.tests.testing_utils import aug_samples
 from segme.utils.common.augs.tests.testing_utils import max_diff
@@ -7,29 +9,29 @@ from segme.utils.common.cutmixup import _mix_up
 from segme.utils.common.cutmixup import cut_mix_up
 
 
-class TestCutMixUp(tf.test.TestCase):
+class TestCutMixUp(testing.TestCase):
     def test_apply(self):
-        images = tf.random.uniform([8, 32, 32, 3])
-        labels = tf.random.uniform([8, 1], maxval=4, dtype="int32")
-        weights = tf.random.uniform([8, 1], dtype="float32")
+        images = ops.random.uniform([8, 32, 32, 3])
+        labels = ops.random.uniform([8, 1], maxval=4, dtype="int32")
+        weights = ops.random.uniform([8, 1], dtype="float32")
 
         images_, labels_, weights_ = cut_mix_up(images, labels, weights, 4)
 
-        self.assertShapeEqual(images_, images)
-        self.assertDTypeEqual(images_, images.dtype)
+        self.assertEqual(images_.shape, images.shape)
+        self.assertEqual(images_.dtype, images.dtype)
 
-        self.assertShapeEqual(labels_, tf.repeat(labels, 4, axis=-1))
-        self.assertDTypeEqual(labels_, tf.float32)
+        self.assertEqual(labels_.shape, ops.repeat(labels, 4, axis=-1).shape)
+        self.assertEqual(labels_.dtype, "float32")
 
-        self.assertShapeEqual(weights_, weights)
-        self.assertDTypeEqual(weights_, weights.dtype)
+        self.assertEqual(weights_.shape, weights.shape)
+        self.assertEqual(weights_.dtype, weights.dtype)
 
 
-class TestCutMix(tf.test.TestCase):
+class TestCutMix(testing.TestCase):
     def test_ref(self):
         images, expected_images = aug_samples("cutmix")
-        labels = tf.constant([0, 1, 2, 3, 4, 5], "int32")
-        expected_labels = tf.constant(
+        labels = np.array([0, 1, 2, 3, 4, 5], "int32")
+        expected_labels = np.array(
             [
                 [0.995, 0.0, 0.0, 0.0, 0.0, 0.005],
                 [0.0, 0.985, 0.0, 0.0, 0.015, 0.0],
@@ -40,8 +42,8 @@ class TestCutMix(tf.test.TestCase):
             ],
             "float32",
         )
-        weights = tf.constant([0.0, 0.1, 0.2, 0.3, 0.4, 0.5], "float32")
-        expected_weights = tf.constant(
+        weights = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5], "float32")
+        expected_weights = np.array(
             [0.003, 0.105, 0.203, 0.295, 0.377, 0.446], "float32"
         )
 
@@ -50,11 +52,11 @@ class TestCutMix(tf.test.TestCase):
             labels,
             weights,
             [5, 4, 3, 2, 1, 0],
-            tf.cast(
+            ops.cast(
                 [[0, 0], [32, 32], [64, 48], [96, 64], [128, 80], [160, 96]],
                 "float32",
             ),
-            tf.cast(
+            ops.cast(
                 [
                     [32, 32],
                     [48, 64],
@@ -79,7 +81,7 @@ class TestCutMix(tf.test.TestCase):
 
     def test_float(self):
         images, expected_images = aug_samples("cutmix", "float32")
-        labels = tf.constant(
+        labels = np.array(
             [
                 [1, 0, 0, 0, 0, 0],
                 [0, 1, 0, 0, 0, 0],
@@ -90,7 +92,7 @@ class TestCutMix(tf.test.TestCase):
             ],
             "float32",
         )
-        expected_labels = tf.constant(
+        expected_labels = np.array(
             [
                 [0.995, 0.0, 0.0, 0.0, 0.0, 0.005],
                 [0.0, 0.985, 0.0, 0.0, 0.015, 0.0],
@@ -101,8 +103,8 @@ class TestCutMix(tf.test.TestCase):
             ],
             "float32",
         )
-        weights = tf.constant([0.0, 0.1, 0.2, 0.3, 0.4, 0.5], "float32")
-        expected_weights = tf.constant(
+        weights = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5], "float32")
+        expected_weights = np.array(
             [0.003, 0.105, 0.203, 0.295, 0.377, 0.446], "float32"
         )
 
@@ -111,11 +113,11 @@ class TestCutMix(tf.test.TestCase):
             labels,
             weights,
             [5, 4, 3, 2, 1, 0],
-            tf.cast(
+            ops.cast(
                 [[0, 0], [32, 32], [64, 48], [96, 64], [128, 80], [160, 96]],
                 "float32",
             ),
-            tf.cast(
+            ops.cast(
                 [
                     [32, 32],
                     [48, 64],
@@ -139,11 +141,11 @@ class TestCutMix(tf.test.TestCase):
         self.assertLessEqual(weight_diff, 1e-3)
 
 
-class TestMixUp(tf.test.TestCase):
+class TestMixUp(testing.TestCase):
     def test_ref(self):
         images, expected_images = aug_samples("mixup")
-        labels = tf.constant([0, 1, 2, 3, 4, 5], "int32")
-        expected_labels = tf.constant(
+        labels = np.array([0, 1, 2, 3, 4, 5], "int32")
+        expected_labels = np.array(
             [
                 [1, 0, 0, 0, 0, 0],
                 [0, 0.8, 0, 0, 0.2, 0],
@@ -154,8 +156,8 @@ class TestMixUp(tf.test.TestCase):
             ],
             "float32",
         )
-        weights = tf.constant([0.0, 0.1, 0.2, 0.3, 0.4, 0.5], "float32")
-        expected_weights = tf.constant(
+        weights = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5], "float32")
+        expected_weights = np.array(
             [0.0, 0.16, 0.24, 0.24, 0.16, 0.0], "float32"
         )
 
@@ -179,7 +181,7 @@ class TestMixUp(tf.test.TestCase):
 
     def test_float(self):
         images, expected_images = aug_samples("mixup", "float32")
-        labels = tf.constant(
+        labels = np.array(
             [
                 [1, 0, 0, 0, 0, 0],
                 [0, 1, 0, 0, 0, 0],
@@ -190,7 +192,7 @@ class TestMixUp(tf.test.TestCase):
             ],
             "float32",
         )
-        expected_labels = tf.constant(
+        expected_labels = np.array(
             [
                 [1, 0, 0, 0, 0, 0],
                 [0, 0.8, 0, 0, 0.2, 0],
@@ -201,8 +203,8 @@ class TestMixUp(tf.test.TestCase):
             ],
             "float32",
         )
-        weights = tf.constant([0.0, 0.1, 0.2, 0.3, 0.4, 0.5], "float32")
-        expected_weights = tf.constant(
+        weights = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5], "float32")
+        expected_weights = np.array(
             [0.0, 0.16, 0.24, 0.24, 0.16, 0.0], "float32"
         )
 

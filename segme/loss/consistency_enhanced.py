@@ -13,7 +13,7 @@ class ConsistencyEnhancedLoss(WeightedLossFunctionWrapper):
     """Proposed in: 'Multi-scale Interactive Network for Salient Object
     Detection'
 
-    Implements Equation [9] in https://arxiv.org/pdf/2007.09062.pdf
+    Implements Equation [9] in https://arxiv.org/pdf/2007.09062
     """
 
     def __init__(

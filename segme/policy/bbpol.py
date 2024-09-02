@@ -1,8 +1,8 @@
 import contextlib
 
-import tensorflow as tf
 from keras.src.saving.serialization_lib import deserialize_keras_object
 from keras.src.saving.serialization_lib import serialize_keras_object
+from keras.src.utils import file_utils
 
 from segme.policy.backbone.backbone import BACKBONES
 
@@ -33,7 +33,7 @@ class BackbonePolicy:
             raise ValueError(f"Backbone {self._arch_type} not registered")
         if not (
             self._init_type in {"imagenet", "none"}
-            or tf.io.gfile.exists(self._init_type)
+            or file_utils.exists(self._init_type)
         ):
             raise ValueError(f"Unknown init type {self._init_type}")
         if "none" == self._init_type:

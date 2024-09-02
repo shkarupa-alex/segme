@@ -14,7 +14,7 @@ class DeformableFeatureAlignment(layers.Layer):
     """
     Proposed in "FaPN: Feature-aligned Pyramid Network for Dense Image
     Prediction"
-    https://arxiv.org/pdf/2108.07058.pdf
+    https://arxiv.org/pdf/2108.07058
     """
 
     def __init__(self, filters, deformable_groups=8, **kwargs):
@@ -28,7 +28,7 @@ class DeformableFeatureAlignment(layers.Layer):
         self.deformable_groups = deformable_groups
 
     def build(self, input_shape):
-        self.interpolate = BilinearInterpolation(None, dtype=self.dtype_policy)
+        self.interpolate = BilinearInterpolation(dtype=self.dtype_policy)
 
         self.select = FeatureSelection(self.filters, dtype=self.dtype_policy)
         self.select.build(input_shape[0])

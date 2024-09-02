@@ -147,22 +147,13 @@ class TestDeformableConstraint(testing.TestCase):
         result = backend.convert_to_numpy(result)
         result = result.round().astype("int32")
 
-        self.assertTrue((result[:, :, 0] == result[:, :, 1]).all())
-        self.assertTrue(
-            (
-                result[0, 0, 0]
-                == np.array([1, 0, 0, 0, 0, 0, 0, 0, 0], "int32")
-            ).all()
+        self.assertAlmostEqual(result[:, :, 0], result[:, :, 1])
+        self.assertAlmostEqual(
+            result[0, 0, 0], np.array([1, 0, 0, 0, 0, 0, 0, 0, 0], "int32")
         )
-        self.assertTrue(
-            (
-                result[0, 1, 0]
-                == np.array([0, 1, 0, 0, 0, 0, 0, 0, 0], "int32")
-            ).all()
+        self.assertAlmostEqual(
+            result[0, 1, 0], np.array([0, 1, 0, 0, 0, 0, 0, 0, 0], "int32")
         )
-        self.assertTrue(
-            (
-                result[1, 0, 0]
-                == np.array([0, 0, 0, 1, 0, 0, 0, 0, 0], "int32")
-            ).all()
+        self.assertAlmostEqual(
+            result[1, 0, 0], np.array([0, 0, 0, 1, 0, 0, 0, 0, 0], "int32")
         )

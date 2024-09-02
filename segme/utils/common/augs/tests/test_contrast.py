@@ -1,11 +1,11 @@
-import tensorflow as tf
+from keras.src import testing
 
 from segme.utils.common.augs.contrast import _contrast
 from segme.utils.common.augs.tests.testing_utils import aug_samples
 from segme.utils.common.augs.tests.testing_utils import max_diff
 
 
-class TestContrast(tf.test.TestCase):
+class TestContrast(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("contrast")
         augmented = _contrast(inputs, 1.2)

@@ -1,5 +1,6 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import testing
 
 from segme.utils.common.augs.erase import _erase
 from segme.utils.common.augs.erase import erase
@@ -7,7 +8,7 @@ from segme.utils.common.augs.tests.testing_utils import aug_samples
 from segme.utils.common.augs.tests.testing_utils import max_diff
 
 
-class TestErase(tf.test.TestCase):
+class TestErase(testing.TestCase):
     def test_ref(self):
         mask = np.ones([6, 448, 448, 1], "bool")
         for i in range(6):
@@ -38,10 +39,13 @@ class TestErase(tf.test.TestCase):
         ]
         weights = np.ones([16, 224, 224, 1], "float32")
 
-        actual = erase(
+        images_actual, masks_actual, weights_actual = erase(
             images, masks, weights, 0.5, (0.02, 1 / 3), [[[[0, 128, 255]]]]
         )
-        images_actual, masks_actual, weights_actual = self.evaluate(actual)
+        images_actual = backend.convert_to_numpy(images_actual)
+        masks_actual = backend.convert_to_numpy(masks_actual)
+        weights_actual = backend.convert_to_numpy(weights_actual)
+
         self.assertSetEqual({0, 1}, set(masks_actual[1].ravel()))
 
         idx0 = np.where(weights_actual[..., 0] == 0.0)
@@ -53,4 +57,4 @@ class TestErase(tf.test.TestCase):
         )
 
         idx1 = np.where(weights_actual == 1.0)
-        self.assertAllEqual(images_actual[idx1], images[idx1])
+        self.assertAlmostEqual(images_actual[idx1], images[idx1])

@@ -1,51 +1,57 @@
-import tensorflow as tf
+from keras.src import ops
+from keras.src import testing
 
 from segme.utils.common.randaug import _AUG_FUNC
 from segme.utils.common.randaug import rand_augment_full
 
 
-class TestRandAugment(tf.test.TestCase):
+class TestRandAugment(testing.TestCase):
     def test_known_square(self):
-        images = tf.random.uniform([8, 32, 32, 3])
-        masks = tf.random.uniform([8, 32, 32, 2], maxval=4, dtype="int32")
-        weights = tf.random.uniform([8, 32, 32, 1], dtype="float32")
+        images = ops.random.uniform([8, 32, 32, 3])
+        masks = ops.random.uniform([8, 32, 32, 2], maxval=4, dtype="int32")
+        weights = ops.random.uniform([8, 32, 32, 1], dtype="float32")
 
         images_, [masks_], weights_ = rand_augment_full(
             images, [masks], weights, levels=len(_AUG_FUNC), magnitude=1.0
         )
 
-        self.assertShapeEqual(images_, images)
-        self.assertDTypeEqual(images_, images.dtype)
+        self.assertEqual(images_.shape, images.shape)
+        self.assertEqual(images_.dtype, images.dtype)
 
-        self.assertShapeEqual(masks_, masks)
-        self.assertDTypeEqual(masks_, masks_.dtype)
+        self.assertEqual(masks_.shape, masks.shape)
+        self.assertEqual(masks_.dtype, masks_.dtype)
 
-        self.assertShapeEqual(weights_, weights)
-        self.assertDTypeEqual(weights_, weights.dtype)
+        self.assertEqual(weights_.shape, weights.shape)
+        self.assertEqual(weights_.dtype, weights.dtype)
 
     def test_known_non_square_no_rotate(self):
-        images = tf.random.uniform([8, 32, 64, 3])
-        masks = tf.random.uniform([8, 32, 64, 2], maxval=4, dtype="int32")
-        weights = tf.random.uniform([8, 32, 64, 1], dtype="float32")
+        images = ops.random.uniform([8, 32, 64, 3])
+        masks = ops.random.uniform([8, 32, 64, 2], maxval=4, dtype="int32")
+        weights = ops.random.uniform([8, 32, 64, 1], dtype="float32")
 
-        ops = list(set(_AUG_FUNC.keys()) - {"RotateCCW", "RotateCW"})
+        operations = list(set(_AUG_FUNC.keys()) - {"RotateCCW", "RotateCW"})
         images_, [masks_], weights_ = rand_augment_full(
-            images, [masks], weights, levels=len(ops), magnitude=1.0, ops=ops
+            images,
+            [masks],
+            weights,
+            levels=len(operations),
+            magnitude=1.0,
+            operations=operations,
         )
 
-        self.assertShapeEqual(images_, images)
-        self.assertDTypeEqual(images_, images.dtype)
+        self.assertEqual(images_.shape, images.shape)
+        self.assertEqual(images_.dtype, images.dtype)
 
-        self.assertShapeEqual(masks_, masks)
-        self.assertDTypeEqual(masks_, masks.dtype)
+        self.assertEqual(masks_.shape, masks.shape)
+        self.assertEqual(masks_.dtype, masks.dtype)
 
-        self.assertShapeEqual(weights_, weights)
-        self.assertDTypeEqual(weights_, weights.dtype)
+        self.assertEqual(weights_.shape, weights.shape)
+        self.assertEqual(weights_.dtype, weights.dtype)
 
     def test_known_non_square_rotate(self):
-        images = tf.random.uniform([8, 32, 64, 3])
-        masks = tf.random.uniform([8, 32, 64, 2], maxval=4, dtype="int32")
-        weights = tf.random.uniform([8, 32, 64, 1], dtype="float32")
+        images = ops.random.uniform([8, 32, 64, 3])
+        masks = ops.random.uniform([8, 32, 64, 2], maxval=4, dtype="int32")
+        weights = ops.random.uniform([8, 32, 64, 1], dtype="float32")
 
         images_, [masks_], weights_ = rand_augment_full(
             images, [masks], weights, levels=len(_AUG_FUNC), magnitude=1.0
@@ -64,7 +70,7 @@ class TestRandAugment(tf.test.TestCase):
                 ),
             ]
         )
-        self.assertDTypeEqual(images_, images.dtype)
+        self.assertEqual(images_.dtype, images.dtype)
 
         self.assertTrue(
             masks_.shape
@@ -79,7 +85,7 @@ class TestRandAugment(tf.test.TestCase):
                 ),
             ]
         )
-        self.assertDTypeEqual(masks_, masks.dtype)
+        self.assertEqual(masks_.dtype, masks.dtype)
 
         self.assertTrue(
             weights_.shape
@@ -94,4 +100,4 @@ class TestRandAugment(tf.test.TestCase):
                 ),
             ]
         )
-        self.assertDTypeEqual(weights_, weights.dtype)
+        self.assertEqual(weights_.dtype, weights.dtype)

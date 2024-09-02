@@ -1,7 +1,5 @@
 import numpy as np
-import tensorflow as tf
-from keras.src import layers
-from keras.src import models
+from keras.src import ops
 from keras.src import testing
 
 from segme.loss.kl_divergence import KLDivergenceLoss
@@ -18,8 +16,8 @@ class TestKLDivergenceLoss(testing.TestCase):
         self.assertEqual(loss.reduction, "none")
 
     def test_zeros(self):
-        logits = -10.0 * tf.one_hot(
-            tf.zeros((3, 8, 8), "int32"), 2, dtype="float32"
+        logits = -10.0 * ops.one_hot(
+            ops.zeros((3, 8, 8), "int32"), 2, dtype="float32"
         )
         targets = logits
 
@@ -30,8 +28,8 @@ class TestKLDivergenceLoss(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = 10.0 * tf.one_hot(
-            tf.zeros((3, 8, 8), "int32"), 2, dtype="float32"
+        logits = 10.0 * ops.one_hot(
+            ops.zeros((3, 8, 8), "int32"), 2, dtype="float32"
         )
         targets = logits
 
@@ -42,10 +40,10 @@ class TestKLDivergenceLoss(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = -10.0 * tf.one_hot(
-            tf.zeros((3, 8, 8), "int32"), 2, dtype="float32"
+        logits = -10.0 * ops.one_hot(
+            ops.zeros((3, 8, 8), "int32"), 2, dtype="float32"
         )
-        targets = tf.reverse(logits, axis=[-1])
+        targets = ops.flip(logits, axis=-1)
 
         result = kl_divergence_loss(
             y_true=targets, y_pred=logits, sample_weight=None, temperature=1.0
@@ -54,10 +52,10 @@ class TestKLDivergenceLoss(testing.TestCase):
         self.assertAllClose(result, [9.999] * 3, atol=6e-3)
 
     def test_true(self):
-        logits = 10.0 * tf.one_hot(
-            tf.zeros((3, 8, 8), "int32"), 2, dtype="float32"
+        logits = 10.0 * ops.one_hot(
+            ops.zeros((3, 8, 8), "int32"), 2, dtype="float32"
         )
-        targets = tf.reverse(logits, axis=[-1])
+        targets = ops.flip(logits, axis=-1)
 
         result = kl_divergence_loss(
             y_true=targets, y_pred=logits, sample_weight=None, temperature=1.0
@@ -66,8 +64,8 @@ class TestKLDivergenceLoss(testing.TestCase):
         self.assertAllClose(result, [9.999] * 3, atol=6e-3)
 
     def test_value(self):
-        targets = tf.one_hot(
-            tf.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
+        targets = ops.one_hot(
+            ops.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
         )
         loss = KLDivergenceLoss()
         result = loss(targets, MULTI_LOGITS)
@@ -75,8 +73,8 @@ class TestKLDivergenceLoss(testing.TestCase):
         self.assertAlmostEqual(result, 3.9633336, decimal=6)
 
     def test_weight(self):
-        targets = tf.one_hot(
-            tf.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
+        targets = ops.one_hot(
+            ops.squeeze(MULTI_TARGETS, axis=-1), MULTI_LOGITS.shape[-1]
         )
 
         loss = KLDivergenceLoss()
@@ -103,10 +101,11 @@ class TestKLDivergenceLoss(testing.TestCase):
 
         self.assertAlmostEqual(result0, result1, decimal=6)
 
-    def test_model(self):
-        model = models.Sequential([layers.Dense(10, activation="linear")])
-        model.compile(
-            loss="SegMe>Loss>KLDivergenceLoss",
-        )
-        model.fit(np.zeros((2, 8, 8, 1)), np.zeros((2, 8, 8, 10), "float32"))
-        models.Sequential.from_config(model.get_config())
+    # TODO: https://github.com/keras-team/keras/issues/20112
+    # def test_model(self):
+    #     model = models.Sequential([layers.Dense(10, activation="linear")])
+    #     model.compile(
+    #         loss="SegMe>Loss>KLDivergenceLoss",
+    #     )
+    #     model.fit(np.zeros((2, 8, 8, 1)), np.zeros((2, 8, 8, 10), "float32"))
+    #     models.Sequential.from_config(model.get_config())

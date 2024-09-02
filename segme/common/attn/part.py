@@ -1,5 +1,7 @@
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
+from segme.backend import extract_patches
 from segme.common.pad import with_divisible_pad
 
 _PARTITION_TYPES = {"window_size", "window_count", "grid_size", "grid_count"}
@@ -15,13 +17,13 @@ def partition_apply(
     dtype=None,
     name=None,
 ):
-    with tf.name_scope(name or "partition_apply"):
-        inputs = tf.convert_to_tensor(inputs, dtype)
+    with backend.name_scope(name or "partition_apply"):
+        inputs = backend.convert_to_tensor(inputs, dtype)
 
-        if 4 != inputs.shape.rank:
+        if 4 != inputs.shape.rank:  # TODO
             raise ValueError("Expecting inputs rank to be 4.")
 
-        channels = inputs.shape[-1]
+        channels = inputs.shape[-1]  # TODO
         if channels is None:
             raise ValueError(
                 "Channel dimensions of the inputs should be defined. "
@@ -35,7 +37,7 @@ def partition_apply(
         width_blocks = width // (size_count * dilation_rate)
 
         if part_type in {"window_size", "grid_count"}:
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 inputs,
                 [
                     -1,
@@ -49,7 +51,7 @@ def partition_apply(
                 ],
             )
         else:
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 inputs,
                 [
                     -1,
@@ -64,20 +66,20 @@ def partition_apply(
             )
 
         if part_type in {"window_size", "window_count"}:
-            outputs = tf.transpose(outputs, [0, 1, 3, 4, 6, 2, 5, 7])
+            outputs = ops.transpose(outputs, [0, 1, 3, 4, 6, 2, 5, 7])
         else:
-            outputs = tf.transpose(outputs, [0, 2, 3, 5, 6, 1, 4, 7])
+            outputs = ops.transpose(outputs, [0, 2, 3, 5, 6, 1, 4, 7])
 
         if part_type in {"window_size", "grid_size"}:
             num_windows = (
-                height_blocks * width_blocks * tf.square(dilation_rate)
+                height_blocks * width_blocks * ops.square(dilation_rate)
             )
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 outputs, [-1, num_windows, (size_count**2), channels]
             )
         else:
-            num_windows = tf.square(size_count * dilation_rate)
-            outputs = tf.reshape(
+            num_windows = ops.square(size_count * dilation_rate)
+            outputs = ops.reshape(
                 outputs,
                 [-1, num_windows, height_blocks * width_blocks, channels],
             )
@@ -95,8 +97,8 @@ def partition_reverse(
     dtype=None,
     name=None,
 ):
-    with tf.name_scope(name or "partition_reverse"):
-        inputs = tf.convert_to_tensor(inputs, dtype)
+    with backend.name_scope(name or "partition_reverse"):
+        inputs = backend.convert_to_tensor(inputs, dtype)
 
         if 4 != inputs.shape.rank:
             raise ValueError("Expecting inputs rank to be 4.")
@@ -115,7 +117,7 @@ def partition_reverse(
         width_blocks = width // (size_count * dilation_rate)
 
         if part_type in {"window_size", "grid_size"}:
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 inputs,
                 [
                     -1,
@@ -129,7 +131,7 @@ def partition_reverse(
                 ],
             )
         else:
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 inputs,
                 [
                     -1,
@@ -144,11 +146,11 @@ def partition_reverse(
             )
 
         if part_type in {"window_size", "window_count"}:
-            outputs = tf.transpose(outputs, [0, 1, 5, 2, 3, 6, 4, 7])
+            outputs = ops.transpose(outputs, [0, 1, 5, 2, 3, 6, 4, 7])
         else:
-            outputs = tf.transpose(outputs, [0, 5, 1, 2, 6, 3, 4, 7])
+            outputs = ops.transpose(outputs, [0, 5, 1, 2, 6, 3, 4, 7])
 
-        outputs = tf.reshape(
+        outputs = ops.reshape(
             outputs,
             [
                 -1,
@@ -164,8 +166,8 @@ def partition_reverse(
 def with_partition(
     op, inputs, part_type, size_count, dilation_rate=1, dtype=None, name=None
 ):
-    with tf.name_scope(name or "with_partition"):
-        inputs = tf.convert_to_tensor(inputs, dtype)
+    with backend.name_scope(name or "with_partition"):
+        inputs = backend.convert_to_tensor(inputs, dtype)
 
         if 4 != inputs.shape.rank:
             raise ValueError("Expecting inputs rank to be 4.")
@@ -211,8 +213,8 @@ def halo_partition(
     dtype=None,
     name=None,
 ):
-    with tf.name_scope(name or "halo_partition"):
-        inputs = tf.convert_to_tensor(inputs, dtype)
+    with backend.name_scope(name or "halo_partition"):
+        inputs = backend.convert_to_tensor(inputs, dtype)
 
         if 4 != inputs.shape.rank:
             raise ValueError("Expecting inputs rank to be 4.")
@@ -231,46 +233,43 @@ def halo_partition(
             raise ValueError("Halo size must be symmetric around window size.")
 
         halo_kernel = [
-            1,
             halo_size * dilation_rate,
             halo_size * dilation_rate,
-            1,
         ]
         halo_stride = [
-            1,
             window_size * dilation_rate,
             window_size * dilation_rate,
-            1,
         ]
 
         height_blocks = height // (window_size * dilation_rate)
         width_blocks = width // (window_size * dilation_rate)
-        num_windows = height_blocks * width_blocks * tf.square(dilation_rate)
+        num_windows = height_blocks * width_blocks * ops.square(dilation_rate)
 
-        outputs = tf.image.extract_patches(
-            inputs, halo_kernel, halo_stride, [1] * 4, padding="SAME"
+        outputs = extract_patches(
+            inputs, halo_kernel, halo_stride, [1, 1], padding="SAME"
         )
 
         # Non-fused implementation with window partition step
         # halo_factor = halo_size / window_size
         # if halo_factor % 1:
-        #     halo_height = tf.cast(tf.math.ceil(
-        #         tf.cast(height, 'float32') * halo_factor), height.dtype)
-        #     halo_width = tf.cast(tf.math.ceil(
-        #         tf.cast(width, 'float32') * halo_factor), width.dtype)
+        #     halo_height = ops.cast(ops.ceil(
+        #         ops.cast(height, 'float32') * halo_factor), height.dtype)
+        #     halo_width = ops.cast(ops.ceil(
+        #         ops.cast(width, 'float32') * halo_factor), width.dtype)
         # else:
         #     halo_height = height * int(halo_factor)
         #     halo_width = width * int(halo_factor)
-        # outputs = tf.reshape(outputs, [
+        # outputs = ops.reshape(outputs, [
         #     -1, height_blocks, width_blocks, halo_size, dilation_rate,
         #     halo_size, dilation_rate, channels])
-        # outputs = tf.transpose(outputs, [0, 1, 3, 4, 2, 5, 6, 7])
-        # outputs = tf.reshape(outputs, [-1, halo_height, halo_width, channels])
+        # outputs = ops.transpose(outputs, [0, 1, 3, 4, 2, 5, 6, 7])
+        # outputs = ops.reshape(
+        #     outputs, [-1, halo_height, halo_width, channels])
         # outputs = partition_apply(
         #     outputs, halo_height, halo_width, 'window_size',
         #     halo_size, dilation_rate)
 
-        outputs = tf.reshape(
+        outputs = ops.reshape(
             outputs,
             [
                 -1,
@@ -283,8 +282,8 @@ def halo_partition(
                 channels,
             ],
         )
-        outputs = tf.transpose(outputs, [0, 1, 4, 2, 6, 3, 5, 7])
-        outputs = tf.reshape(
+        outputs = ops.transpose(outputs, [0, 1, 4, 2, 6, 3, 5, 7])
+        outputs = ops.reshape(
             outputs, [-1, num_windows, (halo_size**2), channels]
         )
 
@@ -303,8 +302,8 @@ def partition_apply_fused(
     dtype=None,
     name=None,
 ):
-    with tf.name_scope(name or "partition_apply_fused"):
-        inputs = tf.convert_to_tensor(inputs, dtype)
+    with backend.name_scope(name or "partition_apply_fused"):
+        inputs = backend.convert_to_tensor(inputs, dtype)
 
         if 4 != inputs.shape.rank:
             raise ValueError("Expecting inputs rank to be 4.")
@@ -323,7 +322,7 @@ def partition_apply_fused(
         width_blocks = width // (size_count * dilation_rate)
 
         if part_type in {"window_size", "grid_count"}:
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 inputs,
                 [
                     -1,
@@ -339,7 +338,7 @@ def partition_apply_fused(
                 ],
             )
         else:
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 inputs,
                 [
                     -1,
@@ -356,15 +355,15 @@ def partition_apply_fused(
             )
 
         if part_type in {"window_size", "window_count"}:
-            outputs = tf.transpose(outputs, [0, 1, 3, 4, 6, 8, 2, 5, 7, 9])
+            outputs = ops.transpose(outputs, [0, 1, 3, 4, 6, 8, 2, 5, 7, 9])
         else:
-            outputs = tf.transpose(outputs, [0, 2, 3, 5, 6, 8, 1, 4, 7, 9])
+            outputs = ops.transpose(outputs, [0, 2, 3, 5, 6, 8, 1, 4, 7, 9])
 
         if part_type in {"window_size", "grid_size"}:
             num_windows = (
-                height_blocks * width_blocks * tf.square(dilation_rate)
+                height_blocks * width_blocks * ops.square(dilation_rate)
             )
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 outputs,
                 [
                     -1,
@@ -375,8 +374,8 @@ def partition_apply_fused(
                 ],
             )
         else:
-            num_windows = tf.square(size_count * dilation_rate)
-            outputs = tf.reshape(
+            num_windows = ops.square(size_count * dilation_rate)
+            outputs = ops.reshape(
                 outputs,
                 [
                     -1,
@@ -401,8 +400,8 @@ def partition_reverse_fused(
     dtype=None,
     name=None,
 ):
-    with tf.name_scope(name or "partition_reverse_fused"):
-        inputs = tf.convert_to_tensor(inputs, dtype)
+    with backend.name_scope(name or "partition_reverse_fused"):
+        inputs = backend.convert_to_tensor(inputs, dtype)
 
         if 5 != inputs.shape.rank:
             raise ValueError("Expecting inputs rank to be 5.")
@@ -422,7 +421,7 @@ def partition_reverse_fused(
         full_channels = num_heads * head_channels
 
         if part_type in {"window_size", "grid_size"}:
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 inputs,
                 [
                     -1,
@@ -437,7 +436,7 @@ def partition_reverse_fused(
                 ],
             )
         else:
-            outputs = tf.reshape(
+            outputs = ops.reshape(
                 inputs,
                 [
                     -1,
@@ -453,11 +452,11 @@ def partition_reverse_fused(
             )
 
         if part_type in {"window_size", "window_count"}:
-            outputs = tf.transpose(outputs, [0, 1, 6, 2, 3, 7, 4, 5, 8])
+            outputs = ops.transpose(outputs, [0, 1, 6, 2, 3, 7, 4, 5, 8])
         else:
-            outputs = tf.transpose(outputs, [0, 6, 1, 2, 7, 3, 4, 5, 8])
+            outputs = ops.transpose(outputs, [0, 6, 1, 2, 7, 3, 4, 5, 8])
 
-        outputs = tf.reshape(
+        outputs = ops.reshape(
             outputs,
             [
                 -1,
@@ -481,8 +480,8 @@ def with_partition_fused(
     dtype=None,
     name=None,
 ):
-    with tf.name_scope(name or "with_partition_fused"):
-        inputs = tf.convert_to_tensor(inputs, dtype)
+    with backend.name_scope(name or "with_partition_fused"):
+        inputs = backend.convert_to_tensor(inputs, dtype)
 
         if 4 != inputs.shape.rank:
             raise ValueError("Expecting inputs rank to be 4.")
@@ -533,8 +532,8 @@ def halo_partition_fused(
     dtype=None,
     name=None,
 ):
-    with tf.name_scope(name or "halo_partition_fused"):
-        inputs = tf.convert_to_tensor(inputs, dtype)
+    with backend.name_scope(name or "halo_partition_fused"):
+        inputs = backend.convert_to_tensor(inputs, dtype)
 
         if 4 != inputs.shape.rank:
             raise ValueError("Expecting inputs rank to be 4.")
@@ -553,27 +552,23 @@ def halo_partition_fused(
             raise ValueError("Halo size must be symmetric around window size.")
 
         halo_kernel = [
-            1,
             halo_size * dilation_rate,
             halo_size * dilation_rate,
-            1,
         ]
         halo_stride = [
-            1,
             window_size * dilation_rate,
             window_size * dilation_rate,
-            1,
         ]
 
         height_blocks = height // (window_size * dilation_rate)
         width_blocks = width // (window_size * dilation_rate)
-        num_windows = height_blocks * width_blocks * tf.square(dilation_rate)
+        num_windows = height_blocks * width_blocks * ops.square(dilation_rate)
 
-        outputs = tf.image.extract_patches(
-            inputs, halo_kernel, halo_stride, [1] * 4, padding="SAME"
+        outputs = extract_patches(
+            inputs, halo_kernel, halo_stride, [1, 1], padding="SAME"
         )
 
-        outputs = tf.reshape(
+        outputs = ops.reshape(
             outputs,
             [
                 -1,
@@ -588,8 +583,8 @@ def halo_partition_fused(
                 channels // qkv_mult // num_heads,
             ],
         )
-        outputs = tf.transpose(outputs, [0, 1, 4, 2, 6, 8, 3, 5, 7, 9])
-        outputs = tf.reshape(
+        outputs = ops.transpose(outputs, [0, 1, 4, 2, 6, 8, 3, 5, 7, 9])
+        outputs = ops.reshape(
             outputs,
             [-1, num_windows, num_heads, halo_size**2, channels // num_heads],
         )

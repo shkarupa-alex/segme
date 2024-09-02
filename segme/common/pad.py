@@ -1,16 +1,14 @@
-import tensorflow as tf
 from keras.src import backend
 from keras.src import layers
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 from keras.src.utils.argument_validation import standardize_tuple
-
-from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package="SegMe>Common")
 class SymmetricPadding(layers.ZeroPadding2D):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, padding=(1, 1), data_format=None, **kwargs):
+        super().__init__(padding=padding, data_format=data_format, **kwargs)
 
         if max(self.padding[0] + self.padding[1]) > 1:
             raise ValueError(
@@ -19,33 +17,24 @@ class SymmetricPadding(layers.ZeroPadding2D):
             )
 
     def call(self, inputs):
-        assert len(self.padding) == 2
-        assert len(self.padding[0]) == 2
-        assert len(self.padding[1]) == 2
-
-        data_format = (
-            backend.image_data_format()
-            if self.data_format is None
-            else self.data_format
-        )
-        assert "channels_last" == data_format
-
-        pattern = [[0, 0], list(self.padding[0]), list(self.padding[1]), [0, 0]]
-
-        return tf.pad(inputs, pattern, mode="SYMMETRIC")
+        if self.data_format == "channels_first":
+            all_dims_padding = ((0, 0), (0, 0), *self.padding)
+        else:
+            all_dims_padding = ((0, 0), *self.padding, (0, 0))
+        return ops.pad(inputs, all_dims_padding, mode="SYMMETRIC")
 
 
 def with_divisible_pad(
     op,
     inputs,
     dividers,
-    mode="CONSTANT",
+    mode="constant",
     constant_values=0,
     dtype=None,
     name=None,
 ):
-    with tf.name_scope(name or "with_divisible_pad"):
-        inputs = tf.convert_to_tensor(inputs, dtype)
+    with backend.name_scope(name or "with_divisible_pad"):
+        inputs = backend.convert_to_tensor(inputs, dtype)
         if 4 != inputs.shape.rank:
             raise ValueError("Expecting `inputs` rank to be 4.")
 
@@ -53,50 +42,66 @@ def with_divisible_pad(
         if 1 == max(dividers):
             raise ValueError("Nothing to pad: both multipliers equals to 1.")
 
-        (inputs_height, inputs_width, inputs_channel), static_size = get_shape(
-            inputs, axis=[1, 2, 3]
-        )
-        h_pad = (dividers[0] - inputs_height % dividers[0]) % dividers[0]
-        w_pad = (dividers[1] - inputs_width % dividers[1]) % dividers[1]
+        batch, height, width, channels = ops.shape(inputs)
+        static_size = isinstance(height, int) and isinstance(width, int)
+
+        h_pad = (dividers[0] - height % dividers[0]) % dividers[0]
+        w_pad = (dividers[1] - width % dividers[1]) % dividers[1]
         with_pad = h_pad + w_pad > 0
 
         hb_pad, wb_pad = h_pad // 2, w_pad // 2
         ha_pad, wa_pad = h_pad - hb_pad, w_pad - wb_pad
-        paddings = [[0, 0], [hb_pad, ha_pad], [wb_pad, wa_pad], [0, 0]]
+        paddings = ((0, 0), (hb_pad, ha_pad), (wb_pad, wa_pad), (0, 0))
 
         if static_size and with_pad or not static_size:
-            outputs = tf.pad(
+            outputs = ops.pad(
                 inputs, paddings, mode=mode, constant_values=constant_values
             )
         else:
             outputs = inputs
 
-        if static_size and with_pad:
-            padded_shape = (
-                inputs.shape[0],
-                inputs_height + h_pad,
-                inputs_width + w_pad,
-                inputs_channel,
-            )
-            outputs.set_shape(padded_shape)
-
-        pad_size = inputs_height + h_pad, inputs_width + w_pad
-        pad_val = (hb_pad, ha_pad, wb_pad, wa_pad)
+        pad_size = height + h_pad, width + w_pad
+        pad_val = hb_pad, ha_pad, wb_pad, wa_pad
         outputs = op(outputs, pad_size=pad_size, pad_val=pad_val)
 
-        (outputs_height, outputs_width), _ = get_shape(outputs, axis=[1, 2])
-        assert_height = tf.assert_equal(outputs_height, inputs_height + h_pad)
-        assert_width = tf.assert_equal(outputs_width, inputs_width + w_pad)
-        with tf.control_dependencies([assert_height, assert_width]):
-            outputs = tf.identity(outputs)
+        if 4 != len(outputs.shape):
+            raise ValueError(
+                f"Expecting `op` output to have rank 4. "
+                f"Got: {len(outputs.shape)}"
+            )
+        out_batch, out_height, out_width = ops.shape(outputs)[:3]
+        if (
+            isinstance(batch, int)
+            and isinstance(out_batch, int)
+            and batch != out_batch
+        ):
+            raise ValueError(
+                "Expecting `op` output batch size to be the same as input one."
+            )
+        if (
+            isinstance(height, int)
+            and isinstance(out_height, int)
+            and height + h_pad != out_height
+        ):
+            raise ValueError(
+                "Expecting `op` output height to be the same as input one."
+            )
+        if (
+            isinstance(width, int)
+            and isinstance(out_width, int)
+            and width + w_pad != out_width
+        ):
+            raise ValueError(
+                "Expecting `op` output width to be the same as input one."
+            )
 
         if static_size and with_pad or not static_size:
             outputs = outputs[
                 :,
-                hb_pad : hb_pad + inputs_height,
-                wb_pad : wb_pad + inputs_width,
+                hb_pad : hb_pad + height,
+                wb_pad : wb_pad + width,
             ]
 
-        outputs.set_shape(inputs.shape[:-1] + outputs.shape[-1:])
+        # TODO: set shape
 
         return outputs

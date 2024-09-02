@@ -17,7 +17,6 @@ class TestFold(testing.TestCase):
 
 
 class TestUnFold(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             UnFold,

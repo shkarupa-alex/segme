@@ -1,34 +1,35 @@
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
 from segme.utils.common.augs.common import apply
 from segme.utils.common.augs.common import validate
 
 
 def shuffle(image, masks, weight, prob, perm=None, name=None):
-    with tf.name_scope(name or "shuffle"):
+    with backend.name_scope(name or "shuffle"):
         return apply(
             image,
             masks,
             weight,
             prob,
             lambda x: _shuffle(x, perm),
-            tf.identity,
-            tf.identity,
+            None,
+            None,
         )
 
 
 def _shuffle(image, perm=None, name=None):
-    with tf.name_scope(name or "shuffle_"):
+    with backend.name_scope(name or "shuffle_"):
         image, _, _ = validate(image, None, None)
 
         if perm is not None:
-            perm = tf.convert_to_tensor(perm, "int32", name="perm")
+            perm = backend.convert_to_tensor(perm, "int32")
             if 1 != perm.shape.rank:
                 raise ValueError("Expecting `perm` rank to be 1.")
-            image = tf.gather(image, perm, batch_dims=-1)
+            image = ops.take(image, perm, axis=-1)
         else:
-            image = tf.transpose(image, [3, 0, 1, 2])
-            image = tf.random.shuffle(image)
-            image = tf.transpose(image, [1, 2, 3, 0])
+            image = ops.transpose(image, [3, 0, 1, 2])
+            image = ops.random.shuffle(image)
+            image = ops.transpose(image, [1, 2, 3, 0])
 
         return image

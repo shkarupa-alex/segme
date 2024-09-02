@@ -1,30 +1,31 @@
-import tensorflow as tf
+from keras.src import backend
 
+from segme.ops import adjust_saturation
+from segme.ops import convert_image_dtype
 from segme.utils.common.augs.common import apply
-from segme.utils.common.augs.common import convert
 from segme.utils.common.augs.common import validate
 
 
 def saturation(image, masks, weight, prob, factor, name=None):
-    with tf.name_scope(name or "saturation"):
+    with backend.name_scope(name or "saturation"):
         return apply(
             image,
             masks,
             weight,
             prob,
             lambda x: _saturation(x, factor),
-            tf.identity,
-            tf.identity,
+            None,
+            None,
         )
 
 
 def _saturation(image, factor, name=None):
-    with tf.name_scope(name or "saturation_"):
+    with backend.name_scope(name or "saturation_"):
         image, _, _ = validate(image, None, None)
 
         dtype = image.dtype
-        image = convert(image, "float32")
+        image = convert_image_dtype(image, "float32")
 
-        image = tf.image.adjust_saturation(image, factor)
+        image = adjust_saturation(image, factor)
 
-        return convert(image, dtype, saturate=True)
+        return convert_image_dtype(image, dtype, saturate=True)

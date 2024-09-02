@@ -1,7 +1,7 @@
-import tensorflow as tf
 from keras.src import constraints
 from keras.src import initializers
 from keras.src import layers
+from keras.src import ops
 from keras.src import regularizers
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
@@ -9,7 +9,7 @@ from keras.src.saving import register_keras_serializable
 
 @register_keras_serializable(package="SegMe>Common")
 class GRN(layers.Layer):
-    """Inspired with : https://arxiv.org/pdf/2301.00808.pdf"""
+    """Inspired with : https://arxiv.org/pdf/2301.00808"""
 
     def __init__(
         self,
@@ -80,24 +80,24 @@ class GRN(layers.Layer):
     def call(self, inputs, *args, **kwargs):
         # Accumulating sum(x^2) in spatially large feature maps leads to
         # Inf values
-        # gx = tf.norm(inputs, axis=[1, 2], keepdims=True)
+        # gx = ops.norm(inputs, axis=[1, 2], keepdims=True)
 
         # Here we will use response normalization method from
-        # https://arxiv.org/pdf/1911.09737.pdf
-        gx = tf.reduce_mean(tf.square(inputs), axis=[1, 2], keepdims=True)
+        # https://arxiv.org/pdf/1911.09737
+        gx = ops.mean(ops.square(inputs), axis=[1, 2], keepdims=True)
 
         # Simple divisive normalization works best,
-        nx = gx / (tf.reduce_mean(gx, axis=-1, keepdims=True) + self.epsilon)
+        nx = gx / (ops.mean(gx, axis=-1, keepdims=True) + self.epsilon)
 
         # though standardization (||Xi|| − µ)/σ yields similar results.
-        # batch = tf.shape(inputs)[0]
-        # scale = tf.ones([batch], dtype=self.dtype)
-        # offset = tf.zeros([batch], dtype=self.dtype)
-        # nx = tf.squeeze(gx, axis=1)[None]
+        # batch = ops.shape(inputs)[0]
+        # scale = ops.ones([batch], dtype=self.dtype)
+        # offset = ops.zeros([batch], dtype=self.dtype)
+        # nx = ops.squeeze(gx, axis=1)[None]
         # nx, _, _ = tf.compat.v1.nn.fused_batch_norm(
         #     nx, scale=scale, offset=offset, epsilon=self.epsilon,
         #     data_format='NCHW')
-        # nx = tf.squeeze(nx, axis=0)[:, None]
+        # nx = ops.squeeze(nx, axis=0)[:, None]
 
         if self.scale:
             nx *= self.gamma

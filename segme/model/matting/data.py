@@ -11,6 +11,7 @@ import tensorflow_datasets as tfds
 from albumentations.augmentations.geometric.functional import (
     rotate as alb_rotate,
 )
+from keras.src import ops
 from PIL import Image
 
 from segme.model.matting.fba_matting.distance import distance_transform
@@ -682,16 +683,16 @@ def _augment_examples(examples):
 
 @tf.function(jit_compile=True)
 def _prepare_examples_mf(examples):
-    alpha = tf.cast(examples["alpha"], "float32") / 255.0
-    foreground = tf.cast(examples["foreground"], "float32") / 255.0
-    background = tf.cast(examples["background"], "float32") / 255.0
+    alpha = ops.cast(examples["alpha"], "float32") / 255.0
+    foreground = ops.cast(examples["foreground"], "float32") / 255.0
+    background = ops.cast(examples["background"], "float32") / 255.0
 
     image = foreground * alpha + background * (1.0 - alpha)
-    image = tf.cast(tf.round(image * 255.0), "uint8")
+    image = ops.cast(ops.round(image * 255.0), "uint8")
 
     features = {"image": image, "trimap": examples["trimap"]}
-    labels = tf.concat([alpha, foreground, background], axis=-1)
-    weights = tf.cast(examples["trimap"] == 128, "float32")
+    labels = ops.concatenate([alpha, foreground, background], axis=-1)
+    weights = ops.cast(examples["trimap"] == 128, "float32")
 
     return (
         features,
@@ -702,22 +703,22 @@ def _prepare_examples_mf(examples):
 
 @tf.function(jit_compile=False)
 def _prepare_examples_fba(examples):
-    alpha = tf.cast(examples["alpha"], "float32") / 255.0
-    foreground = tf.cast(examples["foreground"], "float32") / 255.0
-    background = tf.cast(examples["background"], "float32") / 255.0
+    alpha = ops.cast(examples["alpha"], "float32") / 255.0
+    foreground = ops.cast(examples["foreground"], "float32") / 255.0
+    background = ops.cast(examples["background"], "float32") / 255.0
 
     image = foreground * alpha + background * (1.0 - alpha)
-    image = tf.cast(tf.round(image * 255.0), "uint8")
+    image = ops.cast(ops.round(image * 255.0), "uint8")
 
     twomap = twomap_transform(examples["trimap"])
     distance = distance_transform(examples["trimap"])
 
     features = {"image": image, "twomap": twomap, "distance": distance}
 
-    alfgbg = tf.concat([alpha, foreground, background], axis=-1)
+    alfgbg = ops.concatenate([alpha, foreground, background], axis=-1)
     labels = (alfgbg, alpha, foreground, background)
 
-    weight = tf.cast(examples["trimap"] == 128, "float32")
+    weight = ops.cast(examples["trimap"] == 128, "float32")
     weights = (None, weight, None, None)
 
     return features, labels, weights
@@ -726,8 +727,8 @@ def _prepare_examples_fba(examples):
 @tf.function(jit_compile=True)
 def _normalize_trimap(examples):
     trimap = examples["trimap"]
-    trimap = tf.cast(trimap // 86, "int32") * 128
-    trimap = tf.cast(tf.clip_by_value(trimap, 0, 255), "uint8")
+    trimap = ops.cast(trimap // 86, "int32") * 128
+    trimap = ops.cast(ops.clip(trimap, 0, 255), "uint8")
 
     examples = {
         "alpha": examples["alpha"],

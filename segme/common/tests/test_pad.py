@@ -1,15 +1,15 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import layers
 from keras.src import models
 from keras.src import testing
 
 from segme.common.pad import SymmetricPadding
 from segme.common.pad import with_divisible_pad
+from segme.ops import depth_to_space
+from segme.ops import space_to_depth
 
 
 class TestSymmetricPadding(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             SymmetricPadding,
@@ -35,7 +35,9 @@ class OddConstrainedLayer(layers.Layer):
 
     def build(self, input_shape):
         if self.use_proj:
-            self.proj = layers.Conv2D(input_shape[-1] * 4, 3, padding="same")
+            self.proj = layers.Conv2D(
+                input_shape[-1] * 4, 3, padding="same"
+            )  # TODO: dtype=
             self.proj.build(input_shape[:-1] + (input_shape[-1] * 4,))
 
         super().build(input_shape)
@@ -43,11 +45,11 @@ class OddConstrainedLayer(layers.Layer):
     def constraned_op(self, inputs, pad_size, pad_val):
         assert 2 == len(pad_size)
         assert 4 == len(pad_val)
-        outputs = tf.nn.space_to_depth(inputs, 2)
+        outputs = space_to_depth(inputs, 2)
         if self.use_proj:
             outputs = self.proj(outputs)
         outputs -= 1.0
-        outputs = tf.nn.depth_to_space(outputs, 2)
+        outputs = depth_to_space(outputs, 2)
 
         return outputs
 
@@ -64,7 +66,6 @@ class OddConstrainedLayer(layers.Layer):
 
 
 class TestWithDivisiblePad(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             OddConstrainedLayer,

@@ -1,7 +1,6 @@
 import sys
 from functools import partial
 
-import tensorflow as tf
 from keras.src import backend
 from keras.src import layers
 from keras.src import models
@@ -307,7 +306,7 @@ def ResNetRS(
 
     weights_allow_list = [f"imagenet-i{x}" for x in available_weight_variants]
     if not (
-        weights in {*weights_allow_list, None} or tf.io.gfile.exists(weights)
+        weights in {*weights_allow_list, None} or file_utils.exists(weights)
     ):
         raise ValueError(
             f"The `weights` argument should be either `None` (random "
@@ -605,21 +604,27 @@ def ResNetRS420(
     )
 
 
-def wrap_bone_policy(model, prepr, init, channels, end_points, name):
+def wrap_bone_policy(model, prepr, init, end_points, name, input_tensor=None):
     if (
         cnapol.default_policy().name == cnapol.global_policy().name
         or init is None
     ):
-        return wrap_bone(model, prepr, init, channels, end_points, name)
+        return wrap_bone(
+            model, prepr, init, end_points, name, input_tensor=input_tensor
+        )
 
     with cnapol.policy_scope(cnapol.default_policy()):
-        base_model = wrap_bone(model, prepr, init, channels, end_points, name)
+        base_model = wrap_bone(
+            model, prepr, init, end_points, name, input_tensor=input_tensor
+        )
 
     base_weights = {w.path: w for w in base_model.weights}
     if len(base_model.weights) != len(base_weights.keys()):
         raise ValueError("Some weights have equal names")
 
-    ext_model = wrap_bone(model, prepr, None, channels, end_points, name)
+    ext_model = wrap_bone(
+        model, prepr, None, end_points, name, input_tensor=input_tensor
+    )
 
     ext_weights = []
     for random_weight in ext_model.weights:
@@ -740,9 +745,9 @@ BACKBONES.register("resnet_rs_420")(
 )
 
 
-def wrap_bone_stride8(model, prepr, init, channels, end_points, name):
+def wrap_bone_stride8(model, prepr, init, end_points, name, input_tensor=None):
     base_model = wrap_bone_policy(
-        model, prepr, init, channels, end_points, name
+        model, prepr, init, end_points, name, input_tensor=input_tensor
     )
 
     ext_config = base_model.get_config()

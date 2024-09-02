@@ -4,7 +4,6 @@ from segme.common.se import SE
 
 
 class TestSE(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             SE,

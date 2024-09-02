@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 from segme.loss.common_loss import compute_gradient
@@ -12,7 +12,7 @@ class SmoothGradientPenalty(WeightedLossFunctionWrapper):
     """Proposed in: 'Boosting Robustness of Image Matting with Context
     Assembling and Strong Data Augmentation'
 
-    Implements Equation [4] in https://arxiv.org/pdf/2201.06889.pdf
+    Implements Equation [4] in https://arxiv.org/pdf/2201.06889
     """
 
     def __init__(
@@ -42,8 +42,8 @@ def smooth_gradient_penalty(y_true, y_pred, sample_weight, strength):
         g_weight_x = compute_gradient(sample_weight, 1, "min")
         g_weight_y = compute_gradient(sample_weight, 2, "min")
 
-    loss = weighted_loss(tf.abs(g_pred_x), g_weight_x) + weighted_loss(
-        tf.abs(g_pred_y), g_weight_y
+    loss = weighted_loss(ops.abs(g_pred_x), g_weight_x) + weighted_loss(
+        ops.abs(g_pred_y), g_weight_y
     )
     loss *= strength
 

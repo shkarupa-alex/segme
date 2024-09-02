@@ -38,6 +38,7 @@ class DropPath(layers.Dropout):
 @register_keras_serializable(package="SegMe>Common")
 class SlicePath(layers.Dropout):
     """Proposed in https://arxiv.org/pdf/2304.07193"""
+
     def __init__(self, rate, seed=None, **kwargs):
         kwargs.pop("noise_shape", None)
         super().__init__(rate=rate, seed=seed, **kwargs)
@@ -45,7 +46,7 @@ class SlicePath(layers.Dropout):
 
     def call(self, inputs, training=False, **kwargs):
         batch_size = ops.shape(inputs)[0]
-        indices = ops.arange(0, batch_size, dtype="int32")
+        indices = ops.arange(batch_size, dtype="int32")
 
         if 0.0 == self.rate or not training:
             return inputs, indices
@@ -85,6 +86,7 @@ class SlicePath(layers.Dropout):
 @register_keras_serializable(package="SegMe>Common")
 class RestorePath(layers.Layer):
     """Proposed in https://arxiv.org/pdf/2304.07193"""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [

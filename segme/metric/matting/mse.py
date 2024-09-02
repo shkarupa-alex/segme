@@ -1,6 +1,7 @@
-import tensorflow as tf
 from keras.src.metrics import MeanSquaredError
 from keras.src.saving import register_keras_serializable
+
+from segme.ops import convert_image_dtype
 
 
 @register_keras_serializable(package="SegMe>Metric>Matting")
@@ -16,13 +17,8 @@ class MSE(MeanSquaredError):
         super().__init__(name=name, dtype=dtype)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        dtype_true = tf.dtypes.as_dtype(y_true.dtype)
-        scale_true = dtype_true.max if dtype_true.is_integer else 1.0
-        y_true = tf.cast(y_true, self.dtype) / scale_true
-
-        dtype_pred = tf.dtypes.as_dtype(y_pred.dtype)
-        scale_pred = dtype_pred.max if dtype_pred.is_integer else 1.0
-        y_pred = tf.cast(y_pred, self.dtype) / scale_pred
+        y_true = convert_image_dtype(y_true, self.dtype)
+        y_pred = convert_image_dtype(y_pred, self.dtype)
 
         return super().update_state(
             y_true=y_true, y_pred=y_pred, sample_weight=sample_weight

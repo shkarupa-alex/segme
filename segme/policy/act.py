@@ -1,7 +1,7 @@
-import tensorflow as tf
 from keras.src import constraints
 from keras.src import initializers
 from keras.src import layers
+from keras.src import ops
 from keras.src import regularizers
 from keras.src.saving import register_keras_serializable
 
@@ -62,7 +62,7 @@ class TLU(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
-        return tf.maximum(inputs, self.tau)
+        return ops.maximum(inputs, self.tau)
 
     def compute_output_shape(self, input_shape):
         return input_shape
@@ -88,7 +88,7 @@ class ApproximateGELU(layers.Layer):
         self.supports_masking = True
 
     def call(self, inputs, *args, **kwargs):
-        return tf.nn.gelu(inputs, approximate=True)
+        return ops.gelu(inputs, approximate=True)
 
     def compute_output_shape(self, input_shape):
         return input_shape

@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import initializers
 from keras.src import layers
 from keras.src import ops
@@ -7,12 +6,13 @@ from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
 from segme.common.attn.mincon import MinConstraint
+from segme.common.attn.part import partition_apply
+from segme.common.attn.part import partition_apply_fused
+from segme.common.attn.part import partition_reverse_fused
 from segme.common.attn.relbias import RelativeBias
 from segme.common.convnormact import Conv
 from segme.common.pad import with_divisible_pad
-from segme.common.part import partition_apply
-from segme.common.part import partition_apply_fused
-from segme.common.part import partition_reverse_fused
+from segme.ops import l2_normalize
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -105,9 +105,11 @@ class GridAttention(layers.Layer):
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
         if self.qkv_bias:
-            k_bias = tf.zeros([self.qk_channels], dtype=self.compute_dtype)
-            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, qkv_bias)
+            k_bias = ops.zeros([self.qk_channels], dtype=self.compute_dtype)
+            qkv_bias = ops.concatenate(
+                [self.q_bias, k_bias, self.v_bias], axis=0
+            )
+            qkv = ops.add(qkv, qkv_bias)
 
         outputs = with_divisible_pad(
             lambda padded, pad_size, pad_val: self.qkv_part(
@@ -133,13 +135,13 @@ class GridAttention(layers.Layer):
                 self.current_window,
                 self.num_heads,
             )
-            q, k, v = tf.split(
-                qkv, [self.qk_units, self.qk_units, self.v_units], axis=-1
+            q, k, v = ops.split(
+                qkv, [self.qk_units, self.qk_units * 2], axis=-1
             )
         else:
-            q, k, v = tf.split(
+            q, k, v = ops.split(
                 qkv,
-                [self.qk_channels, self.qk_channels, self.channels],
+                [self.qk_channels, self.qk_channels * 2],
                 axis=-1,
             )
             q = partition_apply_fused(
@@ -183,14 +185,14 @@ class GridAttention(layers.Layer):
         return outputs
 
     def qkv_attn(self, q, k, v, pad_size, pad_val):
-        q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
-        k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
+        q = l2_normalize(q, axis=-1, epsilon=1.55e-5)
+        k = l2_normalize(k, axis=-1, epsilon=1.55e-5)
 
-        attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
+        attn = ops.matmul(q * ops.exp(self.scale), ops.moveaxis(k, -1, -2))
         attn += self.attn_mask(pad_size, pad_val)
-        attn = tf.nn.softmax(attn)
+        attn = ops.softmax(attn)
 
-        outputs = tf.matmul(attn, v)
+        outputs = ops.matmul(attn, v)
 
         return outputs
 
@@ -200,7 +202,7 @@ class GridAttention(layers.Layer):
         mask = ops.cond(
             sum(pad_val) > 0,
             lambda: mask + self.pad_mask(pad_size, pad_val),
-            lambda: tf.identity(mask),
+            lambda: mask,
         )
 
         return mask
@@ -210,17 +212,20 @@ class GridAttention(layers.Layer):
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
-        mask = tf.zeros((1, src_height, src_width, 1), dtype="int64")
-        mask = tf.pad(
+        mask = ops.zeros((1, src_height, src_width, 1), dtype="int64")
+        mask = ops.pad(
             mask,
             [(0, 0), pad_val[:2], pad_val[2:], (0, 0)],
+            # TODO
+            #  max_value = 65504.0 if scores.dtype == "float16" else 1.0e9
+            # scores -= max_value * ops.cast(padding_mask, dtype=scores.dtype)
             constant_values=-100,
         )
         mask = partition_apply(
             mask, pad_height, pad_width, "grid_size", self.current_window, 1
         )
-        mask = tf.squeeze(mask, axis=-1)[:, :, None, None]
-        mask = tf.cast(mask, self.compute_dtype)
+        mask = ops.squeeze(mask, axis=-1)[:, :, None, None]
+        mask = ops.cast(mask, self.compute_dtype)
 
         return mask
 

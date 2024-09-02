@@ -1,7 +1,7 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import backend
 from keras.src import layers
+from keras.src import ops
 from keras.src import testing
 
 from segme.common.sequence import Sequence
@@ -9,7 +9,7 @@ from segme.common.sequence import Sequence
 
 class Split2(layers.Layer):
     def call(self, inputs, *args, **kwargs):
-        return tuple(tf.split(inputs, 2, axis=-1))
+        return tuple(ops.split(inputs, 2, axis=-1))
 
     def compute_mask(self, inputs, mask=None):
         if mask is None:
@@ -21,7 +21,6 @@ class Split2(layers.Layer):
 
 
 class TestSequence(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             Sequence,

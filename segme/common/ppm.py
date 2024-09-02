@@ -3,8 +3,8 @@ from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
-from segme.common.adppool import AdaptiveAveragePooling
 from segme.common.convnormact import ConvNormAct
+from segme.common.pool import AdaptiveAveragePooling
 from segme.common.resize import BilinearInterpolation
 from segme.common.sequence import Sequence
 
@@ -36,7 +36,7 @@ class PyramidPooling(layers.Layer):
             s.build(input_shape)
             self.stages.append(s)
 
-        self.interpolate = BilinearInterpolation(None, dtype=self.dtype_policy)
+        self.interpolate = BilinearInterpolation(dtype=self.dtype_policy)
 
         self.bottleneck = ConvNormAct(
             self.filters, 3, name="bottleneck", dtype=self.dtype_policy

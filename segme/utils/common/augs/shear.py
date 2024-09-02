@@ -1,15 +1,15 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
 from segme.utils.common.augs.common import apply
-from segme.utils.common.augs.common import transform
 from segme.utils.common.augs.common import unwrap
 from segme.utils.common.augs.common import validate
 from segme.utils.common.augs.common import wrap
 
 
 def shear_x(image, masks, weight, prob, factor, replace=None, name=None):
-    with tf.name_scope(name or "shear_x"):
+    with backend.name_scope(name or "shear_x"):
         return apply(
             image,
             masks,
@@ -26,7 +26,7 @@ def shear_x(image, masks, weight, prob, factor, replace=None, name=None):
 
 
 def shear_y(image, masks, weight, prob, factor, replace=None, name=None):
-    with tf.name_scope(name or "shear_y"):
+    with backend.name_scope(name or "shear_y"):
         return apply(
             image,
             masks,
@@ -43,14 +43,14 @@ def shear_y(image, masks, weight, prob, factor, replace=None, name=None):
 
 
 def _shear_x(image, factor, interpolation, replace=None, name=None):
-    with tf.name_scope(name or "shear_x_"):
+    with backend.name_scope(name or "shear_x_"):
         image, _, _ = validate(image, None, None)
 
-        matrix = tf.stack([1.0, factor, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])[None]
+        matrix = ops.stack([1.0, factor, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])[None]
 
         image = wrap(image)
-        image = transform(
-            image, matrix, fill_mode="constant", interpolation=interpolation
+        image = ops.image.affine_transform(
+            image, matrix, interpolation=interpolation
         )
         image = unwrap(image, replace)
 
@@ -58,14 +58,14 @@ def _shear_x(image, factor, interpolation, replace=None, name=None):
 
 
 def _shear_y(image, factor, interpolation, replace=None, name=None):
-    with tf.name_scope(name or "shear_y_"):
+    with backend.name_scope(name or "shear_y_"):
         image, _, _ = validate(image, None, None)
 
-        matrix = tf.stack([1.0, 0.0, 0.0, factor, 1.0, 0.0, 0.0, 0.0])[None]
+        matrix = ops.stack([1.0, 0.0, 0.0, factor, 1.0, 0.0, 0.0, 0.0])[None]
 
         image = wrap(image)
-        image = transform(
-            image, matrix, fill_mode="constant", interpolation=interpolation
+        image = ops.image.affine_transform(
+            image, matrix, interpolation=interpolation
         )
         image = unwrap(image, replace)
 

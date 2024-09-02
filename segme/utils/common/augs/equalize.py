@@ -1,50 +1,49 @@
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
-from segme.common.shape import get_shape
+from segme.ops import convert_image_dtype
+from segme.ops import histogram_fixed_width
 from segme.utils.common.augs.common import apply
-from segme.utils.common.augs.common import convert
 from segme.utils.common.augs.common import validate
 
 
 def equalize(image, masks, weight, prob, name=None):
-    with tf.name_scope(name or "equalize"):
-        return apply(
-            image, masks, weight, prob, _equalize, tf.identity, tf.identity
-        )
+    with backend.name_scope(name or "equalize"):
+        return apply(image, masks, weight, prob, _equalize, None, None)
 
 
 def _equalize(image, name=None):
-    with tf.name_scope(name or "equalize_"):
+    with backend.name_scope(name or "equalize_"):
         image, _, _ = validate(image, None, None)
 
         dtype = image.dtype
-        image = convert(image, "uint8", saturate=True)
+        image = convert_image_dtype(image, "uint8", saturate=True)
 
         def _equalize_2d(image):
-            histo = tf.histogram_fixed_width(image, [0, 255], nbins=256)
+            histo = histogram_fixed_width(image, [0, 255], nbins=256)
 
             step = histo[histo > 0]
-            step = (tf.reduce_sum(step) - step[-1]) // 255
+            step = (ops.sum(step) - step[-1]) // 255
 
-            lut = (tf.cumsum(histo) + (step // 2)) // tf.maximum(step, 1)
-            lut = tf.concat([[0], lut[:-1]], 0)
-            lut = tf.clip_by_value(lut, 0, 255)
+            lut = (ops.cumsum(histo) + (step // 2)) // ops.maximum(step, 1)
+            lut = ops.concatenate([ops.zeros((1,), "int32"), lut[:-1]], 0)
+            lut = ops.clip(lut, 0, 255)
 
-            image_ = tf.gather(lut, image)
+            image_ = ops.take(lut, image, axis=0)
 
-            apply = tf.cast(step > 0, image.dtype)
+            apply = ops.cast(step > 0, image.dtype)
             image = image_ * apply + image * (1 - apply)
 
             return image
 
-        (batch, height, width, channel), _ = get_shape(image)
-        image_ = tf.cast(image, "int32")
-        image_ = tf.transpose(image_, [0, 3, 1, 2])
-        image_ = tf.reshape(image_, [batch * channel, height, width])
-        image_ = tf.map_fn(_equalize_2d, image_)
-        image_ = tf.reshape(image_, [batch, channel, height, width])
-        image_ = tf.transpose(image_, [0, 2, 3, 1])
+        batch, height, width, channel = ops.shape(image)
+        image_ = ops.cast(image, "int32")
+        image_ = ops.transpose(image_, [0, 3, 1, 2])
+        image_ = ops.reshape(image_, [batch * channel, height, width])
+        image_ = ops.map(_equalize_2d, image_)
+        image_ = ops.reshape(image_, [batch, channel, height, width])
+        image_ = ops.transpose(image_, [0, 2, 3, 1])
         image_.set_shape(image.shape)
-        image = tf.cast(image_, "uint8")
+        image = ops.cast(image_, "uint8")
 
-        return convert(image, dtype, saturate=True)
+        return convert_image_dtype(image, dtype, saturate=True)

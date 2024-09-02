@@ -1,8 +1,6 @@
 import cv2
 import numpy as np
-import tensorflow as tf
-from keras.src import layers
-from keras.src import models
+from keras.src import ops
 from keras.src import testing
 
 from segme.loss.grad_mse import GradientMeanSquaredError
@@ -16,8 +14,8 @@ class TestGradientMeanSquaredError(testing.TestCase):
         self.assertEqual(loss.reduction, "none")
 
     def test_zeros(self):
-        probs = tf.zeros((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        probs = ops.zeros((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = gradient_mean_squared_error(
             y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4
@@ -26,8 +24,8 @@ class TestGradientMeanSquaredError(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=1e-4)
 
     def test_ones(self):
-        probs = tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        probs = ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = gradient_mean_squared_error(
             y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4
@@ -36,8 +34,8 @@ class TestGradientMeanSquaredError(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=1e-4)
 
     def test_false(self):
-        probs = tf.zeros((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        probs = ops.zeros((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = gradient_mean_squared_error(
             y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4
@@ -46,8 +44,8 @@ class TestGradientMeanSquaredError(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=1e-4)
 
     def test_true(self):
-        probs = tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        probs = ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = gradient_mean_squared_error(
             y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4
@@ -88,7 +86,7 @@ class TestGradientMeanSquaredError(testing.TestCase):
         self.assertAlmostEqual(result, 0.023772128)
 
     def test_weight(self):
-        logits = tf.constant(
+        logits = np.array(
             [
                 [
                     [
@@ -145,7 +143,7 @@ class TestGradientMeanSquaredError(testing.TestCase):
             ],
             "float32",
         )
-        targets = tf.constant(
+        targets = np.array(
             [
                 [
                     [[0], [0], [1], [0]],
@@ -162,8 +160,8 @@ class TestGradientMeanSquaredError(testing.TestCase):
             ],
             "int32",
         )
-        weights = tf.concat(
-            [tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2
+        weights = ops.concatenate(
+            [ops.ones((2, 4, 2, 1)), ops.zeros((2, 4, 2, 1))], axis=2
         )
 
         loss = GradientMeanSquaredError()
@@ -178,7 +176,7 @@ class TestGradientMeanSquaredError(testing.TestCase):
         self.assertAlmostEqual(result, 0.11476261 * 2.0)
 
     def test_multi(self):
-        logits = tf.constant(
+        logits = np.array(
             [
                 [
                     [
@@ -235,7 +233,7 @@ class TestGradientMeanSquaredError(testing.TestCase):
             ],
             "float32",
         )
-        targets = tf.constant(
+        targets = np.array(
             [
                 [
                     [[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]],
@@ -271,10 +269,11 @@ class TestGradientMeanSquaredError(testing.TestCase):
 
         self.assertAlmostEqual(result0, result1)
 
-    def test_model(self):
-        model = models.Sequential([layers.Dense(1, activation="sigmoid")])
-        model.compile(
-            loss="SegMe>Loss>GradientMeanSquaredError",
-        )
-        model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "int32"))
-        models.Sequential.from_config(model.get_config())
+    # TODO: https://github.com/keras-team/keras/issues/20112
+    # def test_model(self):
+    #     model = models.Sequential([layers.Dense(1, activation="sigmoid")])
+    #     model.compile(
+    #         loss="SegMe>Loss>GradientMeanSquaredError",
+    #     )
+    #     model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "int32"))
+    #     models.Sequential.from_config(model.get_config())

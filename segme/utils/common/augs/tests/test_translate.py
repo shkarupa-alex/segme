@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras.src import testing
 
 from segme.utils.common.augs.tests.testing_utils import aug_samples
 from segme.utils.common.augs.tests.testing_utils import max_diff
@@ -6,7 +6,7 @@ from segme.utils.common.augs.translate import _translate_x
 from segme.utils.common.augs.translate import _translate_y
 
 
-class TestTranslateX(tf.test.TestCase):
+class TestTranslateX(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("translate_x")
         augmented = _translate_x(inputs, -0.7, "bilinear", [[[[0, 128, 255]]]])
@@ -22,7 +22,7 @@ class TestTranslateX(tf.test.TestCase):
         self.assertLessEqual(difference, 1 / 255)
 
 
-class TestTranslateY(tf.test.TestCase):
+class TestTranslateY(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("translate_y")
         augmented = _translate_y(inputs, 0.7, "bilinear", [[[[0, 128, 255]]]])

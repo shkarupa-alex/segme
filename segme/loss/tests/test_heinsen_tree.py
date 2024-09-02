@@ -1,7 +1,5 @@
 import numpy as np
-import tensorflow as tf
-from keras.src import layers
-from keras.src import models
+from keras.src import ops
 from keras.src import testing
 
 from segme.loss.heinsen_tree import HeinsenTreeLoss
@@ -15,8 +13,8 @@ class TestHeinsenTreeLoss(testing.TestCase):
         self.assertEqual(loss.reduction, "none")
 
     def test_zeros_categorical(self):
-        logits = -100.0 * tf.ones((3, 18), "float32")
-        targets = tf.zeros((3, 1), "int32")
+        logits = -100.0 * ops.ones((3, 18), "float32")
+        targets = ops.zeros((3, 1), "int32")
 
         result = heinsen_tree_loss(
             y_true=targets,
@@ -32,8 +30,8 @@ class TestHeinsenTreeLoss(testing.TestCase):
         self.assertAllClose(result, [2.8903718] * 3, atol=1e-4)
 
     def test_zeros_binary(self):
-        logits = -100.0 * tf.ones((3, 18), "float32")
-        targets = tf.zeros((3, 1), "int32")
+        logits = -100.0 * ops.ones((3, 18), "float32")
+        targets = ops.zeros((3, 1), "int32")
 
         result = heinsen_tree_loss(
             y_true=targets,
@@ -49,8 +47,8 @@ class TestHeinsenTreeLoss(testing.TestCase):
         self.assertAllClose(result, [100.0] * 3, atol=1e-4)
 
     def test_ones_categorical(self):
-        logits = 100.0 * tf.ones((3, 18), "float32")
-        targets = tf.ones((3, 1), "int32")
+        logits = 100.0 * ops.ones((3, 18), "float32")
+        targets = ops.ones((3, 1), "int32")
 
         result = heinsen_tree_loss(
             y_true=targets,
@@ -66,8 +64,8 @@ class TestHeinsenTreeLoss(testing.TestCase):
         self.assertAllClose(result, [1.0986123] * 3, atol=1e-4)
 
     def test_ones_binary(self):
-        logits = 100.0 * tf.ones((3, 18), "float32")
-        targets = tf.ones((3, 1), "int32")
+        logits = 100.0 * ops.ones((3, 18), "float32")
+        targets = ops.ones((3, 1), "int32")
 
         result = heinsen_tree_loss(
             y_true=targets,
@@ -233,14 +231,14 @@ class TestHeinsenTreeLoss(testing.TestCase):
 
     def test_value_2d(self):
         loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
-        targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
-        logits = tf.reshape(TREE_LOGITS, [2, 2, 18])
+        targets = ops.reshape(TREE_TARGETS, [2, 2, 1])
+        logits = ops.reshape(TREE_LOGITS, [2, 2, 18])
         result = loss(targets, logits)
 
         self.assertAlmostEqual(result, 11.977245, decimal=6)
 
     def test_weight(self):
-        weights = tf.concat([tf.ones((2, 1)), tf.zeros((2, 1))], axis=0)
+        weights = ops.concatenate([ops.ones((2, 1)), ops.zeros((2, 1))], axis=0)
 
         loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
 
@@ -254,9 +252,9 @@ class TestHeinsenTreeLoss(testing.TestCase):
         self.assertAlmostEqual(result, 3.8861823 * 2.0, decimal=6)
 
     def test_weight_2d(self):
-        targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
-        logits = tf.reshape(TREE_LOGITS, [2, 2, 18])
-        weights = tf.concat([tf.ones((1, 2)), tf.zeros((1, 2))], axis=0)
+        targets = ops.reshape(TREE_TARGETS, [2, 2, 1])
+        logits = ops.reshape(TREE_LOGITS, [2, 2, 18])
+        weights = ops.concatenate([ops.ones((1, 2)), ops.zeros((1, 2))], axis=0)
 
         loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
 
@@ -271,7 +269,7 @@ class TestHeinsenTreeLoss(testing.TestCase):
 
     def test_multi_probs(self):
         probs = 1 / (1 + np.exp(-TREE_LOGITS))
-        probs = tf.constant(probs)
+        probs = ops.convert_to_tensor(probs)
         probs._keras_logits = TREE_LOGITS
 
         loss = HeinsenTreeLoss(TREE_PATHS)
@@ -280,8 +278,8 @@ class TestHeinsenTreeLoss(testing.TestCase):
         self.assertAlmostEqual(result, 11.977245, decimal=6)
 
     def test_batch(self):
-        targets = tf.reshape(TREE_TARGETS, [2, 2, 1])
-        logits = tf.reshape(TREE_LOGITS, [2, 2, 18])
+        targets = ops.reshape(TREE_TARGETS, [2, 2, 1])
+        logits = ops.reshape(TREE_LOGITS, [2, 2, 18])
 
         loss = HeinsenTreeLoss(TREE_PATHS, from_logits=True)
         result0 = loss(targets, logits)
@@ -292,13 +290,14 @@ class TestHeinsenTreeLoss(testing.TestCase):
 
         self.assertAlmostEqual(result0, result1, decimal=6)
 
-    def test_model(self):
-        model = models.Sequential([layers.Dense(18, activation="sigmoid")])
-        model.compile(
-            loss=HeinsenTreeLoss(TREE_PATHS),
-        )
-        model.fit(np.zeros((2, 18)), np.zeros((2, 1), "int32"))
-        models.Sequential.from_config(model.get_config())
+    # TODO: https://github.com/keras-team/keras/issues/20112
+    # def test_model(self):
+    #     model = models.Sequential([layers.Dense(18, activation="sigmoid")])
+    #     model.compile(
+    #         loss=HeinsenTreeLoss(TREE_PATHS),
+    #     )
+    #     model.fit(np.zeros((2, 18)), np.zeros((2, 1), "int32"))
+    #     models.Sequential.from_config(model.get_config())
 
 
 #     ╭───────┼──────╮
@@ -329,7 +328,7 @@ TREE_PATHS = [
     [2, 7, 15, 16],
     [2, 7, 15, 17],
 ]
-TREE_LOGITS = tf.constant(
+TREE_LOGITS = np.array(
     [
         [
             -2.5,
@@ -414,8 +413,8 @@ TREE_LOGITS = tf.constant(
     ],
     "float32",
 )
-TREE_TARGETS = tf.constant([[8], [1], [6], [17]], "int32")
-TRUE_LOGITS = 100.0 * tf.constant(
+TREE_TARGETS = np.array([[8], [1], [6], [17]], "int32")
+TRUE_LOGITS = 100.0 * np.array(
     [
         [1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, 9, 9],
         [-1, 1, -1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],

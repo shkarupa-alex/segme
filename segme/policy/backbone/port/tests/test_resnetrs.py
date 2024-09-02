@@ -37,6 +37,9 @@ class TestResNetRS(testing.TestCase, parameterized.TestCase):
         ]
         self.assertIn("African_elephant", names)
 
+    # def test_deserialize_policy(self):
+    # TODO
+
     def test_50(self):
         self.run_layer_test(
             Backbone,

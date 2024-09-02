@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 from segme.loss.common_loss import validate_input
@@ -12,7 +12,7 @@ class ClipFoundationLoss(WeightedLossFunctionWrapper):
     """Proposed in: 'DIME-FM : DIstilling Multimodal and Efficient Foundation
     Models'
 
-    Implements Equations from https://arxiv.org/pdf/2303.18232.pdf
+    Implements Equations from https://arxiv.org/pdf/2303.18232
     """
 
     def __init__(
@@ -46,7 +46,7 @@ def clip_foundation_loss(
         raise ValueError(
             "Labels channel size must be twice larger then predictions one."
         )
-    y_true_vision, y_true_text = tf.split(y_true, 2, axis=-1)
+    y_true_vision, y_true_text = ops.split(y_true, 2, axis=-1)
 
     vl_temp, pvl_temp, udist_temp = temperature
     vl_weight, pvl_weight, udist_weight = weight
@@ -78,26 +78,26 @@ def clip_foundation_loss(
         sv_sv = _compute_similarity(y_pred, y_pred, scale, bias, False)
         loss += udist_weight * 2 * _kl_divergence(tv_tv, sv_sv, udist_temp)
 
-    loss = tf.reshape(loss, tf.shape(y_true)[:-1])[..., None]
+    loss = ops.reshape(loss, ops.shape(y_true)[:-1])[..., None]
 
     return weighted_loss(loss, sample_weight)
 
 
 def _compute_similarity(a, b, scale, bias, symmetric):
-    a = tf.reshape(a, [-1, a.shape[-1]])
-    b = tf.reshape(b, [-1, b.shape[-1]])
+    a = ops.reshape(a, [-1, a.shape[-1]])
+    b = ops.reshape(b, [-1, b.shape[-1]])
 
-    a /= tf.norm(a, axis=-1, keepdims=True)
-    b /= tf.norm(b, axis=-1, keepdims=True)
+    a /= ops.norm(a, axis=-1, keepdims=True)
+    b /= ops.norm(b, axis=-1, keepdims=True)
 
-    c = tf.matmul(a * scale, b, transpose_b=True)
+    c = ops.matmul(a * scale, ops.moveaxis(b, -1, -2))
     if bias:
         c += bias
 
     if not symmetric:
         return c
 
-    d = tf.matmul(b * scale, a, transpose_b=True)
+    d = ops.matmul(b * scale, ops.moveaxis(a, -1, -2))
     if bias:
         d += bias
 

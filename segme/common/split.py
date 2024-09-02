@@ -1,64 +1,71 @@
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 
 @register_keras_serializable(package="SegMe>Common")
 class Split(layers.Layer):
-    def __init__(self, num_or_size_splits, axis=-1, **kwargs):
+    def __init__(self, indices_or_sections, axis=-1, **kwargs):
         super().__init__(**kwargs)
         self.supports_masking = True
 
-        if not isinstance(num_or_size_splits, (int, list, tuple)):
+        if not isinstance(indices_or_sections, (int, list, tuple)):
             raise ValueError(
-                f"Expected type of `num_or_size_splits` to be `int`, `list` "
-                f"or `tuple`. Got {type(self.num_or_size_splits)}"
+                f"Expected type of `indices_or_sections` to be `int`, `list` "
+                f"or `tuple`. Got {type(indices_or_sections)}"
             )
 
-        self.num_or_size_splits = num_or_size_splits
+        self.indices_or_sections = indices_or_sections
         self.axis = axis
 
     def build(self, input_shape):
-        channels = input_shape[self.axis]
-        if channels is None:
-            raise ValueError(
-                "Split dimension of the inputs should be defined. Found `None`."
-            )
-
-        if (
-            isinstance(self.num_or_size_splits, int)
-            and channels % self.num_or_size_splits
-        ):
-            raise ValueError(
-                "Channel dimension of the inputs should be divi. Found `None`."
-            )
-        if (
-            isinstance(self.num_or_size_splits, (list, tuple))
-            and sum(self.num_or_size_splits) != channels
-        ):
-            raise ValueError(
-                "Channel dimension of the inputs should be defined. "
-                "Found `None`."
-            )
+        dimension = input_shape[self.axis]
+        if dimension is not None:
+            if (
+                isinstance(self.indices_or_sections, int)
+                and dimension % self.indices_or_sections
+            ):
+                raise ValueError(
+                    "Split dimension of the inputs should be "
+                    "divisible by the number of sections."
+                )
+            if (
+                isinstance(self.indices_or_sections, (list, tuple))
+                and max(self.indices_or_sections) > dimension
+            ):
+                raise ValueError(
+                    "Last split section should be inside dimension size"
+                )
 
         super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
-        return tuple(tf.split(inputs, self.num_or_size_splits, self.axis))
+        return tuple(ops.split(inputs, self.indices_or_sections, self.axis))
 
     def compute_output_shape(self, input_shape):
+        if input_shape[self.axis] is None:
+            if isinstance(self.indices_or_sections, int):
+                size = self.indices_or_sections
+            else:
+                size = len(self.indices_or_sections) + 1
+            return (input_shape,) * size
+
         output_shape = list(input_shape)
 
-        if isinstance(self.num_or_size_splits, int):
+        if isinstance(self.indices_or_sections, int):
             output_shape[self.axis] = (
-                input_shape[self.axis] // self.num_or_size_splits
+                input_shape[self.axis] // self.indices_or_sections
             )
 
-            return (tuple(output_shape),) * self.num_or_size_splits
+            return (tuple(output_shape),) * self.indices_or_sections
 
         output_shapes = []
-        for size in self.num_or_size_splits:
-            output_shape[self.axis] = size
+        indices_or_sections = list(self.indices_or_sections)
+        for start, stop in zip(
+            [0] + indices_or_sections,
+            indices_or_sections + [output_shape[self.axis]],
+        ):
+            output_shape[self.axis] = stop - start
             output_shapes.append(tuple(output_shape))
 
         return tuple(output_shapes)
@@ -66,7 +73,7 @@ class Split(layers.Layer):
     def get_config(self):
         config = super().get_config()
         config.update(
-            {"num_or_size_splits": self.num_or_size_splits, "axis": self.axis}
+            {"indices_or_sections": self.indices_or_sections, "axis": self.axis}
         )
 
         return config

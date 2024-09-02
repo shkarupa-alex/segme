@@ -1,15 +1,15 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import backend
 from keras.src import layers
 from keras.src import models
 from keras.src import testing
 
-from segme.common.adppool import AdaptiveAveragePooling
+from segme.common.pool import AdaptiveAveragePooling
+from segme.common.pool import MultiHeadAttentionPooling
+from segme.common.pool import SimPool
 
 
 class TestAdaptiveAveragePooling(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             AdaptiveAveragePooling,
@@ -30,7 +30,7 @@ class TestAdaptiveAveragePooling(testing.TestCase):
 
     def test_value(self):
         shape = [2, 16, 16, 3]
-        data = np.arange(0, np.prod(shape)).reshape(shape).astype("float32")
+        data = np.arange(np.prod(shape)).reshape(shape).astype("float32")
 
         result = AdaptiveAveragePooling(1)(data)
         result = backend.convert_to_numpy(result).astype("int32")
@@ -134,12 +134,50 @@ class TestAdaptiveAveragePooling(testing.TestCase):
 
     def test_placeholder(self):
         shape = [2, 16, 16, 3]
-        data = np.arange(0, np.prod(shape)).reshape(shape).astype("float32")
-        target = np.random.uniform(size=(2, 3, 3, 3))
-        dataset = tf.data.Dataset.from_tensor_slices((data, target)).batch(2)
+        data = np.arange(np.prod(shape)).reshape(shape).astype("float32")
 
         inputs = layers.Input([None, None, 3], dtype="float32")
         outputs = AdaptiveAveragePooling(3)(inputs)
         model = models.Model(inputs=inputs, outputs=outputs)
         model.compile("adam", "mse")
-        model.fit(dataset)
+        model(data)
+
+
+class TestMultiheadAttentionPooling(testing.TestCase):
+    def test_layer(self):
+        self.run_layer_test(
+            MultiHeadAttentionPooling,
+            init_kwargs={"heads": 8, "queries": 1},
+            input_shape=(2, 50, 768),
+            input_dtype="float32",
+            expected_output_shape=(2, 1, 768),
+            expected_output_dtype="float32",
+        )
+        self.run_layer_test(
+            MultiHeadAttentionPooling,
+            init_kwargs={"heads": 8, "queries": 2},
+            input_shape=(2, 7, 7, 768),
+            input_dtype="float32",
+            expected_output_shape=(2, 2, 768),
+            expected_output_dtype="float32",
+        )
+
+
+class TestSimPool(testing.TestCase):
+    def test_layer(self):
+        self.run_layer_test(
+            SimPool,
+            init_kwargs={"num_heads": 1, "qkv_bias": True},
+            input_shape=(2, 16, 16, 4),
+            input_dtype="float32",
+            expected_output_shape=(2, 4),
+            expected_output_dtype="float32",
+        )
+        self.run_layer_test(
+            SimPool,
+            init_kwargs={"num_heads": 4, "qkv_bias": False},
+            input_shape=(2, 16, 16, 4),
+            input_dtype="float32",
+            expected_output_shape=(2, 4),
+            expected_output_dtype="float32",
+        )

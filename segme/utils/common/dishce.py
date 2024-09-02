@@ -18,7 +18,7 @@ def _filter_boundaries(contours, mask, condition):
     for i in range(len(contours)):
         boundaries_, boundary_ = [], []
 
-        for j in range(0, contours[i].shape[0]):
+        for j in range(contours[i].shape[0]):
             r, c = contours[i][j, 0, 1], contours[i][j, 0, 0]
 
             if not condition[r, c].sum() or independent_map[r, c]:
@@ -52,7 +52,7 @@ def _filter_boundaries(contours, mask, condition):
                 boundaries_[-1].extend(boundaries_[0][::-1])
                 del boundaries_[0]
 
-        for k in range(0, len(boundaries_)):
+        for k in range(len(boundaries_)):
             boundaries_[k] = np.array(boundaries_[k])[:, None, :]
 
         boundaries.extend(boundaries_)
@@ -68,7 +68,7 @@ def _approximate_rdp(boundaries, epsilon=1.0):
 
     # Polygon approximate of each boundary and count the total control
     # points number of all the boundaries
-    for i in range(0, len(boundaries)):
+    for i in range(len(boundaries)):
         total_points += len(cv2.approxPolyDP(boundaries[i], epsilon, False))
 
     return total_points
@@ -89,7 +89,7 @@ def _relax_hce(y_true, y_pred, y_true_skeleton, relax=5, epsilon=2.0):
     # Get the relaxed False Positive regions for computing the human efforts
     # in correcting them
     fp_ = fp & union_
-    for i in range(0, relax):
+    for i in range(relax):
         fp_ = cv2.dilate(fp_.astype("uint8"), disk(1)).astype("bool")
         fp_ &= ~(tp | fn)
     fp_ &= fp
@@ -97,7 +97,7 @@ def _relax_hce(y_true, y_pred, y_true_skeleton, relax=5, epsilon=2.0):
     # Get the relaxed False Negative regions for computing the human efforts
     # in correcting them
     fn_ = fn & union_
-    for i in range(0, relax):
+    for i in range(relax):
         fn_ = cv2.dilate(fn_.astype("uint8"), disk(1)).astype("bool")
         fn_ &= ~(tp | fp)
     fn_ &= fn

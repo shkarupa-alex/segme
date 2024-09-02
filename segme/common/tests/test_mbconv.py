@@ -4,7 +4,6 @@ from segme.common.mbconv import MBConv
 
 
 class TestMBConv(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             MBConv,

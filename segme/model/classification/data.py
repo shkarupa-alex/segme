@@ -8,8 +8,10 @@ import nltk
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from keras.src import ops
 from keras.src.applications import imagenet_utils
 from keras.src.dtype_policies import dtype_policy
+from keras.src.utils import file_utils
 
 from segme.model.classification.tree import flat21841_class_map
 from segme.model.classification.tree import flat21843_class_map
@@ -74,7 +76,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                         shape=(None, None, 3), encoding_format="jpeg"
                     ),
                     "file": tfds.features.Text(),
-                    "in1k": tfds.features.Scalar(dtype=tf.bool),
+                    "in1k": tfds.features.Scalar(dtype="bool"),
                     "size": tfds.features.Text(),
                     "label": tfds.features.Text(),
                     "synset": tfds.features.Text(),
@@ -116,7 +118,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                 "ImageNet1k archive has wrong extension (expected .tar.gz)."
             )
 
-        if not tf.io.gfile.exists(self.archive1k):
+        if not file_utils.exists(self.archive1k):
             raise ValueError(
                 f"ImageNet1k archive {self.archive1k} is not a file."
             )
@@ -167,7 +169,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                 "ImageNet21k archive has wrong extension (expected .tar.gz)."
             )
 
-        if not tf.io.gfile.exists(self.archive21k):
+        if not file_utils.exists(self.archive21k):
             raise ValueError(
                 f"ImageNet21k archive {self.archive21k} is not a file."
             )
@@ -255,35 +257,35 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
 @tf.function(jit_compile=False)
 def _resize_crop(example, size, train, crop_pct=0.875):
     image = example["image"]
-    shape = tf.cast(tf.shape(image)[:2], "float32")
+    shape = ops.cast(ops.shape(image)[:2], "float32")
 
     if train:
-        crop = tf.random.uniform(
-            [2], minval=tf.reduce_min(shape) * crop_pct, maxval=shape
+        crop = ops.random.uniform(
+            [2], minval=ops.min(shape) * crop_pct, maxval=shape
         )
-        crop = tf.cast(tf.round(crop), "int32")
-        crop = tf.concat([crop, [3]], axis=-1)
+        crop = ops.cast(ops.round(crop), "int32")
+        crop = ops.concatenate([crop, [3]], axis=-1)
 
         image = tf.image.random_crop(image, crop)
-        image = tf.image.resize(
+        image = ops.image.resize(
             image,
             [size, size],
-            method=tf.image.ResizeMethod.BICUBIC,
+            interpolation="bicubic",
             antialias=True,
         )
     else:
-        shape_ = shape * size / crop_pct / tf.reduce_min(shape)
-        shape_ = tf.cast(tf.round(shape_), "int32")
+        shape_ = shape * size / crop_pct / ops.min(shape)
+        shape_ = ops.cast(ops.round(shape_), "int32")
 
-        image = tf.image.resize(
-            image, shape_, method=tf.image.ResizeMethod.BICUBIC, antialias=True
+        image = ops.image.resize(
+            image, shape_, interpolation="bicubic", antialias=True
         )
 
         crop_h, crop_w = tf.unstack((shape_ - size) // 2)
         image = image[crop_h : crop_h + size, crop_w : crop_w + size]
 
-    image = tf.clip_by_value(image, 0.0, 255.0)
-    image = tf.cast(tf.round(image), "uint8")
+    image = ops.clip(image, 0.0, 255.0)
+    image = ops.cast(ops.round(image), "uint8")
     image.set_shape([size, size, 3])
 
     return image, example["class"]
@@ -316,14 +318,14 @@ def _transform_examples(
                 cutmix_prob=magnitude * 0.5,
                 mixup_prob=magnitude * 0.5,
             )
-        images = tf.clip_by_value(images, 0.0, 1.0)
-        images = tf.round(images * 255.0)
+        images = ops.clip(images, 0.0, 1.0)
+        images = ops.round(images * 255.0)
 
     if preprocess:
-        images = tf.cast(images, dtype_policy.dtype_policy().compute_dtype)
+        images = ops.cast(images, dtype_policy.dtype_policy().compute_dtype)
         images = imagenet_utils.preprocess_input(images, mode=preprocess)
     elif augment:
-        images = tf.cast(images, "uint8")
+        images = ops.cast(images, "uint8")
 
     return images, labels
 

@@ -1,10 +1,10 @@
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
-from segme.common.shape import get_shape
+from segme.ops import convert_image_dtype
 from segme.utils.common.augs.autocontrast import autocontrast
 from segme.utils.common.augs.blur import gaussblur
 from segme.utils.common.augs.brightness import brightness
-from segme.utils.common.augs.common import convert
 from segme.utils.common.augs.common import validate
 from segme.utils.common.augs.contrast import contrast
 from segme.utils.common.augs.equalize import equalize
@@ -43,7 +43,7 @@ def _brightness_args(
     min_val += 1e-5
 
     prob = magnitude / reduce
-    factor = tf.random.uniform(
+    factor = ops.random.uniform(
         [batch, 1, 1, 1], minval=min_val * magnitude, maxval=max_val * magnitude
     )
 
@@ -51,10 +51,10 @@ def _brightness_args(
 
 
 def _contrast_args(magnitude, batch, channel, reduce=1.0, max_val=4.0):
-    direction = tf.cast(tf.random.uniform([]) > 0.5, "float32")
+    direction = ops.cast(ops.random.uniform([]) > 0.5, "float32")
 
     prob = magnitude / reduce
-    factor = tf.random.uniform([], minval=1.0, maxval=magnitude * max_val)
+    factor = ops.random.uniform([], minval=1.0, maxval=magnitude * max_val)
     factor = direction * factor + (1.0 - direction) / factor
 
     return [prob, factor]
@@ -88,30 +88,30 @@ def _flip_ud_args(magnitude, batch, channel, reduce=4.0):
 
 
 def _gamma_args(magnitude, batch, channel, reduce=1.0, max_pow=3.0):
-    direction = tf.cast(tf.random.uniform([]) > 0.5, "float32")
+    direction = ops.cast(ops.random.uniform([]) > 0.5, "float32")
 
     prob = magnitude / reduce
-    factor = tf.random.uniform([], minval=1.0, maxval=magnitude * max_pow)
+    factor = ops.random.uniform([], minval=1.0, maxval=magnitude * max_pow)
     factor = direction * factor + (1.0 - direction) / factor
 
-    invert = tf.random.uniform([batch, 1, 1, 1]) > 0.5
+    invert = ops.random.uniform([batch, 1, 1, 1]) > 0.5
 
     return [prob, factor, invert]
 
 
 def _gaussblur_args(magnitude, batch, channel, reduce=1.0):
     prob = magnitude / reduce
-    size = tf.random.uniform(
+    size = ops.random.uniform(
         [], minval=3.0 - 1.49, maxval=3.0 + 4 * magnitude + 0.49
     )
-    size = tf.round(size) // 2 * 2 + 1
+    size = ops.round(size) // 2 * 2 + 1
 
     return [prob, size]
 
 
 def _grayscale_args(magnitude, batch, channel, reduce=2.0):
     prob = magnitude / reduce
-    factor = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude)
+    factor = ops.random.uniform([batch, 1, 1, channel], maxval=magnitude)
 
     return [prob, factor]
 
@@ -121,7 +121,7 @@ def _hue_args(magnitude, batch, channel, reduce=1.0, min_val=-0.8, max_val=0.8):
     delta = (max_val - min_val) * (1.0 - magnitude) / 2
 
     prob = magnitude / reduce
-    factor = tf.random.uniform(
+    factor = ops.random.uniform(
         [], minval=min_val + delta, maxval=max_val - delta
     )
 
@@ -138,7 +138,7 @@ def _jpeg_args(magnitude, batch, channel, reduce=1.0, min_val=30, max_val=99):
     delta = (max_val - min_val) * (1.0 - magnitude)
 
     prob = magnitude / reduce
-    quality = tf.random.uniform(
+    quality = ops.random.uniform(
         [], minval=int(min_val + delta), maxval=max_val, dtype="int32"
     )
 
@@ -147,15 +147,15 @@ def _jpeg_args(magnitude, batch, channel, reduce=1.0, min_val=30, max_val=99):
 
 def _mix_args(magnitude, batch, channel, reduce=1.0):
     prob = magnitude / reduce
-    factor = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / 2.0)
+    factor = ops.random.uniform([batch, 1, 1, channel], maxval=magnitude / 2.0)
 
     return [prob, factor]
 
 
 def _posterize_args(magnitude, batch, channel, reduce=2.0):
     prob = magnitude / reduce
-    bits = tf.cast(
-        tf.random.uniform(
+    bits = ops.cast(
+        ops.random.uniform(
             [], minval=1, maxval=round(1 + magnitude * 6 + 1e-5), dtype="int32"
         ),
         "uint8",
@@ -166,7 +166,7 @@ def _posterize_args(magnitude, batch, channel, reduce=2.0):
 
 def _rotate_args(magnitude, batch, channel, reduce=1.0):
     prob = magnitude / reduce
-    degrees = tf.random.uniform(
+    degrees = ops.random.uniform(
         [], minval=-45 * magnitude, maxval=45 * magnitude
     )
 
@@ -180,10 +180,10 @@ def _rotate_cw_ccw_args(magnitude, batch, channel, reduce=2.0):
 
 
 def _saturation_args(magnitude, batch, channel, reduce=1.0, max_val=4):
-    direction = tf.cast(tf.random.uniform([]) > 0.5, "float32")
+    direction = ops.cast(ops.random.uniform([]) > 0.5, "float32")
 
     prob = magnitude / reduce
-    factor = tf.random.uniform([], minval=1.0, maxval=magnitude * max_val)
+    factor = ops.random.uniform([], minval=1.0, maxval=magnitude * max_val)
     factor = direction * factor + (1.0 - direction) / factor
 
     return [prob, factor]
@@ -191,14 +191,14 @@ def _saturation_args(magnitude, batch, channel, reduce=1.0, max_val=4):
 
 def _sharpness_args(magnitude, batch, channel, reduce=1.0):
     prob = magnitude / reduce
-    factor = tf.random.uniform([batch, 1, 1, channel], maxval=magnitude / 2.0)
+    factor = ops.random.uniform([batch, 1, 1, channel], maxval=magnitude / 2.0)
 
     return [prob, factor]
 
 
 def _shear_x_y_args(magnitude, batch, channel, reduce=1.0):
     prob = magnitude / reduce
-    factor = tf.random.uniform([], minval=-magnitude, maxval=magnitude)
+    factor = ops.random.uniform([], minval=-magnitude, maxval=magnitude)
 
     return [prob, factor]
 
@@ -217,7 +217,7 @@ def _solarize_args(magnitude, batch, channel, reduce=4.0):
 
 def _translate_x_y_args(magnitude, batch, channel, reduce=1.0):
     prob = magnitude / reduce
-    factor = tf.random.uniform([], minval=-magnitude / 3, maxval=magnitude / 3)
+    factor = ops.random.uniform([], minval=-magnitude / 3, maxval=magnitude / 3)
 
     return [prob, factor]
 
@@ -282,15 +282,15 @@ _AUG_ARGS = {
 
 
 def _no_op(image, masks, weight):
-    _image = tf.identity(image)
+    _image = image
 
     if masks is not None:
-        _masks = [tf.identity(m) for m in masks]
+        _masks = [m for m in masks]
     else:
         _masks = None
 
     if weight is not None:
-        _weight = tf.identity(weight)
+        _weight = weight
     else:
         _weight = None
 
@@ -298,9 +298,9 @@ def _no_op(image, masks, weight):
 
 
 def rand_augment_full(
-    image, masks, weight, levels=5, magnitude=0.5, ops=None, name=None
+    image, masks, weight, levels=5, magnitude=0.5, operations=None, name=None
 ):
-    with tf.name_scope(name or "rand_augment"):
+    with backend.name_scope(name or "rand_augment"):
         image, masks, weight = validate(image, masks, weight)
 
         if 0 == levels or 0.0 == magnitude:
@@ -309,49 +309,49 @@ def rand_augment_full(
         if magnitude < 0.0 or magnitude > 1.0:
             raise ValueError("Wrong magnitude value")
 
-        if ops is None:
-            ops = list(_AUG_FUNC.keys())
+        if operations is None:
+            operations = list(_AUG_FUNC.keys())
 
-        if len(ops) < levels:
+        if len(operations) < levels:
             raise ValueError(
                 f"Number of levels ({levels}) must be greater or "
-                f"equal to number of augmentations {len(ops)}."
+                f"equal to number of augmentations {len(operations)}."
             )
 
         dtype = image.dtype
-        image = convert(image, "float32")
+        image = convert_image_dtype(image, "float32")
 
-        (batch, channel), _ = get_shape(image, axis=[0, 3])
+        batch, _, _, channel = ops.shape(image)
 
-        selected = tf.range(0, len(ops), dtype="int32")
-        selected = tf.random.shuffle(selected)
-        selected = tf.unstack(selected[:levels])
+        selected = ops.arange(len(operations), dtype="int32")
+        selected = ops.random.shuffle(selected)
+        selected = ops.unstack(selected[:levels])
 
         for i in range(levels):
-            with tf.name_scope(f"level_{i}"):
-                for j, op_name in enumerate(ops):
+            with backend.name_scope(f"level_{i}"):
+                for j, op_name in enumerate(operations):
                     func = _AUG_FUNC[op_name]
                     args = _AUG_ARGS[op_name](magnitude, batch, channel)
 
-                    image, masks, weight = tf.cond(
-                        tf.equal(selected[i], j),
+                    image, masks, weight = ops.cond(
+                        ops.equal(selected[i], j),
                         lambda f=func, a=args: f(image, masks, weight, *a),
                         lambda: _no_op(image, masks, weight),
                     )
 
-        image = convert(image, dtype)
+        image = convert_image_dtype(image, dtype)
 
         return image, masks, weight
 
 
 def rand_augment_safe(
-    image, masks, weight, levels=5, magnitude=0.5, ops=None, name=None
+    image, masks, weight, levels=5, magnitude=0.5, operations=None, name=None
 ):
-    if ops is None:
-        ops = list(_AUG_FUNC.keys())
+    if operations is None:
+        operations = list(_AUG_FUNC.keys())
 
-    ops = list(
-        set(ops)
+    operations = list(
+        set(operations)
         - {
             "Erase",
             "Invert",
@@ -369,19 +369,19 @@ def rand_augment_safe(
         weight,
         levels=levels,
         magnitude=magnitude,
-        ops=ops,
+        operations=operations,
         name=name,
     )
 
 
 def rand_augment_matting(
-    image, masks, weight, levels=5, magnitude=0.4, ops=None, name=None
+    image, masks, weight, levels=5, magnitude=0.4, operations=None, name=None
 ):
-    if ops is None:
-        ops = list(_AUG_FUNC.keys())
+    if operations is None:
+        operations = list(_AUG_FUNC.keys())
 
-    ops = list(
-        set(ops)
+    operations = list(
+        set(operations)
         - {
             "Erase",
             "Equalize",
@@ -405,6 +405,6 @@ def rand_augment_matting(
         weight,
         levels=levels,
         magnitude=magnitude,
-        ops=ops,
+        operations=operations,
         name=name,
     )

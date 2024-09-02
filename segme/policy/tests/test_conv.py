@@ -250,6 +250,19 @@ class TestFixedDepthwiseConv(testing.TestCase):
                 result = layer(inputs)
                 self.assertNotEqual(result[0, -1, -1, 0], 0.0)
 
+    def test_same_valid_equal(self):
+        inputs = np.random.uniform(size=[2, 16, 16, 3]).astype("float32")
+
+        valconv = FixedDepthwiseConv(4, strides=4, padding="valid")
+        expected = valconv(inputs)
+
+        sameconv = FixedDepthwiseConv(4, strides=4, padding="same")
+        sameconv.build([None, None, None, 3])
+        sameconv.set_weights(valconv.get_weights())
+        result = sameconv(inputs)
+
+        self.assertLess(np.abs(expected - result).max(), 1e-6)
+
 
 class TestStandardizedConv(testing.TestCase):
     def test_layer(self):

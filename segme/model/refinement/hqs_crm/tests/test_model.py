@@ -3,7 +3,6 @@ from keras.src import testing
 
 from segme.model.refinement.hqs_crm.loss import hqs_crm_loss
 from segme.model.refinement.hqs_crm.model import HqsCrm
-from segme.model.refinement.hqs_crm.model import build_hqs_crm
 
 
 class TestHqsCrm(testing.TestCase):
@@ -22,7 +21,7 @@ class TestHqsCrm(testing.TestCase):
         )
 
     def test_model(self):
-        model = build_hqs_crm(
+        model = HqsCrm(
             aspp_filters=(64, 64, 128),
             aspp_drop=0.5,
             mlp_units=(32, 32, 32, 32),

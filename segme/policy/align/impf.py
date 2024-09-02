@@ -1,6 +1,7 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -16,7 +17,7 @@ class ImplicitFeatureAlignment(layers.Layer):
     """
     Proposed in "Learning Implicit Feature Alignment Function for Semantic
     Segmentation"
-    https://arxiv.org/pdf/2206.08655.pdf
+    https://arxiv.org/pdf/2206.08655
     """
 
     def __init__(self, filters=256, **kwargs):
@@ -56,21 +57,22 @@ class ImplicitFeatureAlignment(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        coords = make_coords(inputs[0], self.compute_dtype)
+        batch, height, width, _ = ops.shape(inputs[0])
+        coords = make_coords(batch, height, width, self.compute_dtype)
 
         contexts = []
         for i, feat in enumerate(inputs):
             columns = query_features(
                 feat,
                 coords,
-                tf.identity,
+                lambda x: x,
                 posnet=self.posemb[i],
                 cells=None,
                 feat_unfold=False,
                 local_ensemble=False,
             )
             contexts.append(columns)
-        contexts = tf.concat(contexts, axis=-1)
+        contexts = ops.concatenate(contexts, axis=-1)
 
         outputs = self.imnet(contexts)
 
@@ -91,7 +93,7 @@ class SpatialEncoding(layers.Layer):
     """
     Proposed in "Learning Implicit Feature Alignment Function for Semantic
     Segmentation"
-    https://arxiv.org/pdf/2206.08655.pdf
+    https://arxiv.org/pdf/2206.08655
     """
 
     def __init__(self, units=24, sigma=6, **kwargs):
@@ -113,7 +115,7 @@ class SpatialEncoding(layers.Layer):
         )
 
         self.embed_dim = max(1, self.units // 2 // self.channels)
-        embed_dtype = tf.dtypes.as_dtype(self.dtype).as_numpy_dtype()
+        embed_dtype = backend.standardize_dtype(self.dtype)
         embed_init = 2 ** np.linspace(0, self.sigma, self.embed_dim)
         embed_init = np.stack(
             [embed_init] + [np.zeros_like(embed_init)] * (self.channels - 1),
@@ -136,9 +138,9 @@ class SpatialEncoding(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        embeddings = tf.matmul(inputs, self.embedding)
-        outputs = tf.concat(
-            [inputs, tf.sin(embeddings), tf.cos(embeddings)], axis=-1
+        embeddings = ops.matmul(inputs, self.embedding)
+        outputs = ops.concatenate(
+            [inputs, ops.sin(embeddings), ops.cos(embeddings)], axis=-1
         )
 
         return outputs

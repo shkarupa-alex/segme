@@ -1,5 +1,7 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
+from keras.src import testing
 
 from segme.utils.common.augs.rotate import _rotate
 from segme.utils.common.augs.rotate import _rotate_ccw
@@ -10,7 +12,7 @@ from segme.utils.common.augs.tests.testing_utils import aug_samples
 from segme.utils.common.augs.tests.testing_utils import max_diff
 
 
-class TestRotate(tf.test.TestCase):
+class TestRotate(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("rotate")
         augmented = _rotate(inputs, 45, "nearest", [[[[0, 128, 255]]]])
@@ -39,12 +41,17 @@ class TestRotate(tf.test.TestCase):
         ]
         weights_expected = _rotate(weights, 45, "nearest", [[[[0, 0, 0]]]])
 
-        actual = rotate(images, masks, weights, 0.5, 45, [[[[0, 128, 255]]]])
-        images_actual, masks_actual, weights_actual = self.evaluate(actual)
+        images_actual, masks_actual, weights_actual = rotate(
+            images, masks, weights, 0.5, 45, [[[[0, 128, 255]]]]
+        )
+        images_actual = backend.convert_to_numpy(images_actual)
+        masks_actual = backend.convert_to_numpy(masks_actual)
+        weights_actual = backend.convert_to_numpy(weights_actual)
+
         self.assertSetEqual({0, 1}, set(masks_actual[1].ravel()))
 
-        rotated = tf.reduce_all(
-            tf.equal(images_actual, images_expected), axis=[1, 2, 3]
+        rotated = ops.all(
+            ops.equal(images_actual, images_expected), axis=[1, 2, 3]
         )
         self.assertIn(True, rotated)
         self.assertIn(False, rotated)
@@ -84,7 +91,7 @@ class TestRotate(tf.test.TestCase):
                 self.assertLessEqual(difference, 1e-5)
 
 
-class TestRotateCW(tf.test.TestCase):
+class TestRotateCW(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("rotate_cw")
         augmented = _rotate_cw(inputs)
@@ -103,20 +110,20 @@ class TestRotateCW(tf.test.TestCase):
         )
         expected = _rotate_cw(inputs)
         augmented, _, _ = rotate_cw(inputs, None, None, 0.5)
-        same = tf.reduce_all(tf.equal(augmented, expected), axis=[1, 2, 3])
+        same = ops.all(ops.equal(augmented, expected), axis=[1, 2, 3])
         self.assertIn(True, same)
         self.assertIn(False, same)
 
     def test_all(self):
         inputs, expected = aug_samples("rotate_cw")
-        inputs = tf.image.resize(inputs, [448, 224])
-        expected = tf.image.resize(expected, [224, 448])
+        inputs = ops.image.resize(inputs, [448, 224])
+        expected = ops.image.resize(expected, [224, 448])
         augmented, _, _ = rotate_cw(inputs, None, None, 1.0)
         difference = max_diff(expected, augmented)
         self.assertLessEqual(difference, 1e-5)
 
 
-class TestRotateCCW(tf.test.TestCase):
+class TestRotateCCW(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("rotate_ccw")
         augmented = _rotate_ccw(inputs)

@@ -1,19 +1,20 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import initializers
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
 from segme.common.attn.mincon import MinConstraint
+from segme.common.attn.part import halo_partition
+from segme.common.attn.part import halo_partition_fused
+from segme.common.attn.part import partition_apply_fused
+from segme.common.attn.part import partition_reverse_fused
 from segme.common.attn.relbias import RelativeBias
 from segme.common.convnormact import Conv
 from segme.common.convnormact import ConvNorm
 from segme.common.pad import with_divisible_pad
-from segme.common.part import halo_partition
-from segme.common.part import halo_partition_fused
-from segme.common.part import partition_apply_fused
-from segme.common.part import partition_reverse_fused
+from segme.ops import l2_normalize
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -132,17 +133,15 @@ class HaloAttention(layers.Layer):
     def qkv_part(self, qkv, pad_size, pad_val):
         pad_height, pad_width = pad_size
 
-        q, kv = tf.split(
-            qkv, [self.qk_channels, self.qk_channels + self.channels], axis=-1
-        )
+        q, kv = ops.split(qkv, [self.qk_channels], axis=-1)
         kv = self.kv_dw(kv)
 
         if self.qkv_bias:
-            q = tf.nn.bias_add(q, self.q_bias)
+            q = ops.add(q, self.q_bias)
 
-            k_bias = tf.zeros([self.qk_channels], dtype=self.compute_dtype)
-            kv_bias = tf.concat([k_bias, self.v_bias], axis=0)
-            kv = tf.nn.bias_add(kv, kv_bias)
+            k_bias = ops.zeros([self.qk_channels], dtype=self.compute_dtype)
+            kv_bias = ops.concatenate([k_bias, self.v_bias], axis=0)
+            kv = ops.add(kv, kv_bias)
 
         q = partition_apply_fused(
             q,
@@ -164,9 +163,9 @@ class HaloAttention(layers.Layer):
                 self.num_heads,
                 self.dilation_rate,
             )
-            k, v = tf.split(kv, [self.qk_units, self.v_units], axis=-1)
+            k, v = ops.split(kv, [self.qk_units], axis=-1)
         else:
-            k, v = tf.split(kv, [self.qk_channels, self.channels], axis=-1)
+            k, v = ops.split(kv, [self.qk_channels], axis=-1)
             k = halo_partition_fused(
                 k,
                 pad_height // 2,
@@ -202,14 +201,14 @@ class HaloAttention(layers.Layer):
         return outputs
 
     def qkv_attn(self, q, k, v, pad_size, pad_val):
-        q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
-        k = tf.math.l2_normalize(k, axis=-1, epsilon=1.55e-5)
+        q = l2_normalize(q, axis=-1, epsilon=1.55e-5)
+        k = l2_normalize(k, axis=-1, epsilon=1.55e-5)
 
-        attn = tf.matmul(q * tf.exp(self.scale), k, transpose_b=True)
+        attn = ops.matmul(q * ops.exp(self.scale), ops.moveaxis(k, -1, -2))
         attn += self.attn_mask(pad_size, pad_val)
-        attn = tf.nn.softmax(attn)
+        attn = ops.softmax(attn)
 
-        outputs = tf.matmul(attn, v)
+        outputs = ops.matmul(attn, v)
 
         return outputs
 
@@ -221,10 +220,10 @@ class HaloAttention(layers.Layer):
         src_height = pad_height - sum(pad_val[:2])
         src_width = pad_width - sum(pad_val[2:])
 
-        mask = tf.ones((1, src_height, src_width, 1), dtype=self.compute_dtype)
-        mask = tf.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)])
-        mask = -tf.nn.max_pool2d(
-            -mask, ksize=2, strides=2, padding="SAME"
+        mask = ops.ones((1, src_height, src_width, 1), dtype=self.compute_dtype)
+        mask = ops.pad(mask, [(0, 0), pad_val[:2], pad_val[2:], (0, 0)])
+        mask = -ops.max_pool(
+            -mask, (2, 2), strides=2, padding="same"
         )  # min pooling
         mask = halo_partition(
             mask,
@@ -234,8 +233,8 @@ class HaloAttention(layers.Layer):
             self.halo_window // 2,
             self.dilation_rate,
         )
-        mask = tf.squeeze(mask == 0.0, axis=-1)[:, :, None, None]
-        mask = -100.0 * tf.cast(mask, self.compute_dtype)
+        mask = ops.squeeze(mask == 0.0, axis=-1)[:, :, None, None]
+        mask = -100.0 * ops.cast(mask, self.compute_dtype)
 
         return mask
 

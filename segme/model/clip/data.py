@@ -6,8 +6,10 @@ import cv2
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from keras.src import ops
 from keras.src.applications import imagenet_utils
-from keras.src.mixed_precision import global_policy
+from keras.src.dtype_policies import dtype_policy
+from keras.src.utils import file_utils
 
 
 class Clip(tfds.core.GeneratorBasedBuilder):
@@ -86,7 +88,9 @@ class Clip(tfds.core.GeneratorBasedBuilder):
                         continue
 
                     image_path = os.path.join(dirpath, file)
-                    if not os.path.exists(image_path.replace(".jpg", ".npy")):
+                    if not file_utils.exists(
+                        image_path.replace(".jpg", ".npy")
+                    ):
                         continue
 
                     yield image_path
@@ -116,10 +120,10 @@ def _transform_examples(examples, preprocess):
     logits = examples["logit"]
 
     if preprocess:
-        images = tf.cast(images, global_policy().compute_dtype)
+        images = ops.cast(images, dtype_policy.dtype_policy().compute_dtype)
         images = imagenet_utils.preprocess_input(images, mode=preprocess)
 
-    logits = tf.reshape(logits, [tf.shape(logits)[0], 2 * logits.shape[-1]])
+    logits = ops.reshape(logits, [ops.shape(logits)[0], 2 * logits.shape[-1]])
 
     return images, logits
 

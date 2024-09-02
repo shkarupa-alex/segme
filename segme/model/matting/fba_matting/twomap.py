@@ -1,5 +1,5 @@
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -14,7 +14,7 @@ class Twomap(layers.Layer):
 
     def call(self, inputs, **kwargs):
         twomap = twomap_transform(inputs)
-        twomap = tf.cast(twomap, self.compute_dtype)
+        twomap = ops.cast(twomap, self.compute_dtype)
 
         return twomap
 
@@ -23,7 +23,7 @@ class Twomap(layers.Layer):
 
 
 def twomap_transform(trimap):
-    twomap = tf.concat([trimap == 0, trimap == 255], axis=-1)
-    twomap = tf.cast(twomap, "uint8") * 255
+    twomap = ops.concatenate([trimap == 0, trimap == 255], axis=-1)
+    twomap = ops.cast(twomap, "uint8") * 255
 
     return twomap

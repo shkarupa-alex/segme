@@ -1,5 +1,5 @@
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -19,14 +19,20 @@ class Upsample(layers.Layer):
         self.filters = filters
 
     def build(self, input_shape):
-        self.resize = BilinearInterpolation(None)
+        self.resize = BilinearInterpolation(dtype=self.dtype_policy)
+
         self.conv1 = Sequence(
-            [Norm(), Act(), ConvNormAct(self.filters, 3), Conv(self.filters, 3)]
+            [Norm(dtype=self.dtype_policy), Act(dtype=self.dtype_policy), ConvNormAct(self.filters, 3, dtype=self.dtype_policy), Conv(self.filters, 3, dtype=self.dtype_policy)], dtype=self.dtype_policy
         )
+        self.conv1.build(input_shape[1][:-1] + (input_shape[0][-1] + input_shape[1][-1],))
+
+        self.shortcut = Conv(self.filters, 1, dtype=self.dtype_policy)
+        self.shortcut.build(input_shape[1][:-1] + (input_shape[0][-1],))
+
         self.conv2 = Sequence(
-            [Norm(), Act(), ConvNormAct(self.filters, 3), Conv(self.filters, 3)]
+            [Norm(dtype=self.dtype_policy), Act(dtype=self.dtype_policy), ConvNormAct(self.filters, 3, dtype=self.dtype_policy), Conv(self.filters, 3, dtype=self.dtype_policy)], dtype=self.dtype_policy
         )
-        self.shortcut = Conv(self.filters, 1)
+        self.conv2.build(input_shape[1][:-1] + (self.filters,))
 
         super().build(input_shape)
 
@@ -34,7 +40,7 @@ class Upsample(layers.Layer):
         high, low = inputs
 
         high = self.resize([high, low])
-        outputs = self.conv1(tf.concat([high, low], axis=-1))
+        outputs = self.conv1(ops.concatenate([high, low], axis=-1))
         outputs += self.shortcut(high)
         outputs += self.conv2(outputs)
 

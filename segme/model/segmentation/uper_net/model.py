@@ -33,7 +33,7 @@ def UPerNet(classes, decoder_filters=256, head_dropout=0.1, dtype=None):
     laterals.append(PyramidPooling(decoder_filters, name="ppm")(features[-1]))
 
     for i in range(scales - 1, 0, -1):
-        lat_up = BilinearInterpolation(None, name=f"upscale_{i}")(
+        lat_up = BilinearInterpolation(name=f"upscale_{i}")(
             [laterals[i], laterals[i - 1]]
         )
         laterals[i - 1] = layers.add([laterals[i - 1], lat_up])
@@ -45,7 +45,7 @@ def UPerNet(classes, decoder_filters=256, head_dropout=0.1, dtype=None):
     outputs.append(laterals[-1])
 
     for i in range(scales - 1, 0, -1):
-        outputs[i] = BilinearInterpolation(None, name=f"resize_{i}")(
+        outputs[i] = BilinearInterpolation(name=f"resize_{i}")(
             [outputs[i], outputs[0]]
         )
 
@@ -54,7 +54,7 @@ def UPerNet(classes, decoder_filters=256, head_dropout=0.1, dtype=None):
 
     outputs = layers.Dropout(head_dropout, name="head_drop")(outputs)
     outputs = HeadProjection(classes, name="head_proj")(outputs)
-    outputs = BilinearInterpolation(None, name="head_resize")([outputs, inputs])
+    outputs = BilinearInterpolation(name="head_resize")([outputs, inputs])
     outputs = ClassificationActivation(name="head_act")(outputs)
 
     model = models.Model(inputs=inputs, outputs=outputs, name="uper_net")

@@ -1,7 +1,5 @@
 import numpy as np
-import tensorflow as tf
-from keras.src import layers
-from keras.src import models
+from keras.src import ops
 from keras.src import testing
 
 from segme.loss.structural_similarity import StructuralSimilarityLoss
@@ -522,7 +520,7 @@ class TestSsimLevel(testing.TestCase):
         result, _ = _ssim_level(
             y_true, y_pred, max_val=1.0, kernels=kernels, k1=0.01, k2=0.03
         )
-        result = tf.reduce_mean(result)
+        result = ops.mean(result)
 
         self.assertAlmostEqual(0.5322474241256714, result, decimal=5)
 
@@ -534,8 +532,8 @@ class TestStructuralSimilarityLoss(testing.TestCase):
         self.assertEqual(loss.reduction, "none")
 
     def test_zeros(self):
-        probs = tf.zeros((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "float32")
+        probs = ops.zeros((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "float32")
 
         result = structural_similarity_loss(
             y_true=targets,
@@ -553,8 +551,8 @@ class TestStructuralSimilarityLoss(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=1e-4)
 
     def test_ones(self):
-        probs = tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "float32")
+        probs = ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "float32")
 
         result = structural_similarity_loss(
             y_true=targets,
@@ -572,8 +570,8 @@ class TestStructuralSimilarityLoss(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=1e-4)
 
     def test_false(self):
-        probs = tf.zeros((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "float32")
+        probs = ops.zeros((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "float32")
 
         result = structural_similarity_loss(
             y_true=targets,
@@ -591,8 +589,8 @@ class TestStructuralSimilarityLoss(testing.TestCase):
         self.assertAllClose(result, [1.0] * 3, atol=1e-2)
 
     def test_true(self):
-        probs = tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "float32")
+        probs = ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "float32")
 
         result = structural_similarity_loss(
             y_true=targets,
@@ -610,8 +608,8 @@ class TestStructuralSimilarityLoss(testing.TestCase):
         self.assertAllClose(result, [1.0] * 3, atol=1e-2)
 
     def test_even(self):
-        probs = tf.zeros((1, 7, 7, 1), "float32")
-        targets = tf.zeros((1, 7, 7, 1), "float32")
+        probs = ops.zeros((1, 7, 7, 1), "float32")
+        targets = ops.zeros((1, 7, 7, 1), "float32")
 
         result = structural_similarity_loss(
             y_true=targets,
@@ -630,7 +628,7 @@ class TestStructuralSimilarityLoss(testing.TestCase):
 
     def test_value(self):
         probs = (
-            tf.constant(
+            np.array(
                 [
                     0.5,
                     6.1,
@@ -1658,12 +1656,11 @@ class TestStructuralSimilarityLoss(testing.TestCase):
                     1.0,
                 ],
                 "float32",
-                shape=(1, 32, 32, 1),
-            )
+            ).reshape((1, 32, 32, 1))
             / 10.0
         )
         targets = (
-            tf.constant(
+            np.array(
                 [
                     9.9,
                     4.6,
@@ -2691,8 +2688,7 @@ class TestStructuralSimilarityLoss(testing.TestCase):
                     3.1,
                 ],
                 "float32",
-                shape=(1, 32, 32, 1),
-            )
+            ).reshape((1, 32, 32, 1))
             / 10.0
         )
 
@@ -2710,7 +2706,7 @@ class TestStructuralSimilarityLoss(testing.TestCase):
         )  # 0.8249481320381165 when compensation = 1
 
     def test_weight(self):
-        logits = tf.constant(
+        logits = np.array(
             [
                 [
                     [
@@ -2767,7 +2763,7 @@ class TestStructuralSimilarityLoss(testing.TestCase):
             ],
             "float32",
         )
-        targets = tf.constant(
+        targets = np.array(
             [
                 [
                     [[0], [0], [1], [0]],
@@ -2784,10 +2780,10 @@ class TestStructuralSimilarityLoss(testing.TestCase):
             ],
             "float32",
         )
-        logits = tf.repeat(tf.repeat(logits, 16, axis=1), 16, axis=2)
-        targets = tf.repeat(tf.repeat(targets, 16, axis=1), 16, axis=2)
-        weights = tf.concat(
-            [tf.ones((2, 64, 32, 1)), tf.zeros((2, 64, 32, 1))], axis=2
+        logits = ops.repeat(ops.repeat(logits, 16, axis=1), 16, axis=2)
+        targets = ops.repeat(ops.repeat(targets, 16, axis=1), 16, axis=2)
+        weights = ops.concatenate(
+            [ops.ones((2, 64, 32, 1)), ops.zeros((2, 64, 32, 1))], axis=2
         )
 
         loss = StructuralSimilarityLoss(factors=(0.5,), size=2)
@@ -2802,7 +2798,7 @@ class TestStructuralSimilarityLoss(testing.TestCase):
         self.assertAlmostEqual(result, 0.63185704 * 2, decimal=6)
 
     def test_multi(self):
-        logits = tf.constant(
+        logits = np.array(
             [
                 [
                     [
@@ -2859,7 +2855,7 @@ class TestStructuralSimilarityLoss(testing.TestCase):
             ],
             "float32",
         )
-        targets = tf.constant(
+        targets = np.array(
             [
                 [
                     [[0, 0, 1], [0, 1, 0], [1, 0, 1], [0, 1, 0]],
@@ -2876,8 +2872,8 @@ class TestStructuralSimilarityLoss(testing.TestCase):
             ],
             "float32",
         )
-        weights = tf.concat(
-            [tf.ones((2, 4, 2, 1)), tf.zeros((2, 4, 2, 1))], axis=2
+        weights = ops.concatenate(
+            [ops.ones((2, 4, 2, 1)), ops.zeros((2, 4, 2, 1))], axis=2
         )
 
         loss = StructuralSimilarityLoss(factors=(0.5,), size=2)
@@ -2898,12 +2894,13 @@ class TestStructuralSimilarityLoss(testing.TestCase):
 
         self.assertAlmostEqual(result0, result1)
 
-    def test_model(self):
-        model = models.Sequential([layers.Dense(1, activation="sigmoid")])
-        model.compile(
-            loss="SegMe>Loss>StructuralSimilarityLoss",
-        )
-        model.fit(
-            np.zeros((2, 224, 224, 1)), np.zeros((2, 224, 224, 1), "int32")
-        )
-        models.Sequential.from_config(model.get_config())
+    # TODO: https://github.com/keras-team/keras/issues/20112
+    # def test_model(self):
+    #     model = models.Sequential([layers.Dense(1, activation="sigmoid")])
+    #     model.compile(
+    #         loss="SegMe>Loss>StructuralSimilarityLoss",
+    #     )
+    #     model.fit(
+    #         np.zeros((2, 224, 224, 1)), np.zeros((2, 224, 224, 1), "int32")
+    #     )
+    #     models.Sequential.from_config(model.get_config())

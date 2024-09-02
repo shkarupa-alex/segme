@@ -1,11 +1,11 @@
-import tensorflow as tf
+from keras.src import testing
 
 from segme.utils.common.augs.mix import _mix
 from segme.utils.common.augs.tests.testing_utils import aug_samples
 from segme.utils.common.augs.tests.testing_utils import max_diff
 
 
-class TestMix(tf.test.TestCase):
+class TestMix(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("mix")
         augmented = _mix(inputs, 0.4, [[[[0, 128, 255]]]])

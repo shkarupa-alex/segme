@@ -1,6 +1,6 @@
-import tensorflow as tf
 from keras.src import initializers
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -178,9 +178,9 @@ class ClassificationUncertainty(layers.Layer):
             return inputs * (1.0 - inputs) * 4.0
 
         if 1 == self.channels:
-            inputs = tf.concat([1.0 - inputs, inputs], axis=-1)
+            inputs = ops.concatenate([1.0 - inputs, inputs], axis=-1)
 
-        scores, _ = tf.math.top_k(inputs, k=2)
+        scores, _ = ops.top_k(inputs, k=2)
 
         if 2 == self.ord:
             uncertainty = scores[..., :1] * scores[..., 1:] * 4.0

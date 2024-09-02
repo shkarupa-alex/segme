@@ -29,7 +29,7 @@ class BilinearFeatureAlignment(layers.Layer):
             InputSpec(ndim=4, axes={-1: channels[1]}),
         ]
 
-        self.resize = BilinearInterpolation(None, dtype=self.dtype_policy)
+        self.resize = BilinearInterpolation(dtype=self.dtype_policy)
 
         self.lateral = Conv(channels[0], 1, dtype=self.dtype_policy)
         self.lateral.build(input_shape[0])

@@ -5,7 +5,7 @@ from segme.loss import SobelEdgeLoss
 from segme.loss import WeightedLossFunctionWrapper
 
 
-def total_loss(y_true, y_pred, sample_weight=None):
+def _total_loss(y_true, y_pred, sample_weight=None):
     return (
         CrossEntropyLoss()(y_true, y_pred, sample_weight)
         + 0.5 * MeanAbsoluteClassificationError()(y_true, y_pred, sample_weight)
@@ -15,4 +15,4 @@ def total_loss(y_true, y_pred, sample_weight=None):
 
 
 def hqs_crm_loss():
-    return WeightedLossFunctionWrapper(total_loss)
+    return WeightedLossFunctionWrapper(_total_loss)

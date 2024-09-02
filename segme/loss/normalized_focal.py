@@ -1,5 +1,5 @@
-import tensorflow as tf
 from keras.src import backend
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 from segme.loss.common_loss import crossentropy
@@ -44,10 +44,10 @@ def normalized_focal_cross_entropy(
     y_prob, _ = to_probs(y_pred, from_logits, force_binary=False)
     y_true_1h, y_prob_1h = to_1hot(y_true, y_prob, False, dtype=y_prob.dtype)
 
-    pt = tf.reduce_max(y_true_1h * y_prob_1h, axis=-1, keepdims=True)
+    pt = ops.max(y_true_1h * y_prob_1h, axis=-1, keepdims=True)
     beta = (1.0 - pt) ** gamma
-    beta /= tf.reduce_mean(beta, axis=[1, 2], keepdims=True) + backend.epsilon()
-    beta = tf.stop_gradient(beta)
+    beta /= ops.mean(beta, axis=[1, 2], keepdims=True) + backend.epsilon()
+    beta = ops.stop_gradient(beta)
     if sample_weight is not None:
         beta *= sample_weight
 

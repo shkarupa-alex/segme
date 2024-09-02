@@ -1,11 +1,12 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import testing
 
 from segme.utils.matting.tf.aug import augment_alpha
 from segme.utils.matting.tf.aug import augment_trimap
 
 
-class TestAugmentAlpha(tf.test.TestCase):
+class TestAugmentAlpha(testing.TestCase):
     def setUp(self):
         super().setUp()
         self.alpha = np.random.uniform(0.0, 255.0, (2, 16, 16, 1)).astype(
@@ -16,16 +17,16 @@ class TestAugmentAlpha(tf.test.TestCase):
         alpha = augment_alpha(self.alpha, prob=0.0)
         self.assertListEqual(alpha.shape.as_list(), list(self.alpha.shape))
 
-        self.assertDTypeEqual(alpha, "uint8")
+        self.assertEqual(alpha.dtype, "uint8")
         self.assertTupleEqual(tuple(alpha.shape.as_list()), self.alpha.shape)
-        self.assertAllEqual(self.alpha, alpha)
+        self.assertAlmostEqual(self.alpha, alpha)
 
     def test_aug(self):
         alpha = augment_alpha(self.alpha, prob=1.0)
-        self.assertNotAllEqual(self.alpha, alpha)
+        self.assertNotAllClose(self.alpha, alpha)
 
 
-class TestAugmentTrimap(tf.test.TestCase):
+class TestAugmentTrimap(testing.TestCase):
     def setUp(self):
         super().setUp()
         trimap = np.zeros((2, 16, 16, 1), "uint8")
@@ -35,11 +36,10 @@ class TestAugmentTrimap(tf.test.TestCase):
 
     def test_no_aug(self):
         trimap = augment_trimap(self.trimap, prob=0.0)
-        self.assertAllEqual(self.trimap, trimap)
+        self.assertAlmostEqual(self.trimap, trimap)
 
     def test_aug(self):
         trimap = augment_trimap(self.trimap, prob=1.0)
-        self.assertNotAllEqual(self.trimap, trimap)
-
-        trimap = self.evaluate(trimap)
+        trimap = backend.convert_to_numpy(trimap)
+        self.assertNotAllClose(self.trimap, trimap)
         self.assertSetEqual(set(trimap.ravel()), {0, 128})

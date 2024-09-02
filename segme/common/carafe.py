@@ -1,10 +1,10 @@
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
+from segme.backend import extract_patches
 from segme.common.resize import NearestInterpolation
-from segme.common.shape import get_shape
 
 
 @register_keras_serializable(package="SegMe>Common>Align>FADE")
@@ -47,38 +47,38 @@ class CarafeConvolution(layers.Layer):
     def call(self, inputs, **kwargs):
         features, masks = inputs
 
-        (batch, height, width), _ = get_shape(masks, axis=[0, 1, 2])
+        batch, height, width, _ = ops.shape(masks)
         output_shape = self.compute_output_shape([features.shape, masks.shape])
 
-        features = tf.image.extract_patches(
+        features = extract_patches(
             features,
-            [1, self.kernel_size, self.kernel_size, 1],
-            [1] * 4,
-            [1] * 4,
-            "SAME",
+            [self.kernel_size, self.kernel_size],
+            [1, 1],
+            [1, 1],
+            "same",
         )
 
         if False and 1 == self.group_size:
             features = self.internear([features, masks])
-            features = tf.reshape(
+            features = ops.reshape(
                 features,
                 (batch, height, width, self.kernel_size**2, self.channels[0]),
             )
 
-            masks = tf.nn.softmax(masks)[..., None]
+            masks = ops.softmax(masks)[..., None]
 
-            outputs = tf.matmul(features, masks, transpose_a=True)
+            outputs = ops.matmul(ops.moveaxis(features, -1, -2), masks)
         else:
-            features_shape0, _ = get_shape(features)
-            features_shape1 = features_shape0[:-1] + [
+            features_shape0 = ops.shape(features)
+            features_shape1 = features_shape0[:-1] + (
                 self.kernel_size**2,
                 self.channels[0],
-            ]
-            features = tf.reshape(features, features_shape1)
-            features = tf.transpose(features, [0, 1, 2, 4, 3])
-            features = tf.reshape(features, features_shape0)
+            )
+            features = ops.reshape(features, features_shape1)
+            features = ops.transpose(features, [0, 1, 2, 4, 3])
+            features = ops.reshape(features, features_shape0)
             features = self.internear([features, masks])
-            features = tf.reshape(
+            features = ops.reshape(
                 features,
                 (
                     batch,
@@ -90,15 +90,15 @@ class CarafeConvolution(layers.Layer):
                 ),
             )
 
-            masks = tf.reshape(
+            masks = ops.reshape(
                 masks,
                 (batch, height, width, self.group_size, self.kernel_size**2),
             )
-            masks = tf.nn.softmax(masks)[..., None]
+            masks = ops.softmax(masks)[..., None]
 
-            outputs = tf.matmul(features, masks)
+            outputs = ops.matmul(features, masks)
 
-        outputs = tf.reshape(outputs, (batch, height, width, self.channels[0]))
+        outputs = ops.reshape(outputs, (batch, height, width, self.channels[0]))
         outputs.set_shape(output_shape)
 
         return outputs

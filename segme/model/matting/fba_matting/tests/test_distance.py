@@ -2,21 +2,11 @@ import cv2
 import numpy as np
 from keras.src import testing
 
-from segme.model.matting.fba_matting.distance import Distance
+from segme.model.matting.fba_matting.distance import distance_transform
 from segme.model.matting.fba_matting.tests.test_twomap import _twomap
 
 
-class TestDistance(testing.TestCase):
-    def test_layer(self):
-        self.run_layer_test(
-            Distance,
-            init_kwargs={},
-            input_shape=(2, 64, 64, 1),
-            input_dtype="uint8",
-            expected_output_shape=(2, 64, 64, 6),
-            expected_output_dtype="float32",
-        )
-
+class TestDistanceTransform(testing.TestCase):
     def test_value(self):
         trimap = np.array(
             [
@@ -179,7 +169,7 @@ class TestDistance(testing.TestCase):
         expected = _distance(twomap)
         expected = np.round(expected * 255.0).astype("uint8")
 
-        result = Distance()(trimap[None, ..., None])[0]
+        result = distance_transform(trimap[None, ..., None])[0]
 
         diff = np.sum(np.abs(result - expected) > 1e-6) / np.prod(result.shape)
         self.assertLess(diff, 0.03)
@@ -191,7 +181,7 @@ class TestDistance(testing.TestCase):
             expected = _distance(twomap)
             expected = np.round(expected * 255.0).astype("uint8")
 
-            result = Distance()(trimap[None, ..., None])[0]
+            result = distance_transform(trimap[None, ..., None])[0]
 
             diff = np.sum(np.abs(result - expected) > 1e-6) / np.prod(
                 result.shape

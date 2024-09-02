@@ -11,7 +11,7 @@ class FadeFeatureAlignment(layers.Layer):
     """
     Proposed in "FADE: Fusing the Assets of Decoder and Encoder for
     Task-Agnostic Upsampling"
-    https://arxiv.org/pdf/2207.10392.pdf
+    https://arxiv.org/pdf/2207.10392
     """
 
     def __init__(self, filters, kernel_size=5, embedding_size=64, **kwargs):

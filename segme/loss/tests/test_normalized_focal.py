@@ -1,7 +1,5 @@
 import numpy as np
-import tensorflow as tf
-from keras.src import layers
-from keras.src import models
+from keras.src import ops
 from keras.src import testing
 
 from segme.loss.normalized_focal import NormalizedFocalCrossEntropy
@@ -20,8 +18,8 @@ class TestNormalizedFocalCrossEntropy(testing.TestCase):
         self.assertEqual(loss.reduction, "none")
 
     def test_zeros(self):
-        probs = tf.zeros((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        probs = ops.zeros((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = normalized_focal_cross_entropy(
             y_true=targets,
@@ -34,8 +32,8 @@ class TestNormalizedFocalCrossEntropy(testing.TestCase):
         self.assertAllClose(result, [0.69314694] * 3, atol=1e-4)
 
     def test_ones(self):
-        probs = tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        probs = ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = normalized_focal_cross_entropy(
             y_true=targets,
@@ -48,8 +46,8 @@ class TestNormalizedFocalCrossEntropy(testing.TestCase):
         self.assertAllClose(result, [0.3132613] * 3, atol=1e-4)
 
     def test_false(self):
-        probs = tf.zeros((3, 16, 16, 1), "float32")
-        targets = tf.ones((3, 16, 16, 1), "int32")
+        probs = ops.zeros((3, 16, 16, 1), "float32")
+        targets = ops.ones((3, 16, 16, 1), "int32")
 
         result = normalized_focal_cross_entropy(
             y_true=targets,
@@ -62,8 +60,8 @@ class TestNormalizedFocalCrossEntropy(testing.TestCase):
         self.assertAllClose(result, [0.69314694] * 3, atol=1e-4)
 
     def test_true(self):
-        probs = tf.ones((3, 16, 16, 1), "float32")
-        targets = tf.zeros((3, 16, 16, 1), "int32")
+        probs = ops.ones((3, 16, 16, 1), "float32")
+        targets = ops.zeros((3, 16, 16, 1), "int32")
 
         result = normalized_focal_cross_entropy(
             y_true=targets,
@@ -112,10 +110,11 @@ class TestNormalizedFocalCrossEntropy(testing.TestCase):
 
         self.assertAlmostEqual(result0, result1, decimal=6)
 
-    def test_model(self):
-        model = models.Sequential([layers.Dense(1, activation="sigmoid")])
-        model.compile(
-            loss="SegMe>Loss>NormalizedFocalCrossEntropy",
-        )
-        model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "int32"))
-        models.Sequential.from_config(model.get_config())
+    # TODO: https://github.com/keras-team/keras/issues/20112
+    # def test_model(self):
+    #     model = models.Sequential([layers.Dense(1, activation="sigmoid")])
+    #     model.compile(
+    #         loss="SegMe>Loss>NormalizedFocalCrossEntropy",
+    #     )
+    #     model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "int32"))
+    #     models.Sequential.from_config(model.get_config())

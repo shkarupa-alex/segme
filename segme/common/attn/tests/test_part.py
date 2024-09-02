@@ -1,19 +1,20 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import backend
+from keras.src import ops
+from keras.src import testing
 
-from segme.common.part import _PARTITION_TYPES
-from segme.common.part import halo_partition
-from segme.common.part import halo_partition_fused
-from segme.common.part import partition_apply
-from segme.common.part import partition_apply_fused
-from segme.common.part import partition_reverse
-from segme.common.part import partition_reverse_fused
-from segme.common.part import with_partition
-from segme.common.part import with_partition_fused
+from segme.common.attn.part import _PARTITION_TYPES
+from segme.common.attn.part import halo_partition
+from segme.common.attn.part import halo_partition_fused
+from segme.common.attn.part import partition_apply
+from segme.common.attn.part import partition_apply_fused
+from segme.common.attn.part import partition_reverse
+from segme.common.attn.part import partition_reverse_fused
+from segme.common.attn.part import with_partition
+from segme.common.attn.part import with_partition_fused
 
 
-class TestPartitionApply(tf.test.TestCase):
+class TestPartitionApply(testing.TestCase):
     def test_window(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype="float32").reshape(
             [1, 8, 12, 1]
@@ -127,7 +128,7 @@ class TestPartitionApply(tf.test.TestCase):
             inputs, height, width, "window_size", size, dilation_rate
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_dilation(self):
         inputs = np.arange(1 * 8 * 16 * 1, dtype="float32").reshape(
@@ -274,7 +275,7 @@ class TestPartitionApply(tf.test.TestCase):
             inputs, height, width, "window_size", size, dilation_rate
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_grid(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype="float32").reshape(
@@ -389,7 +390,7 @@ class TestPartitionApply(tf.test.TestCase):
             inputs, height, width, "grid_size", size, dilation_rate
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_inverse(self):
         inputs = np.arange(3 * 24 * 36 * 3, dtype="float32").reshape(
@@ -406,7 +407,7 @@ class TestPartitionApply(tf.test.TestCase):
                     size,
                     dilation_rate,
                 )
-                self.assertAllEqual(inputs, result)
+                self.assertAlmostEqual(inputs, result)
 
     def test_pad(self):
         inputs = np.arange(3 * 23 * 37 * 3, dtype="float32").reshape(
@@ -423,7 +424,7 @@ class TestPartitionApply(tf.test.TestCase):
                     size,
                     dilation_rate,
                 )
-                self.assertAllEqual(inputs + 1.0, result)
+                self.assertAlmostEqual(inputs + 1.0, result)
 
     def test_channel(self):
         inputs = np.arange(3 * 24 * 36 * 3, dtype="float32").reshape(
@@ -434,15 +435,13 @@ class TestPartitionApply(tf.test.TestCase):
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
                 result = with_partition(
-                    lambda x, **kwargs: tf.reduce_mean(
-                        x, axis=-1, keepdims=True
-                    ),
+                    lambda x, **kwargs: ops.mean(x, axis=-1, keepdims=True),
                     inputs,
                     part_type,
                     size,
                     dilation_rate,
                 )
-                self.assertAllEqual(inputs.mean(-1, keepdims=True), result)
+                self.assertAlmostEqual(inputs.mean(-1, keepdims=True), result)
 
     def test_fp16(self):
         inputs = np.arange(3 * 24 * 36 * 3, dtype="float16").reshape(
@@ -459,10 +458,10 @@ class TestPartitionApply(tf.test.TestCase):
                     size,
                     dilation_rate,
                 )
-                self.assertAllEqual(inputs, result)
+                self.assertAlmostEqual(inputs, result)
 
 
-class TestPartitionApplyFused(tf.test.TestCase):
+class TestPartitionApplyFused(testing.TestCase):
     def test_apply(self):
         inputs = np.arange(3 * 24 * 48 * 3 * 4 * 5, dtype="float32").reshape(
             [3, 24, 48, 3 * 4 * 5]
@@ -476,13 +475,13 @@ class TestPartitionApplyFused(tf.test.TestCase):
                     expected = partition_apply(
                         inputs, height, width, part_type, size, dilation_rate
                     )
-                    expected = tf.reshape(
+                    expected = ops.reshape(
                         expected,
                         expected.shape[:-1]
                         + (3, num_heads, channels // num_heads),
                     )
-                    expected = tf.transpose(expected, [0, 1, 4, 2, 3, 5])
-                    expected = tf.reshape(
+                    expected = ops.transpose(expected, [0, 1, 4, 2, 3, 5])
+                    expected = ops.reshape(
                         expected,
                         expected.shape[:-2] + (3 * channels // num_heads,),
                     )
@@ -497,7 +496,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
                         dilation_rate,
                     )
 
-                    self.assertAllEqual(expected, result)
+                    self.assertAlmostEqual(expected, result)
 
     def test_reverse(self):
         inputs = np.arange(216 * 4 * 16 * 5, dtype="float32")
@@ -521,8 +520,8 @@ class TestPartitionApplyFused(tf.test.TestCase):
                             channels // num_heads,
                         ]
                     )
-                    expected = tf.transpose(expected, perm=[0, 1, 3, 2, 4])
-                    expected = tf.reshape(
+                    expected = ops.transpose(expected, [0, 1, 3, 2, 4])
+                    expected = ops.reshape(
                         expected, [-1, num_wind, win_size, channels]
                     )
                     expected = partition_reverse(
@@ -548,7 +547,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
                         dilation_rate,
                     )
 
-                    self.assertAllEqual(expected, result)
+                    self.assertAlmostEqual(expected, result)
 
     def test_window(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype="float32").reshape(
@@ -670,7 +669,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
             qkv_mult=1,
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_dilation(self):
         inputs = np.arange(1 * 8 * 24 * 1, dtype="float32").reshape(
@@ -888,7 +887,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
             qkv_mult=1,
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_grid(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype="float32").reshape(
@@ -1010,7 +1009,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
             qkv_mult=1,
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_inverse(self):
         inputs = np.arange(3 * 24 * 36 * 3, dtype="float32").reshape(
@@ -1028,7 +1027,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
                     1,
                     dilation_rate,
                 )
-                self.assertAllEqual(inputs, result)
+                self.assertAlmostEqual(inputs, result)
 
     def test_pad(self):
         inputs = np.arange(3 * 23 * 37 * 3, dtype="float32").reshape(
@@ -1046,7 +1045,7 @@ class TestPartitionApplyFused(tf.test.TestCase):
                     1,
                     dilation_rate,
                 )
-                self.assertAllEqual(inputs + 1.0, result)
+                self.assertAlmostEqual(inputs + 1.0, result)
 
     def test_channel(self):
         inputs = np.arange(3 * 24 * 36 * 3, dtype="float32").reshape(
@@ -1057,16 +1056,14 @@ class TestPartitionApplyFused(tf.test.TestCase):
         for part_type in _PARTITION_TYPES:
             for dilation_rate in [1, 2, 3]:
                 result = with_partition_fused(
-                    lambda x, **kwargs: tf.reduce_mean(
-                        x, axis=-1, keepdims=True
-                    ),
+                    lambda x, **kwargs: ops.mean(x, axis=-1, keepdims=True),
                     inputs,
                     part_type,
                     size,
                     1,
                     dilation_rate,
                 )
-                self.assertAllEqual(inputs.mean(-1, keepdims=True), result)
+                self.assertAlmostEqual(inputs.mean(-1, keepdims=True), result)
 
     def test_fp16(self):
         inputs = np.arange(3 * 24 * 36 * 3, dtype="float16").reshape(
@@ -1084,10 +1081,10 @@ class TestPartitionApplyFused(tf.test.TestCase):
                     1,
                     dilation_rate,
                 )
-                self.assertAllEqual(inputs, result)
+                self.assertAlmostEqual(inputs, result)
 
 
-class TestHaloPartition(tf.test.TestCase):
+class TestHaloPartition(testing.TestCase):
     def test_halo_x10(self):  # same as window partition
         inputs = np.arange(1 * 8 * 12 * 1, dtype="float32").reshape(
             [1, 8, 12, 1]
@@ -1201,7 +1198,7 @@ class TestHaloPartition(tf.test.TestCase):
             inputs, height, width, size, halo_size, dilation_rate
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_halo_x15(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype="float32").reshape(
@@ -1436,7 +1433,7 @@ class TestHaloPartition(tf.test.TestCase):
             inputs, height, width, size, halo_size, dilation_rate
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_halo_x20(self):
         inputs = np.arange(1 * 8 * 12 * 1, dtype="float32").reshape(
@@ -1839,7 +1836,7 @@ class TestHaloPartition(tf.test.TestCase):
             inputs, height, width, size, halo_size, dilation_rate
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_halo_x10_d2(self):  # same as window partition with dilation
         inputs = np.arange(1 * 8 * 16 * 1, dtype="float32").reshape(
@@ -1986,7 +1983,7 @@ class TestHaloPartition(tf.test.TestCase):
             inputs, height, width, size, halo_size, dilation_rate
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_halo_x20_d2(self):
         inputs = np.arange(1 * 8 * 16 * 1, dtype="float32").reshape(
@@ -2517,7 +2514,7 @@ class TestHaloPartition(tf.test.TestCase):
             inputs, height, width, size, halo_size, dilation_rate
         )
 
-        self.assertAllEqual(expected, result)
+        self.assertAlmostEqual(expected, result)
 
     def test_center(self):
         inputs = np.arange(1 * 24 * 48 * 1, dtype="float32").reshape(
@@ -2537,18 +2534,18 @@ class TestHaloPartition(tf.test.TestCase):
                 result = halo_partition(
                     inputs, height, width, size, halo_size, dilation_rate
                 )
+                result = backend.convert_to_numpy(result)
                 if pad > 0:
-                    result = backend.convert_to_numpy(result)
                     result = result.reshape(
                         result.shape[:2] + (halo_size, halo_size)
                     )
                     result = result[:, :, pad:-pad, pad:-pad]
                     result = result.reshape(result.shape[:2] + (size**2, 1))
 
-                self.assertAllEqual(expected, result)
+                self.assertAlmostEqual(expected, result)
 
 
-class TestHaloPartitionFused(tf.test.TestCase):
+class TestHaloPartitionFused(testing.TestCase):
     def test_apply(self):
         inputs = np.arange(3 * 24 * 48 * 2 * 4 * 5, dtype="float32").reshape(
             [3, 24, 48, 2 * 4 * 5]
@@ -2562,13 +2559,13 @@ class TestHaloPartitionFused(tf.test.TestCase):
                     expected = halo_partition(
                         inputs, height, width, size, halo_size, dilation_rate
                     )
-                    expected = tf.reshape(
+                    expected = ops.reshape(
                         expected,
                         expected.shape[:-1]
                         + (2, num_heads, channels // num_heads),
                     )
-                    expected = tf.transpose(expected, [0, 1, 4, 2, 3, 5])
-                    expected = tf.reshape(
+                    expected = ops.transpose(expected, [0, 1, 4, 2, 3, 5])
+                    expected = ops.reshape(
                         expected,
                         expected.shape[:-2] + (2 * channels // num_heads,),
                     )
@@ -2583,7 +2580,7 @@ class TestHaloPartitionFused(tf.test.TestCase):
                         dilation_rate,
                     )
 
-                    self.assertAllEqual(expected, result)
+                    self.assertAlmostEqual(expected, result)
 
     def test_center(self):
         inputs = np.arange(3 * 24 * 48 * 2 * 4 * 5, dtype="float32").reshape(
@@ -2616,8 +2613,8 @@ class TestHaloPartitionFused(tf.test.TestCase):
                         num_heads,
                         dilation_rate,
                     )
+                    result = backend.convert_to_numpy(result)
                     if pad > 0:
-                        result = backend.convert_to_numpy(result)
                         result = result.reshape(
                             result.shape[:3] + (halo_size, halo_size, -1)
                         )
@@ -2626,4 +2623,4 @@ class TestHaloPartitionFused(tf.test.TestCase):
                             result.shape[:3] + (size**2, -1)
                         )
 
-                    self.assertAllEqual(expected, result)
+                    self.assertAlmostEqual(expected, result)

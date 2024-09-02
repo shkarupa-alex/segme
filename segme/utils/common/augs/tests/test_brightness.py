@@ -1,11 +1,11 @@
-import tensorflow as tf
+from keras.src import testing
 
 from segme.utils.common.augs.brightness import _brightness
 from segme.utils.common.augs.tests.testing_utils import aug_samples
 from segme.utils.common.augs.tests.testing_utils import max_diff
 
 
-class TestBrightness(tf.test.TestCase):
+class TestBrightness(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("brightness")
         augmented = _brightness(inputs, -0.4)

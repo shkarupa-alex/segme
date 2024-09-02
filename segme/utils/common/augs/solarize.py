@@ -1,25 +1,26 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
 from segme.utils.common.augs.common import apply
 from segme.utils.common.augs.common import validate
 
 
 def solarize(image, masks, weight, prob, threshold=None, name=None):
-    with tf.name_scope(name or "solarize"):
+    with backend.name_scope(name or "solarize"):
         return apply(
             image,
             masks,
             weight,
             prob,
             lambda x: _solarize(x, threshold),
-            tf.identity,
-            tf.identity,
+            None,
+            None,
         )
 
 
 def _solarize(image, threshold=None, name=None):
-    with tf.name_scope(name or "solarize_"):
+    with backend.name_scope(name or "solarize_"):
         image, _, _ = validate(image, None, None)
 
         dtype = image.dtype
@@ -34,6 +35,6 @@ def _solarize(image, threshold=None, name=None):
                     dtype.as_numpy_dtype()
                 )
 
-        image = tf.where(image < threshold, image, max_val - image)
+        image = ops.where(image < threshold, image, max_val - image)
 
         return image

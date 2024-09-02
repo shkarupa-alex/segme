@@ -1,5 +1,5 @@
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
@@ -49,13 +49,13 @@ class FBAFusion(layers.Layer):
         bg_upd = bg + (var_bg / var_img) * inv_alpha * img_delpta
 
         fgbg_delta = fg_upd - bg_upd
-        alpha_upd = alpha + tf.reduce_sum(
+        alpha_upd = alpha + ops.sum(
             (var_alpha / var_img) * (img - bg_upd) * fgbg_delta,
             axis=-1,
             keepdims=True,
         )
-        alpha_upd /= 1.0 + tf.reduce_sum(
-            (var_alpha / var_img) * tf.square(fgbg_delta),
+        alpha_upd /= 1.0 + ops.sum(
+            (var_alpha / var_img) * ops.square(fgbg_delta),
             axis=-1,
             keepdims=True,
         )

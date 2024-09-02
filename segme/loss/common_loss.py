@@ -1,17 +1,18 @@
-import tensorflow as tf
+from keras.src import backend
 from keras.src import ops
 
-from segme.common.shape import get_shape
+from segme import backend as back
+from segme.ops import squared_difference
 
 
 def validate_input(y_true, y_pred, weight, dtype, rank, channel):
-    y_pred = tf.convert_to_tensor(y_pred)
+    y_pred = backend.convert_to_tensor(y_pred)
 
     dtype = y_pred.dtype if dtype is None else dtype
-    y_true = tf.cast(y_true, dtype)
+    y_true = ops.cast(y_true, dtype)
 
     if weight is not None:
-        weight = tf.cast(weight, y_pred.dtype)
+        weight = ops.cast(weight, y_pred.dtype)
 
     if rank is not None:
         if y_pred.shape.rank != rank:
@@ -43,16 +44,6 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
     return y_true, y_pred, weight
 
 
-def op_type(y_pred):
-    if isinstance(y_pred, (tf.__internal__.EagerTensor, tf.Variable)):
-        return None
-
-    if not hasattr(y_pred, "op") or not hasattr(y_pred.op, "type"):
-        return None
-
-    return y_pred.op.type
-
-
 def to_logits(y_pred, from_logits):
     logits = None
 
@@ -63,7 +54,9 @@ def to_logits(y_pred, from_logits):
 
     # When activation function is used for output operation, use logits
     # from the function directly
-    if op_type(y_pred) in {"Sigmoid", "Softmax"} and 1 == len(y_pred.op.inputs):
+    if back.op_type(y_pred) in {"Sigmoid", "Softmax"} and 1 == len(
+        y_pred.op.inputs
+    ):
         logits = y_pred.op.inputs[0]
 
     if from_logits and logits is None:
@@ -79,12 +72,12 @@ def to_logits(y_pred, from_logits):
     if logits is None:
         raise ValueError("Unable to restore logits.")
 
-    return tf.cast(logits, y_pred.dtype), True
+    return ops.cast(logits, y_pred.dtype), True
 
 
 def to_probs(y_pred, from_logits, force_binary):
     if force_binary:
-        if "Sigmoid" == op_type(y_pred) and 1 == len(y_pred.op.inputs):
+        if "Sigmoid" == back.op_type(y_pred) and 1 == len(y_pred.op.inputs):
             if from_logits:
                 raise ValueError(
                     "Received `from_logits=True`, but the `y_pred` argument "
@@ -95,7 +88,7 @@ def to_probs(y_pred, from_logits, force_binary):
             return y_pred, False
 
         y_pred, from_logits = to_logits(y_pred, from_logits)
-        y_probs = tf.nn.sigmoid(y_pred)
+        y_probs = ops.sigmoid(y_pred)
         y_probs._keras_logits = y_pred
 
         return y_probs, False
@@ -104,9 +97,9 @@ def to_probs(y_pred, from_logits, force_binary):
         return y_pred, False
 
     if 1 == y_pred.shape[-1]:
-        y_probs = tf.nn.sigmoid(y_pred)
+        y_probs = ops.sigmoid(y_pred)
     else:
-        y_probs = tf.nn.softmax(y_pred)
+        y_probs = ops.softmax(y_pred)
     y_probs._keras_logits = y_pred
 
     return y_probs, False
@@ -118,22 +111,22 @@ def to_1hot(y_true, y_pred, from_logits, dtype=None):
 
     if 1 == y_pred.shape[-1]:
         if from_logits:
-            y_pred = tf.concat([-y_pred, y_pred], axis=-1)
+            y_pred = ops.concatenate([-y_pred, y_pred], axis=-1)
         else:
-            y_pred = tf.concat([1.0 - y_pred, y_pred], axis=-1)
+            y_pred = ops.concatenate([1.0 - y_pred, y_pred], axis=-1)
 
-    y_true = tf.one_hot(
-        tf.squeeze(y_true, -1), y_pred.shape[-1], dtype=dtype or y_true.dtype
-    )
+    y_true = ops.squeeze(y_true, -1)
+    y_true = ops.one_hot(y_true, y_pred.shape[-1], dtype=dtype or y_true.dtype)
+    y_true = ops.stop_gradient(y_true)
 
     return y_true, y_pred
 
 
 def weighted_loss(loss, sample_weight, sample_axes=None, reduce_axes=None):
     if sample_axes is None:
-        sample_axes = tuple(range(1, loss.shape.rank))
+        sample_axes = tuple(range(1, ops.ndim(loss)))
     else:
-        bad_axes = set(sample_axes) - set(range(1, loss.shape.rank))
+        bad_axes = set(sample_axes) - set(range(1, ops.ndim(loss)))
         if bad_axes:
             raise ValueError(
                 f"Some sample axes can not belong to provided "
@@ -151,7 +144,7 @@ def weighted_loss(loss, sample_weight, sample_axes=None, reduce_axes=None):
             )
 
     if sample_weight is not None:
-        if sample_weight.shape.rank != loss.shape.rank:
+        if ops.ndim(sample_weight) != ops.ndim(loss):
             raise ValueError("Sample weights and loss ranks must be equal.")
 
         if 1 != sample_weight.shape[-1]:
@@ -160,18 +153,18 @@ def weighted_loss(loss, sample_weight, sample_axes=None, reduce_axes=None):
             )
 
         if len(sample_axes) > 1:
-            valid_weight = tf.cast(sample_weight > 0.0, sample_weight.dtype)
-            valid_weight = tf.reduce_mean(
+            valid_weight = ops.cast(sample_weight > 0.0, sample_weight.dtype)
+            valid_weight = ops.mean(
                 valid_weight, axis=reduce_axes, keepdims=True
             )
 
-            sample_weight = tf.math.divide_no_nan(sample_weight, valid_weight)
-            sample_weight = tf.stop_gradient(sample_weight)
+            sample_weight = ops.divide_no_nan(sample_weight, valid_weight)
+            sample_weight = ops.stop_gradient(sample_weight)
 
         loss *= sample_weight
 
     if sample_axes:
-        loss = tf.reduce_mean(loss, axis=sample_axes)
+        loss = ops.mean(loss, axis=sample_axes)
 
     return loss
 
@@ -187,7 +180,7 @@ def compute_gradient(inputs, axis, reduction):
     if "sub" == reduction:
         grad = grad[0] - grad[1]
     elif "min" == reduction:
-        grad = tf.minimum(grad[0], grad[1])
+        grad = ops.minimum(grad[0], grad[1])
     else:
         raise ValueError("Unsupported reduction: {}".format(reduction))
 
@@ -195,7 +188,7 @@ def compute_gradient(inputs, axis, reduction):
 
 
 def smooth_labels(y_true, y_pred, label_smoothing, force_binary):
-    y_true = tf.cast(y_true, y_pred.dtype)
+    y_true = ops.cast(y_true, y_pred.dtype)
 
     if not label_smoothing:
         return y_true
@@ -205,6 +198,7 @@ def smooth_labels(y_true, y_pred, label_smoothing, force_binary):
 
     num_classes = 2 if force_binary else max(2, y_pred.shape[-1])
     y_true = y_true * (1.0 - label_smoothing) + label_smoothing / num_classes
+    y_true = ops.stop_gradient(y_true)
 
     return y_true
 
@@ -252,7 +246,7 @@ def mae(
 
         y_true = smooth_labels(y_true, y_pred, label_smoothing, force_binary)
 
-    loss = tf.abs(y_pred - y_true)
+    loss = ops.abs(y_pred - y_true)
 
     return weighted_loss(loss, sample_weight)
 
@@ -300,7 +294,7 @@ def mse(
 
         y_true = smooth_labels(y_true, y_pred, label_smoothing, force_binary)
 
-    loss = tf.math.squared_difference(y_pred, y_true)
+    loss = squared_difference(y_pred, y_true)
 
     return weighted_loss(loss, sample_weight)
 
@@ -337,7 +331,7 @@ def crossentropy(
             loss = ops.binary_crossentropy(
                 y_true, y_pred, from_logits=from_logits
             )
-            loss = tf.reduce_sum(loss, axis=-1, keepdims=True)
+            loss = ops.sum(loss, axis=-1, keepdims=True)
         else:
             loss = ops.categorical_crossentropy(
                 y_true, y_pred, from_logits=from_logits
@@ -394,9 +388,9 @@ def iou(
         denominator, sample_weight, sample_axes=[1, 2], reduce_axes=[1, 2]
     )
 
-    size, _ = get_shape(y_true, axis=[1, 2])
-    epsilon = smooth / tf.cast(size[0] * size[1], y_pred.dtype)
+    size = ops.prod(ops.shape(y_true)[1:-1])
+    epsilon = smooth / ops.cast(size, y_pred.dtype)
 
     loss = 1.0 - (numerator + epsilon) / (denominator + epsilon)
 
-    return tf.reduce_mean(loss, axis=-1)
+    return ops.mean(loss, axis=-1)

@@ -1,10 +1,10 @@
 import math
 
-import tensorflow as tf
 from keras.src import backend
 from keras.src import constraints
 from keras.src import initializers
 from keras.src import layers
+from keras.src import ops
 from keras.src import regularizers
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
@@ -288,32 +288,30 @@ class FilterResponseNorm(layers.Layer):
                 shape=(1,),
                 name="learned_epsilon",
                 initializer=initializers.Constant(1e-4),
-                constraint=lambda e: tf.minimum(e, 0.0),
+                constraint=lambda e: ops.minimum(e, 0.0),
             )
 
         super().build(input_shape)
 
     def call(self, inputs, *args, **kwargs):
-        outputs = tf.cast(inputs, "float32")
+        outputs = ops.cast(inputs, "float32")
 
         epsilon = self.epsilon
         if self.use_eps_learned:
-            epsilon += tf.math.abs(self.eps_learned)
+            epsilon += ops.abs(self.eps_learned)
 
-        nu2 = tf.reduce_mean(tf.square(outputs), axis=self.axis, keepdims=True)
-        outputs = (
-            outputs * tf.math.rsqrt(nu2 + epsilon) * self.gamma + self.beta
-        )
+        nu2 = ops.mean(ops.square(outputs), axis=self.axis, keepdims=True)
+        outputs = outputs * ops.rsqrt(nu2 + epsilon) * self.gamma + self.beta
 
-        outputs = tf.cast(outputs, inputs.dtype)
+        outputs = ops.cast(outputs, inputs.dtype)
 
         return outputs
 
     def compute_output_shape(self, input_shape):
         return input_shape
 
-    def compute_output_signature(self, input_signature):
-        return input_signature
+    def compute_output_spec(self, input_spec):
+        return input_spec
 
     def get_config(self):
         config = super().get_config()

@@ -2,13 +2,13 @@ import os
 
 import cv2
 import numpy as np
-import tensorflow as tf
+from keras.src import testing
 
 from segme.utils.matting.np.fg import solve_fg as solve_fg_np
 from segme.utils.matting.tf.fg import solve_fg
 
 
-class TestSolveFg(tf.test.TestCase):
+class TestSolveFg(testing.TestCase):
     def test_value(self):
         image = os.path.join(
             os.path.dirname(__file__),
@@ -34,8 +34,7 @@ class TestSolveFg(tf.test.TestCase):
 
         expected_fg = solve_fg_np(image, alpha)
 
-        result = solve_fg(image[None, ...], alpha[None, ..., None])
-        result_fg = self.evaluate(result)
+        result_fg = solve_fg(image[None, ...], alpha[None, ..., None])
 
         error_fg = np.abs(expected_fg - result_fg[0]).mean()
 

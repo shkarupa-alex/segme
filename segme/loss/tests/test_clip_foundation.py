@@ -1,7 +1,4 @@
-import numpy as np
-import tensorflow as tf
-from keras.src import layers
-from keras.src import models
+from keras.src import ops
 from keras.src import testing
 
 from segme.loss.clip_foundation import ClipFoundationLoss
@@ -17,10 +14,10 @@ class TestClipFoundationLoss(testing.TestCase):
         self.assertEqual(loss.reduction, "none")
 
     def test_zeros(self):
-        logits = -10.0 * tf.one_hot(
-            tf.zeros((3, 8, 8), "int32"), 2, dtype="float32"
+        logits = -10.0 * ops.one_hot(
+            ops.zeros((3, 8, 8), "int32"), 2, dtype="float32"
         )
-        targets = tf.concat([logits, logits], axis=-1)
+        targets = ops.concatenate([logits, logits], axis=-1)
 
         result = clip_foundation_loss(
             y_true=targets,
@@ -35,10 +32,10 @@ class TestClipFoundationLoss(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_ones(self):
-        logits = 10.0 * tf.one_hot(
-            tf.zeros((3, 8, 8), "int32"), 2, dtype="float32"
+        logits = 10.0 * ops.one_hot(
+            ops.zeros((3, 8, 8), "int32"), 2, dtype="float32"
         )
-        targets = tf.concat([logits, logits], axis=-1)
+        targets = ops.concatenate([logits, logits], axis=-1)
 
         result = clip_foundation_loss(
             y_true=targets,
@@ -53,12 +50,12 @@ class TestClipFoundationLoss(testing.TestCase):
         self.assertAllClose(result, [0.0] * 3, atol=6e-3)
 
     def test_false(self):
-        logits = tf.reshape(
-            tf.range(3 * 8 * 8 * 2, dtype="float32") / (3 * 8 * 8 * 2),
+        logits = ops.reshape(
+            ops.arange(3 * 8 * 8 * 2, dtype="float32") / (3 * 8 * 8 * 2),
             [3, 8, 8, 2],
         )
-        targets = tf.reverse(logits, axis=[0])
-        targets = tf.concat([targets, targets], axis=-1)
+        targets = ops.flip(logits, axis=0)
+        targets = ops.concatenate([targets, targets], axis=-1)
 
         result = clip_foundation_loss(
             y_true=targets,
@@ -75,12 +72,12 @@ class TestClipFoundationLoss(testing.TestCase):
         )
 
     def test_true(self):
-        logits = tf.reshape(
-            tf.range(3 * 8 * 8 * 2, dtype="float32") / (3 * 8 * 8 * 2),
+        logits = ops.reshape(
+            ops.arange(3 * 8 * 8 * 2, dtype="float32") / (3 * 8 * 8 * 2),
             [3, 8, 8, 2],
         )
-        targets = tf.reverse(logits, axis=[-1])
-        targets = tf.concat([targets, targets], axis=-1)
+        targets = ops.flip(logits, axis=-1)
+        targets = ops.concatenate([targets, targets], axis=-1)
 
         result = clip_foundation_loss(
             y_true=targets,
@@ -95,11 +92,12 @@ class TestClipFoundationLoss(testing.TestCase):
         self.assertAllClose(result, [4.758, 0.0, 0.0], atol=6e-3)
 
     def test_value(self):
-        targets = tf.concat(
+        targets = ops.concatenate(
             [
-                tf.transpose(MULTI_LOGITS, [0, 3, 2, 1]),
-                tf.reshape(
-                    tf.transpose(MULTI_LOGITS, [0, 2, 1, 3]), MULTI_LOGITS.shape
+                ops.transpose(MULTI_LOGITS, [0, 3, 2, 1]),
+                ops.reshape(
+                    ops.transpose(MULTI_LOGITS, [0, 2, 1, 3]),
+                    MULTI_LOGITS.shape,
                 ),
             ],
             axis=-1,
@@ -111,11 +109,12 @@ class TestClipFoundationLoss(testing.TestCase):
         self.assertAlmostEqual(result, 94.09963, decimal=5)
 
     def test_weight(self):
-        targets = tf.concat(
+        targets = ops.concatenate(
             [
-                tf.transpose(MULTI_LOGITS, [0, 3, 2, 1]),
-                tf.reshape(
-                    tf.transpose(MULTI_LOGITS, [0, 2, 1, 3]), MULTI_LOGITS.shape
+                ops.transpose(MULTI_LOGITS, [0, 3, 2, 1]),
+                ops.reshape(
+                    ops.transpose(MULTI_LOGITS, [0, 2, 1, 3]),
+                    MULTI_LOGITS.shape,
                 ),
             ],
             axis=-1,
@@ -144,10 +143,11 @@ class TestClipFoundationLoss(testing.TestCase):
     #
     #     self.assertAlmostEqual(result0, result1, decimal=6)
 
-    def test_model(self):
-        model = models.Sequential([layers.Dense(4, activation="linear")])
-        model.compile(
-            loss="SegMe>Loss>ClipFoundationLoss",
-        )
-        model.fit(np.zeros((2, 8, 8, 4)), np.zeros((2, 8, 8, 8), "float32"))
-        models.Sequential.from_config(model.get_config())
+    # TODO: https://github.com/keras-team/keras/issues/20112
+    # def test_model(self):
+    #     model = models.Sequential([layers.Dense(4, activation="linear")])
+    #     model.compile(
+    #         loss="SegMe>Loss>ClipFoundationLoss",
+    #     )
+    #     model.fit(np.zeros((2, 8, 8, 4)), np.zeros((2, 8, 8, 8), "float32"))
+    #     models.Sequential.from_config(model.get_config())

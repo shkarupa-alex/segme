@@ -1,11 +1,11 @@
-import tensorflow as tf
+from keras.src import testing
 
 from segme.utils.common.augs.invert import _invert
 from segme.utils.common.augs.tests.testing_utils import aug_samples
 from segme.utils.common.augs.tests.testing_utils import max_diff
 
 
-class TestInvert(tf.test.TestCase):
+class TestInvert(testing.TestCase):
     def test_ref(self):
         inputs, expected = aug_samples("invert")
         augmented = _invert(inputs)

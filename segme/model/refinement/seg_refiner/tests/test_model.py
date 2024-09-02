@@ -17,9 +17,9 @@ class TestSegRefiner(testing.TestCase):
                 "mults": (1, 1, 2, 2, 4, 4),
                 "heads": 4,
             },
-            input_shape=((2, 120, 120, 3), (2, 120, 120, 1), (2,)),
+            input_shape=((2, 256, 256, 3), (2, 256, 256, 1), (2,)),
             input_dtype=("uint8", "uint8", "int32"),
-            expected_output_shape=(2, 120, 120, 1),
+            expected_output_shape=(2, 256, 256, 1),
             expected_output_dtype="float32",
         )
 
@@ -28,11 +28,11 @@ class TestSegRefiner(testing.TestCase):
         model.compile(optimizer="sgd", loss=seg_refiner_loss())
         model.fit(
             [
-                np.random.random((2, 240, 240, 3)).astype(np.uint8),
-                np.random.random((2, 240, 240, 1)).astype(np.uint8),
+                np.random.random((2, 256, 256, 3)).astype(np.uint8),
+                np.random.random((2, 256, 256, 1)).astype(np.uint8),
                 np.random.random((2,)).astype(np.uint8),
             ],
-            np.random.random((2, 240, 240, 1)).astype(np.float32),
+            np.random.random((2, 256, 256, 1)).astype(np.float32),
             epochs=1,
             batch_size=10,
         )

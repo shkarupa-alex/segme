@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras.src import ops
 
 from segme.loss import GradientMeanSquaredError
 from segme.loss import LaplacianPyramidLoss
@@ -67,13 +67,13 @@ def llap_b(b_true, b_pred, sample_weight):
     return _lap(b_true, b_pred, sample_weight)
 
 
-def total_loss(afb_true, afb_pred, sample_weight, stage=0):
-    a_true, f_true, b_true = tf.split(afb_true, [1, 3, 3], axis=-1)
-    a_pred, f_pred, b_pred = tf.split(afb_pred, [1, 3, 3], axis=-1)
+def _total_loss(afb_true, afb_pred, sample_weight, stage=0):
+    a_true, f_true, b_true = ops.split(afb_true, [1, 4], axis=-1)
+    a_pred, f_pred, b_pred = ops.split(afb_pred, [1, 4], axis=-1)
 
     a_weight, f_weight, b_weight = None, None, None
     if sample_weight is not None:
-        a_weight, f_weight, b_weight = tf.split(sample_weight, 3, axis=-1)
+        a_weight, f_weight, b_weight = ops.split(sample_weight, 3, axis=-1)
 
     _l1_a = l1_a(a_true, a_pred, sample_weight=a_weight)
     _l1_f = l1_f(f_true, f_pred, sample_weight=f_weight)
@@ -137,4 +137,4 @@ def total_loss(afb_true, afb_pred, sample_weight, stage=0):
 
 
 def fba_matting_losses(stage=0):
-    return [WeightedLossFunctionWrapper(total_loss, stage=stage)] + [None] * 3
+    return [WeightedLossFunctionWrapper(_total_loss, stage=stage)] + [None] * 3

@@ -13,8 +13,8 @@ from keras.src.utils import naming
 from segme.common.convnormact import Act
 from segme.common.convnormact import Conv
 from segme.common.convnormact import Norm
-from segme.common.mapool import MultiHeadAttentionPooling
-from segme.common.simpool import SimPool
+from segme.common.pool import MultiHeadAttentionPooling
+from segme.common.pool import SimPool
 from segme.policy import cnapol
 from segme.policy.backbone.backbone import BACKBONES
 from segme.policy.backbone.diy.hardswin import AttnBlock

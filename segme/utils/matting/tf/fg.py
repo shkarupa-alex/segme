@@ -1,11 +1,12 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
-from segme.common.shape import get_shape
+from segme.ops import squared_difference
 
 
 def _solve_fg_step(fg, da0, da1, da2, da3, denom, term0):
-    fg_pad = tf.pad(fg, ((0, 0), (1, 1), (1, 1), (0, 0)), "REFLECT")
+    fg_pad = ops.pad(fg, ((0, 0), (1, 1), (1, 1), (0, 0)), "REFLECT")
     term1 = (
         da0 * fg_pad[:, 1:-1, :-2]
         + da1 * fg_pad[:, 1:-1, 2:]
@@ -18,48 +19,35 @@ def _solve_fg_step(fg, da0, da1, da2, da3, denom, term0):
 
 
 def _solve_fg_level(level, alpha, afg, fg, height, width, levels, kappa, steps):
-    height_ = tf.cast(tf.math.round(height ** (level / levels)), "int32")
-    width_ = tf.cast(tf.math.round(width ** (level / levels)), "int32")
+    height_ = ops.cast(ops.round(height ** (level / levels)), "int32")
+    width_ = ops.cast(ops.round(width ** (level / levels)), "int32")
 
-    afg_ = tf.image.resize(
-        afg, [height_, width_], method=tf.image.ResizeMethod.AREA
-    )
-    afg_ = tf.clip_by_value(afg_, 0.0, 1.0)
+    afg_ = ops.image.resize(afg, [height_, width_], interpolation="area")
+    afg_ = ops.clip(afg_, 0.0, 1.0)
 
-    alpha_ = tf.image.resize(
-        alpha, [height_, width_], method=tf.image.ResizeMethod.AREA
-    )
-    alpha_ = tf.clip_by_value(alpha_, 0.0, 1.0)
+    alpha_ = ops.image.resize(alpha, [height_, width_], interpolation="area")
+    alpha_ = ops.clip(alpha_, 0.0, 1.0)
 
-    fg = tf.image.resize(
-        fg, [height_, width_], method=tf.image.ResizeMethod.LANCZOS5
-    )
-    fg = tf.clip_by_value(fg, 0.0, 1.0)
+    fg = ops.image.resize(fg, [height_, width_], interpolation="lanczos5")
+    fg = ops.clip(fg, 0.0, 1.0)
 
-    a00 = (1 - alpha_) ** 2
+    a00 = ops.square(1 - alpha_)
 
-    alpha_pad = tf.pad(alpha_, ((0, 0), (1, 1), (1, 1), (0, 0)), "REFLECT")
-    da0 = kappa * (a00 + (1 - alpha_pad[:, 1:-1, :-2]) ** 2)
-    da1 = kappa * (a00 + (1 - alpha_pad[:, 1:-1, 2:]) ** 2)
-    da2 = kappa * (a00 + (1 - alpha_pad[:, :-2, 1:-1]) ** 2)
-    da3 = kappa * (a00 + (1 - alpha_pad[:, 2:, 1:-1]) ** 2)
+    alpha_pad = ops.pad(alpha_, ((0, 0), (1, 1), (1, 1), (0, 0)), "REFLECT")
+    da0 = kappa * (a00 + squared_difference(1, alpha_pad[:, 1:-1, :-2]))
+    da1 = kappa * (a00 + squared_difference(1, alpha_pad[:, 1:-1, 2:]))
+    da2 = kappa * (a00 + squared_difference(1, alpha_pad[:, :-2, 1:-1]))
+    da3 = kappa * (a00 + squared_difference(1, alpha_pad[:, 2:, 1:-1]))
 
     denom = alpha_**2 + da0 + da1 + da2 + da3
     term0 = alpha_ * afg_ / denom
 
-    steps_ = tf.cast(2 ** tf.math.minimum(levels - level, 5) * steps, "int32")
+    steps_ = ops.cast(2 ** ops.minimum(levels - level, 5) * steps, "int32")
 
-    shapes = (
-        [[None, None, None, 3]]
-        + [[None, None, None, 1]] * 5
-        + [[None, None, None, 3]]
-    )
-    shapes = tuple(map(tf.TensorShape, shapes))
-    fg, _, _, _, _, _, _ = tf.while_loop(
+    fg, _, _, _, _, _, _ = ops.while_loop(
         lambda *_: True,
         _solve_fg_step,
         (fg, da0, da1, da2, da3, denom, term0),
-        shape_invariants=shapes,
         maximum_iterations=steps_,
     )
 
@@ -67,10 +55,10 @@ def _solve_fg_level(level, alpha, afg, fg, height, width, levels, kappa, steps):
 
 
 def solve_fg(image, alpha, kappa=1.0, steps=16, name=None):
-    with tf.name_scope(name or "solve_fg"):
-        image = tf.convert_to_tensor(image, "uint8")
-        alpha = tf.convert_to_tensor(alpha, "uint8")
-        steps = tf.convert_to_tensor(steps, "float32")
+    with backend.name_scope(name or "solve_fg"):
+        image = backend.convert_to_tensor(image, "uint8")
+        alpha = backend.convert_to_tensor(alpha, "uint8")
+        steps = backend.convert_to_tensor(steps, "float32")
 
         if 4 != image.shape.rank:
             raise ValueError("Expecting `image` rank to be 4.")
@@ -89,31 +77,26 @@ def solve_fg(image, alpha, kappa=1.0, steps=16, name=None):
                 "Expecting `image` and `alpha` dtype to be `uint8`."
             )
 
-        image = tf.cast(image, "float32") / 255.0
-        alpha = tf.cast(alpha, "float32") / 255.0
+        image = ops.cast(image, "float32") / 255.0
+        alpha = ops.cast(alpha, "float32") / 255.0
 
         afg = alpha * image
 
-        fg = tf.image.resize(image, (2, 2), method=tf.image.ResizeMethod.AREA)
-        fg = tf.clip_by_value(fg, 0.0, 1.0)
+        fg = ops.image.resize(image, (2, 2), interpolation="area")
+        fg = ops.clip(fg, 0.0, 1.0)
 
-        (height, width), _ = get_shape(image, axis=[1, 2], dtype="float32")
-        levels = tf.cast(tf.math.maximum(height, width), "float32")
-        levels = tf.math.ceil(tf.math.log(levels) / np.log(2))
+        height, width = ops.shape(image)[1:3]
+        levels = ops.cast(ops.maximum(height, width), "float32")
+        levels = ops.ceil(ops.log(levels) / np.log(2))
 
-        shapes = (
-            [[], [None, None, None, 1]] + [[None, None, None, 3]] * 2 + [[]] * 5
-        )
-        shapes = list(map(tf.TensorShape, shapes))
-        _, _, _, fg, _, _, _, _, _ = tf.while_loop(
+        _, _, _, fg, _, _, _, _, _ = ops.while_loop(
             lambda level, *_: level <= levels,
             _solve_fg_level,
             [1.0, alpha, afg, fg, height, width, levels, kappa, steps],
-            shape_invariants=shapes,
         )
 
-        fg = tf.clip_by_value(fg, 0.0, 1.0) * 255.0
-        fg = tf.cast(tf.round(fg), "uint8")
+        fg = ops.clip(fg, 0.0, 1.0) * 255.0
+        fg = ops.cast(ops.round(fg), "uint8")
         fg.set_shape(image.shape)
 
         return fg

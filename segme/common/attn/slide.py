@@ -1,16 +1,16 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import backend
 from keras.src import constraints
 from keras.src import initializers
 from keras.src import layers
+from keras.src import ops
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
 
 from segme.common.attn.mincon import MinConstraint
 from segme.common.attn.relbias import RelativeBias
 from segme.common.convnormact import Conv
-from segme.common.shape import get_shape
+from segme.ops import l2_normalize
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -87,10 +87,10 @@ class SlideAttention(layers.Layer):
             static_kernel[i // self.window_size, i % self.window_size, :, i] = (
                 True
             )
-        self.static_mask = tf.cast(
+        self.static_mask = ops.cast(
             static_kernel.repeat(self.qk_channels, axis=2), "bool"
         )
-        self.static_kernel = tf.cast(static_kernel, self.compute_dtype)
+        self.static_kernel = ops.cast(static_kernel, self.compute_dtype)
 
         self.deformable_kernel = self.add_weight(
             shape=(
@@ -135,7 +135,7 @@ class SlideAttention(layers.Layer):
 
     def deformable_initializer(self, shape, dtype):
         weight = initializers.GlorotUniform()(shape, dtype)
-        weight += tf.cast(self.static_kernel, dtype)
+        weight += ops.cast(self.static_kernel, dtype)
         weight = DeformableConstraint(self.window_size)(weight)
 
         return weight
@@ -143,40 +143,42 @@ class SlideAttention(layers.Layer):
     def call(self, inputs, **kwargs):
         qkv = self.qkv(inputs)
         if self.qkv_bias:
-            k_bias = tf.zeros([self.qk_channels], dtype=self.compute_dtype)
-            qkv_bias = tf.concat([self.q_bias, k_bias, self.v_bias], axis=0)
-            qkv = tf.nn.bias_add(qkv, qkv_bias)
+            k_bias = ops.zeros([self.qk_channels], dtype=self.compute_dtype)
+            qkv_bias = ops.concatenate(
+                [self.q_bias, k_bias, self.v_bias], axis=0
+            )
+            qkv = ops.add(qkv, qkv_bias)
 
-        q, k, v = tf.split(
-            qkv, [self.qk_channels, self.qk_channels, self.channels], axis=-1
+        q, k, v = ops.split(
+            qkv, [self.qk_channels, self.qk_channels * 2], axis=-1
         )
 
-        k = tf.nn.depthwise_conv2d(
+        k = ops.depthwise_conv(
             k,
             self.deformable_kernel,
-            strides=[1] * 4,
-            padding="SAME",
-            dilations=[self.dilation_rate, self.dilation_rate],
+            strides=1,
+            padding="same",
+            dilation_rate=(self.dilation_rate, self.dilation_rate),
         )
 
         v_kernel = self.deformable_kernel
         if self.channels != self.qk_channels:
-            v_kernel = tf.repeat(
+            v_kernel = ops.repeat(
                 v_kernel, self.channels // self.qk_channels, axis=2
             )
-        v = tf.nn.depthwise_conv2d(
+        v = ops.depthwise_conv(
             v,
             v_kernel,
-            strides=[1] * 4,
-            padding="SAME",
-            dilations=[self.dilation_rate, self.dilation_rate],
+            strides=1,
+            padding="same",
+            dilation_rate=(self.dilation_rate, self.dilation_rate),
         )
 
-        (batch, height, width), _ = get_shape(inputs, axis=[0, 1, 2])
-        q = tf.reshape(
+        batch, height, width = ops.shape(inputs)[:3]
+        q = ops.reshape(
             q, [batch, height, width, self.num_heads, 1, self.qk_units]
         )
-        k = tf.reshape(
+        k = ops.reshape(
             k,
             [
                 batch,
@@ -187,7 +189,7 @@ class SlideAttention(layers.Layer):
                 self.window_size**2,
             ],
         )
-        v = tf.reshape(
+        v = ops.reshape(
             v,
             [
                 batch,
@@ -199,31 +201,31 @@ class SlideAttention(layers.Layer):
             ],
         )
 
-        q = tf.math.l2_normalize(q, axis=-1, epsilon=1.55e-5)
-        k = tf.math.l2_normalize(k, axis=-2, epsilon=1.55e-5)
+        q = l2_normalize(q, axis=-1, epsilon=1.55e-5)
+        k = l2_normalize(k, axis=-2, epsilon=1.55e-5)
 
-        attn = tf.matmul(q * tf.exp(self.scale), k)
+        attn = ops.matmul(q * ops.exp(self.scale), k)
         attn += self.attn_mask(height, width)
-        attn = tf.nn.softmax(attn)
+        attn = ops.softmax(attn)
 
-        outputs = tf.matmul(attn, v, transpose_b=True)
-        outputs = tf.reshape(outputs, [batch, height, width, self.channels])
+        outputs = ops.matmul(attn, ops.moveaxis(v, -1, -2))
+        outputs = ops.reshape(outputs, [batch, height, width, self.channels])
 
         outputs = self.proj(outputs)
 
         return outputs
 
     def attn_mask(self, height, width):
-        mask = tf.ones((1, height, width, 1), dtype=self.compute_dtype)
-        mask = tf.nn.depthwise_conv2d(
+        mask = ops.ones((1, height, width, 1), dtype=self.compute_dtype)
+        mask = ops.depthwise_conv(
             mask,
-            self.static_kernel,
-            strides=[1] * 4,
-            padding="SAME",
-            dilations=[self.dilation_rate, self.dilation_rate],
+            self.static_kernel,  # TODO: static or "ones" kernel?
+            strides=1,
+            padding="same",
+            dilation_rate=(self.dilation_rate, self.dilation_rate),
         )
-        mask = tf.reshape(mask, [1, height, width, 1, 1, self.window_size**2])
-        mask = -100.0 * tf.cast(mask == 0.0, self.compute_dtype)
+        mask = ops.reshape(mask, [1, height, width, 1, 1, self.window_size**2])
+        mask = -100.0 * ops.cast(mask == 0.0, self.compute_dtype)
 
         mask += self.rel_bias(None)[None]
 
@@ -279,7 +281,7 @@ class DeformableConstraint(constraints.Constraint):
                 f"got {w.shape}"
             )
 
-        return tf.where(self.static_mask, 1.0, w)
+        return ops.where(self.static_mask, 1.0, w)
 
     def get_config(self):
         return {"window_size": self.window_size}

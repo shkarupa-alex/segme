@@ -1,6 +1,6 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import backend
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 from segme.loss.common_loss import validate_input
@@ -9,6 +9,7 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 from segme.metric.matting.grad import _gauss_filter
 from segme.metric.matting.grad import _gauss_gradient
 from segme.metric.matting.grad import _togray
+from segme.ops import squared_difference
 
 
 @register_keras_serializable(package="SegMe>Loss")
@@ -49,20 +50,20 @@ def gradient_mean_squared_error(y_true, y_pred, sample_weight, sigma):
     kernel0 = kernel0.astype(y_pred.dtype.as_numpy_dtype)
     kernel1 = kernel1.astype(y_pred.dtype.as_numpy_dtype)
 
-    kernel_x = tf.cast(kernel0, y_pred.dtype), tf.cast(kernel1, y_pred.dtype)
+    kernel_x = ops.cast(kernel0, y_pred.dtype), ops.cast(kernel1, y_pred.dtype)
     kernel_y = kernel0.transpose([1, 0, 2, 3]), kernel1.transpose([1, 0, 2, 3])
-    kernel_y = tf.cast(kernel_y[0], y_pred.dtype), tf.cast(
+    kernel_y = ops.cast(kernel_y[0], y_pred.dtype), ops.cast(
         kernel_y[1], y_pred.dtype
     )
 
     y_pred_x, y_pred_y = _gauss_gradient(y_pred, size, kernel_x, kernel_y)
     y_true_x, y_true_y = _gauss_gradient(y_true, size, kernel_x, kernel_y)
 
-    pred_amp = tf.sqrt(y_pred_x**2 + y_pred_y**2 + backend.epsilon())
-    true_amp = tf.sqrt(y_true_x**2 + y_true_y**2 + backend.epsilon())
-    true_amp = tf.stop_gradient(true_amp)
+    pred_amp = ops.sqrt(y_pred_x**2 + y_pred_y**2 + backend.epsilon())
+    true_amp = ops.sqrt(y_true_x**2 + y_true_y**2 + backend.epsilon())
+    true_amp = ops.stop_gradient(true_amp)
 
-    loss = tf.math.squared_difference(pred_amp, true_amp)
+    loss = squared_difference(pred_amp, true_amp)
     loss = weighted_loss(loss, sample_weight)
 
     return loss

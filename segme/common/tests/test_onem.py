@@ -1,16 +1,15 @@
 from keras.src import testing
 
-from segme.common.gavg import GlobalAverage
+from segme.common.onem import OneMinus
 
 
-class TestGlobalAverage(testing.TestCase):
-
+class TestOneMinus(testing.TestCase):
     def test_layer(self):
         self.run_layer_test(
-            GlobalAverage,
+            OneMinus,
             init_kwargs={},
-            input_shape=(2, 36, 36, 3),
+            input_shape=(2, 8, 8, 4),
             input_dtype="float32",
-            expected_output_shape=(2, 36, 36, 3),
+            expected_output_shape=(2, 8, 8, 4),
             expected_output_dtype="float32",
         )

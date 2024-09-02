@@ -1,20 +1,25 @@
-import keras
 from keras.src import layers
 from keras.src import models
 
 from segme.common.convnormact import ConvNormAct
+from segme.common.head import ClassificationActivation
+from segme.common.onem import OneMinus
 from segme.common.resize import BilinearInterpolation
 from segme.common.sequence import Sequence
 
 
 def HierarchicalMultiScaleAttention(
-    model, features, logits, scales, filters=256, dropout=0.0
+    model, features, logits, scales, filters=256, dropout=0.0, dtype=None
 ):
-    if not isinstance(model, keras.Model):
+    # Use scales (0.5,) for training and (0.25, 0.5, 2.0) for inference
+    if not isinstance(model, models.Model):
         raise ValueError(
-            f"Expecting teacher model to be an instance of `keras.Model`. "
+            f"Expecting model to be an instance of `keras.Model`. "
             f"Got: {type(model)}"
         )
+
+    if 1 != len(model.inputs):
+        raise ValueError("Models with multiple inputs not supported.")
 
     scales = sorted({1.0} | set(scales), reverse=True)
     if len(scales) < 2:
@@ -22,78 +27,83 @@ def HierarchicalMultiScaleAttention(
             "Expecting `scales` to have at least one more scale except `1`."
         )
 
-    model = models.Model(
-        inputs=model.inputs[0],
+    model_ = models.Model(
+        inputs=model.inputs,
         outputs=(
             model.get_layer(name=features).output,
             model.get_layer(name=logits).output,
         ),
     )
+    attention = Sequence(
+        [
+            ConvNormAct(filters, 3, name="attention_cna1"),
+            ConvNormAct(filters, 3, name="attention_cna2"),
+            layers.Dropout(dropout, name="_drop"),
+            layers.Conv2D(
+                1,
+                1,
+                activation="sigmoid",
+                use_bias=False,
+                name="attention_proj",
+            ),
+        ],
+        name="attention",
+    )
 
-    inputs = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
+    inputs = layers.Input(
+        name="image",
+        shape=model_.inputs[0].shape[1:],
+        dtype=model_.inputs[0].dtype,
+    )
 
-    outputs = None
+    logits = None
     for i, scale in enumerate(scales):
-        _inputs = BilinearInterpolation(scale, name=f"resize_inputs{i}")(inputs)
-        _features, _logits = model(_inputs)
+        inputs_ = BilinearInterpolation(scale, name=f"resize_inputs_{i}")(
+            inputs
+        )
+        features_, logits_ = model_(inputs_)
 
-        if outputs is None:
-            outputs = _logits
+        if logits is None:
+            logits = logits_
             continue
 
-        _attention = Sequence(
-            [
-                ConvNormAct(filters, 3, name=f"attention{i}_cna1"),
-                ConvNormAct(filters, 3, name=f"attention{i}_cna2"),
-                layers.Dropout(dropout, name=f"attention{i}_drop"),
-                layers.Conv2D(
-                    1,
-                    1,
-                    activation="sigmoid",
-                    use_bias=False,
-                    name=f"attention{i}_proj",
-                ),
-            ],
-            name=f"attention{i}",
-        )(_features)
-        _attention = BilinearInterpolation(None, name=f"resize_attention{i}")(
-            [_attention, _inputs]
-        )
+        attention_ = attention(features_)
 
         if scale >= 1.0:
             # downscale previous
-            outputs = BilinearInterpolation(None, name=f"resize_outputs{i}")(
-                [outputs, _logits]
+            attention_ = BilinearInterpolation(name=f"resize_attention_{i}")(
+                [attention_, logits_]
             )
-            outputs = layers.add(
-                [
-                    layers.multiply([_attention, _logits])
-                    + layers.multiply(
-                        [layers.subtract([1.0, _attention]), outputs]
-                    )
-                ]
+            logits = BilinearInterpolation(name=f"resize_outputs_{i}")(
+                [logits, logits_]
             )
-        else:
+        elif scale < 1.0:
             # upscale current
-            _logits = layers.multiply(
-                [_attention, _logits], name=f"multiply_outputs{i}_left"
+            attention_ = BilinearInterpolation(name=f"resize_attention_{i}")(
+                [attention_, logits]
             )
-            _logits = BilinearInterpolation(
-                None, name=f"resize_outputs{i}_left"
-            )([_logits, outputs])
-            _attention = BilinearInterpolation(
-                None, name=f"resize_outputs{i}_right"
-            )([_attention, outputs])
-
-            outputs = layers.add(
-                [
-                    _logits,
-                    layers.multiply(
-                        [layers.subtract([1.0, _attention]), outputs]
-                    ),
-                ]
+            logits_ = BilinearInterpolation(name=f"resize_outputs{i}_left")(
+                [logits_, logits]
             )
 
-    model = models.Model(inputs=inputs, outputs=outputs)
+        logits = layers.add(
+            [
+                layers.multiply(
+                    [
+                        OneMinus(name=f"attention_{i}_invert")(attention_),
+                        logits,
+                    ],
+                    name=f"attention_{i}_prev",
+                ),
+                layers.multiply(
+                    [attention_, logits_], name=f"attention_{i}_curr"
+                ),
+            ],
+            name=f"attention_{i}_add",
+        )
 
-    return model
+    probs = ClassificationActivation(name="act")(logits)
+
+    model_ = models.Model(inputs=inputs, outputs=probs)
+
+    return model_

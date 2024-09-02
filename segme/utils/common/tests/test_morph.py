@@ -1,12 +1,13 @@
 import cv2
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import testing
 
 from segme.utils.common.morph import dilate
 from segme.utils.common.morph import erode
 
 
-class TestErodeDilate(tf.test.TestCase):
+class TestErodeDilate(testing.TestCase):
     inputs = np.array(
         [
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -35,8 +36,9 @@ class TestErodeDilate(tf.test.TestCase):
                 iterations,
                 strict=True,
             )
-            result = self.evaluate(result).astype("uint8")[0, ..., 0]
-            self.assertAllEqual(expected, result)
+            result = backend.convert_to_numpy(result)
+            result = result.astype("uint8")[0, ..., 0]
+            self.assertAlmostEqual(expected, result)
 
     def test_erode_5(self):
         inputs = np.pad(self.inputs, 8, mode="constant")
@@ -48,8 +50,9 @@ class TestErodeDilate(tf.test.TestCase):
         result = erode(
             inputs.astype("int32")[None, ..., None], 5, 1, strict=True
         )
-        result = self.evaluate(result).astype("uint8")[0, ..., 0]
-        self.assertAllEqual(expected, result)
+        result = backend.convert_to_numpy(result)
+        result = result.astype("uint8")[0, ..., 0]
+        self.assertAlmostEqual(expected, result)
 
     def test_dilate_3(self):
         inputs = np.pad(self.inputs, 8, mode="constant")
@@ -66,8 +69,9 @@ class TestErodeDilate(tf.test.TestCase):
                 iterations,
                 strict=True,
             )
-            result = self.evaluate(result).astype("uint8")[0, ..., 0]
-            self.assertAllEqual(expected, result)
+            result = backend.convert_to_numpy(result)
+            result = result.astype("uint8")[0, ..., 0]
+            self.assertAlmostEqual(expected, result)
 
     def test_dilate_5(self):
         inputs = np.pad(self.inputs, 8, mode="constant")
@@ -79,5 +83,6 @@ class TestErodeDilate(tf.test.TestCase):
         result = dilate(
             inputs.astype("int32")[None, ..., None], 5, 1, strict=True
         )
-        result = self.evaluate(result).astype("uint8")[0, ..., 0]
-        self.assertAllEqual(expected, result)
+        result = backend.convert_to_numpy(result)
+        result = result.astype("uint8")[0, ..., 0]
+        self.assertAlmostEqual(expected, result)

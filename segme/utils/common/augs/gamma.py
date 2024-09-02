@@ -1,38 +1,39 @@
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
-from segme.common.shape import get_shape
+from segme.ops import adjust_gamma
+from segme.ops import convert_image_dtype
 from segme.utils.common.augs.common import apply
-from segme.utils.common.augs.common import convert
 from segme.utils.common.augs.common import validate
 
 
 def gamma(image, masks, weight, prob, factor, invert, name=None):
-    with tf.name_scope(name or "gamma"):
+    with backend.name_scope(name or "gamma"):
         return apply(
             image,
             masks,
             weight,
             prob,
             lambda x: _gamma(x, factor, invert),
-            tf.identity,
-            tf.identity,
+            None,
+            None,
         )
 
 
 def _gamma(image, factor, invert, name=None):
-    with tf.name_scope(name or "gamma_"):
+    with backend.name_scope(name or "gamma_"):
         image, _, _ = validate(image, None, None)
-        invert = tf.convert_to_tensor(invert)
+        invert = backend.convert_to_tensor(invert)
 
         if invert.shape.rank:
-            (batch,), _ = get_shape(image, axis=[0])
+            batch = ops.shape(image)[0]
             invert = invert[:batch]
 
         dtype = image.dtype
-        image = convert(image, "float32")
+        image = convert_image_dtype(image, "float32")
 
-        image = tf.where(invert, 1.0 - image, image)
-        image = tf.image.adjust_gamma(image, factor)
-        image = tf.where(invert, 1.0 - image, image)
+        image = ops.where(invert, 1.0 - image, image)
+        image = adjust_gamma(image, factor)
+        image = ops.where(invert, 1.0 - image, image)
 
-        return convert(image, dtype, saturate=True)
+        return convert_image_dtype(image, dtype, saturate=True)

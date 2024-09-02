@@ -1,13 +1,13 @@
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 
-from segme.common.shape import get_shape
 from segme.utils.common.morph import dilate
 from segme.utils.common.morph import erode
 
 
 def alpha_trimap(alpha, size, name=None):
-    with tf.name_scope(name or "alpha_trimap"):
-        alpha = tf.convert_to_tensor(alpha, "uint8")
+    with backend.name_scope(name or "alpha_trimap"):
+        alpha = backend.convert_to_tensor(alpha, "uint8")
 
         if 4 != alpha.shape.rank:
             raise ValueError("Expecting `alpha` rank to be 4.")
@@ -19,10 +19,10 @@ def alpha_trimap(alpha, size, name=None):
             raise ValueError("Expecting `alpha` dtype to be `uint8`.")
 
         if isinstance(size, tuple) and 2 == len(size):
-            iterations = tf.random.uniform(
+            iterations = ops.random.uniform(
                 [2], size[0], size[1] + 1, dtype="int32"
             )
-            iterations = tf.unstack(iterations)
+            iterations = ops.unstack(iterations)
         elif isinstance(size, int):
             iterations = size, size
         else:
@@ -31,16 +31,15 @@ def alpha_trimap(alpha, size, name=None):
                 "a tuple of [min; max] margins."
             )
 
-        eroded = tf.cast(tf.equal(alpha, 255), "int32")
+        eroded = ops.cast(ops.equal(alpha, 255), "int32")
         eroded = erode(eroded, 3, iterations[0])
 
-        dilated = tf.cast(tf.greater(alpha, 0), "int32")
+        dilated = ops.cast(ops.greater(alpha, 0), "int32")
         dilated = dilate(dilated, 3, iterations[1])
 
-        shape, _ = get_shape(alpha)
-        trimap = tf.fill(shape, 128)
-        trimap = tf.where(tf.equal(eroded, 1 - iterations[0]), 255, trimap)
-        trimap = tf.where(tf.equal(dilated, iterations[1]), 0, trimap)
-        trimap = tf.cast(trimap, "uint8")
+        shape = ops.shape(alpha)
+        trimap = ops.full(shape, 128, "uint8")
+        trimap = ops.where(ops.equal(eroded, 1 - iterations[0]), 255, trimap)
+        trimap = ops.where(ops.equal(dilated, iterations[1]), 0, trimap)
 
         return trimap

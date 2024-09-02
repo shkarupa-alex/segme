@@ -1,7 +1,9 @@
-import tensorflow as tf
 from keras.src import layers
 from keras.src.layers.input_spec import InputSpec
 from keras.src.saving import register_keras_serializable
+
+from segme.ops import depth_to_space
+from segme.ops import space_to_depth
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -23,7 +25,7 @@ class Fold(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs = tf.nn.space_to_depth(inputs, self.size)
+        outputs = space_to_depth(inputs, self.size)
 
         return outputs
 
@@ -68,7 +70,7 @@ class UnFold(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        outputs = tf.nn.depth_to_space(inputs, self.size)
+        outputs = depth_to_space(inputs, self.size)
 
         return outputs
 

@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from keras.src import ops
+from keras.src.utils import file_utils
 
 from segme.utils.albumentations import drop_unapplied
 from segme.utils.common import rand_augment_full
@@ -461,27 +463,27 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
                     mask_path = image_path.replace(
                         image_ext, "-mask_manfix.png"
                     )
-                    if not os.path.exists(mask_path):
+                    if not file_utils.exists(mask_path):
                         mask_path = image_path.replace(
                             image_ext, "-mask_autofix.png"
                         )
-                    if not os.path.exists(mask_path):
+                    if not file_utils.exists(mask_path):
                         mask_path = image_path.replace(image_ext, "-mask.png")
-                    if not os.path.exists(mask_path):
+                    if not file_utils.exists(mask_path):
                         raise ValueError(
                             f"Unable to locate mask for {image_path}"
                         )
 
                     alpha_path = image_path.replace(image_ext, "-alpha.png")
-                    if not os.path.exists(alpha_path):
+                    if not file_utils.exists(alpha_path):
                         alpha_path = image_path.replace(
                             image_ext, "-alpha_auto.png"
                         )
-                    if not os.path.exists(alpha_path):
+                    if not file_utils.exists(alpha_path):
                         alpha_path = image_path.replace(
                             image_ext, "-trimap.png"
                         )
-                    if not os.path.exists(alpha_path):
+                    if not file_utils.exists(alpha_path):
                         alpha_path = None
 
                     depth_path = None
@@ -489,7 +491,7 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
                         depth_path = image_path.replace(
                             image_ext, "-depth_auto.jpg"
                         )
-                        if not os.path.exists(depth_path):
+                        if not file_utils.exists(depth_path):
                             raise ValueError(
                                 f"Unable to locate depth for {image_path}"
                             )
@@ -503,7 +505,7 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
         mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
 
         large = None
-        if os.path.exists(image_file.replace("-image.", "-image_super.")):
+        if file_utils.exists(image_file.replace("-image.", "-image_super.")):
             large = cv2.cvtColor(
                 cv2.imread(image_file.replace("-image.", "-image_super.")),
                 cv2.COLOR_BGR2RGB,
@@ -629,35 +631,35 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
 @tf.function(jit_compile=True)
 def _resize_examples(examples, with_trimap, with_depth):
     result = {
-        "image": tf.image.resize(
+        "image": ops.image.resize(
             examples["image"],
             [MIN_SIZE, MIN_SIZE],
-            method=tf.image.ResizeMethod.BILINEAR,
+            interpolation="bilinear",
         ),
-        "mask": tf.image.resize(
+        "mask": ops.image.resize(
             examples["mask"],
             [MIN_SIZE, MIN_SIZE],
-            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR,
+            interpolation="nearest",
         ),
-        "weight": tf.image.resize(
+        "weight": ops.image.resize(
             examples["weight"],
             [MIN_SIZE, MIN_SIZE],
-            method=tf.image.ResizeMethod.BILINEAR,
+            interpolation="bilinear",
         ),
     }
 
     if with_trimap:
-        result["trimap"] = tf.image.resize(
+        result["trimap"] = ops.image.resize(
             examples["trimap"],
             [MIN_SIZE, MIN_SIZE],
-            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR,
+            interpolation="nearest",
         )
 
     if with_depth:
-        result["depth"] = tf.image.resize(
+        result["depth"] = ops.image.resize(
             examples["depth"],
             [MIN_SIZE, MIN_SIZE],
-            method=tf.image.ResizeMethod.BILINEAR,
+            interpolation="bilinear",
         )
 
     return result
@@ -668,16 +670,16 @@ def _transform_examples(
     examples, augment, with_trimap, with_depth, backbone_scales, max_weight
 ):
     images = examples["image"]
-    labels = tf.cast(examples["mask"] > 127, "int32")
-    weights = tf.cast(examples["weight"], "float32") * (max_weight / 255.0)
+    labels = ops.cast(examples["mask"] > 127, "int32")
+    weights = ops.cast(examples["weight"], "float32") * (max_weight / 255.0)
     masks = [labels, weights]
 
     if with_trimap:
         trimaps = examples["trimap"]
-        trimaps = tf.cast(trimaps // 86, "int32") * 128
-        trimaps = tf.cast(tf.clip_by_value(trimaps, 0, 255), "uint8")
+        trimaps = ops.cast(trimaps // 86, "int32") * 128
+        trimaps = ops.cast(ops.clip(trimaps, 0, 255), "uint8")
         trimaps = alpha_trimap_tf(trimaps, (0, 8))
-        trimaps = tf.cast(trimaps // 86, "int32")
+        trimaps = ops.cast(trimaps // 86, "int32")
         masks.append(trimaps)
 
     if with_depth:
@@ -704,7 +706,7 @@ def _transform_examples(
 
     if with_depth:
         targets.append(masks[0])
-        valid_weights = tf.cast(sample_weights[0] > 0.0, "float32")
+        valid_weights = ops.cast(sample_weights[0] > 0.0, "float32")
         sample_weights.append(valid_weights)
 
     if not with_depth and not with_trimap:

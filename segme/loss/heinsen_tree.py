@@ -1,8 +1,8 @@
 import numpy as np
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
-from segme.common.shape import get_shape
 from segme.loss.common_loss import crossentropy
 from segme.loss.common_loss import to_logits
 from segme.loss.common_loss import validate_input
@@ -14,7 +14,7 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 class HeinsenTreeLoss(WeightedLossFunctionWrapper):
     """Proposed in: 'Tree Methods for Hierarchical Classification in Parallel'
 
-    Implements equation [1-13] in https://arxiv.org/pdf/2209.10288.pdf
+    Implements equation [1-13] in https://arxiv.org/pdf/2209.10288
     """
 
     def __init__(
@@ -85,13 +85,13 @@ def heinsen_tree_loss(
     )
     valid_mask = tree_paths.T == np.arange(tree_classes)[None]
 
-    tree_paths = tf.convert_to_tensor(tree_paths, dtype="int64")
-    valid_mask = tf.convert_to_tensor(valid_mask[None], dtype="bool")
+    tree_paths = backend.convert_to_tensor(tree_paths, dtype="int64")
+    valid_mask = backend.convert_to_tensor(valid_mask[None], dtype="bool")
 
-    y_true_tree = tf.reshape(y_true, [-1])
-    y_true_tree = tf.gather(tree_paths, y_true_tree)
+    y_true_tree = ops.reshape(y_true, [-1])
+    y_true_tree = ops.take(tree_paths, y_true_tree, axis=0)
 
-    y_pred_tree = tf.reshape(y_pred, [-1, 1, tree_classes])
+    y_pred_tree = ops.reshape(y_pred, [-1, 1, tree_classes])
     if label_smoothing:
         if force_binary:
             invalid_logit = np.log(-label_smoothing / (label_smoothing - 2))
@@ -105,10 +105,11 @@ def heinsen_tree_loss(
             )
     else:
         invalid_logit = -100.0
-    y_pred_tree = tf.where(valid_mask, y_pred_tree, invalid_logit)
+    y_pred_tree = ops.where(valid_mask, y_pred_tree, invalid_logit)
 
-    y_valid_tree = tf.not_equal(y_true_tree, -1)
+    y_valid_tree = ops.not_equal(y_true_tree, -1)
     y_true_tree = y_true_tree[y_valid_tree]
+    y_true_tree = ops.stop_gradient(y_true_tree)
     y_pred_tree = y_pred_tree[y_valid_tree]
 
     loss = crossentropy(
@@ -121,41 +122,40 @@ def heinsen_tree_loss(
     )
 
     if "mean" == level_weighting:
-        level_weight = tf.cast(y_valid_tree, loss.dtype)
+        level_weight = ops.cast(y_valid_tree, loss.dtype)
     elif "linear" == level_weighting:
-        level_range = tf.range(1, num_levels + 1, dtype=loss.dtype)
-        level_weight = tf.cast(y_valid_tree, loss.dtype) * level_range[None]
+        level_range = ops.arange(1, num_levels + 1, dtype=loss.dtype)
+        level_weight = ops.cast(y_valid_tree, loss.dtype) * level_range[None]
     elif "log" == level_weighting:
-        level_range = tf.range(2, num_levels + 2, dtype=loss.dtype)
-        level_range = tf.math.log(level_range)
-        level_weight = tf.cast(y_valid_tree, loss.dtype) * level_range[None]
+        level_range = ops.arange(2, num_levels + 2, dtype=loss.dtype)
+        level_range = ops.log(level_range)
+        level_weight = ops.cast(y_valid_tree, loss.dtype) * level_range[None]
     elif "pow" == level_weighting:
-        level_range = tf.range(1, num_levels + 1, dtype=loss.dtype)
+        level_range = ops.arange(1, num_levels + 1, dtype=loss.dtype)
         level_range = (1.0 + 1.0 / num_levels) ** level_range
-        level_weight = tf.cast(y_valid_tree, loss.dtype) * level_range[None]
+        level_weight = ops.cast(y_valid_tree, loss.dtype) * level_range[None]
     elif "cumsum" == level_weighting:
-        level_range = tf.range(1, num_levels + 1, dtype=loss.dtype)
-        level_range = tf.cumsum(level_range)
-        level_weight = tf.cast(y_valid_tree, loss.dtype) * level_range[None]
+        level_range = ops.arange(1, num_levels + 1, dtype=loss.dtype)
+        level_range = ops.cumsum(level_range)
+        level_weight = ops.cast(y_valid_tree, loss.dtype) * level_range[None]
     elif level_weighting:
         raise ValueError(f"Unknown level weighting mode {level_weighting}")
 
     if level_weighting:
-        level_weight /= tf.reduce_sum(level_weight, axis=-1, keepdims=True)
+        level_weight /= ops.sum(level_weight, axis=-1, keepdims=True)
         level_weight = level_weight[y_valid_tree]
+        level_weight = ops.stop_gradient(level_weight)
         loss *= level_weight
 
     sample_segment = (
-        tf.cast(y_valid_tree, "int64")
-        * tf.range(tf.size(y_true), dtype="int64")[:, None]
+        ops.cast(y_valid_tree, "int64")
+        * ops.arange(ops.size(y_true), dtype="int64")[:, None]
     )
-    sample_segment = tf.reshape(sample_segment[y_valid_tree], [-1])
-    loss = tf.math.unsorted_segment_sum(
-        loss, sample_segment, num_segments=tf.size(y_true)
-    )
+    sample_segment = ops.reshape(sample_segment[y_valid_tree], [-1])
+    loss = ops.segment_sum(loss, sample_segment, num_segments=ops.size(y_true))
 
-    shape, _ = get_shape(y_true)
-    loss = tf.reshape(loss, shape)
+    shape = ops.shape(y_true)
+    loss = ops.reshape(loss, shape)
     loss.set_shape(y_true.shape)
 
     loss = weighted_loss(loss, sample_weight)

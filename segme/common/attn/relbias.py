@@ -1,6 +1,6 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import layers
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 from segme.common.sequence import Sequence
@@ -44,7 +44,7 @@ class RelativeBias(layers.Layer):
         rel_tab *= 8.0 / (self.pretrain_window - 1.0)
         rel_tab = np.sign(rel_tab) * np.log1p(np.abs(rel_tab)) / np.log(8)
         rel_tab = np.reshape(rel_tab, [-1, 2])
-        self.rel_tab = tf.cast(rel_tab, self.compute_dtype)
+        self.rel_tab = ops.cast(rel_tab, self.compute_dtype)
 
         query_idx = np.arange(self.query_window)
         query_idx = np.stack(
@@ -60,7 +60,7 @@ class RelativeBias(layers.Layer):
             rel_idx[0] * (self.query_window + self.key_window - 1) + rel_idx[1]
         )
         rel_idx = np.reshape(rel_idx, [-1])
-        self.rel_idx = tf.cast(rel_idx, "int32")
+        self.rel_idx = ops.cast(rel_idx, "int32")
 
         self.cpb = Sequence(
             [
@@ -87,18 +87,16 @@ class RelativeBias(layers.Layer):
 
     def call(self, inputs, **kwargs):
         outputs = self.cpb(self.rel_tab) * 16.0
-        outputs = tf.gather(outputs, self.rel_idx)
-        outputs = tf.reshape(
+        outputs = ops.take(outputs, self.rel_idx, axis=0)
+        outputs = ops.reshape(
             outputs, [self.query_window**2, self.key_window**2, self.num_heads]
         )
-        outputs = tf.transpose(outputs, perm=[2, 0, 1])[None, None]
+        outputs = ops.transpose(outputs, [2, 0, 1])[None, None]
 
         return outputs
 
     def compute_output_shape(self, input_shape):
-        return tf.TensorShape(
-            [1, 1, self.num_heads, self.query_window**2, self.key_window**2]
-        )
+        return 1, 1, self.num_heads, self.query_window**2, self.key_window**2
 
     def get_config(self):
         config = super().get_config()

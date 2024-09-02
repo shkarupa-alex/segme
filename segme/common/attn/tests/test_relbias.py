@@ -1,13 +1,12 @@
 import numpy as np
-import tensorflow as tf
 from keras.src import backend
+from keras.src import ops
 from keras.src import testing
 
 from segme.common.attn.relbias import RelativeBias
 
 
 class TestRelativeBias(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             RelativeBias,
@@ -4645,27 +4644,27 @@ class TestRelativeBias(testing.TestCase):
     def test_reduce(self):
         layer10 = RelativeBias(10, 10, 10, 1)
         layer10.build(None)
-        expected = tf.gather(layer10.rel_tab, layer10.rel_idx)
-        expected = tf.reshape(expected, [10] * 4 + [2])
+        expected = ops.take(layer10.rel_tab, layer10.rel_idx, axis=0)
+        expected = ops.reshape(expected, [10] * 4 + [2])
         expected = expected[2:-2, 2:-2, 2:-2, 2:-2]
 
         layer6 = RelativeBias(6, 6, 10, 1)
         layer6.build(None)
-        result = tf.gather(layer6.rel_tab, layer6.rel_idx)
-        result = tf.reshape(result, [6] * 4 + [2])
+        result = ops.take(layer6.rel_tab, layer6.rel_idx, axis=0)
+        result = ops.reshape(result, [6] * 4 + [2])
 
         self.assertAllClose(expected, result)
 
     def test_finetune(self):
         layer6 = RelativeBias(6, 6, 6, 1)
         layer6.build(None)
-        expected = tf.gather(layer6.rel_tab, layer6.rel_idx)
-        expected = tf.reshape(expected, [6] * 4 + [2])
+        expected = ops.take(layer6.rel_tab, layer6.rel_idx, axis=0)
+        expected = ops.reshape(expected, [6] * 4 + [2])
 
         layer10 = RelativeBias(10, 10, 6, 1)
         layer10.build(None)
-        result = tf.gather(layer10.rel_tab, layer10.rel_idx)
-        result = tf.reshape(result, [10] * 4 + [2])
+        result = ops.take(layer10.rel_tab, layer10.rel_idx, axis=0)
+        result = ops.reshape(result, [10] * 4 + [2])
         result = result[2:-2, 2:-2, 2:-2, 2:-2]
 
         self.assertAllClose(expected, result)
@@ -4673,13 +4672,13 @@ class TestRelativeBias(testing.TestCase):
     def test_halo(self):
         layer6 = RelativeBias(6, 6, 6, 1)
         layer6.build(None)
-        expected = tf.gather(layer6.rel_tab, layer6.rel_idx)
-        expected = tf.reshape(expected, [6] * 4 + [2])
+        expected = ops.take(layer6.rel_tab, layer6.rel_idx, axis=0)
+        expected = ops.reshape(expected, [6] * 4 + [2])
 
         layer12 = RelativeBias(6, 12, 6, 1)
         layer12.build(None)
-        result = tf.gather(layer12.rel_tab, layer12.rel_idx)
-        result = tf.reshape(result, [6] * 2 + [12] * 2 + [2])
+        result = ops.take(layer12.rel_tab, layer12.rel_idx, axis=0)
+        result = ops.reshape(result, [6] * 2 + [12] * 2 + [2])
         result = result[:, :, 3:-3, 3:-3]
 
         self.assertAllClose(expected, result)

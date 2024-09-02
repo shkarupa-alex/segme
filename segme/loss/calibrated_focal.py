@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras.src import ops
 from keras.src.saving import register_keras_serializable
 
 from segme.loss.common_loss import crossentropy
@@ -12,7 +12,7 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 class CalibratedFocalCrossEntropy(WeightedLossFunctionWrapper):
     """Proposed in: 'Calibrating Deep Neural Networks using Focal Loss'
 
-    Implements Equations from https://arxiv.org/pdf/2002.09437.pdf
+    Implements Equations from https://arxiv.org/pdf/2002.09437
     Note: remember to use focal loss trick: initialize last layer's bias with
     small negative value like -1.996
     """
@@ -61,19 +61,19 @@ def calibrated_focal_cross_entropy(
     y_prob, _ = to_probs(y_pred, from_logits, force_binary=False)
     y_true_1h, y_prob_1h = to_1hot(y_true, y_prob, False, dtype=y_prob.dtype)
 
-    p_t = tf.reduce_sum(y_true_1h * y_prob_1h, axis=-1, keepdims=True)
+    p_t = ops.sum(y_true_1h * y_prob_1h, axis=-1, keepdims=True)
 
-    gamma = tf.where(tf.less(p_t, prob0), gamma0, gamma1)
-    gamma = tf.where(tf.greater_equal(p_t, prob1), 0.0, gamma)
+    gamma = ops.where(p_t < prob0, gamma0, gamma1)
+    gamma = ops.where(p_t >= prob1, 0.0, gamma)
 
-    modulating_factor = tf.pow(1.0 - p_t, gamma)
+    modulating_factor = ops.power(1.0 - p_t, gamma)
 
     sample_weight = (
         modulating_factor
         if sample_weight is None
         else modulating_factor * sample_weight
     )
-    sample_weight = tf.stop_gradient(sample_weight)
+    sample_weight = ops.stop_gradient(sample_weight)
 
     loss = crossentropy(
         y_true,

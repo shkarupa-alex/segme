@@ -8,7 +8,6 @@ from segme.common.head import HeadProjection
 
 
 class TestHeadProjection(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             HeadProjection,
@@ -29,7 +28,6 @@ class TestHeadProjection(testing.TestCase):
 
 
 class TestClassificationActivation(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             ClassificationActivation,
@@ -50,7 +48,6 @@ class TestClassificationActivation(testing.TestCase):
 
 
 class TestClassificationHead(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             ClassificationHead,
@@ -108,7 +105,6 @@ class TestClassificationHead(testing.TestCase):
 
 
 class TestClassificationUncertainty(testing.TestCase):
-
     def test_layer(self):
         self.run_layer_test(
             ClassificationUncertainty,
