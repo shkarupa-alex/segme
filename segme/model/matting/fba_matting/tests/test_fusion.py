@@ -1,6 +1,5 @@
 import numpy as np
 from keras.src import testing
-from tensorflow.python.keras.utils.version_utils import training
 
 from segme.model.matting.fba_matting.fusion import Fusion
 
@@ -1095,7 +1094,9 @@ class TestFusion(testing.TestCase):
         alfgbg = np.concatenate(
             [source_alpha, source_foreground, source_background], axis=-1
         )
-        _, alpha, foreground, background = Fusion()([source_image, alfgbg], training=False)
+        _, alpha, foreground, background = Fusion()(
+            [source_image, alfgbg], training=False
+        )
 
         self.assertAllClose(foreground, expect_foreground)
         self.assertAllClose(background, expect_background)

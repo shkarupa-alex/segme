@@ -13,9 +13,16 @@ class Encoder(layers.Layer):
         self.input_spec = InputSpec(ndim=4, axes={-1: 6})
 
     def build(self, input_shape):
-        inputs = layers.Input(name="inputs", shape=(None, None, 6), dtype=self.compute_dtype)
-        backbone = Backbone([2, 4, 32], inputs, "resnet_rs_50_s8-imagenet", dtype=self.compute_dtype)
-        backbone = patch_channels(backbone, [0.408] * 3, [0.492 ** 2] * 3)
+        inputs = layers.Input(
+            name="inputs", shape=(None, None, 6), dtype=self.compute_dtype
+        )
+        backbone = Backbone(
+            [2, 4, 32],
+            inputs,
+            "resnet_rs_50_s8-imagenet",
+            dtype=self.compute_dtype,
+        )
+        backbone = patch_channels(backbone, [0.408] * 3, [0.492**2] * 3)
         self.backbone = backbone
 
         super().build(input_shape)

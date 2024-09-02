@@ -1,11 +1,5 @@
 import jax
 import jax.numpy as jnp
-import jax.scipy as jsp
-from keras.src.backend import config
-from keras.src.backend import standardize_dtype
-from keras.src.backend.common import dtypes
-from keras.src.backend.jax.core import cast
-from keras.src.backend.jax.core import convert_to_tensor
 
 
 def l2_normalize(x, axis=-1, epsilon=1e-12):

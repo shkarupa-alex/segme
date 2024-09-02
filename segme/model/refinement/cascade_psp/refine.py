@@ -50,7 +50,8 @@
 #             image = Refiner._resize_max_side(
 #                 image, max_size, cv2.INTER_LANCZOS4
 #             )
-#             mask = Refiner._resize_max_side(mask, max_size, cv2.INTER_LANCZOS4)
+#             mask = Refiner._resize_max_side(
+#               mask, max_size, cv2.INTER_LANCZOS4)
 #         elif max(height_width) > max_size:
 #             image = Refiner._resize_max_side(image, max_size, cv2.INTER_AREA)
 #             mask = Refiner._resize_max_side(mask, max_size, cv2.INTER_AREA)
@@ -75,13 +76,15 @@
 #
 #         return fine, coarse
 #
-#     def _local_step(self, image, fine, coarse, max_size, up_scale, padding=16):
+#     def _local_step(
+#       self, image, fine, coarse, max_size, up_scale, padding=16):
 #         src_shape = image.shape[:2]
 #
 #         if up_scale > 1:
 #             up_size = max(src_shape) * up_scale
 #             up_size = round(up_size)
-#             image = Refiner._resize_max_side(image, up_size, cv2.INTER_LANCZOS4)
+#             image = Refiner._resize_max_side(
+#               image, up_size, cv2.INTER_LANCZOS4)
 #             fine = Refiner._resize_max_side(fine, up_size, cv2.INTER_LANCZOS4)
 #             fine = (fine > 127).astype("uint8") * 255
 #             coarse = Refiner._resize_max_side(
@@ -226,7 +229,8 @@
 #         )
 #
 #     @staticmethod
-#     def _resize_fixed_size(image, height_width, interpolation=cv2.INTER_LINEAR):
+#     def _resize_fixed_size(
+#       image, height_width, interpolation=cv2.INTER_LINEAR):
 #         if len(image.shape) > 3 or len(image.shape) < 2:
 #             raise ValueError("Wrong image supplied")
 #         if len(height_width) != 2:

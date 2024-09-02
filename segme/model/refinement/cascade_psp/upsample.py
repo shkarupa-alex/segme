@@ -22,15 +22,29 @@ class Upsample(layers.Layer):
         self.resize = BilinearInterpolation(dtype=self.dtype_policy)
 
         self.conv1 = Sequence(
-            [Norm(dtype=self.dtype_policy), Act(dtype=self.dtype_policy), ConvNormAct(self.filters, 3, dtype=self.dtype_policy), Conv(self.filters, 3, dtype=self.dtype_policy)], dtype=self.dtype_policy
+            [
+                Norm(dtype=self.dtype_policy),
+                Act(dtype=self.dtype_policy),
+                ConvNormAct(self.filters, 3, dtype=self.dtype_policy),
+                Conv(self.filters, 3, dtype=self.dtype_policy),
+            ],
+            dtype=self.dtype_policy,
         )
-        self.conv1.build(input_shape[1][:-1] + (input_shape[0][-1] + input_shape[1][-1],))
+        self.conv1.build(
+            input_shape[1][:-1] + (input_shape[0][-1] + input_shape[1][-1],)
+        )
 
         self.shortcut = Conv(self.filters, 1, dtype=self.dtype_policy)
         self.shortcut.build(input_shape[1][:-1] + (input_shape[0][-1],))
 
         self.conv2 = Sequence(
-            [Norm(dtype=self.dtype_policy), Act(dtype=self.dtype_policy), ConvNormAct(self.filters, 3, dtype=self.dtype_policy), Conv(self.filters, 3, dtype=self.dtype_policy)], dtype=self.dtype_policy
+            [
+                Norm(dtype=self.dtype_policy),
+                Act(dtype=self.dtype_policy),
+                ConvNormAct(self.filters, 3, dtype=self.dtype_policy),
+                Conv(self.filters, 3, dtype=self.dtype_policy),
+            ],
+            dtype=self.dtype_policy,
         )
         self.conv2.build(input_shape[1][:-1] + (self.filters,))
 

@@ -10,15 +10,18 @@ from segme.common.head import ClassificationActivation
 from segme.common.head import HeadProjection
 from segme.common.pool import AdaptiveAveragePooling
 from segme.common.resize import BilinearInterpolation
-from segme.policy.backbone.utils import patch_channels
 from segme.policy import dtpol
+from segme.policy.backbone.utils import patch_channels
 
 
 def Encoder():
-    inputs = layers.concatenate([
-        layers.Input(name="image", shape=(None, None, 3), dtype="uint8"),
-        layers.Input(name="mask", shape=(None, None, 1), dtype="uint8"),
-    ], name="concat")
+    inputs = layers.concatenate(
+        [
+            layers.Input(name="image", shape=(None, None, 3), dtype="uint8"),
+            layers.Input(name="mask", shape=(None, None, 1), dtype="uint8"),
+        ],
+        name="concat",
+    )
     # TODO: backbone type
     backbone = Backbone([2, 4, 32], inputs, "resnet_rs_50_s8-imagenet")
     backbone = patch_channels(backbone, [0.449], [0.497**2])

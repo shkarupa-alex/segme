@@ -2,10 +2,8 @@ import numpy as np
 import tensorflow as tf
 from keras.src import backend
 from keras.src import models
-from keras.src.backend import config
 from keras.src.backend import standardize_data_format
 from keras.src.backend import standardize_dtype
-from keras.src.backend.common import dtypes
 from keras.src.backend.tensorflow.core import cast
 from keras.src.backend.tensorflow.core import convert_to_tensor
 from keras.src.backend.tensorflow.nn import _convert_data_format

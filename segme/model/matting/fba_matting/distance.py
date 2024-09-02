@@ -1,6 +1,7 @@
 from keras.src import ops
-from segme.ops import saturate_cast
 from tfmiss.image import euclidean_distance
+
+from segme.ops import saturate_cast
 
 
 def distance_transform(trimap, length=320):

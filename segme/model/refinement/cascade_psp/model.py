@@ -38,10 +38,31 @@ class CascadePSP(layers.Layer):
         self.up2 = Upsample(256, dtype=self.dtype_policy)
         self.up3 = Upsample(32, dtype=self.dtype_policy)
 
-        self.final8 = Sequence([Conv(32, 1, dtype=self.dtype_policy), Act(dtype=self.dtype_policy), HeadProjection(1, dtype=self.dtype_policy)], dtype=self.dtype_policy)
+        self.final8 = Sequence(
+            [
+                Conv(32, 1, dtype=self.dtype_policy),
+                Act(dtype=self.dtype_policy),
+                HeadProjection(1, dtype=self.dtype_policy),
+            ],
+            dtype=self.dtype_policy,
+        )
 
-        self.final4 = Sequence([Conv(32, 1, dtype=self.dtype_policy), Act(dtype=self.dtype_policy), HeadProjection(1, dtype=self.dtype_policy)], dtype=self.dtype_policy)
-        self.final1 = Sequence([Conv(32, 1, dtype=self.dtype_policy), Act(dtype=self.dtype_policy), HeadProjection(1, dtype=self.dtype_policy)], dtype=self.dtype_policy)
+        self.final4 = Sequence(
+            [
+                Conv(32, 1, dtype=self.dtype_policy),
+                Act(dtype=self.dtype_policy),
+                HeadProjection(1, dtype=self.dtype_policy),
+            ],
+            dtype=self.dtype_policy,
+        )
+        self.final1 = Sequence(
+            [
+                Conv(32, 1, dtype=self.dtype_policy),
+                Act(dtype=self.dtype_policy),
+                HeadProjection(1, dtype=self.dtype_policy),
+            ],
+            dtype=self.dtype_policy,
+        )
 
         self.act = ClassificationActivation()
 

@@ -1,6 +1,7 @@
 from keras.src import layers
 from keras.src import models
 
+from segme.common.backbone import Backbone
 from segme.common.convnormact import Act
 from segme.common.convnormact import ConvNormAct
 from segme.common.head import HeadProjection
@@ -10,19 +11,25 @@ from segme.common.sequence import Sequence
 from segme.model.matting.fba_matting.fusion import Fusion
 from segme.policy import cnapol
 from segme.policy import dtpol
-from segme.common.backbone import Backbone
 from segme.policy.backbone.utils import patch_channels
 
 
 def Encoder():
     image = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
     twomap = layers.Input(name="twomap", shape=[None, None, 2], dtype="uint8")
-    distance = layers.Input(name="distance", shape=[None, None, 6], dtype="uint8")
+    distance = layers.Input(
+        name="distance", shape=[None, None, 6], dtype="uint8"
+    )
 
     # Rescale twomap and distance to match preprocessed image
-    inputs = layers.concatenate([image, twomap, distance], axis=-1, name="concat")
+    inputs = layers.concatenate(
+        [image, twomap, distance], axis=-1, name="concat"
+    )
     backbone = Backbone([2, 4, 32], inputs, "resnet_rs_50_s8-imagenet")
-    backbone = patch_channels(backbone, [0.306, 0.311, 0.331, 0.402, 0.485, 0.340, 0.417, 0.498], [
+    backbone = patch_channels(
+        backbone,
+        [0.306, 0.311, 0.331, 0.402, 0.485, 0.340, 0.417, 0.498],
+        [
             0.461**2,
             0.463**2,
             0.463**2,
@@ -31,10 +38,10 @@ def Encoder():
             0.465**2,
             0.464**2,
             0.452**2,
-        ])
+        ],
+    )
 
     return backbone
-
 
 
 def FBAMatting(dtype=None):
@@ -50,7 +57,9 @@ def FBAMatting(dtype=None):
 
         imscal = layers.Rescaling(1 / 255, name="image_scale")(image)
         imnorm = layers.Normalization(
-            mean=[0.485, 0.456, 0.406], variance=[0.229**2, 0.224**2, 0.225**2], name="image_normalize"
+            mean=[0.485, 0.456, 0.406],
+            variance=[0.229**2, 0.224**2, 0.225**2],
+            name="image_normalize",
         )(imscal)
         tmscal = layers.Rescaling(1 / 255, name="twomap_scale")(twomap)
 
@@ -66,7 +75,9 @@ def FBAMatting(dtype=None):
         x = ConvNormAct(64, 3, name="cna_4")(x)
 
         x = BilinearInterpolation(name="resize_2")([x, imscal])
-        x = layers.concatenate([x, imscal, imnorm, tmscal], axis=-1, name="concat_2")
+        x = layers.concatenate(
+            [x, imscal, imnorm, tmscal], axis=-1, name="concat_2"
+        )
         x = Sequence(
             [
                 layers.Conv2D(32, 3, padding="same", name="proj_conv_0"),
@@ -74,7 +85,8 @@ def FBAMatting(dtype=None):
                 layers.Conv2D(16, 3, padding="same", name="proj_conv_1"),
                 Act(name="proj_act_1"),
                 HeadProjection(7, name="proj_head"),
-            ], name="proj"
+            ],
+            name="proj",
         )(x)
 
         alfgbg, alpha, foreground, background = Fusion(name="fuse")([imscal, x])
