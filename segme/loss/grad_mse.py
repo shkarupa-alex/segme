@@ -9,7 +9,6 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 from segme.metric.matting.grad import _gauss_filter
 from segme.metric.matting.grad import _gauss_gradient
 from segme.metric.matting.grad import _togray
-from segme.ops import squared_difference
 
 
 @register_keras_serializable(package="SegMe>Loss")
@@ -63,7 +62,7 @@ def gradient_mean_squared_error(y_true, y_pred, sample_weight, sigma):
     true_amp = ops.sqrt(y_true_x**2 + y_true_y**2 + backend.epsilon())
     true_amp = ops.stop_gradient(true_amp)
 
-    loss = squared_difference(pred_amp, true_amp)
+    loss = ops.square(pred_amp - true_amp)
     loss = weighted_loss(loss, sample_weight)
 
     return loss

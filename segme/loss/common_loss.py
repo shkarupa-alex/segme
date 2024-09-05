@@ -2,7 +2,6 @@ from keras.src import backend
 from keras.src import ops
 
 from segme import backend as back
-from segme.ops import squared_difference
 
 
 def validate_input(y_true, y_pred, weight, dtype, rank, channel):
@@ -294,7 +293,7 @@ def mse(
 
         y_true = smooth_labels(y_true, y_pred, label_smoothing, force_binary)
 
-    loss = squared_difference(y_pred, y_true)
+    loss = ops.square(y_pred - y_true)
 
     return weighted_loss(loss, sample_weight)
 

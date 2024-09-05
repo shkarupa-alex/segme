@@ -2,8 +2,6 @@ import numpy as np
 from keras.src import backend
 from keras.src import ops
 
-from segme.ops import squared_difference
-
 
 def _solve_fg_step(fg, da0, da1, da2, da3, denom, term0):
     fg_pad = ops.pad(fg, ((0, 0), (1, 1), (1, 1), (0, 0)), "REFLECT")
@@ -34,10 +32,10 @@ def _solve_fg_level(level, alpha, afg, fg, height, width, levels, kappa, steps):
     a00 = ops.square(1 - alpha_)
 
     alpha_pad = ops.pad(alpha_, ((0, 0), (1, 1), (1, 1), (0, 0)), "REFLECT")
-    da0 = kappa * (a00 + squared_difference(1, alpha_pad[:, 1:-1, :-2]))
-    da1 = kappa * (a00 + squared_difference(1, alpha_pad[:, 1:-1, 2:]))
-    da2 = kappa * (a00 + squared_difference(1, alpha_pad[:, :-2, 1:-1]))
-    da3 = kappa * (a00 + squared_difference(1, alpha_pad[:, 2:, 1:-1]))
+    da0 = kappa * (a00 + ops.square(1 - alpha_pad[:, 1:-1, :-2]))
+    da1 = kappa * (a00 + ops.square(1 - alpha_pad[:, 1:-1, 2:]))
+    da2 = kappa * (a00 + ops.square(1 - alpha_pad[:, :-2, 1:-1]))
+    da3 = kappa * (a00 + ops.square(1 - alpha_pad[:, 2:, 1:-1]))
 
     denom = alpha_**2 + da0 + da1 + da2 + da3
     term0 = alpha_ * afg_ / denom

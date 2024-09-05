@@ -5,7 +5,6 @@ from keras.src.metrics import reduction_metrics
 from keras.src.saving import register_keras_serializable
 
 from segme.ops import convert_image_dtype
-from segme.ops import squared_difference
 
 
 @register_keras_serializable(package="SegMe>Metric>Matting")
@@ -135,7 +134,7 @@ def gradient_error(y_true, y_pred, sigma, sample_weight=None):
     pred_amp = ops.sqrt(y_pred_x**2 + y_pred_y**2)
     true_amp = ops.sqrt(y_true_x**2 + y_true_y**2)
 
-    result = squared_difference(pred_amp, true_amp)
+    result = ops.square(pred_amp - true_amp)
 
     if sample_weight is not None:
         result *= sample_weight

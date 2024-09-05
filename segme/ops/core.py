@@ -43,24 +43,6 @@ def l2_normalize(x, axis=-1, epsilon=1e-12):
     return back.l2_normalize(x, axis=axis, epsilon=epsilon)
 
 
-class SquaredDifference(Operation):
-    # def compute_output_spec(self, x):
-    #   TODO
-
-    def call(self, x, y):
-        x = backend.convert_to_tensor(x)
-        y = backend.convert_to_tensor(y)
-        return back.squared_difference(x, y)
-
-
-def squared_difference(x, y):
-    if any_symbolic_tensors((x, y)):
-        return SquaredDifference().symbolic_call(x, y)
-    x = backend.convert_to_tensor(x)
-    y = backend.convert_to_tensor(y)
-    return back.squared_difference(x, y)
-
-
 class Logdet(Operation):
     # def compute_output_spec(self, x):
     #   TODO

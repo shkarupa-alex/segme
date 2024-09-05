@@ -18,12 +18,6 @@ def l2_normalize(x, axis=-1, epsilon=1e-12):
     return tf.nn.l2_normalize(x, axis=axis, epsilon=epsilon)
 
 
-def squared_difference(x, y):
-    x = convert_to_tensor(x)
-    y = convert_to_tensor(y)
-    return tf.math.squared_difference(x, y)
-
-
 def logdet(x):
     x = convert_to_tensor(x)
     return tf.linalg.logdet(x)

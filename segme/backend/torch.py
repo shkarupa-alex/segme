@@ -5,10 +5,6 @@ def l2_normalize(x, axis=-1, epsilon=1e-12):
     return torch.nn.functional.normalize(x, p=2.0, dim=axis, eps=epsilon)
 
 
-def squared_difference(x, y):
-    raise NotImplementedError
-
-
 def logdet(x):
     raise NotImplementedError
 

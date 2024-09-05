@@ -8,10 +8,6 @@ def l2_normalize(x, axis=-1, epsilon=1e-12):
     return x / x_norm
 
 
-def squared_difference(x, y):
-    raise NotImplementedError
-
-
 def logdet(x):
     raise NotImplementedError
 
