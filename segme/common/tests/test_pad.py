@@ -36,8 +36,8 @@ class OddConstrainedLayer(layers.Layer):
     def build(self, input_shape):
         if self.use_proj:
             self.proj = layers.Conv2D(
-                input_shape[-1] * 4, 3, padding="same"
-            )  # TODO: dtype=
+                input_shape[-1] * 4, 3, padding="same", dtype=self.dtype_policy
+            )
             self.proj.build(input_shape[:-1] + (input_shape[-1] * 4,))
 
         super().build(input_shape)
@@ -88,7 +88,7 @@ class TestWithDivisiblePad(testing.TestCase):
     def test_grad(self):
         inputs = layers.Input(shape=(None, None, 3))
         outputs = OddConstrainedLayer(use_proj=True)(inputs)
-        model = models.Model(inputs=inputs, outputs=outputs)
+        model = models.Functional(inputs=inputs, outputs=outputs)
         model.compile("adam", "mse", jit_compile=True)
         model.fit(
             np.random.uniform(size=(16, 8, 10, 3)),

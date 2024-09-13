@@ -42,9 +42,9 @@ def patch_config(config, path, param, patch):
 
 
 def patch_channels(model, mean=None, variance=None):
-    if not isinstance(model, models.Model):
+    if not isinstance(model, models.Functional):
         raise ValueError(
-            f"Expecting model to be an instance of `keras.Model`. "
+            f"Expecting model to be an instance of `keras.models.Functional`. "
             f"Got: {type(model)}"
         )
     config = model.get_config()
@@ -153,7 +153,7 @@ def patch_channels(model, mean=None, variance=None):
     if len(model.weights) != len(weights.keys()):
         raise ValueError("Some weights have equal names")
 
-    ext_model = models.Model.from_config(config)
+    ext_model = models.Functional.from_config(config)
 
     ext_weights = []
     for random_weight in ext_model.weights:
@@ -258,7 +258,7 @@ def wrap_bone(model, prepr, init, end_points, name, input_tensor=None):
     base_model = model(input_tensor=x, include_top=False, weights=init)
     output_feats = [get_layer(base_model, name_idx) for name_idx in end_points]
 
-    down_stack = models.Model(
+    down_stack = models.Functional(
         inputs=base_model.inputs, outputs=tuple(output_feats), name=name
     )
     down_stack.trainable = init is None

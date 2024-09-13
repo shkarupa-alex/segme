@@ -124,7 +124,7 @@ class LayerNorm(layers.LayerNormalization):
 @register_keras_serializable(package="SegMe>Policy>Normalization")
 class LayerwiseNorm(LayerNorm):
     def build(self, input_shape):
-        self.axis = list(range(1, len(input_shape)))  # TODO
+        self.axis = list(range(1, len(input_shape)))
         super().build(input_shape)
 
 

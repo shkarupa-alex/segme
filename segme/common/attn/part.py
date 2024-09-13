@@ -20,10 +20,10 @@ def partition_apply(
     with backend.name_scope(name or "partition_apply"):
         inputs = backend.convert_to_tensor(inputs, dtype)
 
-        if 4 != inputs.shape.rank:  # TODO
+        if 4 != ops.ndim(inputs):
             raise ValueError("Expecting inputs rank to be 4.")
 
-        channels = inputs.shape[-1]  # TODO
+        channels = inputs.shape[-1]
         if channels is None:
             raise ValueError(
                 "Channel dimensions of the inputs should be defined. "
@@ -100,7 +100,7 @@ def partition_reverse(
     with backend.name_scope(name or "partition_reverse"):
         inputs = backend.convert_to_tensor(inputs, dtype)
 
-        if 4 != inputs.shape.rank:
+        if 4 != ops.ndim(inputs):
             raise ValueError("Expecting inputs rank to be 4.")
 
         channels = inputs.shape[-1]
@@ -169,7 +169,7 @@ def with_partition(
     with backend.name_scope(name or "with_partition"):
         inputs = backend.convert_to_tensor(inputs, dtype)
 
-        if 4 != inputs.shape.rank:
+        if 4 != ops.ndim(inputs):
             raise ValueError("Expecting inputs rank to be 4.")
 
         if part_type not in _PARTITION_TYPES:
@@ -216,7 +216,7 @@ def halo_partition(
     with backend.name_scope(name or "halo_partition"):
         inputs = backend.convert_to_tensor(inputs, dtype)
 
-        if 4 != inputs.shape.rank:
+        if 4 != ops.ndim(inputs):
             raise ValueError("Expecting inputs rank to be 4.")
 
         channels = inputs.shape[-1]
@@ -305,7 +305,7 @@ def partition_apply_fused(
     with backend.name_scope(name or "partition_apply_fused"):
         inputs = backend.convert_to_tensor(inputs, dtype)
 
-        if 4 != inputs.shape.rank:
+        if 4 != ops.ndim(inputs):
             raise ValueError("Expecting inputs rank to be 4.")
 
         channels = inputs.shape[-1]
@@ -403,7 +403,7 @@ def partition_reverse_fused(
     with backend.name_scope(name or "partition_reverse_fused"):
         inputs = backend.convert_to_tensor(inputs, dtype)
 
-        if 5 != inputs.shape.rank:
+        if 5 != ops.ndim(inputs):
             raise ValueError("Expecting inputs rank to be 5.")
 
         head_channels = inputs.shape[-1]
@@ -483,7 +483,7 @@ def with_partition_fused(
     with backend.name_scope(name or "with_partition_fused"):
         inputs = backend.convert_to_tensor(inputs, dtype)
 
-        if 4 != inputs.shape.rank:
+        if 4 != ops.ndim(inputs):
             raise ValueError("Expecting inputs rank to be 4.")
 
         if part_type not in _PARTITION_TYPES:
@@ -535,7 +535,7 @@ def halo_partition_fused(
     with backend.name_scope(name or "halo_partition_fused"):
         inputs = backend.convert_to_tensor(inputs, dtype)
 
-        if 4 != inputs.shape.rank:
+        if 4 != ops.ndim(inputs):
             raise ValueError("Expecting inputs rank to be 4.")
 
         channels = inputs.shape[-1]

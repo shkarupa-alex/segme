@@ -18,7 +18,6 @@ class Decoder(layers.Layer):
     def build(self, input_shape):
         self.imnet = Sequence(
             [
-                # TODO: no norm?
                 ConvAct(u, 1, dtype=self.dtype_policy, name=f"imnet_ca{i}")
                 for i, u in enumerate(self.mlp_units)
             ]

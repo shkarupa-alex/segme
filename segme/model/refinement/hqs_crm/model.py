@@ -13,7 +13,7 @@ from segme.policy.backbone.utils import patch_channels
 
 def HqsCrm(
     aspp_filters=(64, 64, 128),
-    aspp_drop=0.5,  # TODO
+    aspp_drop=0.5,
     mlp_units=(32, 32, 32, 32),
     dtype=None,
 ):
@@ -45,7 +45,6 @@ def HqsCrm(
     backbone = patch_channels(backbone, mean=[0.408], variance=[0.492**2])
     feats2, feats4, feats8 = backbone.outputs
 
-    # TODO: kernel=1?
     aspp2 = ConvNormAct(aspp_filters[0], 1, name="cna2")(feats2)
     aspp2 = layers.Dropout(aspp_drop, name="drop2")(aspp2)
 
@@ -65,7 +64,7 @@ def HqsCrm(
 
     x = ClassificationActivation(name="prob")(logits)
 
-    model = models.Model(
+    model = models.Functional(
         inputs=backbone.inputs + [coord], outputs=x, name="hqs_crm"
     )
 

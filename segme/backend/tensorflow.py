@@ -575,9 +575,9 @@ def op_type(x):
 
 
 def model_inference_fn(model, jit_compile):
-    if not isinstance(model, models.Model):
+    if not isinstance(model, models.Functional):
         raise ValueError(
-            f"Expecting model to be an instance of `keras.Model`. "
+            f"Expecting model to be an instance of `keras.models.Functional`. "
             f"Got: {type(model)}"
         )
 

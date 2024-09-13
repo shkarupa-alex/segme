@@ -401,7 +401,7 @@ def U2Net(classes, dtype=None):
 
     outputs = (head0,) + tuple(heads)
 
-    model = models.Model(inputs=inputs, outputs=outputs, name="u2_net")
+    model = models.Functional(inputs=inputs, outputs=outputs, name="u2_net")
 
     return model
 
@@ -486,6 +486,6 @@ def U2NetP(classes, dtype=None):
 
     outputs = (head0,) + tuple(heads)
 
-    model = models.Model(inputs=inputs, outputs=outputs, name="u2_net_p")
+    model = models.Functional(inputs=inputs, outputs=outputs, name="u2_net_p")
 
     return model

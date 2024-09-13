@@ -8,7 +8,7 @@ def augment_alpha(alpha, prob=0.3, max_pow=2.0, seed=None):
     with backend.name_scope("augment_alpha"):
         alpha = backend.convert_to_tensor(alpha, "uint8")
 
-        if 4 != alpha.shape.rank:
+        if 4 != ops.ndim(alpha):
             raise ValueError("Expecting `alpha` rank to be 4.")
 
         if 1 != alpha.shape[-1]:
@@ -45,7 +45,7 @@ def augment_trimap(trimap, prob=0.1, seed=None):
     with backend.name_scope("augment_trimap"):
         trimap = backend.convert_to_tensor(trimap, "uint8")
 
-        if 4 != trimap.shape.rank:
+        if 4 != ops.ndim(trimap):
             raise ValueError("Expecting `trimap` rank to be 4.")
 
         if 1 != trimap.shape[-1]:

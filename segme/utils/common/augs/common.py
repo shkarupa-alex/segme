@@ -32,7 +32,7 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
         image, masks, weight = validate(image, masks, weight)
 
         prob = backend.convert_to_tensor(prob)
-        if prob.shape.rank:
+        if ops.ndim(prob):
             raise ValueError("Expecting `prob` to be a scalar.")
 
         batch, height, width, _ = ops.shape(image)
@@ -148,7 +148,7 @@ def unwrap(image, replace=None, name=None):
 def validate(image, masks, weight, name=None):
     with backend.name_scope(name or "validate"):
         image_ = backend.convert_to_tensor(image)
-        if 4 != image_.shape.rank:
+        if 4 != ops.ndim(image_):
             raise ValueError("Expecting `image` rank to be 4.")
         if image_.shape[-1] is None:
             raise ValueError(
@@ -160,7 +160,7 @@ def validate(image, masks, weight, name=None):
             masks_ = []
             for i, mask in enumerate(masks):
                 mask_ = backend.convert_to_tensor(mask, dtype=mask.dtype)
-                if 4 != mask_.shape.rank:
+                if 4 != ops.ndim(mask_):
                     raise ValueError("Expecting `masks` items rank to be 4.")
                 if mask_.shape[-1] is None:
                     raise ValueError(
@@ -173,7 +173,7 @@ def validate(image, masks, weight, name=None):
 
         if weight is not None:
             weight_ = backend.convert_to_tensor(weight)
-            if 4 != weight_.shape.rank:
+            if 4 != ops.ndim(weight_):
                 raise ValueError("Expecting `weight` rank to be 4.")
             if weight_.shape[-1] is None:
                 raise ValueError(

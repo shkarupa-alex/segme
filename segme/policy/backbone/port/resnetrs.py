@@ -395,7 +395,7 @@ def ResNetRS(
     else:
         inputs = img_input
 
-    model = models.Model(inputs, x, name=model_name)
+    model = models.Functional(inputs, x, name=model_name)
 
     if weights in weights_allow_list:
         weights_input_shape = weights.split("-")[-1]
@@ -795,7 +795,7 @@ def wrap_bone_stride8(model, prepr, init, end_points, name, input_tensor=None):
 
         ext_config["layers"][i] = layer
 
-    ext_model = models.Model.from_config(ext_config)
+    ext_model = models.Functional.from_config(ext_config)
     ext_model.set_weights(base_model.get_weights())
     ext_model.trainable = True
 

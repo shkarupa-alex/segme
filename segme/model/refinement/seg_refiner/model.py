@@ -169,7 +169,7 @@ def SegRefiner(
 
         x = ClassificationActivation(name="pred_prob")(x)
 
-        model = models.Model(
+        model = models.Functional(
             inputs=[image, mask, time], outputs=x, name="seg_refiner"
         )
 

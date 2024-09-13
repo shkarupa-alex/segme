@@ -138,7 +138,7 @@ class TestAdaptiveAveragePooling(testing.TestCase):
 
         inputs = layers.Input([None, None, 3], dtype="float32")
         outputs = AdaptiveAveragePooling(3)(inputs)
-        model = models.Model(inputs=inputs, outputs=outputs)
+        model = models.Functional(inputs=inputs, outputs=outputs)
         model.compile("adam", "mse")
         model(data)
 

@@ -118,7 +118,7 @@ def ExpRef(sup_unfold=False, dtype=None):
     outputs2 = Align(feats2.shape[-1], name="merge2")([feats2, outputs4])
     probs2 = Head(sup_unfold, 2, name="head2")(outputs2)
 
-    model = models.Model(
+    model = models.Functional(
         inputs=encoder.inputs, outputs=(probs2, probs4, probs8), name="exp_sod"
     )
 

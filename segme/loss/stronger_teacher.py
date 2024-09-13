@@ -32,9 +32,8 @@ def stronger_teacher_loss(y_true, y_pred, sample_weight, temperature):
         y_true, y_pred, sample_weight, dtype=None, rank=None, channel="same"
     )
 
-    if (
-        sample_weight is not None
-        and sample_weight.shape.rank != y_true.shape.rank
+    if sample_weight is not None and ops.ndim(sample_weight) != ops.ndim(
+        y_true
     ):
         raise ValueError(
             "Sample weights and `y_true`/`y_true` ranks must be equal."

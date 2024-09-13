@@ -1,8 +1,14 @@
+from keras.src import layers
 from keras.src import models
 from keras.src import testing
 
 from segme.common.backbone import Backbone
 from segme.policy import bbpol
+from segme.policy import cnapol
+from segme.policy.backbone.utils import patch_channels
+from segme.policy.conv import FixedConv
+from segme.policy.conv import StandardizedConv
+from segme.policy.norm import GroupNorm
 
 
 class TestBackbone(testing.TestCase):
@@ -71,7 +77,7 @@ class TestBackbone(testing.TestCase):
             boneinst = Backbone()
         boneinst.build([None, None, None, 3])
 
-        restored = models.Model.from_config(boneinst.get_config())
+        restored = models.Functional.from_config(boneinst.get_config())
         restored.build([None, None, None, 3])
 
         self.assertEqual(
@@ -81,3 +87,32 @@ class TestBackbone(testing.TestCase):
             len(restored.non_trainable_weights),
             len(boneinst.non_trainable_weights),
         )
+
+    def test_patch_channels(self):
+        with cnapol.policy_scope("stdconv-gn-leakyrelu"):
+            image = layers.Input(
+                name="image", shape=(None, None, 3), dtype="uint8"
+            )
+            guide = layers.Input(
+                name="guide", shape=[None, None, 2], dtype="uint8"
+            )
+            inputs = layers.concatenate([image, guide], axis=-1, name="concat")
+            backbone = Backbone([2, 4, 32], inputs, "resnet_rs_50_s8-none")
+        backbone = patch_channels(
+            backbone,
+            [0.306, 0.311],
+            [0.461**2, 0.463**2],
+        )
+        restored = models.Functional.from_config(backbone.get_config())
+
+        conv1 = restored.get_layer(name="stem_1_stem_conv_1")
+        self.assertIsInstance(conv1, FixedConv)
+
+        norm1 = restored.get_layer(name="stem_1_stem_batch_norm_1")
+        self.assertIsInstance(norm1, GroupNorm)
+
+        act1 = restored.get_layer(name="stem_1_stem_act_1")
+        self.assertIsInstance(act1, layers.LeakyReLU)
+
+        conv1 = restored.get_layer(name="stem_1_stem_conv_2")
+        self.assertIsInstance(conv1, StandardizedConv)

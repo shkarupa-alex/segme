@@ -19,7 +19,7 @@ class DropPath(layers.Dropout):
             return inputs
 
         batch_size = ops.shape(inputs)[:1]
-        noise_shape = batch_size + (1,) * (inputs.shape.rank - 1)
+        noise_shape = batch_size + (1,) * (ops.ndim(inputs) - 1)
 
         return backend.random.dropout(
             inputs,

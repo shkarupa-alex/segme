@@ -52,7 +52,6 @@ def Conv(
     return cnapol.CONVOLUTIONS.new(policy.conv_type, filters=filters, **kwargs)
 
 
-# TODO: more args?
 def Norm(
     data_format=None,
     epsilon=None,
@@ -372,7 +371,6 @@ class ConvAct(layers.Layer):
         self.policy = cnapol.deserialize(policy or cnapol.global_policy())
 
     def build(self, input_shape):
-        # TODO: after bn?
         if self.policy.act_type in {"relu", "leaky_relu"}:
             kernel_initializer = "he_uniform"
         else:

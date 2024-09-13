@@ -173,6 +173,8 @@ def build_cascade_psp():
         layers.Input(name="prev", shape=(None, None, 1), dtype="uint8"),
     ]
     outputs = CascadePSP()(inputs)
-    model = models.Model(inputs=inputs, outputs=outputs, name="cascade_psp")
+    model = models.Functional(
+        inputs=inputs, outputs=outputs, name="cascade_psp"
+    )
 
     return model

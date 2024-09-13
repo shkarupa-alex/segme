@@ -25,7 +25,7 @@ def _gamma(image, factor, invert, name=None):
         image, _, _ = validate(image, None, None)
         invert = backend.convert_to_tensor(invert)
 
-        if invert.shape.rank:
+        if ops.ndim(invert):
             batch = ops.shape(image)[0]
             invert = invert[:batch]
 

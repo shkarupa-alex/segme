@@ -214,7 +214,7 @@ def FeatureDistillation(
     auto_scale_loss=True,
 ):
     """Proposed in: https://arxiv.org/abs/2205.14141"""
-    teacher = models.Model(
+    teacher = models.Functional(
         inputs=teacher.inputs,
         outputs=layers.LayerNormalization(
             center=False,

@@ -24,7 +24,7 @@ def _shuffle(image, perm=None, name=None):
 
         if perm is not None:
             perm = backend.convert_to_tensor(perm, "int32")
-            if 1 != perm.shape.rank:
+            if 1 != ops.ndim(perm):
                 raise ValueError("Expecting `perm` rank to be 1.")
             image = ops.take(image, perm, axis=-1)
         else:

@@ -120,13 +120,13 @@ def solve_fgbg(
         image = backend.convert_to_tensor(image, "uint8")
         alpha = backend.convert_to_tensor(alpha, "uint8")
 
-        if 4 != image.shape.rank:
+        if 4 != ops.ndim(image):
             raise ValueError("Expecting `image` rank to be 4.")
 
         if 3 != image.shape[-1]:
             raise ValueError("Expecting `image` channels size to be 3.")
 
-        if 4 != image.shape.rank:
+        if 4 != ops.ndim(image):
             raise ValueError("Expecting `alpha` rank to be 4.")
 
         if 1 != alpha.shape[-1]:

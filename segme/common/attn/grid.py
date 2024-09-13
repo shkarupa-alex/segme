@@ -216,9 +216,6 @@ class GridAttention(layers.Layer):
         mask = ops.pad(
             mask,
             [(0, 0), pad_val[:2], pad_val[2:], (0, 0)],
-            # TODO
-            #  max_value = 65504.0 if scores.dtype == "float16" else 1.0e9
-            # scores -= max_value * ops.cast(padding_mask, dtype=scores.dtype)
             constant_values=-100,
         )
         mask = partition_apply(

@@ -35,7 +35,7 @@ def with_divisible_pad(
 ):
     with backend.name_scope(name or "with_divisible_pad"):
         inputs = backend.convert_to_tensor(inputs, dtype)
-        if 4 != inputs.shape.rank:
+        if 4 != ops.ndim(inputs):
             raise ValueError("Expecting `inputs` rank to be 4.")
 
         dividers = standardize_tuple(dividers, 2, "standardize_tuple")
@@ -101,7 +101,5 @@ def with_divisible_pad(
                 hb_pad : hb_pad + height,
                 wb_pad : wb_pad + width,
             ]
-
-        # TODO: set shape
 
         return outputs

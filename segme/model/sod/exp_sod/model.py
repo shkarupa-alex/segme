@@ -209,7 +209,7 @@ def ExpSOD(
                 Head(with_trimap, with_depth, stride, 3, name=f"head_{i}")(o)
             )
 
-        model = models.Model(
+        model = models.Functional(
             inputs=backbone.inputs, outputs=tuple(heads), name="exp_sod"
         )
 

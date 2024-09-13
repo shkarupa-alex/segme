@@ -7,6 +7,7 @@ from segme.policy import bbpol
 from segme.policy import cnapol
 
 
+# TODO
 def preserve_current_layer_policies(cls):
     if not issubclass(cls, layers.Layer):
         raise ValueError(

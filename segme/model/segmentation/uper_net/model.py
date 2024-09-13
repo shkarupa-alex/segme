@@ -57,6 +57,6 @@ def UPerNet(classes, decoder_filters=256, head_dropout=0.1, dtype=None):
     outputs = BilinearInterpolation(name="head_resize")([outputs, inputs])
     outputs = ClassificationActivation(name="head_act")(outputs)
 
-    model = models.Model(inputs=inputs, outputs=outputs, name="uper_net")
+    model = models.Functional(inputs=inputs, outputs=outputs, name="uper_net")
 
     return model

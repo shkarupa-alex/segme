@@ -91,7 +91,7 @@ def FBAMatting(dtype=None):
 
         alfgbg, alpha, foreground, background = Fusion(name="fuse")([imscal, x])
 
-        model = models.Model(
+        model = models.Functional(
             inputs=backbone.inputs,
             outputs=(alfgbg, alpha, foreground, background),
             name="fba_matting",

@@ -36,19 +36,3 @@ class TestDeepLabV3Plus(testing.TestCase):
 
         self.assertDType(result, "float32")
         self.assertListEqual(result.shape.as_list(), [2, 224, 224, 4])
-
-        # TODO
-        # self.run_layer_test(
-        #     DeepLabV3PlusHMS,
-        #     init_kwargs={
-        #         "classes": 4,
-        #         "aspp_filters": 8,
-        #         "aspp_stride": 32,
-        #         "low_filters": 16,
-        #         "decoder_filters": 4,
-        #     },
-        #     input_shape=(2, 224, 224, 3),
-        #     input_dtype="uint8",
-        #     expected_output_shape=(2, 224, 224, 4),
-        #     expected_output_dtype="float32",
-        # )

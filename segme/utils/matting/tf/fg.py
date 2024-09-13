@@ -58,13 +58,13 @@ def solve_fg(image, alpha, kappa=1.0, steps=16, name=None):
         alpha = backend.convert_to_tensor(alpha, "uint8")
         steps = backend.convert_to_tensor(steps, "float32")
 
-        if 4 != image.shape.rank:
+        if 4 != ops.ndim(image):
             raise ValueError("Expecting `image` rank to be 4.")
 
         if 3 != image.shape[-1]:
             raise ValueError("Expecting `image` channels size to be 3.")
 
-        if 4 != image.shape.rank:
+        if 4 != ops.ndim(image):
             raise ValueError("Expecting `alpha` rank to be 4.")
 
         if 1 != alpha.shape[-1]:

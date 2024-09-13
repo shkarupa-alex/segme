@@ -27,7 +27,7 @@ def _mix(image, factor, color=None, name=None):
 
         batch = ops.shape(image)[0]
 
-        if factor.shape.rank:
+        if ops.ndim(factor):
             factor = factor[:batch]
 
         if color is not None:

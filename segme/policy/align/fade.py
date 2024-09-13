@@ -53,8 +53,8 @@ class FadeFeatureAlignment(layers.Layer):
 
         # in original version coarse and fine features should have same channel
         # size, here we project them to the same channel size before merging
-        self.fine = layers.Conv2D(self.filters, 1, dtype=self.dtype_policy)
-        self.fine.build(input_shape[0][:-1] + (self.filters,))
+        self.proj = layers.Conv2D(self.filters, 1, dtype=self.dtype_policy)
+        self.proj.build(input_shape[0][:-1] + (self.filters,))
 
         super().build(input_shape)
 
@@ -68,7 +68,7 @@ class FadeFeatureAlignment(layers.Layer):
         coarse = self.carafe([coarse, kernel])
         coarse = self.coarse(coarse)
 
-        fine = self.fine(coarse)  # TODO
+        fine = self.proj(coarse)
 
         outputs = gate * fine + (1.0 - gate) * coarse
 
@@ -130,7 +130,7 @@ class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
         fine, coarse = inputs
 
         fine = self.fine(fine)
-        fine = self.content(fine)  # TODO: 2 conv without act?
+        fine = self.content(fine)
 
         coarse = self.coarse(coarse)
         coarse = self.content(coarse)

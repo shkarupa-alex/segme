@@ -42,16 +42,16 @@ def query_features(
     """
     with backend.name_scope(name or "query_features"):
         features = backend.convert_to_tensor(features)
-        if 4 != features.shape.rank:
+        if 4 != ops.ndim(features):
             raise ValueError("Features must have rank 4")
 
         coords = backend.convert_to_tensor(coords)
-        if 4 != coords.shape.rank:
+        if 4 != ops.ndim(coords):
             raise ValueError("Coordinates must have rank 4")
 
         if cells is not None:
             cells = backend.convert_to_tensor(cells)
-            if 4 != cells.shape.rank:
+            if 4 != ops.ndim(cells):
                 raise ValueError("Coordinates must have rank 4")
 
         dtype = features.dtype

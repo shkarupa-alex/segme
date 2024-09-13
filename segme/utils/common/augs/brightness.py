@@ -25,7 +25,7 @@ def _brightness(image, factor, name=None):
         image, _, _ = validate(image, None, None)
         factor = backend.convert_to_tensor(factor)
 
-        if factor.shape.rank:
+        if ops.ndim(factor):
             batch = ops.shape(image)[0]
             factor = factor[:batch]
 

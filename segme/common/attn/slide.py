@@ -79,18 +79,13 @@ class SlideAttention(layers.Layer):
                 name="v_bias", shape=[self.channels], initializer="zeros"
             )
 
-        static_kernel = np.zeros(
+        static_kernel = ops.zeros(
             (self.window_size, self.window_size, 1, self.window_size**2),
-            dtype="bool",
+            dtype=self.compute_dtype,
         )
-        for i in range(self.window_size**2):
-            static_kernel[i // self.window_size, i % self.window_size, :, i] = (
-                True
-            )
-        self.static_mask = ops.cast(
-            static_kernel.repeat(self.qk_channels, axis=2), "bool"
+        self.static_kernel = DeformableConstraint(self.window_size)(
+            static_kernel
         )
-        self.static_kernel = ops.cast(static_kernel, self.compute_dtype)
 
         self.deformable_kernel = self.add_weight(
             shape=(
@@ -135,7 +130,6 @@ class SlideAttention(layers.Layer):
 
     def deformable_initializer(self, shape, dtype):
         weight = initializers.GlorotUniform()(shape, dtype)
-        weight += ops.cast(self.static_kernel, dtype)
         weight = DeformableConstraint(self.window_size)(weight)
 
         return weight
@@ -156,9 +150,8 @@ class SlideAttention(layers.Layer):
         k = ops.depthwise_conv(
             k,
             self.deformable_kernel,
-            strides=1,
             padding="same",
-            dilation_rate=(self.dilation_rate, self.dilation_rate),
+            dilation_rate=self.dilation_rate,
         )
 
         v_kernel = self.deformable_kernel
@@ -169,9 +162,8 @@ class SlideAttention(layers.Layer):
         v = ops.depthwise_conv(
             v,
             v_kernel,
-            strides=1,
             padding="same",
-            dilation_rate=(self.dilation_rate, self.dilation_rate),
+            dilation_rate=self.dilation_rate,
         )
 
         batch, height, width = ops.shape(inputs)[:3]
@@ -219,10 +211,9 @@ class SlideAttention(layers.Layer):
         mask = ops.ones((1, height, width, 1), dtype=self.compute_dtype)
         mask = ops.depthwise_conv(
             mask,
-            self.static_kernel,  # TODO: static or "ones" kernel?
-            strides=1,
+            self.static_kernel,
             padding="same",
-            dilation_rate=(self.dilation_rate, self.dilation_rate),
+            dilation_rate=self.dilation_rate,
         )
         mask = ops.reshape(mask, [1, height, width, 1, 1, self.window_size**2])
         mask = -100.0 * ops.cast(mask == 0.0, self.compute_dtype)

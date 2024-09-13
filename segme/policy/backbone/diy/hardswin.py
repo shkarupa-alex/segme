@@ -289,7 +289,7 @@ def HardSwin(
     else:
         inputs = image
 
-    model = models.Model(inputs, x, name=model_name)
+    model = models.Functional(inputs, x, name=model_name)
 
     weights_pooling = "avg" if pooling is None else pooling
     weights_top = f"{weights_pooling}_{classes}" if include_top else "notop"

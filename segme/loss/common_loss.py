@@ -14,13 +14,13 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
         weight = ops.cast(weight, y_pred.dtype)
 
     if rank is not None:
-        if y_pred.shape.rank != rank:
+        if ops.ndim(y_pred) != rank:
             raise ValueError(f"Predictions must have rank {rank}.")
 
-        if weight is not None and weight.shape.rank != rank:
+        if weight is not None and ops.ndim(weight) != rank:
             raise ValueError(f"Sample weights must have rank {rank}.")
 
-    if y_pred.shape.rank != y_true.shape.rank:
+    if ops.ndim(y_pred) != ops.ndim(y_true):
         raise ValueError("Labels and predictions ranks must be equal.")
 
     if y_pred.shape[-1] is None or y_true.shape[-1] is None:
@@ -135,7 +135,7 @@ def weighted_loss(loss, sample_weight, sample_axes=None, reduce_axes=None):
     if reduce_axes is None:
         reduce_axes = sample_axes[:-1]
     else:
-        bad_axes = set(reduce_axes) - set(range(1, loss.shape.rank))
+        bad_axes = set(reduce_axes) - set(range(1, ops.ndim(loss)))
         if bad_axes:
             raise ValueError(
                 f"Some reduction axes can not belong to provided "

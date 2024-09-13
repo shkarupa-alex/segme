@@ -6,15 +6,28 @@ from segme.common.head import ClassificationActivation
 from segme.common.onem import OneMinus
 from segme.common.resize import BilinearInterpolation
 from segme.common.sequence import Sequence
+from segme.policy import dtpol
 
 
 def HierarchicalMultiScaleAttention(
     model, features, logits, scales, filters=256, dropout=0.0, dtype=None
 ):
+    if dtype is not None:
+        with dtpol.policy_scope(dtype):
+            return HierarchicalMultiScaleAttention(
+                model=model,
+                features=features,
+                logits=logits,
+                scales=scales,
+                filters=filters,
+                dropout=dropout,
+                dtype=None,
+            )
+
     # Use scales (0.5,) for training and (0.25, 0.5, 2.0) for inference
-    if not isinstance(model, models.Model):
+    if not isinstance(model, models.Functional):
         raise ValueError(
-            f"Expecting model to be an instance of `keras.Model`. "
+            f"Expecting model to be an instance of `keras.models.Functional`. "
             f"Got: {type(model)}"
         )
 
@@ -27,7 +40,7 @@ def HierarchicalMultiScaleAttention(
             "Expecting `scales` to have at least one more scale except `1`."
         )
 
-    model_ = models.Model(
+    model_ = models.Functional(
         inputs=model.inputs,
         outputs=(
             model.get_layer(name=features).output,
@@ -104,6 +117,6 @@ def HierarchicalMultiScaleAttention(
 
     probs = ClassificationActivation(name="act")(logits)
 
-    model_ = models.Model(inputs=inputs, outputs=probs)
+    model_ = models.Functional(inputs=inputs, outputs=probs)
 
     return model_

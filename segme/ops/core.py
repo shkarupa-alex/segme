@@ -16,6 +16,7 @@ class L2Normalize(Operation):
 
     def compute_output_spec(self, x):
         output_dtype = backend.standardize_dtype(x.dtype)
+        # TODO: is_int_dtype
         if "int" in output_dtype or output_dtype == "bool":
             output_dtype = backend.floatx()
         backend.KerasTensor(shape=x.shape, dtype=output_dtype)

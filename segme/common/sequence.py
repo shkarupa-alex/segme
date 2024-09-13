@@ -35,9 +35,6 @@ class Sequence(layers.Layer):
         self.items.append(item)
         self.argspecs.append(inspect.getfullargspec(item.call).args)
 
-        idx = len(self.items)  # TODO: remove?
-        setattr(self, f"layer_{idx}", item)
-
     def build(self, input_shape):
         current_shape = input_shape
         for item in self.items:

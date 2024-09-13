@@ -9,7 +9,7 @@ def alpha_trimap(alpha, size, name=None):
     with backend.name_scope(name or "alpha_trimap"):
         alpha = backend.convert_to_tensor(alpha, "uint8")
 
-        if 4 != alpha.shape.rank:
+        if 4 != ops.ndim(alpha):
             raise ValueError("Expecting `alpha` rank to be 4.")
 
         if 1 != alpha.shape[-1]:

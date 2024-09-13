@@ -16,5 +16,5 @@ class TestEncoder(testing.TestCase):
                 (2, 64, 64, 2048),
             ),
             expected_output_dtype=("float32",) * 3,
-            run_mixed_precision_check=False,  # TODO
+            run_mixed_precision_check=False,
         )
