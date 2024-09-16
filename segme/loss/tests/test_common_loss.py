@@ -336,13 +336,13 @@ class TestUtils(testing.TestCase):
         )
 
         targets1h, _ = to_1hot(
-            targets1, np.zeros((2, 4, 4, 1), "float32"), False
+            targets1, ops.zeros((2, 4, 4, 1), "float32"), False
         )
         expected1h = ops.concatenate([1 - targets1, targets1], axis=-1)
         self.assertAllClose(targets1h, expected1h, atol=1e-6)
 
         targets4h, _ = to_1hot(
-            targets4, np.zeros((2, 4, 4, 4), "float32"), False
+            targets4, ops.zeros((2, 4, 4, 4), "float32"), False
         )
         expected4h = np.array(
             [

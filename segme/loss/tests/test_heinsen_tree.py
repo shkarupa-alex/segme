@@ -296,7 +296,7 @@ class TestHeinsenTreeLoss(testing.TestCase):
     #     model.compile(
     #         loss=HeinsenTreeLoss(TREE_PATHS),
     #     )
-    #     model.fit(np.zeros((2, 18)), np.zeros((2, 1), "int32"))
+    #     model.fit(ops.zeros((2, 18)), ops.zeros((2, 1), "int32"))
     #     models.Sequential.from_config(model.get_config())
 
 

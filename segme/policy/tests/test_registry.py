@@ -78,16 +78,16 @@ class TestLayerRegistry(unittest.TestCase):
         self.assertTupleEqual(instance.get_config()["kernel_size"], (3, 3))
 
         r.register("conv_arg_kwarg")({"class_name": "Conv2D"})
-        instance = r.new("conv_arg_kwarg", 16, 2, activation="relu")
+        instance = r.new("conv_arg_kwarg", 16, 2, 3, activation="relu")
         self.assertIsInstance(instance, layers.Conv2D)
         self.assertEqual(instance.get_config()["filters"], 16)
-        self.assertTupleEqual(instance.get_config()["kernel_size"], (3, 3))
-        self.assertTupleEqual(instance.get_config()["strides"], (2, 2))
+        self.assertTupleEqual(instance.get_config()["kernel_size"], (2, 2))
+        self.assertTupleEqual(instance.get_config()["strides"], (3, 3))
         self.assertEqual(instance.get_config()["activation"], "relu")
 
         r.register("conv_arg_kwarg_same")({"class_name": "Conv2D"})
         with self.assertRaisesRegex(TypeError, "Got multiple values"):
-            r.new("conv_arg_kwarg_same", 16, 2, strides=2)
+            r.new("conv_arg_kwarg_same", 16, 2, 2, strides=2)
 
     def test_class(self):
         r = LayerRegistry()
@@ -114,16 +114,16 @@ class TestLayerRegistry(unittest.TestCase):
         self.assertTupleEqual(instance.get_config()["kernel_size"], (3, 3))
 
         r.register("conv_arg_kwarg")(layers.Conv2D)
-        instance = r.new("conv_arg_kwarg", 16, 2, activation="relu")
+        instance = r.new("conv_arg_kwarg", 16, 2, 3, activation="relu")
         self.assertIsInstance(instance, layers.Conv2D)
         self.assertEqual(instance.get_config()["filters"], 16)
-        self.assertTupleEqual(instance.get_config()["kernel_size"], (3, 3))
-        self.assertTupleEqual(instance.get_config()["strides"], (2, 2))
+        self.assertTupleEqual(instance.get_config()["kernel_size"], (2, 2))
+        self.assertTupleEqual(instance.get_config()["strides"], (3, 3))
         self.assertEqual(instance.get_config()["activation"], "relu")
 
         r.register("conv_arg_kwarg_same")(layers.Conv2D)
         with self.assertRaisesRegex(TypeError, "Got multiple values"):
-            r.new("conv_arg_kwarg_same", 16, 2, strides=2)
+            r.new("conv_arg_kwarg_same", 16, 2, 2, strides=2)
 
 
 class TestBackboneRegistry(unittest.TestCase):

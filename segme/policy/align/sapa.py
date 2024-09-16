@@ -129,10 +129,10 @@ class LocalAttention(layers.Layer):
         ]
 
         self.patch_kwargs = {
-            "sizes": [1, self.kernel_size, self.kernel_size, 1],
-            "strides": [1] * 4,
-            "rates": [1] * 4,
-            "padding": "SAME",
+            "sizes": [self.kernel_size, self.kernel_size],
+            "strides": [1, 1],
+            "rates": [1, 1],
+            "padding": "same",
         }
 
         super().build(input_shape)

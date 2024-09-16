@@ -59,7 +59,7 @@ class TestSoftMeanAbsoluteError(testing.TestCase):
 
     def test_value(self):
         logits = np.arange(-10, 11.0)[:, None].astype("float32") / 2.0
-        targets = np.zeros_like(logits)
+        targets = ops.zeros_like(logits)
         expected = np.array(
             [
                 4.0,
@@ -138,5 +138,5 @@ class TestSoftMeanAbsoluteError(testing.TestCase):
     #         loss="SegMe>Loss>SoftMeanAbsoluteError",
     #     )
     #     model.fit(
-    #       np.zeros((2, 64, 64, 5)), np.zeros((2, 64, 64, 5), "float32"))
+    #       ops.zeros((2, 64, 64, 5)), ops.zeros((2, 64, 64, 5), "float32"))
     #     models.Sequential.from_config(model.get_config())

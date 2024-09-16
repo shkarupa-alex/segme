@@ -1,4 +1,4 @@
-import numpy as np
+from keras.src import ops
 from keras.src import testing
 
 from segme.model.segmentation.deeplab_v3_plus.model import DeepLabV3Plus
@@ -31,7 +31,7 @@ class TestDeepLabV3Plus(testing.TestCase):
             scales=(0.25, 0.5, 2.0),
         )
 
-        inputs = np.zeros((2, 224, 224, 3), "uint8")
+        inputs = ops.zeros((2, 224, 224, 3), "uint8")
         result = model(inputs)
 
         self.assertDType(result, "float32")

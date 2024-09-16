@@ -2901,6 +2901,6 @@ class TestStructuralSimilarityLoss(testing.TestCase):
     #         loss="SegMe>Loss>StructuralSimilarityLoss",
     #     )
     #     model.fit(
-    #         np.zeros((2, 224, 224, 1)), np.zeros((2, 224, 224, 1), "int32")
+    #         ops.zeros((2, 224, 224, 1)), ops.zeros((2, 224, 224, 1), "int32")
     #     )
     #     models.Sequential.from_config(model.get_config())

@@ -33,8 +33,8 @@ class Conn(reduction_metrics.Sum):
             y_pred, y_true, sample_weight
         )
         if sample_weight is not None:
-            y_pred_rank = len(y_pred.shape)
-            sample_weight_rank = len(sample_weight.shape)
+            y_pred_rank = ops.ndim(y_pred)
+            sample_weight_rank = ops.ndim(sample_weight)
 
             if y_pred_rank == sample_weight_rank + 1:
                 sample_weight = ops.expand_dims(sample_weight, axis=-1)

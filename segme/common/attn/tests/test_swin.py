@@ -235,21 +235,21 @@ class TestSwinAttention(testing.TestCase):
         )
 
     def test_mask_shift_0_no_pad(self):
-        inputs = np.ones([2, 8, 12, 3])
+        inputs = ops.ones([2, 8, 12, 3])
         layer = SwinAttention(4, 4, 1, 0)
         layer.build(inputs.shape)
         layer.rel_bias_ = layer.rel_bias
         layer.rel_bias = lambda x: ops.zeros_like(layer.rel_bias_(x))
 
         mask = layer.attn_mask(
-            np.zeros([1] * 5), inputs.shape[1:-1], (0, 0, 0, 0), False, [0, 0]
+            ops.zeros([1] * 5), inputs.shape[1:-1], (0, 0, 0, 0), False, [0, 0]
         )
         mask = backend.convert_to_numpy(mask)
 
         self.assertTrue((mask == 0.0).all())
 
     def test_mask_shift_0_pad(self):
-        inputs = np.ones([2, 7, 9, 3])
+        inputs = ops.ones([2, 7, 9, 3])
         layer = SwinAttention(4, 4, 1, 0)
         layer.build(inputs.shape)
         layer(inputs)
@@ -257,7 +257,7 @@ class TestSwinAttention(testing.TestCase):
         layer.rel_bias = lambda x: ops.zeros_like(layer.rel_bias_(x))
 
         mask = layer.attn_mask(
-            np.zeros([1] * 5), [8, 12], (0, 1, 1, 2), False, [0, 0]
+            ops.zeros([1] * 5), [8, 12], (0, 1, 1, 2), False, [0, 0]
         )
         mask = backend.convert_to_numpy(mask)
         mask = (
@@ -274,14 +274,14 @@ class TestSwinAttention(testing.TestCase):
         self.assertTrue((mask[:-1, 1:-2] == 1).all())
 
     def test_mask_shift_1_no_pad(self):
-        inputs = np.ones([2, 8, 12, 3])
+        inputs = ops.ones([2, 8, 12, 3])
         layer = SwinAttention(4, 4, 1, 1)
         layer.build(inputs.shape)
         layer.rel_bias_ = layer.rel_bias
         layer.rel_bias = lambda x: ops.zeros_like(layer.rel_bias_(x))
 
         mask = layer.attn_mask(
-            np.zeros([1] * 5), inputs.shape[1:-1], (0, 0, 0, 0), True, [2, 2]
+            ops.zeros([1] * 5), inputs.shape[1:-1], (0, 0, 0, 0), True, [2, 2]
         )
         mask = backend.convert_to_numpy(mask)
         mask = (mask == 0.0).astype("int32").reshape(6, 16, 16)
@@ -341,14 +341,14 @@ class TestSwinAttention(testing.TestCase):
         )
 
     def test_mask_shift_1_pad(self):
-        inputs = np.ones([2, 7, 9, 3])
+        inputs = ops.ones([2, 7, 9, 3])
         layer = SwinAttention(4, 4, 1, 1)
         layer.build(inputs.shape)
         layer.rel_bias_ = layer.rel_bias
         layer.rel_bias = lambda x: ops.zeros_like(layer.rel_bias_(x))
 
         mask = layer.attn_mask(
-            np.zeros([1] * 5), [8, 12], (0, 1, 1, 2), True, [2, 2]
+            ops.zeros([1] * 5), [8, 12], (0, 1, 1, 2), True, [2, 2]
         )
         mask = backend.convert_to_numpy(mask)
         mask = (mask == 0.0).astype("int32").reshape(6, 4, 4, 4, 4)
@@ -484,14 +484,14 @@ class TestSwinAttention(testing.TestCase):
         )
 
     def test_mask_shift_2_no_pad(self):
-        inputs = np.ones([2, 8, 12, 3])
+        inputs = ops.ones([2, 8, 12, 3])
         layer = SwinAttention(4, 4, 1, 2)
         layer.build(inputs.shape)
         layer.rel_bias_ = layer.rel_bias
         layer.rel_bias = lambda x: ops.zeros_like(layer.rel_bias_(x))
 
         mask = layer.attn_mask(
-            np.zeros([1] * 5), inputs.shape[1:-1], (0, 0, 0, 0), True, [2, 2]
+            ops.zeros([1] * 5), inputs.shape[1:-1], (0, 0, 0, 0), True, [2, 2]
         )
         mask = backend.convert_to_numpy(mask)
         mask = (mask == 0.0).astype("int32").reshape(6, 16, 16)
@@ -551,14 +551,14 @@ class TestSwinAttention(testing.TestCase):
         self.assertTrue((mask[4:, 8:, 8:] == 1).all())
 
     def test_mask_shift_2_pad(self):
-        inputs = np.ones([2, 7, 9, 3])
+        inputs = ops.ones([2, 7, 9, 3])
         layer = SwinAttention(4, 4, 1, 2)
         layer.build(inputs.shape)
         layer.rel_bias_ = layer.rel_bias
         layer.rel_bias = lambda x: ops.zeros_like(layer.rel_bias_(x))
 
         mask = layer.attn_mask(
-            np.zeros([1] * 5), [8, 12], (0, 1, 1, 2), True, [2, 2]
+            ops.zeros([1] * 5), [8, 12], (0, 1, 1, 2), True, [2, 2]
         )
         mask = backend.convert_to_numpy(mask)
         mask = (mask == 0.0).astype("int32").reshape(6, 4, 4, 4, 4)
@@ -667,14 +667,14 @@ class TestSwinAttention(testing.TestCase):
         )
 
     def test_mask_shift_3_pad_to_min_size(self):
-        inputs = np.ones([2, 3, 5, 3])
+        inputs = ops.ones([2, 3, 5, 3])
         layer = SwinAttention(4, 4, 1, 3)
         layer.build(inputs.shape)
         layer.rel_bias_ = layer.rel_bias
         layer.rel_bias = lambda x: ops.zeros_like(layer.rel_bias_(x))
 
         mask = layer.attn_mask(
-            np.zeros([1] * 5), [4, 8], (0, 1, 1, 2), True, [2, 2]
+            ops.zeros([1] * 5), [4, 8], (0, 1, 1, 2), True, [2, 2]
         )
         mask = backend.convert_to_numpy(mask)
         mask = (mask == 0.0).astype("int32").reshape(2, 4, 4, 4, 4)

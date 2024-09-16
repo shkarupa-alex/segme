@@ -116,5 +116,6 @@ class TestNormalizedFocalCrossEntropy(testing.TestCase):
     #     model.compile(
     #         loss="SegMe>Loss>NormalizedFocalCrossEntropy",
     #     )
-    #     model.fit(np.zeros((2, 16, 16, 1)), np.zeros((2, 16, 16, 1), "int32"))
+    #     model.fit(
+    #       ops.zeros((2, 16, 16, 1)), ops.zeros((2, 16, 16, 1), "int32"))
     #     models.Sequential.from_config(model.get_config())

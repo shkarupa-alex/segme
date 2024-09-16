@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from keras.src import backend
+from keras.src import ops
 from keras.src import testing
 
 from segme.metric.matting.conn import Conn
@@ -31,9 +32,9 @@ class TestConn(testing.TestCase):
         self.assertEqual(metric.name, "metric1")
 
     def test_zeros(self):
-        targets = np.zeros((2, 32, 32, 1), "int32")
-        probs = np.zeros((2, 32, 32, 1), "float32")
-        weight = np.ones((2, 32, 32, 1), "float32")
+        targets = ops.zeros((2, 32, 32, 1), "int32")
+        probs = ops.zeros((2, 32, 32, 1), "float32")
+        weight = ops.ones((2, 32, 32, 1), "float32")
 
         metric = Conn()
         metric.update_state(targets, probs, weight)

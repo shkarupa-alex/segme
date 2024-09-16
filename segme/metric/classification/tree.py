@@ -56,7 +56,8 @@ class HeinsenTreeAccuracy(Metric):
             sample_weight = ops.reshape(sample_weight, [-1])
 
         y_pred_tree = ops.reshape(y_pred, [-1, 1, self.tree_classes])
-        y_pred_tree = ops.where(self.valid_mask, y_pred_tree, y_pred.dtype.min)
+        min_val = np.finfo(backend.standardize_dtype(y_pred.dtype)).min
+        y_pred_tree = ops.where(self.valid_mask, y_pred_tree, min_val)
 
         y_pred_tree = ops.argmax(y_pred_tree, axis=-1)
         y_match_tree = ops.cast(y_true_tree == y_pred_tree, self.dtype)

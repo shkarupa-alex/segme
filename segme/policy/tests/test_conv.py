@@ -3,6 +3,7 @@ import unittest
 
 import numpy as np
 from keras.src import layers
+from keras.src import ops
 from keras.src import testing
 
 from segme.policy.conv import CONVOLUTIONS
@@ -367,7 +368,7 @@ class TestStandardizedConv(testing.TestCase):
             ],
             "float32",
         ).reshape((3, 3, 3, 1))
-        bias = np.zeros((1,), "float32")
+        bias = ops.zeros((1,), "float32")
         expected = np.array([7.993624, -9.57225], "float32").reshape(
             (1, 1, 2, 1)
         )
@@ -453,7 +454,7 @@ class TestStandardizedConv(testing.TestCase):
             ],
             "float32",
         ).reshape((3, 3, 3, 1))
-        bias = np.zeros((1,), "float32")
+        bias = ops.zeros((1,), "float32")
         expected = np.array([7.993624, -9.57225], "float32").reshape(
             (1, 1, 2, 1)
         )
@@ -575,7 +576,7 @@ class TestStandardizedDepthwiseConv(testing.TestCase):
             ],
             "float32",
         ).reshape((3, 3, 3, 1))
-        bias = np.zeros((3,), "float32")
+        bias = ops.zeros((3,), "float32")
         expected = np.array(
             [
                 -0.32465044,
@@ -669,7 +670,7 @@ class TestStandardizedDepthwiseConv(testing.TestCase):
             ],
             "float32",
         ).reshape((3, 3, 3, 1))
-        bias = np.zeros((3,), "float32")
+        bias = ops.zeros((3,), "float32")
         expected = np.array(
             [
                 -0.32465044,
@@ -811,7 +812,7 @@ class TestSpectralConv(testing.TestCase):
             ],
             "float32",
         ).reshape((3, 3, 3, 1))
-        bias = np.zeros((1,), "float32")
+        bias = ops.zeros((1,), "float32")
         u = np.array([[-0.008]], "float32")
         expected = np.array([1.3133075, -1.533053], "float32").reshape(
             (1, 1, 2, 1)
@@ -947,7 +948,7 @@ class TestSpectralDepthwiseConv(testing.TestCase):
             ],
             "float32",
         ).reshape((3, 3, 3, 1))
-        bias = np.zeros((3,), "float32")
+        bias = ops.zeros((3,), "float32")
         u = np.array([[-0.008, 0.009, -0.002]], "float32")
         expected = np.array(
             [

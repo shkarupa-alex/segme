@@ -261,7 +261,7 @@ class DeformableConstraint(constraints.Constraint):
         w = backend.convert_to_tensor(w)
 
         if (
-            4 != len(w.shape)
+            4 != ops.ndim(w)
             or self.window_size != self.static_mask.shape[0]
             or self.window_size != self.static_mask.shape[1]
             or self.window_size**2 != self.static_mask.shape[3]

@@ -64,10 +64,10 @@ def with_divisible_pad(
         pad_val = hb_pad, ha_pad, wb_pad, wa_pad
         outputs = op(outputs, pad_size=pad_size, pad_val=pad_val)
 
-        if 4 != len(outputs.shape):
+        if 4 != ops.ndim(outputs):
             raise ValueError(
                 f"Expecting `op` output to have rank 4. "
-                f"Got: {len(outputs.shape)}"
+                f"Got: {outputs.shape}"
             )
         out_batch, out_height, out_width = ops.shape(outputs)[:3]
         if (

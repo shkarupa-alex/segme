@@ -17,7 +17,7 @@ class TestRelativeBias(testing.TestCase):
                 "num_heads": 2,
                 "cpb_units": 512,
             },
-            input_data=np.zeros([1]),
+            input_data=ops.zeros([1]),
             expected_output_shape=(1, 1, 2, 64, 64),
             expected_output_dtype="float32",
         )
@@ -30,7 +30,7 @@ class TestRelativeBias(testing.TestCase):
                 "num_heads": 2,
                 "cpb_units": 512,
             },
-            input_data=np.zeros([1]),
+            input_data=ops.zeros([1]),
             expected_output_shape=(1, 1, 2, 49, 49),
             expected_output_dtype="float32",
         )
@@ -43,7 +43,7 @@ class TestRelativeBias(testing.TestCase):
                 "num_heads": 2,
                 "cpb_units": 512,
             },
-            input_data=np.zeros([1]),
+            input_data=ops.zeros([1]),
             expected_output_shape=(1, 1, 2, 64, 256),
             expected_output_dtype="float32",
         )
@@ -56,7 +56,7 @@ class TestRelativeBias(testing.TestCase):
                 "num_heads": 2,
                 "cpb_units": 512,
             },
-            input_data=np.zeros([1]),
+            input_data=ops.zeros([1]),
             expected_output_shape=(1, 1, 2, 144, 144),
             expected_output_dtype="float32",
         )
@@ -69,7 +69,7 @@ class TestRelativeBias(testing.TestCase):
                 "num_heads": 4,
                 "cpb_units": 512,
             },
-            input_data=np.zeros([1]),
+            input_data=ops.zeros([1]),
             expected_output_shape=(1, 1, 4, 144, 144),
             expected_output_dtype="float32",
         )

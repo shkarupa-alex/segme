@@ -46,8 +46,10 @@ def gradient_mean_squared_error(y_true, y_pred, sample_weight, sigma):
     kernel0, kernel1, size = _gauss_filter(sigma)
     kernel0 = np.tile(kernel0[..., None, None], (1, 1, channels, 1))
     kernel1 = np.tile(kernel1[..., None, None], (1, 1, channels, 1))
-    kernel0 = kernel0.astype(y_pred.dtype.as_numpy_dtype)
-    kernel1 = kernel1.astype(y_pred.dtype.as_numpy_dtype)
+
+    dtype = backend.standardize_dtype(y_pred.dtype)
+    kernel0 = kernel0.astype(dtype)
+    kernel1 = kernel1.astype(dtype)
 
     kernel_x = ops.cast(kernel0, y_pred.dtype), ops.cast(kernel1, y_pred.dtype)
     kernel_y = kernel0.transpose([1, 0, 2, 3]), kernel1.transpose([1, 0, 2, 3])

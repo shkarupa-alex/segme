@@ -1,4 +1,5 @@
 import numpy as np
+from keras.src import backend
 from keras.src import ops
 from keras.src.losses.loss import squeeze_or_expand_to_same_rank
 from keras.src.metrics import reduction_metrics
@@ -31,8 +32,8 @@ class Grad(reduction_metrics.Sum):
             y_pred, y_true, sample_weight
         )
         if sample_weight is not None:
-            y_pred_rank = len(y_pred.shape)
-            sample_weight_rank = len(sample_weight.shape)
+            y_pred_rank = ops.ndim(y_pred)
+            sample_weight_rank = ops.ndim(sample_weight)
 
             if y_pred_rank == sample_weight_rank + 1:
                 sample_weight = ops.expand_dims(sample_weight, axis=-1)
@@ -119,8 +120,10 @@ def gradient_error(y_true, y_pred, sigma, sample_weight=None):
     kernel0, kernel1, size = _gauss_filter(sigma)
     kernel0 = np.tile(kernel0[..., None, None], (1, 1, channels, 1))
     kernel1 = np.tile(kernel1[..., None, None], (1, 1, channels, 1))
-    kernel0 = kernel0.astype(y_pred.dtype.as_numpy_dtype)
-    kernel1 = kernel1.astype(y_pred.dtype.as_numpy_dtype)
+
+    dtype = backend.standardize_dtype(y_pred.dtype)
+    kernel0 = kernel0.astype(dtype)
+    kernel1 = kernel1.astype(dtype)
 
     kernel_x = ops.cast(kernel0, y_pred.dtype), ops.cast(kernel1, y_pred.dtype)
     kernel_y = kernel0.transpose([1, 0, 2, 3]), kernel1.transpose([1, 0, 2, 3])

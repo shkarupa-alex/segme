@@ -1,4 +1,5 @@
 import numpy as np
+from keras.src import ops
 from keras.src import testing
 
 from segme.common.impfunc import make_coords
@@ -248,7 +249,7 @@ class TestQueryFeatures(testing.TestCase):
             .astype("float32")
         )
         coords = make_coords(1, 6, 4)
-        cells = np.ones((1, 6, 4, 2)) * 2 / np.array([6, 4])
+        cells = ops.ones((1, 6, 4, 2)) * 2 / np.array([6, 4])
         expected = np.array(
             [
                 [
@@ -729,7 +730,7 @@ class TestQueryFeatures(testing.TestCase):
             .astype("float32")
         )
         coords = make_coords(2, 6, 4)
-        cells = np.ones((2, 6, 4, 2)) * 2 / np.array([6, 4])
+        cells = ops.ones((2, 6, 4, 2)) * 2 / np.array([6, 4])
         expected = np.array(
             [
                 [

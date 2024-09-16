@@ -149,5 +149,6 @@ class TestClipFoundationLoss(testing.TestCase):
     #     model.compile(
     #         loss="SegMe>Loss>ClipFoundationLoss",
     #     )
-    #     model.fit(np.zeros((2, 8, 8, 4)), np.zeros((2, 8, 8, 8), "float32"))
+    #     model.fit(
+    #       ops.zeros((2, 8, 8, 4)), ops.zeros((2, 8, 8, 8), "float32"))
     #     models.Sequential.from_config(model.get_config())

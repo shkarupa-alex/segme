@@ -1,5 +1,6 @@
 import numpy as np
 from keras.src import backend
+from keras.src import ops
 from keras.src import testing
 
 from segme.utils.common.augs.erase import _erase
@@ -37,7 +38,7 @@ class TestErase(testing.TestCase):
             np.random.uniform(high=2, size=[16, 224, 224, 2]).astype("float32"),
             np.random.uniform(high=2, size=[16, 224, 224, 2]).astype("int32"),
         ]
-        weights = np.ones([16, 224, 224, 1], "float32")
+        weights = ops.ones([16, 224, 224, 1], "float32")
 
         images_actual, masks_actual, weights_actual = erase(
             images, masks, weights, 0.5, (0.02, 1 / 3), [[[[0, 128, 255]]]]

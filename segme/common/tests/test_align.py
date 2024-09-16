@@ -1,4 +1,4 @@
-import numpy as np
+from keras.src import ops
 from keras.src import testing
 
 from segme.common.align import Align
@@ -49,8 +49,8 @@ class TestAlign(testing.TestCase):
         self.assertIsInstance(aligninst, align.SapaFeatureAlignment)
 
     def test_shape(self):
-        fine = np.zeros((2, 16, 16, 16), dtype="float32")
-        coarse = np.zeros((2, 8, 8, 32), dtype="float32")
+        fine = ops.zeros((2, 16, 16, 16), dtype="float32")
+        coarse = ops.zeros((2, 8, 8, 32), dtype="float32")
 
         for method in align.ALIGNERS.keys():
             with alpol.policy_scope(method):

@@ -93,7 +93,7 @@ class ModelDistillation(models.Functional):
             auto_scale_loss=auto_scale_loss,
         )
 
-    def __call__(self, x, training=None):
+    def __call__(self, x, training=False):
         if isinstance(x, dict) and "student" in x:
             xs = x["student"]
         else:

@@ -2,7 +2,6 @@ tensorflow>=2.17.0
 keras>=3.4.1
 numpy>=1.26.0,<2.0.0
 tensorflow_datasets>=4.9.6
-tensorflow_probability>=0.24.0
 tfmiss>=0.25.1
 tfswin>=4.1.0
 opencv-python>=4.10.0.84

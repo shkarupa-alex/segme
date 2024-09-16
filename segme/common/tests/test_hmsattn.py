@@ -1,5 +1,5 @@
-import numpy as np
 from keras.src import layers
+from keras.src import ops
 from keras.src import testing
 from keras.src.applications.efficientnet_v2 import EfficientNetV2S
 
@@ -18,7 +18,7 @@ class TestHierarchicalMultiScaleAttention(testing.TestCase):
             model, "block3d_add", "block5i_add", (0.25, 0.5, 2.0)
         )
 
-        inputs = np.zeros((2, 224, 224, 3), "uint8")
+        inputs = ops.zeros((2, 224, 224, 3), "uint8")
         result = hmsa(inputs)
 
         self.assertDType(result, "float32")

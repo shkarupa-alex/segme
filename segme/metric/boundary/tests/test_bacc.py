@@ -1,5 +1,6 @@
 import numpy as np
 from keras.src import backend
+from keras.src import ops
 from keras.src import testing
 
 from segme.metric.boundary.bacc import BinaryApproximateBoundaryAccuracy
@@ -31,16 +32,16 @@ class TestBinaryBoundaryAccuracy(testing.TestCase):
         self.assertEqual(metric.name, "metric1")
 
     def test_zeros(self):
-        targets = np.zeros((2, 32, 32, 1), "int32")
-        probs = np.zeros((2, 32, 32, 1), "float32")
+        targets = ops.zeros((2, 32, 32, 1), "int32")
+        probs = ops.zeros((2, 32, 32, 1), "float32")
 
         metric = BinaryBoundaryAccuracy()
         metric.update_state(targets, probs)
         self.assertAlmostEqual(metric.result(), 1.0, decimal=7)
 
     def test_ones(self):
-        targets = np.ones((2, 32, 32, 1), "int32")
-        probs = np.ones((2, 32, 32, 1), "float32")
+        targets = ops.ones((2, 32, 32, 1), "int32")
+        probs = ops.ones((2, 32, 32, 1), "float32")
 
         metric = BinaryBoundaryAccuracy()
         metric.update_state(targets, probs)
@@ -112,16 +113,16 @@ class TestBinaryApproximateBoundaryAccuracy(testing.TestCase):
         self.assertEqual(metric.name, "metric1")
 
     def test_zeros(self):
-        targets = np.zeros((2, 32, 32, 1), "int32")
-        probs = np.zeros((2, 32, 32, 1), "float32")
+        targets = ops.zeros((2, 32, 32, 1), "int32")
+        probs = ops.zeros((2, 32, 32, 1), "float32")
 
         metric = BinaryApproximateBoundaryAccuracy()
         metric.update_state(targets, probs)
         self.assertAlmostEqual(metric.result(), 1.0, decimal=7)
 
     def test_ones(self):
-        targets = np.ones((2, 32, 32, 1), "int32")
-        probs = np.ones((2, 32, 32, 1), "float32")
+        targets = ops.ones((2, 32, 32, 1), "int32")
+        probs = ops.ones((2, 32, 32, 1), "float32")
 
         metric = BinaryApproximateBoundaryAccuracy()
         metric.update_state(targets, probs)

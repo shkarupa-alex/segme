@@ -23,17 +23,15 @@ def _solarize(image, threshold=None, name=None):
     with backend.name_scope(name or "solarize_"):
         image, _, _ = validate(image, None, None)
 
-        dtype = image.dtype
-        if dtype.is_floating:
+        if backend.is_float_dtype(image.dtype):
             max_val = 1.0
             if threshold is None:
                 threshold = 128 / 255
         else:
-            max_val = dtype.max
+            dtype = backend.standardize_dtype(image.dtype)
+            max_val = np.iinfo(dtype).max
             if threshold is None:
-                threshold = np.round(dtype.max / 2).astype(
-                    dtype.as_numpy_dtype()
-                )
+                threshold = np.round(max_val / 2).astype(dtype)
 
         image = ops.where(image < threshold, image, max_val - image)
 

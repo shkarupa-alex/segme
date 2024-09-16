@@ -10,13 +10,13 @@ def compose_two(fg, alpha, solve=True, name=None):
         fg = backend.convert_to_tensor(fg, "uint8")
         alpha = backend.convert_to_tensor(alpha, "uint8")
 
-        if 4 != len(fg.shape):
+        if 4 != ops.ndim(fg):
             raise ValueError("Expecting `fg` rank to be 4.")
 
         if 3 != fg.shape[-1]:
             raise ValueError("Expecting `fg` channels size to be 3.")
 
-        if 4 != len(alpha.shape):
+        if 4 != ops.ndim(alpha):
             raise ValueError("Expecting `alpha` rank to be 4.")
 
         if 1 != alpha.shape[-1]:
@@ -68,13 +68,13 @@ def compose_batch(fg, alpha, trim=None, solve=True, iterations=4, name=None):
         fg = backend.convert_to_tensor(fg, "uint8")
         alpha = backend.convert_to_tensor(alpha, "uint8")
 
-        if 4 != len(fg.shape):
+        if 4 != ops.ndim(fg):
             raise ValueError("Expecting `fg` rank to be 4.")
 
         if 3 != fg.shape[-1]:
             raise ValueError("Expecting `fg` channels size to be 3.")
 
-        if 4 != len(alpha.shape):
+        if 4 != ops.ndim(alpha):
             raise ValueError("Expecting `alpha` rank to be 4.")
 
         if 1 != alpha.shape[-1]:
@@ -135,13 +135,13 @@ def random_compose(
         fg = backend.convert_to_tensor(fg, "uint8")
         alpha = backend.convert_to_tensor(alpha, "uint8")
 
-        if 4 != len(fg.shape):
+        if 4 != ops.ndim(fg):
             raise ValueError("Expecting `fg` rank to be 4.")
 
         if 3 != fg.shape[-1]:
             raise ValueError("Expecting `fg` channels size to be 3.")
 
-        if 4 != len(alpha.shape):
+        if 4 != ops.ndim(alpha):
             raise ValueError("Expecting `alpha` rank to be 4.")
 
         if 1 != alpha.shape[-1]:

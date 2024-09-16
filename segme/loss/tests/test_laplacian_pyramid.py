@@ -2420,6 +2420,6 @@ class TestLaplacianPyramidLoss(testing.TestCase):
     #         loss="SegMe>Loss>LaplacianPyramidLoss",
     #     )
     #     model.fit(
-    #         np.zeros((2, 224, 224, 5)), np.zeros((2, 224, 224, 3), "int32")
+    #         ops.zeros((2, 224, 224, 5)), ops.zeros((2, 224, 224, 3), "int32")
     #     )
     #     models.Sequential.from_config(model.get_config())

@@ -127,7 +127,7 @@ class SparseCategoricalApproximateBoundaryAccuracy(
 
 
 def boundary_weight(y_true, radius, strict, sample_weight):
-    if 4 != len(y_true.shape):
+    if 4 != ops.ndim(y_true):
         raise ValueError("Labels must have rank 4.")
 
     if strict:

@@ -2,6 +2,7 @@ import numpy as np
 from keras.src import backend
 from keras.src import layers
 from keras.src import models
+from keras.src import ops
 
 from segme.common.inguard import InputGuard
 
@@ -166,7 +167,7 @@ def patch_channels(model, mean=None, variance=None):
         base_weight = backend.convert_to_numpy(weights[weight_name])
         random_weight = backend.convert_to_numpy(random_weight)
 
-        if len(random_weight.shape) != len(base_weight.shape):
+        if ops.ndim(random_weight) != ops.ndim(base_weight):
             raise ValueError(
                 f"Model weight {weight_name} rank is changed "
                 f"after deserialization"

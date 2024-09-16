@@ -107,5 +107,6 @@ class TestStrongerTeacherLoss(testing.TestCase):
     #     model.compile(
     #         loss="SegMe>Loss>StrongerTeacherLoss",
     #     )
-    #     model.fit(np.zeros((2, 8, 8, 1)), np.zeros((2, 8, 8, 10), "float32"))
+    #     model.fit(
+    #       ops.zeros((2, 8, 8, 1)), ops.zeros((2, 8, 8, 10), "float32"))
     #     models.Sequential.from_config(model.get_config())
