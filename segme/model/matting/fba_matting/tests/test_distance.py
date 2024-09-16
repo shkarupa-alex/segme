@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from keras.src import ops
 from keras.src import testing
 
 from segme.model.matting.fba_matting.distance import distance_transform

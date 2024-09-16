@@ -1,6 +1,5 @@
 import numpy as np
 from keras.src import backend
-from keras.src import ops
 from keras.src import testing
 
 from segme.utils.matting.tf.aug import augment_alpha

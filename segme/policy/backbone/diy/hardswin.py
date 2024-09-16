@@ -22,9 +22,42 @@ from segme.policy import cnapol
 from segme.policy.backbone.backbone import BACKBONES
 from segme.policy.backbone.utils import wrap_bone
 
-BASE_URL = "https://github.com/shkarupa-alex/segme/releases/download/{}.h5"
-WEIGHT_URLS = {}
-WEIGHT_HASHES = {}
+BASE_URL = (
+    "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
+    "hard_swin_{}__avg_1000__imagenet__conv-ln1em5-gelu___{}.weights.h5"
+)
+WEIGHT_URLS = {
+    "hard_swin_tiny__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
+        "tiny",
+        "83d970307e84e328a71482aeed9a6882225ab998d439121df6595b766c8fd1a4",
+    ),
+    "hard_swin_small__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
+        "small",
+        "a0433c1bc3f68b1faa07f6a9faaeda54ccc9f49341be0e1476bd74199f7cf473",
+    ),
+    "hard_swin_base__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
+        "base",
+        "2a674cf0f5530a7df967408b84f9d575f0c19c92ad38bf61cba2d063b62b058d",
+    ),
+    "hard_swin_large__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
+        "large",
+        "eb80bcd8f487171164bc554ac8d32fb8f6b2747b5bf7dab9a6baea6e3f8f4a88",
+    ),
+}
+WEIGHT_HASHES = {
+    "hard_swin_tiny__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
+        "tiny"
+    ),
+    "hard_swin_small__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
+        "small"
+    ),
+    "hard_swin_base__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
+        "base"
+    ),
+    "hard_swin_large__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
+        "large"
+    ),
+}
 
 
 def Stem(embed_dim, patch_size, name=None):
@@ -298,7 +331,11 @@ def HardSwin(
     )
     if weights_key in WEIGHT_URLS:
         weights_url = WEIGHT_URLS[weights_key]
-        weights_hash = WEIGHT_HASHES[weights_key]
+        weights_hash = (
+            weights_url.split("___")[-1]
+            .replace(".weights.h5", "")
+            .replace(".h5", "")
+        )
         weights_path = file_utils.get_file(
             origin=weights_url, file_hash=weights_hash, cache_subdir="soft_swin"
         )

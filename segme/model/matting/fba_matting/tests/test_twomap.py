@@ -1,5 +1,4 @@
 import numpy as np
-from keras.src import ops
 from keras.src import testing
 
 from segme.model.matting.fba_matting.twomap import twomap_transform

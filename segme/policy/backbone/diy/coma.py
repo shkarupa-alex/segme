@@ -21,8 +21,11 @@ from segme.common.pool import MultiHeadAttentionPooling
 from segme.common.pool import SimPool
 from segme.policy import cnapol
 
+BASE_URL = (
+    "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
+    "coma_{}__avg_1000__imagenet__conv-ln1em5-gelu___{}.weights.h5"
+)
 WEIGHT_URLS = {}
-WEIGHT_HASHES = {}
 
 
 def Stem(filters, depth, path_drop=0.0, path_gamma=1.0, name=None):
@@ -629,7 +632,11 @@ def CoMA(
     )
     if weights_key in WEIGHT_URLS:
         weights_url = WEIGHT_URLS[weights_key]
-        weights_hash = WEIGHT_HASHES[weights_key]
+        weights_hash = (
+            weights_url.split("___")[-1]
+            .replace(".weights.h5", "")
+            .replace(".h5", "")
+        )
         weights_path = file_utils.get_file(
             origin=weights_url, file_hash=weights_hash, cache_subdir="soft_swin"
         )
