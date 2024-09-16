@@ -44,20 +44,6 @@ WEIGHT_URLS = {
         "eb80bcd8f487171164bc554ac8d32fb8f6b2747b5bf7dab9a6baea6e3f8f4a88",
     ),
 }
-WEIGHT_HASHES = {
-    "hard_swin_tiny__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
-        "tiny"
-    ),
-    "hard_swin_small__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
-        "small"
-    ),
-    "hard_swin_base__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
-        "base"
-    ),
-    "hard_swin_large__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
-        "large"
-    ),
-}
 
 
 def Stem(embed_dim, patch_size, name=None):
