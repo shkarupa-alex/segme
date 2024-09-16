@@ -1,35 +1,101 @@
-from keras import Model, layers
-from keras.utils.generic_utils import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
-from segme.model.segmentation.deeplab_v3_plus.base import DeepLabV3PlusBase
+from keras.src import Model
+from keras.src import layers
+
+from segme.common.aspp import AtrousSpatialPyramidPooling
+from segme.common.backbone import Backbone
+from segme.common.convnormact import ConvNormAct
+from segme.common.head import ClassificationActivation
+from segme.common.head import HeadProjection
+from segme.common.hmsattn import HierarchicalMultiScaleAttention
+from segme.common.resize import BilinearInterpolation
+from segme.common.sequence import Sequence
+from segme.policy import dtpol
 
 
-@register_keras_serializable(package='SegMe>Model>Segmentation>DeepLabV3Plus')
-class DeepLabV3Plus(DeepLabV3PlusBase):
-    """ Reference: https://arxiv.org/pdf/1802.02611.pdf """
+def DeepLabV3Plus(
+    classes,
+    aspp_filters=256,
+    aspp_stride=32,
+    low_filters=48,
+    decoder_filters=256,
+    dtype=None,
+):
+    if dtype is not None:
+        with dtpol.policy_scope(dtype):
+            return DeepLabV3Plus(
+                classes,
+                aspp_filters=aspp_filters,
+                aspp_stride=aspp_stride,
+                low_filters=low_filters,
+                decoder_filters=decoder_filters,
+                dtype=None,
+            )
 
-    def call(self, inputs, **kwargs):
-        outputs = super().call(inputs)
-        outputs = self.resize([outputs, inputs])
-        outputs = self.act(outputs)
+    backbone = Backbone([4, 32])
+    inputs = backbone.inputs[0]
+    fine, coarse = backbone.outputs
 
-        return outputs
+    fine = ConvNormAct(low_filters, 1, name="decoder_fine_proj")(fine)
+    coarse = AtrousSpatialPyramidPooling(
+        aspp_filters, aspp_stride, name="decoder_coarse_aspp"
+    )(coarse)
+    coarse = BilinearInterpolation(name="decoder_coarse_resize")([coarse, fine])
 
-    @shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self.classes,)
+    outputs = layers.concatenate([fine, coarse], axis=-1, name="decoder_concat")
+    outputs = Sequence(
+        [
+            ConvNormAct(None, 3, name="decoder_proj1_dw"),
+            ConvNormAct(decoder_filters, 1, name="decoder_proj1_pw"),
+            ConvNormAct(None, 3, name="decoder_proj2_dw"),
+            ConvNormAct(decoder_filters, 1, name="decoder_proj2_pw"),
+        ],
+        name="decoder_proj",
+    )(outputs)
 
-    def compute_output_signature(self, input_signature):
-        proj_signature = super().compute_output_signature(input_signature)
+    outputs = HeadProjection(classes, name="logits_proj")(outputs)
+    outputs = BilinearInterpolation(name="logits_resize")([outputs, inputs])
+    outputs = ClassificationActivation(name="probs")(outputs)
 
-        return self.act.compute_output_signature(proj_signature)
-
-
-def build_deeplab_v3_plus(classes, aspp_filters=256, aspp_stride=32, low_filters=48, decoder_filters=256):
-    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
-    outputs = DeepLabV3Plus(
-        classes, aspp_filters=aspp_filters, aspp_stride=aspp_stride, low_filters=low_filters,
-        decoder_filters=decoder_filters)(inputs)
-    model = Model(inputs=inputs, outputs=outputs, name='deeplab_v3_plus')
+    model = Model(inputs=inputs, outputs=outputs, name="deeplab_v3_plus")
 
     return model
+
+
+def DeepLabV3PlusHMS(
+    classes,
+    aspp_filters=256,
+    aspp_stride=32,
+    low_filters=48,
+    decoder_filters=256,
+    scales=(0.5,),
+    dtype=None,
+):
+    # Rebuild with scales = (0.25, 0.5, 2.0) for inference
+
+    if dtype is not None:
+        with dtpol.policy_scope(dtype):
+            return DeepLabV3PlusHMS(
+                classes,
+                aspp_filters=aspp_filters,
+                aspp_stride=aspp_stride,
+                low_filters=low_filters,
+                decoder_filters=decoder_filters,
+                scales=scales,
+                dtype=None,
+            )
+
+    return HierarchicalMultiScaleAttention(
+        DeepLabV3Plus(
+            classes,
+            aspp_filters=aspp_filters,
+            aspp_stride=aspp_stride,
+            low_filters=low_filters,
+            decoder_filters=decoder_filters,
+            dtype=dtype,
+        ),
+        "decoder_proj",
+        "logits_resize",
+        scales=scales,
+        filters=256,
+        dropout=0.0,
+    )

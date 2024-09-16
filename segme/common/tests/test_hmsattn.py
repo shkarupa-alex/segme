@@ -1,63 +1,25 @@
-import tensorflow as tf
-from keras import layers
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
-from keras.utils.generic_utils import custom_object_scope
+from keras.src import layers
+from keras.src import ops
+from keras.src import testing
+from keras.src.applications.efficientnet_v2 import EfficientNetV2S
+
 from segme.common.hmsattn import HierarchicalMultiScaleAttention
 
 
-class LogitsWithGuidance(layers.Layer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def build(self, input_shape):
-        self.conv1 = layers.Conv2D(4, 3, strides=2, padding='same')
-        self.conv2 = layers.Conv2D(2, 3, strides=2, padding='same')
-
-        super().build(input_shape)
-
-    def call(self, inputs, *args, **kwargs):
-        features = self.conv1(inputs)
-        outputs = self.conv2(features)
-
-        return outputs, features
-
-
-@test_combinations.run_all_keras_modes
-class TestHierarchicalMultiScaleAttention(test_combinations.TestCase):
-    def setUp(self):
-        super(TestHierarchicalMultiScaleAttention, self).setUp()
-        self.default_policy = mixed_precision.global_policy()
-
-    def tearDown(self):
-        super(TestHierarchicalMultiScaleAttention, self).tearDown()
-        mixed_precision.set_global_policy(self.default_policy)
-
+class TestHierarchicalMultiScaleAttention(testing.TestCase):
     def test_layer(self):
-        with custom_object_scope({'LogitsWithGuidance': LogitsWithGuidance}):
-            test_utils.layer_test(
-                HierarchicalMultiScaleAttention,
-                kwargs={'layer': LogitsWithGuidance(), 'scales': ((0.5,), (0.25, 0.5, 2.0)),
-                        'filters': 256, 'dropout': 0.},
-                input_shape=[2, 128, 128, 3],
-                input_dtype='float32',
-                expected_output_shape=[None, 128, 128, 2],
-                expected_output_dtype='float32'
-            )
+        model = EfficientNetV2S(
+            input_tensor=layers.Input(
+                name="image", shape=(None, None, 3), dtype="uint8"
+            ),
+            weights=None,
+        )
+        hmsa = HierarchicalMultiScaleAttention(
+            model, "block3d_add", "block5i_add", (0.25, 0.5, 2.0)
+        )
 
-    def test_fp16(self):
-        mixed_precision.set_global_policy('mixed_float16')
-        with custom_object_scope({'LogitsWithGuidance': LogitsWithGuidance}):
-            test_utils.layer_test(
-                HierarchicalMultiScaleAttention,
-                kwargs={'layer': LogitsWithGuidance(), 'scales': ((0.5,), (0.5, 2.0)),
-                        'filters': 256, 'dropout': 0.},
-                input_shape=[2, 128, 128, 3],
-                input_dtype='float16',
-                expected_output_shape=[None, 128, 128, 2],
-                expected_output_dtype='float16'
-            )
+        inputs = ops.zeros((2, 224, 224, 3), "uint8")
+        result = hmsa(inputs)
 
-
-if __name__ == '__main__':
-    tf.test.main()
+        self.assertDType(result, "float32")
+        self.assertListEqual(result.shape.as_list(), [2, 14, 14, 160])

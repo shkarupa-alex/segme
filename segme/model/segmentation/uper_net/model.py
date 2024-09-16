@@ -1,61 +1,62 @@
-import tensorflow as tf
-from keras import layers, models
-from keras.utils.generic_utils import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.src import layers
+from keras.src import models
+
 from segme.common.backbone import Backbone
-from segme.model.segmentation.uper_net.decoder import Decoder
-from segme.model.segmentation.uper_net.head import Head
+from segme.common.convnormact import ConvNormAct
+from segme.common.head import ClassificationActivation
+from segme.common.head import HeadProjection
+from segme.common.ppm import PyramidPooling
+from segme.common.resize import BilinearInterpolation
+from segme.policy import dtpol
 
 
-@register_keras_serializable(package='SegMe>Model>Segmentation>UPerNet')
-class UPerNet(layers.Layer):
-    """ Reference: https://arxiv.org/pdf/1807.10221v1.pdf """
+def UPerNet(classes, decoder_filters=256, head_dropout=0.1, dtype=None):
+    if dtype is not None:
+        with dtpol.policy_scope(dtype):
+            return UPerNet(
+                classes,
+                decoder_filters=decoder_filters,
+                head_dropout=head_dropout,
+                dtype=None,
+            )
 
-    def __init__(self, classes, dropout, dec_filters, **kwargs):
-        super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4, dtype='uint8')
-        self.classes = classes
-        self.dropout = dropout
-        self.dec_filters = dec_filters
+    backbone = Backbone()
 
-    @shape_type_conversion
-    def build(self, input_shape):
-        self.bone = Backbone(scales=[4, 8, 16, 32])
-        self.decode = Decoder(self.dec_filters)
-        self.head = Head(self.classes, self.dropout)
+    inputs = backbone.inputs[0]
+    features = backbone.outputs
+    scales = len(features)
 
-        super().build(input_shape)
+    laterals = [
+        ConvNormAct(decoder_filters, 1, name=f"lateral_{i}")(features[i])
+        for i in range(scales - 1)
+    ]
+    laterals.append(PyramidPooling(decoder_filters, name="ppm")(features[-1]))
 
-    def call(self, inputs, **kwargs):
-        feats = self.bone(inputs)
-        outputs = self.decode(feats)
-        outputs = self.head([outputs, inputs])
+    for i in range(scales - 1, 0, -1):
+        lat_up = BilinearInterpolation(name=f"upscale_{i}")(
+            [laterals[i], laterals[i - 1]]
+        )
+        laterals[i - 1] = layers.add([laterals[i - 1], lat_up])
 
-        return outputs
+    outputs = [
+        ConvNormAct(decoder_filters, 3, name=f"fpn_{i}")(laterals[i])
+        for i in range(scales - 1)
+    ]
+    outputs.append(laterals[-1])
 
-    @shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self.classes,)
+    for i in range(scales - 1, 0, -1):
+        outputs[i] = BilinearInterpolation(name=f"resize_{i}")(
+            [outputs[i], outputs[0]]
+        )
 
-    def compute_output_signature(self, input_signature):
-        outptut_signature = super().compute_output_signature(input_signature)
+    outputs = layers.concatenate(outputs, axis=-1)
+    outputs = ConvNormAct(decoder_filters, 3, name="bottleneck")(outputs)
 
-        return tf.TensorSpec(dtype='float32', shape=outptut_signature.shape)
+    outputs = layers.Dropout(head_dropout, name="head_drop")(outputs)
+    outputs = HeadProjection(classes, name="head_proj")(outputs)
+    outputs = BilinearInterpolation(name="head_resize")([outputs, inputs])
+    outputs = ClassificationActivation(name="head_act")(outputs)
 
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            'classes': self.classes,
-            'dropout': self.dropout,
-            'dec_filters': self.dec_filters
-        })
-
-        return config
-
-
-def build_uper_net(classes, dropout=0.1, dec_filters=512):
-    inputs = layers.Input(name='image', shape=[None, None, 3], dtype='uint8')
-    outputs = UPerNet(classes, dropout=dropout, dec_filters=dec_filters)(inputs)
-    model = models.Model(inputs=inputs, outputs=outputs, name='uper_net')
+    model = models.Functional(inputs=inputs, outputs=outputs, name="uper_net")
 
     return model

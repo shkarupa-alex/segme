@@ -1,72 +1,71 @@
-import tensorflow as tf
-from keras import backend, layers, models
-from keras.utils.generic_utils import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.src import layers
+from keras.src import models
+from keras.src.dtype_policies import dtype_policy
+
+from segme.common.backbone import Backbone
+from segme.common.convnormact import ConvNormAct
 from segme.common.head import ClassificationActivation
+from segme.common.resize import BilinearInterpolation
 from segme.model.refinement.hqs_crm.decoder import Decoder
-from segme.model.refinement.hqs_crm.encoder import Encoder
+from segme.policy import dtpol
+from segme.policy.backbone.utils import patch_channels
 
 
-@register_keras_serializable(package='SegMe>Model>Refinement>HqsCrm')
-class HqsCrm(layers.Layer):
-    def __init__(self, aspp_filters, aspp_drop, mlp_units, **kwargs):
-        super().__init__(**kwargs)
-        self.input_spec = [
-            layers.InputSpec(ndim=4, axes={-1: 3}, dtype='uint8'),  # image
-            layers.InputSpec(ndim=4, axes={-1: 1}, dtype='uint8'),  # mask
-            layers.InputSpec(ndim=4, axes={-1: 2}, dtype='float32')  # coord
-        ]
+def HqsCrm(
+    aspp_filters=(64, 64, 128),
+    aspp_drop=0.5,
+    mlp_units=(32, 32, 32, 32),
+    dtype=None,
+):
+    if dtype is not None:
+        with dtpol.policy_scope(dtype):
+            return HqsCrm(
+                aspp_filters=aspp_filters,
+                aspp_drop=aspp_drop,
+                mlp_units=mlp_units,
+                dtype=None,
+            )
 
-        self.aspp_filters = aspp_filters
-        self.aspp_drop = aspp_drop
-        self.mlp_units = mlp_units
+    inputs = layers.concatenate(
+        [
+            layers.Input(name="image", shape=(None, None, 3), dtype="uint8"),
+            layers.Input(name="mask", shape=(None, None, 1), dtype="uint8"),
+        ],
+        axis=-1,
+    )
+    coord = layers.Input(
+        name="coord",
+        shape=[None, None, 2],
+        dtype=dtype_policy.dtype_policy().compute_dtype,
+    )
 
-    @shape_type_conversion
-    def build(self, input_shape):
-        self.encoder = Encoder()
-        self.decoder = Decoder(self.aspp_filters, self.aspp_drop, self.mlp_units)
-        self.act = ClassificationActivation()
+    backbone = Backbone(
+        [2, 4, 32], input_tensor=inputs, policy="resnet_rs_50_s8-imagenet"
+    )
+    backbone = patch_channels(backbone, mean=[0.408], variance=[0.492**2])
+    feats2, feats4, feats8 = backbone.outputs
 
-        super().build(input_shape)
+    aspp2 = ConvNormAct(aspp_filters[0], 1, name="cna2")(feats2)
+    aspp2 = layers.Dropout(aspp_drop, name="drop2")(aspp2)
 
-    def call(self, inputs, training=None, **kwargs):
-        images, masks, coords = inputs
-        coords = tf.cast(coords, self.compute_dtype)
+    aspp4 = ConvNormAct(aspp_filters[1], 1, name="cna4")(feats4)
+    aspp4 = layers.Dropout(aspp_drop, name="drop4")(aspp4)
+    aspp4 = BilinearInterpolation(name="resize4")([aspp4, aspp2])
 
-        imgsmasks = tf.concat([images, masks], axis=-1)
-        feats2, feats4, feats32 = self.encoder(imgsmasks)
-        logits = self.decoder([feats2, feats4, feats32, coords])
-        outputs = self.act(logits)
+    aspp8 = ConvNormAct(aspp_filters[2], 1, name="cna8")(feats8)
+    aspp8 = layers.Dropout(aspp_drop, name="drop8")(aspp8)
+    aspp8 = BilinearInterpolation(name="resize8")([aspp8, aspp2])
 
-        return outputs
+    aspp = layers.concatenate([aspp2, aspp4, aspp8], axis=-1, name="concat")
+    aspp = ConvNormAct(sum(aspp_filters), 3, name="fuse")(aspp)
+    aspp = layers.Dropout(aspp_drop, name="drop")(aspp)
 
-    @shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return input_shape[2][:-1] + (1,)
+    logits = Decoder(mlp_units, name="query")([aspp, coord])
 
-    def compute_output_signature(self, input_signature):
-        outptut_signature = super().compute_output_signature(input_signature)
+    x = ClassificationActivation(name="prob")(logits)
 
-        return tf.TensorSpec(dtype='float32', shape=outptut_signature.shape)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            'aspp_filters': self.aspp_filters,
-            'aspp_drop': self.aspp_drop,
-            'mlp_units': self.mlp_units
-        })
-
-        return config
-
-
-def build_hqs_crm(aspp_filters=(64, 64, 128), aspp_drop=0.5, mlp_units=(32, 32, 32, 32)):
-    inputs = [
-        layers.Input(name='image', shape=[None, None, 3], dtype='uint8'),
-        layers.Input(name='mask', shape=[None, None, 1], dtype='uint8'),
-        layers.Input(name='coord', shape=[None, None, 2], dtype='float32')
-    ]
-    outputs = HqsCrm(aspp_filters, aspp_drop, mlp_units)(inputs)
-    model = models.Model(inputs=inputs, outputs=outputs, name='hqs_crm')
+    model = models.Functional(
+        inputs=backbone.inputs + [coord], outputs=x, name="hqs_crm"
+    )
 
     return model

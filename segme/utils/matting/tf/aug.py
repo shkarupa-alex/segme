@@ -1,75 +1,63 @@
-import tensorflow as tf
+from keras.src import backend
+from keras.src import ops
+
+from segme.ops import convert_image_dtype
 
 
-def augment_inverse(image, prob=0.05, seed=None):
-    with tf.name_scope('augment_foreground'):
-        image = tf.convert_to_tensor(image, 'uint8')
+def augment_alpha(alpha, prob=0.3, max_pow=2.0, seed=None):
+    with backend.name_scope("augment_alpha"):
+        alpha = backend.convert_to_tensor(alpha, "uint8")
 
-        if 4 != image.shape.rank:
-            raise ValueError('Expecting `alpha` rank to be 4.')
-
-        if 3 != image.shape[-1]:
-            raise ValueError('Expecting `foreground` channels size to be 3.')
-
-        if 'uint8' != image.dtype:
-            raise ValueError('Expecting `foreground` dtype to be `uint8`.')
-
-        batch = tf.shape(image)[0]
-        apply = tf.random.uniform([batch, 1, 1, 1], 0., 1., seed=seed)
-        apply = tf.cast(apply < prob, image.dtype)
-
-        return (255 - image) * apply + image * (1 - apply)
-
-
-def augment_alpha(alpha, prob=0.3, seed=None):
-    with tf.name_scope('augment_alpha'):
-        alpha = tf.convert_to_tensor(alpha, 'uint8')
-
-        if 4 != alpha.shape.rank:
-            raise ValueError('Expecting `alpha` rank to be 4.')
+        if 4 != ops.ndim(alpha):
+            raise ValueError("Expecting `alpha` rank to be 4.")
 
         if 1 != alpha.shape[-1]:
-            raise ValueError('Expecting `alpha` channels size to be 1.')
+            raise ValueError("Expecting `alpha` channels size to be 1.")
 
-        if 'uint8' != alpha.dtype:
-            raise ValueError('Expecting `alpha` dtype to be `uint8`.')
+        if "uint8" != alpha.dtype:
+            raise ValueError("Expecting `alpha` dtype to be `uint8`.")
 
-        batch = tf.shape(alpha)[0]
-        apply, gamma_switch, gamma, alpha_switch = tf.split(
-            tf.random.uniform([batch, 1, 1, 4], 0., 1., seed=seed), 4, axis=-1)
+        alpha = convert_image_dtype(alpha, "float32")
 
-        apply = tf.cast(apply < prob, alpha.dtype)
+        batch = ops.shape(alpha)[0]
+        gamma, direction, apply, invert = ops.split(
+            ops.random.uniform([batch, 1, 1, 4], 0.0, 1.0, seed=seed),
+            4,
+            axis=-1,
+        )
 
-        gamma_switch = tf.cast(gamma_switch > 0.5, gamma_switch.dtype)
-        gamma = (gamma / 2 + 0.5) * gamma_switch + (gamma + 1.) * (1 - gamma_switch)
+        direction = ops.cast(direction > 0.5, direction.dtype)
+        gamma = gamma * (max_pow - 1.0) + 1.0
+        gamma = direction * gamma + (1.0 - direction) / gamma
 
-        orig_dtype = alpha.dtype
-        alpha_ = alpha if orig_dtype in {tf.float16, tf.float32} else tf.image.convert_image_dtype(alpha, 'float32')
+        invert = ops.cast(invert > 0.5, invert.dtype)
+        alpha_ = (1.0 - alpha) * invert + alpha * (1.0 - invert)
+        alpha_ = ops.power(alpha_, gamma)
+        alpha_ = (1.0 - alpha_) * invert + alpha_ * (1.0 - invert)
 
-        alpha_switch = tf.cast(alpha_switch > 0.5, alpha_switch.dtype)
-        alpha_ = tf.pow(alpha_, gamma) * alpha_switch + (1 - tf.pow(1 - alpha_, gamma)) * (1 - alpha_switch)
+        apply = ops.cast(apply < prob, alpha.dtype)
+        alpha = alpha_ * apply + alpha * (1 - apply)
 
-        return tf.image.convert_image_dtype(alpha_, orig_dtype, saturate=True) * apply + alpha * (1 - apply)
+        return convert_image_dtype(alpha, "uint8", saturate=True)
 
 
 def augment_trimap(trimap, prob=0.1, seed=None):
-    with tf.name_scope('augment_trimap'):
-        trimap = tf.convert_to_tensor(trimap, 'uint8')
+    with backend.name_scope("augment_trimap"):
+        trimap = backend.convert_to_tensor(trimap, "uint8")
 
-        if 4 != trimap.shape.rank:
-            raise ValueError('Expecting `trimap` rank to be 4.')
+        if 4 != ops.ndim(trimap):
+            raise ValueError("Expecting `trimap` rank to be 4.")
 
         if 1 != trimap.shape[-1]:
-            raise ValueError('Expecting `trimap` channels size to be 1.')
+            raise ValueError("Expecting `trimap` channels size to be 1.")
 
-        if 'uint8' != trimap.dtype:
-            raise ValueError('Expecting `trimap` dtype to be `uint8`.')
+        if "uint8" != trimap.dtype:
+            raise ValueError("Expecting `trimap` dtype to be `uint8`.")
 
-        batch = tf.shape(trimap)[0]
-        apply = tf.random.uniform([batch, 1, 1, 1], 0., 1., seed=seed)
-        apply = tf.cast(apply < prob, trimap.dtype)
+        batch = ops.shape(trimap)[0]
+        apply = ops.random.uniform([batch, 1, 1, 1], 0.0, 1.0, seed=seed)
+        apply = ops.cast(apply < prob, trimap.dtype)
 
-        fg = tf.convert_to_tensor(255, 'uint8')
-        un = tf.convert_to_tensor(128, 'uint8')
+        trimap_ = ops.minimum(trimap, 128)
 
-        return tf.where(tf.equal(trimap, fg), un, trimap) * apply + trimap * (1 - apply)
+        return trimap_ * apply + trimap * (1 - apply)

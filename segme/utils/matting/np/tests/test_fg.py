@@ -1,23 +1,33 @@
-import cv2
-import numpy as np
 import os
 import unittest
+
+import cv2
+import numpy as np
+
 from segme.utils.matting.np.fg import solve_fg
 
 
 class TestSolveFg(unittest.TestCase):
     def test_value(self):
-        image = os.path.join(os.path.dirname(__file__), 'data', 'lemur_image.png')
+        image = os.path.join(
+            os.path.dirname(__file__), "data", "lemur_image.png"
+        )
         image = cv2.imread(image)
 
-        alpha = os.path.join(os.path.dirname(__file__), 'data', 'lemur_alpha.png')
+        alpha = os.path.join(
+            os.path.dirname(__file__), "data", "lemur_alpha.png"
+        )
         alpha = cv2.imread(alpha, cv2.IMREAD_GRAYSCALE)
 
-        trimap = os.path.join(os.path.dirname(__file__), 'data', 'lemur_trimap.png')
+        trimap = os.path.join(
+            os.path.dirname(__file__), "data", "lemur_trimap.png"
+        )
         trimap = cv2.imread(trimap, cv2.IMREAD_GRAYSCALE)
         unknown = (trimap > 26) & (trimap < 229)
 
-        foreground = os.path.join(os.path.dirname(__file__), 'data', 'lemur_foreground.png')
+        foreground = os.path.join(
+            os.path.dirname(__file__), "data", "lemur_foreground.png"
+        )
         foreground = cv2.imread(foreground)
 
         fg = solve_fg(image, alpha)
@@ -28,5 +38,5 @@ class TestSolveFg(unittest.TestCase):
         self.assertLess(error, 73.0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
