@@ -2,8 +2,8 @@ import numpy as np
 from keras.src import backend
 from keras.src import testing
 
-from segme.utils.matting.tf.aug import augment_alpha
-from segme.utils.matting.tf.aug import augment_trimap
+from segme.utils.matting.aug import augment_alpha
+from segme.utils.matting.aug import augment_trimap
 
 
 class TestAugmentAlpha(testing.TestCase):

@@ -12,8 +12,8 @@ from keras.src.utils import file_utils
 
 from segme.utils.albumentations import drop_unapplied
 from segme.utils.common import rand_augment_full
-from segme.utils.matting.np import alpha_trimap as alpha_trimap_np
-from segme.utils.matting.tf import alpha_trimap as alpha_trimap_tf
+from segme.utils.matting import alpha_trimap as alpha_trimap_tf
+from segme.utils.matting_np import alpha_trimap as alpha_trimap_np
 
 MIN_SIZE = 384
 BUCKET_GROUPS = {

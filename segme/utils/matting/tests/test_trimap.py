@@ -1,8 +1,8 @@
 import numpy as np
 from keras.src import testing
 
-from segme.utils.matting.np.trimap import alpha_trimap as alpha_trimap_np
-from segme.utils.matting.tf.trimap import alpha_trimap
+from segme.utils.matting.trimap import alpha_trimap
+from segme.utils.matting_np.trimap import alpha_trimap as alpha_trimap_np
 
 
 class TestAlphaTrimap(testing.TestCase):

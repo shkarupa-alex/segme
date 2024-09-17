@@ -1,8 +1,8 @@
 from keras.src import backend
 from keras.src import ops
 
-from segme.utils.matting.tf.fg import solve_fg
-from segme.utils.matting.tf.trimap import alpha_trimap
+from segme.utils.matting.fg import solve_fg
+from segme.utils.matting.trimap import alpha_trimap
 
 
 def compose_two(fg, alpha, solve=True, name=None):

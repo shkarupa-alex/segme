@@ -17,6 +17,7 @@ def solve_fg(image, alpha, kappa=1.0, steps=16):
 
     if 3 == len(alpha.shape) and 1 != alpha.shape[-1]:
         raise ValueError("Expecting `alpha` channels size to be 1.")
+
     if 2 == len(alpha.shape):
         alpha = alpha[..., None]
 

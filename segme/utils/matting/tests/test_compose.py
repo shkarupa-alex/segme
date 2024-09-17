@@ -1,10 +1,10 @@
 import numpy as np
 from keras.src import testing
 
-from segme.utils.matting.np.compose import compose_two as compose_two_np
-from segme.utils.matting.tf.compose import compose_batch
-from segme.utils.matting.tf.compose import compose_two
-from segme.utils.matting.tf.compose import random_compose
+from segme.utils.matting.compose import compose_batch
+from segme.utils.matting.compose import compose_two
+from segme.utils.matting.compose import random_compose
+from segme.utils.matting_np.compose import compose_two as compose_two_np
 
 
 class TestComposeTwo(testing.TestCase):

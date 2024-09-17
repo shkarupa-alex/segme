@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from segme.utils.matting.np.trimap import alpha_trimap
+from segme.utils.matting_np.trimap import alpha_trimap
 
 
 class TestAlphaTrimap(unittest.TestCase):

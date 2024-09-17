@@ -16,10 +16,10 @@ from PIL import Image
 
 from segme.model.matting.fba_matting.distance import distance_transform
 from segme.model.matting.fba_matting.twomap import twomap_transform
+from segme.utils import matting
+from segme.utils import matting_np
 from segme.utils.albumentations import drop_unapplied
 from segme.utils.common import rand_augment_matting
-from segme.utils.matting import np as matting_np
-from segme.utils.matting import tf as matting_tf
 
 CROP_SIZE = 512
 TOTAL_BOXES = 100
@@ -663,15 +663,15 @@ def _augment_examples(examples):
     foreground.set_shape(foreground.shape[:1] + [CROP_SIZE, CROP_SIZE, 3])
     background.set_shape(background.shape[:1] + [CROP_SIZE, CROP_SIZE, 3])
 
-    alpha = matting_tf.augment_alpha(alpha)
-    # foreground, alpha = matting_tf.random_compose(
+    alpha = matting.augment_alpha(alpha)
+    # foreground, alpha = matting.random_compose(
     #   foreground, alpha, trim=(max(TRIMAP_SIZE), 0.95), solve=False)
     foreground, [alpha], _ = rand_augment_matting(foreground, [alpha], None)
-    # foreground = matting_tf.solve_fg(
+    # foreground = matting.solve_fg(
     #   foreground, alpha, kappa=0.334, steps=3)  # for crop size 512
     background = tf.random.shuffle(background)
-    trimap = matting_tf.alpha_trimap(alpha, size=TRIMAP_SIZE)
-    trimap = matting_tf.augment_trimap(trimap)
+    trimap = matting.alpha_trimap(alpha, size=TRIMAP_SIZE)
+    trimap = matting.augment_trimap(trimap)
 
     return {
         "alpha": alpha,

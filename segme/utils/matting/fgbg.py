@@ -126,7 +126,7 @@ def solve_fgbg(
         if 3 != image.shape[-1]:
             raise ValueError("Expecting `image` channels size to be 3.")
 
-        if 4 != ops.ndim(image):
+        if 4 != ops.ndim(alpha):
             raise ValueError("Expecting `alpha` rank to be 4.")
 
         if 1 != alpha.shape[-1]:

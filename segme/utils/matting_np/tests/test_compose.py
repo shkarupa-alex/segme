@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from segme.utils.matting.np.compose import compose_two
+from segme.utils.matting_np.compose import compose_two
 
 
 class TestComposeTwo(unittest.TestCase):
