@@ -22,10 +22,10 @@ BUCKET_GROUPS = {
     (576, 384): (576, 384),
     (384, 672): (384, 672),
     (384, 640): (384, 672),
+    (384, 544): (384, 544),
     (512, 384): (512, 384),
     (384, 608): (384, 608),
     (384, 384): (384, 384),
-    (384, 544): (384, 544),
     (384, 480): (384, 480),
     (480, 384): (480, 384),
     (544, 384): (544, 384),
@@ -510,8 +510,6 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
                 cv2.imread(image_file.replace("-image.", "-image_super.")),
                 cv2.COLOR_BGR2RGB,
             )
-            # large = cv2.resize(
-            #   large, image.shape[1::-1], interpolation=cv2.INTER_CUBIC)
 
         trimap = np.zeros(mask.shape, dtype="uint8")
         if self.with_trimap:

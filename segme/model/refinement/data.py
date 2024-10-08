@@ -14,7 +14,7 @@ from segme.common.impfunc import make_coords
 from segme.utils.albumentations import drop_unapplied
 from segme.utils.common import rand_augment_safe
 
-CROP_SIZE = 384
+CROP_SIZE = 512
 IOU_MIN = 0.8
 INTERPOLATIONS = [
     cv2.INTER_LINEAR,
@@ -63,7 +63,7 @@ def compute_iou(seg, gt):
 
 
 def perturb_segmentation(gt, iou_target):
-    h, w = gt.shape
+    h, w = gt.shape[:2]
     seg = gt.copy()
 
     _, seg = cv2.threshold(seg, 127, 255, 0)
@@ -227,150 +227,160 @@ def modify_boundary(
     return image
 
 
-def train_augment(image, mask, replay=False):
+def train_augment(image, mask, with_crops, replay=False):
     start_crop = CROP_SIZE * 2
     start_crop = min(start_crop, min(image.shape[:2]))
-
     trg_size = (CROP_SIZE, CROP_SIZE)
 
-    compose_cls = alb.ReplayCompose if replay else alb.Compose
-    aug = compose_cls(
-        [
-            alb.CropNonEmptyMaskIfExists(start_crop, start_crop, p=1),
-            # Color
-            alb.OneOf(
+    aug = [
+        # Crop or resize
+        (
+            alb.CropNonEmptyMaskIfExists(start_crop, start_crop, p=1)
+            if with_crops
+            else alb.OneOf(
                 [
-                    alb.CLAHE(),
-                    alb.OneOf(
-                        [
-                            alb.ChannelDropout(fill_value=value)
-                            for value in range(256)
-                        ]
-                    ),
-                    # alb.ChannelShuffle(), # on-the-fly
-                    alb.ColorJitter(),
-                    alb.OneOf(
-                        [
-                            alb.Equalize(by_channels=value)
-                            for value in [True, False]
-                        ]
-                    ),
-                    alb.FancyPCA(),
-                    alb.HueSaturationValue(),
-                    alb.PixelDropout(),
-                    alb.RGBShift(),
-                    alb.RandomBrightnessContrast(),
-                    alb.RandomGamma(),
-                    alb.RandomToneCurve(),
-                    alb.Sharpen(),
-                    alb.ToGray(p=0.1),
-                    alb.ToSepia(p=0.05),
-                    alb.UnsharpMask(),
-                ],
-                p=0.7,
-            ),
-            # Blur
-            alb.OneOf(
-                [
-                    alb.AdvancedBlur(),
-                    alb.Blur(blur_limit=(3, 5)),
-                    alb.GaussianBlur(blur_limit=(3, 5)),
-                    alb.MedianBlur(blur_limit=5),
-                    alb.RingingOvershoot(blur_limit=(3, 5)),
-                ],
-                p=0.2,
-            ),
-            # Noise
-            alb.OneOf(
-                [
-                    alb.OneOf(
-                        [
-                            alb.Downscale(
-                                scale_max=0.75, interpolation=interpolation
-                            )
-                            for interpolation in INTERPOLATIONS
-                        ]
-                    ),
-                    alb.GaussNoise(var_limit=(10.0, 100.0)),
-                    alb.ISONoise(color_shift=(0.01, 0.1), intensity=(0.1, 0.7)),
-                    alb.ImageCompression(quality_lower=25, quality_upper=95),
-                    alb.OneOf(
-                        [
-                            alb.MultiplicativeNoise(
-                                per_channel=value1, elementwise=value2
-                            )
-                            for value1, value2 in [
-                                (True, True),
-                                (True, False),
-                                (False, True),
-                                (False, False),
-                            ]
-                        ]
-                    ),
-                ],
-                p=0.3,
-            ),
-            # Distortion and scaling
-            alb.OneOf(
-                [
-                    alb.OneOf(
-                        [
-                            alb.Affine(interpolation=interpolation)
-                            for interpolation in INTERPOLATIONS
-                        ]
-                    ),
-                    alb.OneOf(
-                        [
-                            alb.ElasticTransform(
-                                alpha_affine=25,
-                                border_mode=cv2.BORDER_CONSTANT,
-                                interpolation=interpolation,
-                            )
-                            for interpolation in INTERPOLATIONS
-                        ]
-                    ),
-                    alb.OneOf(
-                        [
-                            alb.GridDistortion(
-                                border_mode=cv2.BORDER_CONSTANT,
-                                interpolation=interpolation,
-                            )
-                            for interpolation in INTERPOLATIONS
-                        ]
-                    ),
-                    # makes image larger in all directions
-                    # alb.OpticalDistortion(
-                    #   distort_limit=(-0.5, 0.5),
-                    #   border_mode=cv2.BORDER_CONSTANT),
-                    # moves image to top-left corner
-                    # alb.Perspective(scale=(0.01, 0.05)),
-                    alb.OneOf(
-                        [
-                            alb.PiecewiseAffine(
-                                scale=(0.01, 0.03), interpolation=interpolation
-                            )
-                            for interpolation in INTERPOLATIONS
-                        ]
-                    ),
-                ],
-                p=0.2,
-            ),
-            # Rotate
-            alb.OneOf(
-                [
-                    alb.Rotate(
-                        limit=(-45, 45),
-                        border_mode=cv2.BORDER_CONSTANT,
-                        interpolation=interpolation,
-                    )
+                    alb.LongestMaxSize(CROP_SIZE, interpolation=interpolation)
                     for interpolation in INTERPOLATIONS
                 ],
-                p=0.2,
-            ),
-            # Pad & crop
-            alb.PadIfNeeded(*trg_size, border_mode=cv2.BORDER_CONSTANT, p=1),
-            alb.CropNonEmptyMaskIfExists(*trg_size, p=1),
-        ],
+                p=1,
+            )
+        ),
+        # Color
+        alb.OneOf(
+            [
+                alb.CLAHE(),
+                alb.OneOf(
+                    [
+                        alb.ChannelDropout(fill_value=value)
+                        for value in range(256)
+                    ]
+                ),
+                # alb.ChannelShuffle(), # on-the-fly
+                alb.ColorJitter(),
+                alb.OneOf(
+                    [alb.Equalize(by_channels=value) for value in [True, False]]
+                ),
+                alb.FancyPCA(),
+                alb.HueSaturationValue(),
+                alb.PixelDropout(),
+                alb.RGBShift(),
+                alb.RandomBrightnessContrast(),
+                alb.RandomGamma(),
+                alb.RandomToneCurve(),
+                alb.Sharpen(),
+                alb.ToGray(p=0.1),
+                alb.ToSepia(p=0.05),
+                alb.UnsharpMask(),
+            ],
+            p=0.7,
+        ),
+        # Blur
+        alb.OneOf(
+            [
+                alb.AdvancedBlur(),
+                alb.Blur(blur_limit=(3, 5)),
+                alb.GaussianBlur(blur_limit=(3, 5)),
+                alb.MedianBlur(blur_limit=5),
+                alb.RingingOvershoot(blur_limit=(3, 5)),
+            ],
+            p=0.2,
+        ),
+        # Noise
+        alb.OneOf(
+            [
+                alb.OneOf(
+                    [
+                        alb.Downscale(
+                            scale_max=0.75, interpolation=interpolation
+                        )
+                        for interpolation in INTERPOLATIONS
+                    ]
+                ),
+                alb.GaussNoise(var_limit=(10.0, 100.0)),
+                alb.ISONoise(color_shift=(0.01, 0.1), intensity=(0.1, 0.7)),
+                alb.ImageCompression(quality_lower=25, quality_upper=95),
+                alb.OneOf(
+                    [
+                        alb.MultiplicativeNoise(
+                            per_channel=value1, elementwise=value2
+                        )
+                        for value1, value2 in [
+                            (True, True),
+                            (True, False),
+                            (False, True),
+                            (False, False),
+                        ]
+                    ]
+                ),
+            ],
+            p=0.3,
+        ),
+        # Distortion and scaling
+        alb.OneOf(
+            [
+                alb.OneOf(
+                    [
+                        alb.Affine(
+                            mode=cv2.BORDER_REFLECT, interpolation=interpolation
+                        )
+                        for interpolation in INTERPOLATIONS
+                    ]
+                ),
+                alb.OneOf(
+                    [
+                        alb.ElasticTransform(
+                            border_mode=cv2.BORDER_REFLECT,
+                            interpolation=interpolation,
+                        )
+                        for interpolation in INTERPOLATIONS
+                    ]
+                ),
+                alb.OneOf(
+                    [
+                        alb.GridDistortion(
+                            border_mode=cv2.BORDER_REFLECT,
+                            interpolation=interpolation,
+                        )
+                        for interpolation in INTERPOLATIONS
+                    ]
+                ),
+                # makes image larger in all directions
+                # alb.OpticalDistortion(
+                #   distort_limit=(-0.5, 0.5),
+                #   border_mode=cv2.BORDER_REFLECT),
+                # moves image to top-left corner
+                # alb.Perspective(scale=(0.01, 0.05)),
+                alb.OneOf(
+                    [
+                        alb.PiecewiseAffine(
+                            scale=(0.01, 0.03),
+                            mode="symmetric",
+                            interpolation=interpolation,
+                        )
+                        for interpolation in INTERPOLATIONS
+                    ]
+                ),
+            ],
+            p=0.2,
+        ),
+        # Rotate
+        alb.OneOf(
+            [
+                alb.Rotate(
+                    limit=(-45, 45),
+                    border_mode=cv2.BORDER_REFLECT,
+                    interpolation=interpolation,
+                )
+                for interpolation in INTERPOLATIONS
+            ],
+            p=0.2,
+        ),
+        # Pad & crop
+        alb.PadIfNeeded(*trg_size, border_mode=cv2.BORDER_REFLECT, p=1),
+        alb.CropNonEmptyMaskIfExists(*trg_size, p=1),
+    ]
+    aug = (alb.ReplayCompose if replay else alb.Compose)(
+        aug,
         additional_targets={"weight": "mask"},
     )
 
@@ -390,20 +400,43 @@ def train_augment(image, mask, replay=False):
     )
 
 
-def valid_augment(image, mask):
+def valid_augment(image, mask, with_crops):
     trg_size = (CROP_SIZE, CROP_SIZE)
-
-    aug = alb.Compose(
-        [
-            # Crop
-            alb.PadIfNeeded(*trg_size, border_mode=cv2.BORDER_CONSTANT, p=1),
+    if with_crops:
+        aug = [
+            (
+                alb.OneOf(
+                    [
+                        alb.SmallestMaxSize(
+                            CROP_SIZE, interpolation=interpolation, p=1
+                        )
+                        for interpolation in INTERPOLATIONS
+                    ],
+                    p=1,
+                )
+                if min(image.shape[:2]) < CROP_SIZE
+                else alb.NoOp()
+            ),
+            alb.PadIfNeeded(*trg_size, border_mode=cv2.BORDER_REFLECT, p=1),
             alb.CropNonEmptyMaskIfExists(*trg_size, p=1),
-        ],
-        additional_targets={"weight": "mask"},
-    )
+        ]
+    else:
+        aug = [
+            alb.OneOf(
+                [
+                    alb.LongestMaxSize(
+                        CROP_SIZE, interpolation=interpolation, p=1
+                    )
+                    for interpolation in INTERPOLATIONS
+                ],
+                p=1,
+            ),
+            alb.PadIfNeeded(*trg_size, border_mode=cv2.BORDER_REFLECT, p=1),
+        ]
+    aug = alb.Compose(aug, additional_targets={"weight": "mask"})
 
     augmented = aug(image=image, mask=mask, weight=np.ones_like(mask))
-    assert augmented["mask"].shape == trg_size
+    assert augmented["mask"].shape[:2] == trg_size
 
     return (
         augmented["image"],
@@ -422,6 +455,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
         *,
         source_dirs,
         data_dir,
+        with_crops=True,
         train_aug=1,
         test_re="-test-",
         set_weight=None,
@@ -450,6 +484,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
             raise ValueError("Source weights should be in range [0.0; 5.0]")
 
         self.source_dirs = source_dirs
+        self.with_crops = with_crops
         self.train_aug = train_aug
         self.test_re = test_re
         self.set_weight = set_weight
@@ -504,26 +539,24 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
             )
 
         for source_dir in self.source_dirs:
-            if source_dir.split("/")[-1][0] in {".", "_"}:
+            if source_dir.split("/")[-1][0] in "._":
                 continue
 
             for dirpath, _, filenames in os.walk(source_dir):
+                # Skip some datasets
+                if dirpath.split("/")[-1][0] in "._":
+                    continue
+
                 for file in filenames:
+                    # Do not skip samples
+                    # if file.split("/")[-1][0] in "._":
+                    #     continue
+
                     image_ext = "-image.jpg"
                     if not file.endswith(image_ext):
                         continue
 
-                    if file.split("/")[-1][0] in {
-                        ".",
-                        "_",
-                    }:  # Skip some samples
-                        continue
-
                     image_path = os.path.join(dirpath, file)
-                    if (
-                        "_" == image_path.split("/")[-2][0]
-                    ):  # Skip some datasets
-                        continue
 
                     if training == bool(re.search(self.test_re, image_path)):
                         continue
@@ -536,8 +569,9 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                     #     )
 
                     mask = file.replace(image_ext, "-mask.png")
-                    if mask.replace("-mask.", "-mask_manfix.") in filenames:
-                        mask = mask.replace("-mask.", "-mask_manfix.")
+                    # Do not use manually fiexed masks
+                    # if mask.replace("-mask.", "-mask_manfix.") in filenames:
+                    #     mask = mask.replace("-mask.", "-mask_manfix.")
 
                     yield image_path, os.path.join(dirpath, mask)
 
@@ -546,8 +580,6 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
         for weight_key, weight_value in self.set_weight.items():
             if weight_key in mask_file:
                 sample_weight = weight_value
-
-        # TODO: manfix weight
 
         if sample_weight < 1 / 20:
             return []
@@ -561,7 +593,6 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
         if len(set(mask.reshape(-1)) - {0, 255}) != 0:
             raise ValueError(f"Wrong mask values in {mask_file}")
 
-        repeats = self.train_aug if training else 1
         do_aug = train_augment if training else valid_augment
         image_, mask_ = image, mask
 
@@ -572,6 +603,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
 
         max_scales = math.ceil(math.log2(min_size / CROP_SIZE))
         max_scales = min(5, max(1, max_scales))
+        max_scales = max_scales if self.with_crops else 1
         assert min_size >= CROP_SIZE or 1 == max_scales, image_file
 
         for s in range(max_scales):
@@ -583,7 +615,6 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
             if min_size < CROP_SIZE:
                 curr_scale = CROP_SIZE / min_size
                 curr_weight *= (min_size / CROP_SIZE) ** 2
-                interp = cv2.INTER_LANCZOS4
 
             image_ = cv2.resize(
                 image,
@@ -601,22 +632,27 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
             )
             assert image_.shape[:2] == mask_.shape[:2], image_file
 
+            repeats = self.train_aug if training else 1
             repeats_ext = image_.shape[0] * image_.shape[1] / (CROP_SIZE**2)
             repeats_ext = max(1, int(repeats_ext**0.5))
+            repeats_ext = repeats_ext if self.with_crops else 1
+
             for i in range(repeats * repeats_ext):
-                image0, coarse0, mask0, weight0 = do_aug(image_, mask_)
+                image0, coarse0, mask0, weight0 = do_aug(
+                    image_, mask_, self.with_crops
+                )
 
                 if (weight0 < 0.01).mean() > 0.33:
                     # Skip samples where > 1/3 of pixels are masked
                     continue
 
-                size0 = (mask0 == 255).mean()
-                if size0 < 0.05 or size0 > 0.95:
-                    continue
-
-                iou0 = compute_iou(mask0, coarse0)
-                if iou0 < IOU_MIN * 0.9:
-                    continue
+                # size0 = (mask0 == 255).mean()
+                # if size0 < 0.05 or size0 > 0.95:
+                #     continue
+                #
+                # iou0 = compute_iou(mask0, coarse0)
+                # if iou0 < IOU_MIN:
+                #     continue
 
                 weight0 = weight0.astype("float32") * min(
                     sample_weight * curr_weight * 20.0, 255.0
@@ -663,9 +699,8 @@ def _transform_examples(
     if with_time:
         time = ops.random.uniform([batch_size], maxval=with_time, dtype="int32")
 
-        probs = ops.take(tf.linspace(0.8, 0.0, 6), time, axis=0)[
-            :, None, None, None
-        ]
+        probs = tf.linspace(0.8, 0.0, 6)
+        probs = ops.take(probs, time, axis=0)[:, None, None, None]
         noise = ops.random.uniform([batch_size] + masks.shape.as_list()[1:])
         trans = ops.cast(noise < probs, "uint8")
         sample = trans * ops.cast(labels, "uint8") * 255 + (1 - trans) * masks

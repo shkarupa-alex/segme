@@ -8,9 +8,6 @@ import cv2
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from albumentations.augmentations.geometric.functional import (
-    rotate as alb_rotate,
-)
 from keras.src import ops
 from PIL import Image
 
@@ -66,8 +63,6 @@ def lanczos_upscale(fg, alpha, scale):
 
     height = round(alpha.shape[0] * scale)
     width = round(alpha.shape[1] * scale)
-    if alpha.shape[0] == height and alpha.shape[1] == width:
-        return fg, alpha
 
     fg = Image.fromarray(fg)
     fg = fg.resize((width, height), resample=Image.Resampling.LANCZOS)
@@ -81,7 +76,6 @@ def lanczos_upscale(fg, alpha, scale):
 
 
 def prepare_train(fg, alpha):
-    # TODO do not crop if then pad?
     fg, alpha, cropped = smart_crop(fg, alpha)
     curr_actual = max(alpha.shape[:2])
     targ_actual = max(
@@ -96,8 +90,9 @@ def prepare_train(fg, alpha):
     if min(alpha.shape[:2]) * targ_scale < CROP_SIZE:
         targ_scale = CROP_SIZE / min(alpha.shape[:2])
 
-    fg = matting_np.solve_fg(fg, alpha)  # prevents artifacts
-    fg, alpha = lanczos_upscale(fg, alpha, targ_scale)
+    fg = matting_np.solve_fg(fg, alpha)
+    if targ_scale > 1:
+        fg, alpha = lanczos_upscale(fg, alpha, targ_scale)
     assert min(alpha.shape[:2]) >= CROP_SIZE
 
     return fg, alpha, targ_scale > 2.0
@@ -120,7 +115,6 @@ def prepare_test(fg, alpha, bgs, trimaps):
 
 
 def max_angle(image):
-    # TODO: check max value
     min_size = min(image.shape[:2])
     min_size = min(min_size, CROP_SIZE * 2**0.5 - 1e-6)
     assert min_size >= CROP_SIZE
@@ -180,27 +174,35 @@ def random_rotate(fg, alpha, angle):
 
     interpolation = np.random.choice(
         [cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_LANCZOS4]
-    ).item()
-
-    fga = np.concatenate([fg, alpha], axis=-1)
-    # TODO: skimage_rotate(
-    #   src, ang, resize=False, preserve_range=True, mode='constant',
-    #   cval=0, order=5) ?
-    fga = alb_rotate(
-        fga,
-        angle=angle,
-        interpolation=interpolation,
-        border_mode=cv2.BORDER_REFLECT_101,
     )
-    full = alb_rotate(
+
+    size = np.array(fg.shape[1::-1], "float32")
+    rotmat = cv2.getRotationMatrix2D(size / 2 - 0.5, angle, 1.0)
+    dsize = np.abs(rotmat[:, :2]) @ size
+    rotmat[:, -1] += (dsize - size) / 2.0 - 0.5
+
+    fg = cv2.warpAffine(
+        fg,
+        rotmat,
+        dsize.astype("int32"),
+        flags=interpolation,
+        borderMode=cv2.BORDER_REFLECT_101,
+    )
+    alpha = cv2.warpAffine(
+        alpha,
+        rotmat,
+        dsize.astype("int32"),
+        flags=interpolation,
+        borderMode=cv2.BORDER_REFLECT_101,
+    )
+    full = cv2.warpAffine(
         full,
-        angle=angle,
-        interpolation=interpolation,
-        border_mode=cv2.BORDER_CONSTANT,
-        value=0,
+        rotmat,
+        dsize.astype("int32"),
+        flags=interpolation,
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=0,
     )
-
-    fg, alpha = fga[..., :3], fga[..., 3:]
     full = (full == 128).astype("bool")
 
     return fg, alpha, full
@@ -214,14 +216,13 @@ def crop_boxes(alpha, full, num_boxes=TOTAL_BOXES):
     assert min(height, width) >= CROP_SIZE
 
     trimap = matting_np.alpha_trimap(alpha, 3) == 128
-    # trimap = (alpha > 0) & (alpha < 255)
     assert trimap.sum()
 
     # estimate boxes
     indices = np.stack(trimap.nonzero(), axis=-1)
 
     ratios = np.random.uniform(
-        0.5, min(height, width) / CROP_SIZE, indices.shape
+        0.5, min(2.0, min(height, width) / CROP_SIZE), indices.shape
     )
     deltas = (ratios * CROP_SIZE / 2).astype("int64")
 
@@ -256,8 +257,6 @@ def crop_boxes(alpha, full, num_boxes=TOTAL_BOXES):
     )
     boxes = boxes[ground]
 
-    # TODO: drop fully transparent?
-
     # drop boxes with more then 99->98->...->1% overlapped
     thold = 0.99
     prev = np.empty((0, 4))
@@ -268,21 +267,17 @@ def crop_boxes(alpha, full, num_boxes=TOTAL_BOXES):
         thold -= 0.01
     boxes = boxes if not len(prev) else prev
 
-    boxes = boxes[:, 4:]
+    boxes = boxes[:num_boxes, 4:]
 
-    return boxes[:num_boxes]
+    return boxes
 
 
 def scaled_crops(fg, alpha, num_crops=TOTAL_BOXES, repeats=7):
     maxangle = max_angle(fg)
-    rotates = round(
-        maxangle * (repeats - 1) / 45.0
-    )  # TODO: check and make more rotates
-    angles = np.random.uniform(
-        -maxangle, maxangle, size=rotates
-    ).tolist()  # TODO: linspace
-
-    # TODO targ_actual = min(targ_actual, 2100) and no more then max test size?
+    rotates = round(maxangle * (repeats - 1) / 45.0)
+    angles = np.linspace(0.0, maxangle, rotates + 1)[1:]
+    angles *= np.sign(np.random.uniform(-1, 1, size=rotates))
+    angles = angles.tolist()
 
     crops = []
     for i in range(repeats):
@@ -332,9 +327,7 @@ def crop_augment(fg, alpha, replay=False):
     aug = compose_cls(
         [
             # Color
-            alb.RandomGamma(
-                p=0.5
-            ),  # reported as most useful # TODO: on-the-fly?
+            alb.RandomGamma(p=0.5),  # reported as most useful
             alb.OneOf(
                 [
                     alb.CLAHE(),
@@ -360,13 +353,13 @@ def crop_augment(fg, alpha, replay=False):
             # Blur
             alb.OneOf(
                 [
-                    alb.Blur(blur_limit=(3, 4)),
+                    alb.Blur(blur_limit=(3, 5)),
                     alb.GaussianBlur(blur_limit=(3, 5)),
                     alb.MedianBlur(blur_limit=3),
-                    alb.MotionBlur(blur_limit=(3, 10)),
+                    alb.MotionBlur(blur_limit=(3, 9)),
                     alb.GlassBlur(max_delta=2, iterations=1, p=0.1),
                 ],
-                p=0.2,
+                p=0.1,
             ),
             # Noise
             alb.OneOf(
@@ -382,7 +375,6 @@ def crop_augment(fg, alpha, replay=False):
                         ],
                         p=0.2,
                     ),
-                    # TODO: check
                     # alb.ImageCompression(
                     #   quality_lower=70, quality_upper=99), # on-the-fly
                     # alb.Posterize(num_bits=(6, 8)), # disable for matting
@@ -549,7 +541,7 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
 
         self.bg_index += 1
         if len(self.bg_files) == self.bg_index:
-            random.shuffle(self.files)
+            random.shuffle(self.bg_files)
             self.bg_index = 0
 
         bg = cv2.cvtColor(cv2.imread(selected), cv2.COLOR_BGR2RGB)
@@ -659,11 +651,7 @@ def _augment_examples(examples):
     foreground = examples["foreground"]
     background = examples["background"]
 
-    alpha.set_shape(alpha.shape[:1] + [CROP_SIZE, CROP_SIZE, 1])
-    foreground.set_shape(foreground.shape[:1] + [CROP_SIZE, CROP_SIZE, 3])
-    background.set_shape(background.shape[:1] + [CROP_SIZE, CROP_SIZE, 3])
-
-    alpha = matting.augment_alpha(alpha)
+    # alpha = matting.augment_alpha(alpha)
     # foreground, alpha = matting.random_compose(
     #   foreground, alpha, trim=(max(TRIMAP_SIZE), 0.95), solve=False)
     foreground, [alpha], _ = rand_augment_matting(foreground, [alpha], None)
