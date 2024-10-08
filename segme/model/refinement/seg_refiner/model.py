@@ -1,6 +1,7 @@
 import numpy as np
 from keras.src import layers
 from keras.src import models
+from keras.src.utils import file_utils
 from keras.src.utils import naming
 
 from segme.common.convnormact import Act
@@ -10,6 +11,23 @@ from segme.common.head import ClassificationActivation
 from segme.common.resize import NearestInterpolation
 from segme.policy import cnapol
 from segme.policy import dtpol
+
+BASE_URL = (
+    "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
+    "seg_refiner__{}__{}___{}.weights.h5"
+)
+WEIGHT_URLS = {
+    "seg_refiner__lr__256": BASE_URL.format(
+        "lr",
+        256,
+        "3f4bd017f52a6073e2b3e7674b9778f7196a30d56b90915a3019cf7a9e7b7701",
+    ),
+    "seg_refiner__hr__256": BASE_URL.format(
+        "hr",
+        256,
+        "17ca665293276cecaae83f9bd8d28942929dfc42dc46c961ebfb37c91f22f5d3",
+    ),
+}
 
 
 def _ResBlock(filters, dropout, name=None):
@@ -60,6 +78,7 @@ def SegRefiner(
     dropout=0,
     mults=(1, 1, 2, 2, 4, 4),
     heads=4,
+    weights=None,
     dtype=None,
 ):
     if dtype is not None:
@@ -71,12 +90,13 @@ def SegRefiner(
                 dropout=dropout,
                 mults=mults,
                 heads=heads,
+                weights=weights,
                 dtype=None,
             )
 
     with cnapol.policy_scope("conv-gn321em5-silu"):
-        image = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
-        mask = layers.Input(name="mask", shape=(None, None, 1), dtype="uint8")
+        image = layers.Input(name="image", shape=(256, 256, 3), dtype="uint8")
+        mask = layers.Input(name="mask", shape=(256, 256, 1), dtype="uint8")
         time = layers.Input(name="time", shape=[], dtype="int32")
 
         combo = layers.concatenate(
@@ -91,12 +111,12 @@ def SegRefiner(
                 )(image),
                 layers.Rescaling(1 / 255, name="mask_rescale")(mask),
             ],
-            name="concat",
+            name="inputs_concat",
         )
 
         time_embed = layers.Embedding(6, filters * 4, name="time_embed")(time)
 
-        x = Conv(filters, 3, name="in_0_0")(combo)
+        x = Conv(filters, 3, name="in_0_0_conv")(combo)
         skip_connections = [x]
 
         index = 1
@@ -111,7 +131,7 @@ def SegRefiner(
                     y = layers.MultiHeadAttention(
                         heads,
                         mult * filters // heads,
-                        name=f"in_{index}_1",
+                        name=f"in_{index}_1_attn",
                     )(y, y)
                     x = layers.add([x, y], name=f"in_{index}_1_skip_add")
 
@@ -123,17 +143,20 @@ def SegRefiner(
                     mult * filters,
                     3,
                     strides=2,
-                    name=f"in_{index}_0_down",
+                    name=f"in_{index}_2_down",
                 )(x)
 
                 skip_connections.append(x)
                 index += 1
 
         x = _ResBlock(mults[-1] * filters, dropout, name="mid_0")(x, time_embed)
-        x = Norm(name="mid_1_norm")(x)
-        x = layers.MultiHeadAttention(
-            heads, mults[-1] * filters // heads, name="mid_1"
-        )(x, x)
+
+        y = Norm(name="mid_1_norm")(x)
+        y = layers.MultiHeadAttention(
+            heads, mults[-1] * filters // heads, name="mid_1_attn"
+        )(y, y)
+        x = layers.add([x, y], name="mid_1_skip_add")
+
         x = _ResBlock(mults[-1] * filters, dropout, name="mid_2")(x, time_embed)
 
         index = 0
@@ -153,7 +176,7 @@ def SegRefiner(
                     y = layers.MultiHeadAttention(
                         heads,
                         mult * filters // heads,
-                        name=f"out_{index}_1",
+                        name=f"out_{index}_1_attn",
                     )(y, y)
                     x = layers.add([x, y], name=f"out_{index}_1_skip_add")
 
@@ -172,5 +195,21 @@ def SegRefiner(
         model = models.Functional(
             inputs=[image, mask, time], outputs=x, name="seg_refiner"
         )
+
+        if weights in WEIGHT_URLS:
+            weights_url = WEIGHT_URLS[weights]
+            weights_hash = (
+                weights_url.split("___")[-1]
+                .replace(".weights.h5", "")
+                .replace(".h5", "")
+            )
+            weights_path = file_utils.get_file(
+                origin=weights_url,
+                file_hash=weights_hash,
+                cache_subdir="seg_refiner",
+            )
+            model.load_weights(weights_path)
+        elif weights is not None:
+            model.load_weights(weights)
 
         return model
