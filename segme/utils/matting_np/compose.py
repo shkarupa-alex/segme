@@ -4,7 +4,7 @@ import numpy as np
 from segme.utils.matting_np.fg import solve_fg
 
 
-def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
+def compose_two(fg0, alpha0, fg1, alpha1, crop=False):
     if 3 != len(fg0.shape):
         raise ValueError("Expecting `fg` rank to be 3.")
 
@@ -34,9 +34,6 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
 
     if "uint8" != fg1.dtype or "uint8" != alpha1.dtype:
         raise ValueError("Expecting `fg_` and `alpha_` dtype to be `uint8`.")
-
-    if not isinstance(solve, (list, tuple)):
-        solve = (solve,) * 2
 
     if crop:  # Crop meaningful parts
         mask = alpha0 > 0
@@ -95,23 +92,6 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
     # Switch to float after resizing to beat overflow
     fg0, fg1 = fg0.astype("float32") / 255.0, fg1.astype("float32") / 255.0
 
-    if solve[0]:
-        fg0 = (
-            solve_fg(
-                np.round(fg0 * 255.0).astype("uint8"),
-                np.round(alpha0 * 255.0).astype("uint8"),
-            ).astype("float32")
-            / 255.0
-        )
-
-        fg1 = (
-            solve_fg(
-                np.round(fg1 * 255.0).astype("uint8"),
-                np.round(alpha1 * 255.0).astype("uint8"),
-            ).astype("float32")
-            / 255.0
-        )
-
     # The overlap of two 50% transparency should be 25%
     fg = (fg0 * alpha0 + fg1 * delta) / (alpha + np.finfo(alpha.dtype).eps)
     fg = np.clip(fg, 0.0, 1.0)
@@ -119,7 +99,6 @@ def compose_two(fg0, alpha0, fg1, alpha1, crop=False, solve=True):
     fg = np.round(fg * 255.0).astype("uint8")
     alpha = np.round(alpha * 255.0).astype("uint8")
 
-    if solve[1]:
-        fg = solve_fg(fg, alpha)
+    fg = solve_fg(fg, alpha)
 
     return fg, alpha

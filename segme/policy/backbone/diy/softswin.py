@@ -5,6 +5,7 @@ from keras.src import backend
 from keras.src import layers
 from keras.src import models
 from keras.src.applications import imagenet_utils
+from keras.src.applications.efficientnet_v2 import CONV_KERNEL_INITIALIZER
 from keras.src.dtype_policies import dtype_policy
 from keras.src.ops import operation_utils
 from keras.src.utils import file_utils
@@ -33,7 +34,13 @@ def Stem(filters, name=None):
         name = f"stem_{counter}"
 
     def apply(inputs):
-        x = Conv(filters, 7, strides=2, name=f"{name}_embed")(inputs)
+        x = Conv(
+            filters,
+            7,
+            strides=2,
+            kernel_initializer=CONV_KERNEL_INITIALIZER,
+            name=f"{name}_embed",
+        )(inputs)
         x = Act(name=f"{name}_act")(x)
         x = Norm(name=f"{name}_norm")(x)
 
@@ -56,7 +63,12 @@ def Reduce(name=None):
             )
 
         x = Conv(
-            channels * 2, 3, strides=2, use_bias=False, name=f"{name}_conv"
+            channels * 2,
+            3,
+            strides=2,
+            use_bias=False,
+            kernel_initializer=CONV_KERNEL_INITIALIZER,
+            name=f"{name}_conv",
         )(inputs)
         x = Norm(name=f"{name}_norm")(x)
 
@@ -189,9 +201,14 @@ def SoftSwin(
         elif "max" == pooling:
             x = layers.GlobalMaxPooling2D(name="max_pool")(x)
         elif "sp" == pooling:
-            x = SimPool(name="sim_pool")(x)
+            x = SimPool(embed_dim // 4, name="sim_pool")(x)
         elif "ma" == pooling:
-            x = MultiHeadAttentionPooling(embed_dim // 4, 1, name="ma_pool")(x)
+            x = MultiHeadAttentionPooling(
+                embed_dim // 4,
+                max(1, round(classes / embed_dim / 32)),
+                name="ma_pool",
+            )(x)
+            x = Act(name="ma_act")(x)
             x = layers.Flatten(name="ma_flat")(x)
         else:
             raise ValueError(

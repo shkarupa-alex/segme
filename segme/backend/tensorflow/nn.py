@@ -1,57 +1,12 @@
 import numpy as np
 import tensorflow as tf
 from keras.src import backend
-from keras.src import models
-from keras.src.backend import standardize_data_format
-from keras.src.backend import standardize_dtype
-from keras.src.backend.tensorflow.core import cast
 from keras.src.backend.tensorflow.core import convert_to_tensor
 from keras.src.backend.tensorflow.nn import _convert_data_format
 from keras.src.utils.argument_validation import standardize_tuple
-from tensorflow.python.framework import convert_to_constants
-
-# TODO: bias_add, linear+bias, conv+bias
-
-
-def l2_normalize(x, axis=-1, epsilon=1e-12):
-    x = convert_to_tensor(x)
-    return tf.nn.l2_normalize(x, axis=axis, epsilon=epsilon)
-
-
-def logdet(x):
-    x = convert_to_tensor(x)
-    return tf.linalg.logdet(x)
-
-
-def saturate_cast(x, dtype):
-    dtype = standardize_dtype(dtype)
-    if isinstance(x, tf.SparseTensor):
-        x_shape = x.shape
-        x = tf.saturate_cast(x, dtype)
-        x.set_shape(x_shape)
-        return x
-    else:
-        return tf.saturate_cast(x, dtype)
-
-
-def convert_image_dtype(x, dtype, saturate=False):  # TODO: saturate=True?
-    x = backend.convert_to_tensor(x)
-    dtype = tf.dtypes.as_dtype(dtype)
-
-    if x.dtype.is_floating and dtype.is_integer:
-        # TODO: https://github.com/tensorflow/tensorflow/pull/54484
-        x *= dtype.max
-        x = backend.numpy.round(x)
-
-        if saturate:
-            return saturate_cast(x, dtype)
-        else:
-            return cast(x, dtype)
-
-    if x.dtype.is_floating and dtype.is_floating and saturate:
-        return backend.numpy.clip(x, 0.0, 1.0)
-
-    return tf.image.convert_image_dtype(x, dtype, saturate=saturate)
+from tfmiss.nn import (
+    modulated_deformable_column as miss_modulated_deformable_column,
+)
 
 
 def fixed_conv(
@@ -199,105 +154,6 @@ def fixed_depthwise_conv(
         outputs = tf.squeeze(outputs, [axis])
 
     return outputs
-
-
-def adjust_brightness(x, delta):
-    return tf.image.adjust_brightness(x, delta)
-
-
-def adjust_contrast(x, factor):
-    return tf.image.adjust_contrast(x, factor)
-
-
-def adjust_gamma(x, gamma=1, gain=1):
-    return tf.image.adjust_gamma(x, gamma=gamma, gain=gain)
-
-
-def adjust_hue(x, delta):
-    return tf.image.adjust_hue(x, delta)
-
-
-def adjust_jpeg_quality(x, quality):
-    return tf.image.adjust_jpeg_quality(x, quality)
-
-
-def adjust_saturation(x, factor):
-    return tf.image.adjust_saturation(x, factor)
-
-
-def grayscale_to_rgb(x):
-    return tf.image.grayscale_to_rgb(x)
-
-
-def histogram_fixed_width(x, x_range, nbins=100):
-    return tf.histogram_fixed_width(x, x_range, nbins=nbins)
-
-
-def space_to_depth(x, block_size, data_format=None):
-    x = convert_to_tensor(x)
-    data_format = standardize_data_format(data_format)
-    data_format_tf = "NHWC" if data_format == "channels_last" else "NCHW"
-    return tf.nn.space_to_depth(x, block_size, data_format=data_format_tf)
-
-
-def depth_to_space(x, block_size, data_format=None):
-    x = convert_to_tensor(x)
-    data_format = standardize_data_format(data_format)
-    data_format_tf = "NHWC" if data_format == "channels_last" else "NCHW"
-    return tf.nn.depth_to_space(x, block_size, data_format=data_format_tf)
-
-
-def extract_patches(x, sizes, strides, rates, padding):
-    x = convert_to_tensor(x)
-    return tf.image.extract_patches(
-        x,
-        [1] + sizes + [1],
-        [1] + strides + [1],
-        [1] + rates + [1],
-        padding.upper(),
-    )
-
-
-def dilation_2d(
-    x, kernel, strides=1, padding="valid", dilations=1, data_format=None
-):
-    x = convert_to_tensor(x)
-    kernel = convert_to_tensor(kernel)
-
-    if isinstance(strides, int):
-        strides = (strides,) * 4
-
-    padding_tf = padding.upper()
-
-    if isinstance(dilations, int):
-        dilations = (dilations,) * 4
-
-    data_format = standardize_data_format(data_format)
-    data_format_tf = "NHWC" if data_format == "channels_last" else "NCHW"
-
-    return tf.nn.dilation2d(
-        x, kernel, strides, padding_tf, data_format_tf, dilations
-    )
-
-
-def erosion_2d(x, kernel, strides, padding, data_format, dilations):
-    x = convert_to_tensor(x)
-    kernel = convert_to_tensor(kernel)
-
-    if isinstance(strides, int):
-        strides = (strides,) * 4
-
-    padding_tf = padding.upper()
-
-    if isinstance(dilations, int):
-        dilations = (dilations,) * 4
-
-    data_format = standardize_data_format(data_format)
-    data_format_tf = "NHWC" if data_format == "channels_last" else "NCHW"
-
-    return tf.nn.erosion2d(
-        x, kernel, strides, padding_tf, data_format_tf, dilations
-    )
 
 
 def adaptive_average_pooling_2d(x, output_size):
@@ -563,32 +419,23 @@ def grid_sample(
         return tf.cast(result, x.dtype)
 
 
-def op_type(x):
-    x = convert_to_tensor(x)
-    if isinstance(x, (tf.__internal__.EagerTensor, tf.Variable)):
-        return None
-
-    if not hasattr(x, "op") or not hasattr(x.op, "type"):
-        return None
-
-    return x.op.type
-
-
-def model_inference_fn(model, jit_compile):
-    if not isinstance(model, models.Functional):
-        raise ValueError(
-            f"Expecting model to be an instance of `keras.models.Functional`. "
-            f"Got: {type(model)}"
-        )
-
-    input_spec = [tf.TensorSpec(i.shape, i.dtype) for i in model.inputs]
-    input_spec = input_spec[0] if 1 == len(input_spec) else input_spec
-    model_fn = tf.function(
-        lambda x: model(x, training=False),
-        jit_compile=jit_compile,
-        reduce_retracing=True,
+def modulated_deformable_column(
+    inputs,
+    offset,
+    mask,
+    kernel_size,
+    strides,
+    padding,
+    dilation_rate,
+    deformable_groups,
+):
+    return miss_modulated_deformable_column(
+        inputs,
+        offset,
+        mask,
+        kernel_size,
+        strides,
+        padding,
+        dilation_rate,
+        deformable_groups,
     )
-    model_fn = model_fn.get_concrete_function(input_spec)
-    model_fn = convert_to_constants.convert_variables_to_constants_v2(model_fn)
-
-    return model_fn

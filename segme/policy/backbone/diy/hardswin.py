@@ -287,9 +287,14 @@ def HardSwin(
         elif "max" == pooling:
             x = layers.GlobalMaxPooling2D(name="max_pool")(x)
         elif "sp" == pooling:
-            x = SimPool(name="sim_pool")(x)
+            x = SimPool(embed_dim // 4, name="sim_pool")(x)
         elif "ma" == pooling:
-            x = MultiHeadAttentionPooling(embed_dim // 4, 1, name="ma_pool")(x)
+            x = MultiHeadAttentionPooling(
+                embed_dim // 4,
+                max(1, round(classes / embed_dim / 32)),
+                name="ma_pool",
+            )(x)
+            x = Act(name="ma_act")(x)
             x = layers.Flatten(name="ma_flat")(x)
         else:
             raise ValueError(

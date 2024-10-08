@@ -12,16 +12,19 @@ class TestComposeTwo(testing.TestCase):
         fg = np.random.uniform(0.0, 255.0, (2, 16, 16, 3)).astype("uint8")
         alpha = np.random.uniform(0.0, 255.0, (2, 16, 16, 1)).astype("uint8")
 
-        fg_, alpha_ = compose_two(fg, alpha, solve=False)
-
-        expected_fg, expected_alpha = compose_two_np(
-            fg[0], alpha[0], fg[1], alpha[1], solve=False
-        )
+        fg_, alpha_ = compose_two(fg, alpha)
 
         self.assertEqual(fg_.dtype, "uint8")
-        self.assertAlmostEqual(fg_[0], expected_fg)
-
         self.assertEqual(alpha_.dtype, "uint8")
+        self.assertListEqual(fg_.shape.as_list(), [1, 16, 16, 3])
+        self.assertListEqual(alpha_.shape.as_list(), [1, 16, 16, 1])
+
+        expected_fg, expected_alpha = compose_two_np(
+            fg[0], alpha[0], fg[1], alpha[1]
+        )
+
+        error_fg = np.abs(expected_fg - fg_[0]).mean() / 255.0
+        self.assertLess(error_fg, 0.6)
         self.assertAlmostEqual(alpha_[0], expected_alpha)
 
     def test_drop(self):
@@ -37,25 +40,6 @@ class TestComposeTwo(testing.TestCase):
 
         self.assertEqual(alpha_.dtype, "uint8")
         self.assertListEqual(alpha_.shape.as_list(), [1, 16, 16, 1])
-
-    def test_solve(self):
-        fg = np.random.uniform(0.0, 255.0, (2, 16, 16, 3)).astype("uint8")
-        alpha = np.random.uniform(0.0, 255.0, (2, 16, 16, 1)).astype("uint8")
-
-        fg_, alpha_ = compose_two(fg, alpha)
-
-        self.assertEqual(fg_.dtype, "uint8")
-        self.assertEqual(alpha_.dtype, "uint8")
-        self.assertListEqual(fg_.shape.as_list(), [1, 16, 16, 3])
-        self.assertListEqual(alpha_.shape.as_list(), [1, 16, 16, 1])
-
-        expected_fg, expected_alpha = compose_two_np(
-            fg[0], alpha[0], fg[1], alpha[1]
-        )
-
-        error_fg = np.abs(expected_fg - fg_[0]).mean() / 255.0
-        self.assertLess(error_fg, 0.6)
-        self.assertAlmostEqual(alpha_[0], expected_alpha)
 
 
 class TestComposeBatch(testing.TestCase):

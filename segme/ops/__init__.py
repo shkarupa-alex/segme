@@ -9,13 +9,16 @@ from segme.ops.aug import histogram_fixed_width
 from segme.ops.compat import l2_normalize
 from segme.ops.compat import logdet
 from segme.ops.compat import saturate_cast
+from segme.ops.image import connected_components
 from segme.ops.image import convert_image_dtype
 from segme.ops.image import depth_to_space
 from segme.ops.image import dilation_2d
 from segme.ops.image import erosion_2d
+from segme.ops.image import euclidean_distance
 from segme.ops.image import extract_patches
 from segme.ops.image import space_to_depth
 from segme.ops.nn import adaptive_average_pooling_2d
 from segme.ops.nn import fixed_conv
 from segme.ops.nn import fixed_depthwise_conv
 from segme.ops.nn import grid_sample
+from segme.ops.nn import modulated_deformable_column

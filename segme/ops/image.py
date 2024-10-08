@@ -175,3 +175,39 @@ def erosion_2d(
         dilations=dilations,
         data_format=data_format,
     )
+
+
+class ConnectedComponents(Operation):
+    def __init__(self, normalize=True):
+        super().__init__()
+        self.normalize = normalize
+
+    # def compute_output_spec(self, x):
+    #   TODO
+
+    def call(self, source):
+        source = backend.convert_to_tensor(source)
+        return back.connected_components(source, normalize=self.normalize)
+
+
+def connected_components(source, normalize=True):
+    if any_symbolic_tensors((source,)):
+        return ConnectedComponents(normalize=normalize).symbolic_call(source)
+    source = backend.convert_to_tensor(source)
+    return back.connected_components(source)
+
+
+class EuclideanDistance(Operation):
+    # def compute_output_spec(self, x):
+    #   TODO
+
+    def call(self, source):
+        source = backend.convert_to_tensor(source)
+        return back.euclidean_distance(source)
+
+
+def euclidean_distance(source):
+    if any_symbolic_tensors((source,)):
+        return EuclideanDistance().symbolic_call(source)
+    source = backend.convert_to_tensor(source)
+    return back.euclidean_distance(source)

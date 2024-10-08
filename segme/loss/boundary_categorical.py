@@ -1,12 +1,12 @@
 from keras.src import ops
 from keras.src.saving import register_keras_serializable
-from tfmiss.image import euclidean_distance
 
 from segme.loss.common_loss import to_1hot
 from segme.loss.common_loss import to_probs
 from segme.loss.common_loss import validate_input
 from segme.loss.common_loss import weighted_loss
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
+from segme.ops import euclidean_distance
 
 
 @register_keras_serializable(package="SegMe>Loss")

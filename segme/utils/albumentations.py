@@ -20,9 +20,6 @@ def drop_unapplied(replay, as_json=True):
         ]
         return transforms
 
-    del replay["applied"]
-    del replay["always_apply"]
-
     if as_json:
         return json.dumps([replay], indent=2, sort_keys=True, cls=NumpyEncoder)
 

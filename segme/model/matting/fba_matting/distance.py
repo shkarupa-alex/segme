@@ -1,6 +1,6 @@
 from keras.src import ops
-from tfmiss.image import euclidean_distance
 
+from segme.ops import euclidean_distance
 from segme.ops import saturate_cast
 
 

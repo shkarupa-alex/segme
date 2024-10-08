@@ -150,16 +150,10 @@ def random_compose(
         if "uint8" != fg.dtype or "uint8" != alpha.dtype:
             raise ValueError("Expecting `fg` and `alpha` dtype to be `uint8`.")
 
-        if not isinstance(solve, (list, tuple)):
-            solve = (solve,) * 2
-
-        if solve[0]:
-            fg = solve_fg(fg, alpha)
-
         fg_, alpha_ = ops.cond(
             ops.random.uniform([], 0.0, 1.0) < prob,
             lambda: compose_batch(
-                fg, alpha, trim=trim, solve=solve[1], iterations=iterations
+                fg, alpha, trim=trim, solve=solve, iterations=iterations
             ),
             lambda: (fg, alpha),
         )

@@ -36,6 +36,8 @@ class AdaptiveAveragePooling(layers.Layer):
 
 @register_keras_serializable(package="SegMe>Common")
 class MultiHeadAttentionPooling(layers.Layer):
+    """Proposed in: https://arxiv.org/abs/2205.01917"""
+
     def __init__(self, heads, queries, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = InputSpec(min_ndim=3)
@@ -155,9 +157,8 @@ class SimPool(layers.Layer):
         q = ops.mean(inputs, axis=[1, 2], keepdims=True)
         q = self.q_proj(q)
         q = ops.reshape(
-            q, [batch, 1, self.num_heads, self.channels // self.num_heads]
+            q, [batch, self.num_heads, 1, self.channels // self.num_heads]
         )
-        q = ops.transpose(q, [0, 2, 1, 3])
 
         k = v = self.kv_norm(inputs)
         k = self.k_proj(k)

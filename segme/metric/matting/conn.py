@@ -3,8 +3,8 @@ from keras.src import ops
 from keras.src.losses.loss import squeeze_or_expand_to_same_rank
 from keras.src.metrics import reduction_metrics
 from keras.src.saving import register_keras_serializable
-from tfmiss.image import connected_components
 
+from segme.ops import connected_components
 from segme.ops import convert_image_dtype
 
 

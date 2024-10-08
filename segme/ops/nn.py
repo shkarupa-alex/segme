@@ -139,3 +139,66 @@ def grid_sample(
         padding_mode=padding_mode,
         align_corners=align_corners,
     )
+
+
+class ModulatedDeformableColumn(Operation):
+    def __init__(
+        self, kernel_size, strides, padding, dilation_rate, deformable_groups
+    ):
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.strides = strides
+        self.padding = padding
+        self.dilation_rate = dilation_rate
+        self.deformable_groups = deformable_groups
+
+    # def compute_output_spec(self, x):
+    #     TODO
+
+    def call(self, inputs, offset, mask):
+        inputs = backend.convert_to_tensor(inputs)
+        offset = backend.convert_to_tensor(offset)
+        mask = backend.convert_to_tensor(mask)
+        return back.modulated_deformable_column(
+            inputs,
+            offset,
+            mask,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+            padding=self.padding,
+            dilation_rate=self.dilation_rate,
+            deformable_groups=self.deformable_groups,
+        )
+
+
+def modulated_deformable_column(
+    inputs,
+    offset,
+    mask,
+    kernel_size,
+    strides,
+    padding,
+    dilation_rate,
+    deformable_groups,
+):
+    if any_symbolic_tensors((inputs, offset, mask)):
+        return ModulatedDeformableColumn(
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,
+            dilation_rate=dilation_rate,
+            deformable_groups=deformable_groups,
+        ).symbolic_call(inputs, offset, mask)
+    inputs = backend.convert_to_tensor(inputs)
+    offset = backend.convert_to_tensor(offset)
+    mask = backend.convert_to_tensor(mask)
+    return back.modulated_deformable_column(
+        inputs,
+        offset,
+        mask,
+        kernel_size=kernel_size,
+        strides=strides,
+        padding=padding,
+        dilation_rate=dilation_rate,
+        deformable_groups=deformable_groups,
+    )
