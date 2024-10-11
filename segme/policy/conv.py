@@ -1,3 +1,5 @@
+from keras.src import backend
+from keras.src import constraints
 from keras.src import initializers
 from keras.src import layers
 from keras.src import ops
@@ -9,6 +11,28 @@ from segme.ops import l2_normalize
 from segme.policy.registry import LayerRegistry
 
 CONVOLUTIONS = LayerRegistry()
+CONVOLUTIONS.register("stdconv")(
+    {
+        "class_name": "SegMe>Policy>Conv>FixedConv",
+        "config": {
+            "kernel_constraint": {
+                "class_name": "SegMe>Policy>Conv>StandardizedConstraint",
+                "config": {"axes": [0, 1, 2]},
+            }
+        },
+    }
+)
+CONVOLUTIONS.register("dw_stdconv")(
+    {
+        "class_name": "SegMe>Policy>Conv>FixedDepthwiseConv",
+        "config": {
+            "kernel_constraint": {
+                "class_name": "SegMe>Policy>Conv>StandardizedConstraint",
+                "config": {"axes": [0, 1]},
+            }
+        },
+    }
+)
 
 
 @CONVOLUTIONS.register("conv")
@@ -160,42 +184,26 @@ class FixedDepthwiseConv(layers.DepthwiseConv2D):
         return config
 
 
-@CONVOLUTIONS.register("stdconv")
 @register_keras_serializable(package="SegMe>Policy>Conv")
-class StandardizedConv(FixedConv):
-    """Implements https://arxiv.org/abs/1903.10520"""
+class StandardizedConstraint(constraints.Constraint):
+    def __init__(self, axes):
+        self.axes = axes
 
-    def _standardize_kernel(self, kernel):
-        kernel = ops.cast(kernel, "float32")
-        mean, var = ops.moments(kernel, axes=[0, 1, 2], keepdims=True)
-        kernel = ops.batch_normalization(kernel, mean, var, -1, epsilon=1e-5)
-        kernel = ops.cast(kernel, self.compute_dtype)
+    def __call__(self, w):
+        w = backend.convert_to_tensor(w)
 
-        return kernel
+        if 4 != ops.ndim(w):
+            raise ValueError(
+                f"Expecting weight rank to equals 4, got {w.shape}"
+            )
 
-    def convolution_op(self, inputs, kernel):
-        kernel = self._standardize_kernel(kernel)
+        mean, var = ops.moments(w, axes=self.axes, keepdims=True)
+        w = ops.batch_normalization(w, mean, var, -1, epsilon=1.001e-5)
 
-        return super().convolution_op(inputs, kernel)
+        return w
 
-
-@CONVOLUTIONS.register("dw_stdconv")
-@register_keras_serializable(package="SegMe>Policy>Conv")
-class StandardizedDepthwiseConv(FixedDepthwiseConv):
-    """Implements https://arxiv.org/abs/1903.10520"""
-
-    def _standardize_kernel(self, kernel):
-        kernel = ops.cast(kernel, "float32")
-        mean, var = ops.moments(kernel, axes=[0, 1], keepdims=True)
-        kernel = ops.batch_normalization(kernel, mean, var, -1, epsilon=1e-5)
-        kernel = ops.cast(kernel, self.compute_dtype)
-
-        return kernel
-
-    def _conv_op(self, inputs, kernel):
-        kernel = self._standardize_kernel(kernel)
-
-        return super()._conv_op(inputs, kernel)
+    def get_config(self):
+        return {"axes": self.axes}
 
 
 @CONVOLUTIONS.register("snconv")
