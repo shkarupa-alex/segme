@@ -1,6 +1,7 @@
 import os
 import re
 import resource
+from functools import partial
 
 import cv2
 import numpy as np
@@ -150,8 +151,12 @@ def make_dataset(
         split=split_name, batch_size=None, shuffle_files=train_split
     )
     dataset = dataset.batch(batch_size, drop_remainder=True)
+
+    transform_examples = partial(
+        _transform_examples, preprocess=preprocess_mode
+    )
     dataset = dataset.map(
-        lambda examples: _transform_examples(examples, preprocess_mode),
+        transform_examples,
         num_parallel_calls=tf.data.experimental.AUTOTUNE,
     )
 

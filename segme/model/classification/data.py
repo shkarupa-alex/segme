@@ -2,6 +2,7 @@ import functools
 import io
 import os
 import resource
+from functools import partial
 
 import cv2
 import nltk
@@ -349,8 +350,10 @@ def make_dataset(
     dataset = builder.as_dataset(
         split=split_name, batch_size=None, shuffle_files=train_split
     )
+
+    resize_crop = partial(_resize_crop, size=image_size, train=train_split)
     dataset = dataset.map(
-        lambda example: _resize_crop(example, image_size, train_split),
+        resize_crop,
         num_parallel_calls=tf.data.experimental.AUTOTUNE,
     ).batch(batch_size, drop_remainder=train_split)
 
@@ -376,19 +379,19 @@ def make_dataset(
         class_map = tf.lookup.StaticHashTable(map_init, -1)
 
     train_augment = train_split and aug_levels and aug_magnitude
+    transform_examples = partial(
+        _transform_examples,
+        augment=train_augment,
+        levels=aug_levels,
+        magnitude=aug_magnitude,
+        cutmixup=use_cutmixup,
+        classes=class_size,
+        preprocess=preprocess_mode,
+        remap=class_map,
+    )
     if train_augment or preprocess_mode or class_map:
         dataset = dataset.map(
-            lambda images, labels: _transform_examples(
-                images,
-                labels,
-                train_augment,
-                aug_levels,
-                aug_magnitude,
-                use_cutmixup,
-                class_size,
-                preprocess_mode,
-                class_map,
-            ),
+            transform_examples,
             num_parallel_calls=tf.data.experimental.AUTOTUNE,
         )
 

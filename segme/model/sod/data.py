@@ -1,5 +1,6 @@
 import os
 import re
+from functools import partial
 from operator import itemgetter
 
 import albumentations as alb
@@ -742,8 +743,11 @@ def make_dataset(
     )
 
     if square_size:
+        resize_examples = partial(
+            _resize_examples, with_trimap=with_trimap, with_depth=with_depth
+        )
         dataset = dataset.map(
-            lambda ex: _resize_examples(ex, with_trimap, with_depth),
+            resize_examples,
             num_parallel_calls=tf.data.experimental.AUTOTUNE,
         )
 
@@ -762,15 +766,16 @@ def make_dataset(
             drop_remainder=True,
         )
 
+    transform_examples = partial(
+        _transform_examples,
+        augment=tfds.Split.TRAIN == split_name,
+        with_trimap=with_trimap,
+        with_depth=with_depth,
+        backbone_scales=backbone_scales,
+        max_weight=max_weight,
+    )
     dataset = dataset.map(
-        lambda ex: _transform_examples(
-            ex,
-            tfds.Split.TRAIN == split_name,
-            with_trimap,
-            with_depth,
-            backbone_scales,
-            max_weight,
-        ),
+        transform_examples,
         num_parallel_calls=tf.data.experimental.AUTOTUNE,
     )
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)

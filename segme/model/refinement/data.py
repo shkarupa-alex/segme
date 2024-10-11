@@ -2,6 +2,7 @@ import math
 import os
 import random
 import re
+from functools import partial
 
 import albumentations as alb
 import cv2
@@ -729,15 +730,16 @@ def make_dataset(
     if tfds.Split.TRAIN == split_name:
         dataset = dataset.shuffle(32)
 
+    transform_examples = partial(
+        _transform_examples,
+        augment=tfds.Split.TRAIN == split_name,
+        batch_size=batch_size,
+        with_coord=with_coord,
+        with_prev=with_prev,
+        with_time=with_time,
+    )
     dataset = dataset.map(
-        lambda ex: _transform_examples(
-            ex,
-            tfds.Split.TRAIN == split_name,
-            batch_size,
-            with_coord,
-            with_prev,
-            with_time,
-        ),
+        transform_examples,
         num_parallel_calls=tf.data.experimental.AUTOTUNE,
     )
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
