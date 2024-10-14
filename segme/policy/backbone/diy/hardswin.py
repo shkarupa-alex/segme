@@ -31,6 +31,9 @@ WEIGHT_URLS = {
         "tiny",
         "83d970307e84e328a71482aeed9a6882225ab998d439121df6595b766c8fd1a4",
     ),
+    "hard_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu": "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
+    "hard_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu___52a2c226"
+    "b57604301a094dd7d58b996fe1ff27f8ab79771a10551684d5d5d330.weights.h5",
     "hard_swin_small__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
         "small",
         "a0433c1bc3f68b1faa07f6a9faaeda54ccc9f49341be0e1476bd74199f7cf473",
@@ -342,8 +345,8 @@ def HardSwinTiny(
     stage_depths=(2, 2, 6, 2),
     pretrain_window=16,
     pretrain_size=256,
-    include_top=False,
     model_name="hard_swin_tiny",
+    weights="imagenet",
     **kwargs,
 ):
     with cnapol.policy_scope("conv-ln1em5-gelu"):
@@ -352,8 +355,23 @@ def HardSwinTiny(
             stage_depths=stage_depths,
             pretrain_window=pretrain_window,
             pretrain_size=pretrain_size,
-            include_top=include_top,
             model_name=model_name,
+            weights=weights,
+            **kwargs,
+        )
+
+
+def HardSwinTiny21k(
+    classes=14607,
+    pooling="sp",
+    weights="imagenet21k",
+    **kwargs,
+):
+    with cnapol.policy_scope("conv-ln1em5-gelu"):
+        return HardSwinTiny(
+            classes=classes,
+            pooling=pooling,
+            weights=weights,
             **kwargs,
         )
 
@@ -364,8 +382,8 @@ def HardSwinSmall(
     pretrain_window=16,
     path_drop=0.3,
     pretrain_size=256,
-    include_top=False,
     model_name="hard_swin_small",
+    weights="imagenet",
     **kwargs,
 ):
     with cnapol.policy_scope("conv-ln1em5-gelu"):
@@ -375,8 +393,8 @@ def HardSwinSmall(
             pretrain_window=pretrain_window,
             path_drop=path_drop,
             pretrain_size=pretrain_size,
-            include_top=include_top,
             model_name=model_name,
+            weights=weights,
             **kwargs,
         )
 
@@ -387,9 +405,9 @@ def HardSwinBase(
     current_window=24,
     pretrain_window=12,
     pretrain_size=192,
-    include_top=False,
     current_size=384,
     model_name="hard_swin_base",
+    weights="imagenet",
     **kwargs,
 ):
     with cnapol.policy_scope("conv-ln1em5-gelu"):
@@ -400,8 +418,8 @@ def HardSwinBase(
             pretrain_window=pretrain_window,
             pretrain_size=pretrain_size,
             current_size=current_size,
-            include_top=include_top,
             model_name=model_name,
+            weights=weights,
             **kwargs,
         )
 
@@ -412,9 +430,9 @@ def HardSwinLarge(
     current_window=24,
     pretrain_window=12,
     pretrain_size=192,
-    include_top=False,
     current_size=384,
     model_name="hard_swin_large",
+    weights="imagenet",
     **kwargs,
 ):
     with cnapol.policy_scope("conv-ln1em5-gelu"):
@@ -425,8 +443,8 @@ def HardSwinLarge(
             pretrain_window=pretrain_window,
             pretrain_size=pretrain_size,
             current_size=current_size,
-            include_top=include_top,
             model_name=model_name,
+            weights=weights,
             **kwargs,
         )
 
@@ -434,6 +452,20 @@ def HardSwinLarge(
 BACKBONES.register("hardswin_tiny")(
     (
         partial(wrap_bone, HardSwinTiny, None),
+        [
+            None,
+            None,
+            "stage_0_out",
+            "stage_1_out",
+            "stage_2_out",
+            "stage_3_out",
+        ],
+    )
+)
+
+BACKBONES.register("hardswin_tiny_21k")(
+    (
+        partial(wrap_bone, HardSwinTiny21k, None),
         [
             None,
             None,
