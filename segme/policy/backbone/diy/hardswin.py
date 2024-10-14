@@ -31,9 +31,11 @@ WEIGHT_URLS = {
         "tiny",
         "83d970307e84e328a71482aeed9a6882225ab998d439121df6595b766c8fd1a4",
     ),
-    "hard_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu": "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
-    "hard_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu___52a2c226"
-    "b57604301a094dd7d58b996fe1ff27f8ab79771a10551684d5d5d330.weights.h5",
+    "hard_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu": (
+        "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
+        "hard_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu___52a2c226"
+        "b57604301a094dd7d58b996fe1ff27f8ab79771a10551684d5d5d330.weights.h5"
+    ),
     "hard_swin_small__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
         "small",
         "a0433c1bc3f68b1faa07f6a9faaeda54ccc9f49341be0e1476bd74199f7cf473",
