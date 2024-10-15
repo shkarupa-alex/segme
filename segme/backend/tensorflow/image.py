@@ -1,12 +1,11 @@
 import tensorflow as tf
 from keras.src import backend
+from keras.src import ops
 from keras.src.backend import standardize_data_format
 from keras.src.backend.tensorflow.core import cast
 from keras.src.backend.tensorflow.core import convert_to_tensor
 from tfmiss.image import connected_components as miss_connected_components
 from tfmiss.image import euclidean_distance as miss_euclidean_distance
-
-from segme.backend.tensorflow.compat import saturate_cast
 
 
 def convert_image_dtype(x, dtype, saturate=False):  # TODO: saturate=True?
@@ -19,7 +18,7 @@ def convert_image_dtype(x, dtype, saturate=False):  # TODO: saturate=True?
         x = backend.numpy.round(x)
 
         if saturate:
-            return saturate_cast(x, dtype)
+            return ops.saturate_cast(x, dtype)
         else:
             return cast(x, dtype)
 

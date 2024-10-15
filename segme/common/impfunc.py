@@ -5,7 +5,6 @@ from keras.src import backend
 
 from segme.ops import extract_patches
 from segme.ops import grid_sample
-from segme.ops import saturate_cast
 
 
 def make_coords(batch, height, width, dtype=None, name=None):
@@ -124,7 +123,7 @@ def query_features(
             ]
             outputs = sum(outputs) / sum(areas)
 
-            outputs = saturate_cast(outputs, dtype)
+            outputs = ops.saturate_cast(outputs, dtype)
         else:
             outputs = preds[0]
 

@@ -7,7 +7,6 @@ from keras.src.saving import register_keras_serializable
 
 from segme.ops import fixed_conv
 from segme.ops import fixed_depthwise_conv
-from segme.ops import l2_normalize
 from segme.policy.registry import LayerRegistry
 
 CONVOLUTIONS = LayerRegistry()
@@ -271,8 +270,8 @@ class SpectralConv(FixedConv):
             w = ops.reshape(kernel, [-1, self.filters])
 
             for _ in range(self.power_iterations):
-                v = l2_normalize(ops.matmul(u, ops.moveaxis(w, -1, -2)))
-                u = l2_normalize(ops.matmul(v, w))
+                v = ops.normalize(ops.matmul(u, ops.moveaxis(w, -1, -2)))
+                u = ops.normalize(ops.matmul(v, w))
 
             sigma = ops.matmul(ops.matmul(v, w), ops.moveaxis(u, -1, -2))
             kernel = ops.reshape(kernel / sigma, self.kernel.shape)
@@ -362,8 +361,8 @@ class SpectralDepthwiseConv(FixedDepthwiseConv):
             w = ops.reshape(kernel, [-1, self.channels])
 
             for _ in range(self.power_iterations):
-                v = l2_normalize(ops.matmul(u, ops.moveaxis(w, -1, -2)))
-                u = l2_normalize(ops.matmul(v, w))
+                v = ops.normalize(ops.matmul(u, ops.moveaxis(w, -1, -2)))
+                u = ops.normalize(ops.matmul(v, w))
 
             sigma = ops.matmul(ops.matmul(v, w), ops.moveaxis(u, -1, -2))
             kernel = ops.reshape(kernel / sigma, self.kernel.shape)

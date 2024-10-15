@@ -6,9 +6,6 @@ from segme.backend.numpy.aug import adjust_jpeg_quality
 from segme.backend.numpy.aug import adjust_saturation
 from segme.backend.numpy.aug import grayscale_to_rgb
 from segme.backend.numpy.aug import histogram_fixed_width
-from segme.backend.numpy.compat import l2_normalize
-from segme.backend.numpy.compat import logdet
-from segme.backend.numpy.compat import saturate_cast
 from segme.backend.numpy.image import connected_components
 from segme.backend.numpy.image import convert_image_dtype
 from segme.backend.numpy.image import depth_to_space

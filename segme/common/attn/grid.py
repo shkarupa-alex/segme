@@ -12,7 +12,6 @@ from segme.common.attn.part import partition_reverse_fused
 from segme.common.attn.relbias import RelativeBias
 from segme.common.convnormact import Conv
 from segme.common.pad import with_divisible_pad
-from segme.ops import l2_normalize
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -185,8 +184,8 @@ class GridAttention(layers.Layer):
         return outputs
 
     def qkv_attn(self, q, k, v, pad_size, pad_val):
-        q = l2_normalize(q, axis=-1, epsilon=1.55e-5)
-        k = l2_normalize(k, axis=-1, epsilon=1.55e-5)
+        q = ops.normalize(q, epsilon=3.94e-3)
+        k = ops.normalize(k, epsilon=3.94e-3)
 
         attn = ops.matmul(q * ops.exp(self.scale), ops.moveaxis(k, -1, -2))
         attn += self.attn_mask(pad_size, pad_val)

@@ -6,9 +6,6 @@ from segme.ops.aug import adjust_jpeg_quality
 from segme.ops.aug import adjust_saturation
 from segme.ops.aug import grayscale_to_rgb
 from segme.ops.aug import histogram_fixed_width
-from segme.ops.compat import l2_normalize
-from segme.ops.compat import logdet
-from segme.ops.compat import saturate_cast
 from segme.ops.image import connected_components
 from segme.ops.image import convert_image_dtype
 from segme.ops.image import depth_to_space

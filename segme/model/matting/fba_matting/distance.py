@@ -1,7 +1,6 @@
 from keras.src import ops
 
 from segme.ops import euclidean_distance
-from segme.ops import saturate_cast
 
 
 def distance_transform(trimap, length=320):
@@ -18,6 +17,6 @@ def distance_transform(trimap, length=320):
         )
 
     clicks = ops.concatenate(clicks, axis=-1)
-    clicks = saturate_cast(ops.round(clicks * 255.0), dtype="uint8")
+    clicks = ops.saturate_cast(ops.round(clicks * 255.0), dtype="uint8")
 
     return clicks

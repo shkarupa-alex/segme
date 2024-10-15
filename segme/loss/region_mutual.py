@@ -6,7 +6,6 @@ from segme.loss.common_loss import to_1hot
 from segme.loss.common_loss import to_probs
 from segme.loss.common_loss import validate_input
 from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
-from segme.ops import logdet
 
 
 @register_keras_serializable(package="SegMe>Loss")
@@ -179,7 +178,7 @@ def _rmi_lower_bound(y_true, y_pred, pool_stride, pool_way, rmi_radius):
     )
 
     # The lower bound. If A is nonsingular, ln( det(A) ) = Tr( ln(A) ).
-    rmi_loss = 0.5 * logdet(appro_var + diag_matrix)
+    rmi_loss = 0.5 * ops.logdet(appro_var + diag_matrix)
     rmi_loss = ops.cast(rmi_loss, y_pred.dtype)
 
     # In source: sum over classes, mean over batch samples.

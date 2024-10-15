@@ -6,9 +6,6 @@ from segme.backend.torch.aug import adjust_jpeg_quality
 from segme.backend.torch.aug import adjust_saturation
 from segme.backend.torch.aug import grayscale_to_rgb
 from segme.backend.torch.aug import histogram_fixed_width
-from segme.backend.torch.compat import l2_normalize
-from segme.backend.torch.compat import logdet
-from segme.backend.torch.compat import saturate_cast
 from segme.backend.torch.image import connected_components
 from segme.backend.torch.image import convert_image_dtype
 from segme.backend.torch.image import depth_to_space

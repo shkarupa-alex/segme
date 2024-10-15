@@ -10,7 +10,6 @@ from keras.src.saving import register_keras_serializable
 from segme.common.attn.mincon import MinConstraint
 from segme.common.attn.relbias import RelativeBias
 from segme.common.convnormact import Conv
-from segme.ops import l2_normalize
 
 
 @register_keras_serializable(package="SegMe>Common")
@@ -193,8 +192,8 @@ class SlideAttention(layers.Layer):
             ],
         )
 
-        q = l2_normalize(q, axis=-1, epsilon=1.55e-5)
-        k = l2_normalize(k, axis=-2, epsilon=1.55e-5)
+        q = ops.normalize(q, epsilon=3.94e-3)
+        k = ops.normalize(k, axis=-2, epsilon=3.94e-3)
 
         attn = ops.matmul(q * ops.exp(self.scale), k)
         attn += self.attn_mask(height, width)

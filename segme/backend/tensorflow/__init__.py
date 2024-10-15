@@ -6,9 +6,6 @@ from segme.backend.tensorflow.aug import adjust_jpeg_quality
 from segme.backend.tensorflow.aug import adjust_saturation
 from segme.backend.tensorflow.aug import grayscale_to_rgb
 from segme.backend.tensorflow.aug import histogram_fixed_width
-from segme.backend.tensorflow.compat import l2_normalize
-from segme.backend.tensorflow.compat import logdet
-from segme.backend.tensorflow.compat import saturate_cast
 from segme.backend.tensorflow.image import connected_components
 from segme.backend.tensorflow.image import convert_image_dtype
 from segme.backend.tensorflow.image import depth_to_space

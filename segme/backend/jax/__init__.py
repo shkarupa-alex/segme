@@ -6,9 +6,6 @@ from segme.backend.jax.aug import adjust_jpeg_quality
 from segme.backend.jax.aug import adjust_saturation
 from segme.backend.jax.aug import grayscale_to_rgb
 from segme.backend.jax.aug import histogram_fixed_width
-from segme.backend.jax.compat import l2_normalize
-from segme.backend.jax.compat import logdet
-from segme.backend.jax.compat import saturate_cast
 from segme.backend.jax.image import connected_components
 from segme.backend.jax.image import convert_image_dtype
 from segme.backend.jax.image import depth_to_space
