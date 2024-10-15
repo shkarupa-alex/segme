@@ -77,7 +77,7 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                         shape=(None, None, 3), encoding_format="jpeg"
                     ),
                     "file": tfds.features.Text(),
-                    "in1k": tfds.features.Scalar(dtype="bool"),
+                    "in1k": tfds.features.Scalar(dtype=tf.bool),
                     "size": tfds.features.Text(),
                     "label": tfds.features.Text(),
                     "synset": tfds.features.Text(),
@@ -265,7 +265,7 @@ def _resize_crop(example, size, train, crop_pct=0.875):
             [2], minval=ops.min(shape) * crop_pct, maxval=shape
         )
         crop = ops.cast(ops.round(crop), "int32")
-        crop = ops.concatenate([crop, [3]], axis=-1)
+        crop = ops.concatenate([crop, np.array([3], "int32")], axis=-1)
 
         image = tf.image.random_crop(image, crop)
         image = ops.image.resize(
@@ -277,17 +277,19 @@ def _resize_crop(example, size, train, crop_pct=0.875):
     else:
         shape_ = shape * size / crop_pct / ops.min(shape)
         shape_ = ops.cast(ops.round(shape_), "int32")
+        shape_ = ops.unstack(shape_)
 
         image = ops.image.resize(
             image, shape_, interpolation="bicubic", antialias=True
         )
 
-        crop_h, crop_w = tf.unstack((shape_ - size) // 2)
+        crop_h = (shape_[0] - size) // 2
+        crop_w = (shape_[1] - size) // 2
         image = image[crop_h : crop_h + size, crop_w : crop_w + size]
 
-    image = ops.clip(image, 0.0, 255.0)
+    image = ops.clip(image, 0, 255)
     image = ops.cast(ops.round(image), "uint8")
-    image.set_shape([size, size, 3])
+    image.set_shape([size, size, 3])  # TODO
 
     return image, example["class"]
 

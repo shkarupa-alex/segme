@@ -33,8 +33,8 @@ WEIGHT_URLS = {
     ),
     "hard_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu": (
         "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
-        "hard_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu___52a2c226"
-        "b57604301a094dd7d58b996fe1ff27f8ab79771a10551684d5d5d330.weights.h5"
+        "hard_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu___3681b2fd7d"
+        "3df0e537681632808079163fbbeb0f35af49c7355e8f930e32a986.weights.h5"
     ),
     "hard_swin_small__avg_1000__imagenet__conv-ln1em5-gelu": BASE_URL.format(
         "small",
