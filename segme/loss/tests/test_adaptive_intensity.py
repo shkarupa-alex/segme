@@ -112,7 +112,7 @@ class TestAdaptivePixelIntensityLoss(testing.TestCase):
         self.assertAlmostEqual(result, 5.394371, decimal=5)
 
     def test_batch(self):
-        probs = np.random.rand(2, 224, 224, 1).astype("float32")
+        probs = np.random.rand(2, 224, 224, 2).astype("float32")
         targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype("int32")
 
         loss = AdaptivePixelIntensityLoss(from_logits=True)

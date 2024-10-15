@@ -28,6 +28,30 @@ class TestUtils(testing.TestCase):
         self.assertAllClose(probs, y_pred)
         self.assertAllClose(weights, sample_weight)
 
+    def test_validate_input_y_true_rank_sparse(self):
+        targets = (np.random.uniform(size=(2, 4, 4)) > 0.5).astype("int32")
+        probs = np.random.uniform(size=(2, 4, 4, 3))
+        weights = np.random.uniform(size=(2, 4, 4, 1))
+
+        y_true, y_pred, sample_weight = validate_input(
+            targets, probs, weights, dtype=None, rank=None, channel="sparse"
+        )
+        self.assertAllClose(targets[..., None], y_true)
+        self.assertAllClose(probs, y_pred)
+        self.assertAllClose(weights, sample_weight)
+
+    def test_validate_input_y_true_rank_same(self):
+        targets = (np.random.uniform(size=(2, 4, 4, 3)) > 0.5).astype("int32")
+        probs = np.random.uniform(size=(2, 4, 4, 3))
+        weights = np.random.uniform(size=(2, 4, 4))
+
+        y_true, y_pred, sample_weight = validate_input(
+            targets, probs, weights, dtype=None, rank=None, channel="same"
+        )
+        self.assertAllClose(targets, y_true)
+        self.assertAllClose(probs, y_pred)
+        self.assertAllClose(weights[..., None], sample_weight)
+
     def test_to_logits(self):
         expected1 = np.array(
             [

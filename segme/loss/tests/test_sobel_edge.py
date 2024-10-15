@@ -98,7 +98,7 @@ class TestSobelEdgeLoss(testing.TestCase):
         self.assertAlmostEqual(result, 0.14728217)
 
     def test_batch(self):
-        probs = np.random.rand(2, 224, 224, 1).astype("float32")
+        probs = np.random.rand(2, 224, 224, 2).astype("float32")
         targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype("int32")
 
         loss = SobelEdgeLoss(from_logits=True)

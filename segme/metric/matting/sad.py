@@ -25,9 +25,7 @@ class SAD(reduction_metrics.Sum):
         if sample_weight is not None:
             sample_weight = ops.cast(sample_weight, self.dtype)
 
-        y_pred, y_true = squeeze_or_expand_to_same_rank(
-            y_pred, y_true, sample_weight
-        )
+        y_pred, y_true = squeeze_or_expand_to_same_rank(y_pred, y_true)
         if sample_weight is not None:
             y_pred_rank = ops.ndim(y_pred)
             sample_weight_rank = ops.ndim(sample_weight)

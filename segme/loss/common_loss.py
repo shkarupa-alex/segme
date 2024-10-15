@@ -1,5 +1,6 @@
 from keras.src import backend
 from keras.src import ops
+from keras.src.losses.loss import squeeze_or_expand_to_same_rank
 
 from segme import backend as back
 
@@ -12,6 +13,12 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
 
     if weight is not None:
         weight = ops.cast(weight, y_pred.dtype)
+
+    y_true, y_pred = squeeze_or_expand_to_same_rank(y_true, y_pred)
+    if "sparse" == channel and ops.ndim(y_pred) == ops.ndim(y_true) + 1:
+        y_true = y_true[..., None]
+    if weight is not None and ops.ndim(y_pred) == ops.ndim(weight) + 1:
+        weight = weight[..., None]
 
     if rank is not None:
         if ops.ndim(y_pred) != rank:
@@ -29,7 +36,7 @@ def validate_input(y_true, y_pred, weight, dtype, rank, channel):
         )
 
     if weight is not None and 1 != weight.shape[-1]:
-        raise ValueError("Channel dimension of sample weights muse equals 1.")
+        raise ValueError("Channel dimension of sample weights must equals 1.")
 
     if channel not in {None, "sparse", "same"}:
         raise ValueError("Unknown channel size check")
