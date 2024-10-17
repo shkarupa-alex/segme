@@ -647,10 +647,10 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                     # Skip samples where > 1/3 of pixels are masked
                     continue
 
-                # size0 = (mask0 == 255).mean()
-                # if size0 < 0.05 or size0 > 0.95:
-                #     continue
-                #
+                size0 = (mask0 == 255).mean()
+                if size0 < 0.05 or size0 > 0.95:
+                    continue
+
                 # iou0 = compute_iou(mask0, coarse0)
                 # if iou0 < IOU_MIN:
                 #     continue
