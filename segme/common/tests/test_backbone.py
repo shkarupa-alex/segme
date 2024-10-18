@@ -7,7 +7,7 @@ from segme.policy import bbpol
 from segme.policy import cnapol
 from segme.policy.backbone.utils import patch_channels
 from segme.policy.conv import FixedConv
-from segme.policy.conv import StandardizedConv
+from segme.policy.conv import SpectralConv
 from segme.policy.norm import GroupNorm
 
 
@@ -89,7 +89,7 @@ class TestBackbone(testing.TestCase):
         )
 
     def test_patch_channels(self):
-        with cnapol.policy_scope("stdconv-gn-leakyrelu"):
+        with cnapol.policy_scope("snconv-gn-leakyrelu"):
             image = layers.Input(
                 name="image", shape=(None, None, 3), dtype="uint8"
             )
@@ -115,4 +115,4 @@ class TestBackbone(testing.TestCase):
         self.assertIsInstance(act1, layers.LeakyReLU)
 
         conv1 = restored.get_layer(name="stem_1_stem_conv_2")
-        self.assertIsInstance(conv1, StandardizedConv)
+        self.assertIsInstance(conv1, SpectralConv)
