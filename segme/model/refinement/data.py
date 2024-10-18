@@ -609,7 +609,7 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
 
         for s in range(max_scales):
             curr_scale = 0.5**s
-            curr_weight = 1.2**s
+            curr_weight = 1.1**s
 
             interp = np.random.choice(INTERPOLATIONS)
 
@@ -690,6 +690,7 @@ def _transform_examples(
     features = {"image": images, "mask": masks}
     labels = ops.cast(labels > 127, "int32")
     weights = ops.cast(weights, "float32") / 20.0
+    weights = ops.where(weights == 0., 0., ops.sqrt(weights + 1.))
 
     if with_coord:
         features["coord"] = make_coords(batch_size, CROP_SIZE, CROP_SIZE)
