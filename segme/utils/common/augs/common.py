@@ -6,11 +6,14 @@ from segme.ops import convert_image_dtype
 
 
 def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
-    def _some(original, condition, aug_fn, orig_idx, aug_idx):
-        with backend.name_scope(name or "some"):
+    def _some_safe(original, aug_fn, condition):
+        with backend.name_scope(name or "some_safe"):
             shape = original.shape
-
-            augmented, original = original[condition], original[~condition]
+            batch = ops.size(condition)
+            indices = ops.arange(batch, dtype="int32")
+            condition_ = ~condition
+            aug_idx, orig_idx = indices[condition], indices[condition_]
+            augmented, original = original[condition], original[condition_]
             augmented = aug_fn(augmented)
 
             result = data_flow_ops.parallel_dynamic_stitch(
@@ -19,6 +22,14 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
             result.set_shape(shape)
 
             return result
+
+    def _some(original, aug_fn, condition):
+        with backend.name_scope(name or "some"):
+            return ops.cond(
+                ops.any(condition),
+                lambda: _some_safe(original, aug_fn, condition),
+                lambda: original,
+            )
 
     def _all(original, aug_fn, condition):
         with backend.name_scope(name or "all"):
@@ -35,71 +46,46 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
         if ops.ndim(prob):
             raise ValueError("Expecting `prob` to be a scalar.")
 
-        batch, height, width, _ = ops.shape(image)
+        batch, height, width = ops.shape(image)[:3]
+        apply_some = ops.random.uniform([batch]) < prob
+        apply_all = ops.random.uniform([]) < prob
         static_size = isinstance(height, int) and isinstance(width, int)
         square_size = (
             height == width if static_size else ops.equal(height, width)
         )
 
-        switch_some = ops.random.uniform([batch]) < prob
-        switch_all = switch_some[0]
-
         if static_size and square_size:
-            indices = ops.arange(batch, dtype="int32")
-            indices_, indices = indices[switch_some], indices[~switch_some]
-
-            image = _some(image, switch_some, image_fn, indices, indices_)
-
+            image = _some(image, image_fn, apply_some)
             if masks is not None and mask_fn is not None:
-                masks = [
-                    _some(m, switch_some, mask_fn, indices, indices_)
-                    for m in masks
-                ]
-
+                masks = [_some(m, mask_fn, apply_some) for m in masks]
             if weight is not None and weight_fn is not None:
-                weight = _some(
-                    weight, switch_some, weight_fn, indices, indices_
-                )
-
+                weight = _some(weight, weight_fn, apply_some)
         elif static_size and not square_size:
-            image = _all(image, image_fn, switch_all)
-
+            image = _all(image, image_fn, apply_all)
             if masks is not None and mask_fn is not None:
-                masks = [_all(m, mask_fn, switch_all) for m in masks]
-
+                masks = [_all(m, mask_fn, apply_all) for m in masks]
             if weight is not None and weight_fn is not None:
-                weight = _all(weight, weight_fn, switch_all)
-
+                weight = _all(weight, weight_fn, apply_all)
         else:
-            indices = ops.arange(batch, dtype="int32")
-            indices_, indices = indices[switch_some], indices[~switch_some]
-
             image = ops.cond(
                 square_size,
-                lambda: _some(image, switch_some, image_fn, indices, indices_),
-                lambda: _all(image, image_fn, switch_all),
+                lambda: _some(image, image_fn, apply_some),
+                lambda: _all(image, image_fn, apply_all),
             )
-
             if masks is not None:
-                temp = []
-                for mask in masks:
-                    mask = ops.cond(
+                masks = [
+                    ops.cond(
                         square_size,
-                        lambda: _some(
-                            mask, switch_some, mask_fn, indices, indices_
-                        ),
-                        lambda: _all(mask, mask_fn, switch_all),
+                        lambda: _some(m, mask_fn, apply_some),
+                        lambda: _all(m, mask_fn, apply_all),
                     )
-                    temp.append(mask)
-                masks = temp
-
+                    for m in masks
+                ]
             if weight is not None:
                 weight = ops.cond(
                     square_size,
-                    lambda: _some(
-                        weight, switch_some, weight_fn, indices, indices_
-                    ),
-                    lambda: _all(weight, weight_fn, switch_all),
+                    lambda: _some(weight, weight_fn, apply_some),
+                    lambda: _all(weight, weight_fn, apply_all),
                 )
 
         return image, masks, weight
