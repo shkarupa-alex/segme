@@ -690,7 +690,7 @@ def _transform_examples(
     features = {"image": images, "mask": masks}
     labels = ops.cast(labels > 127, "int32")
     weights = ops.cast(weights, "float32") / 20.0
-    weights = ops.where(weights == 0., 0., ops.sqrt(weights + 1.))
+    weights = ops.where(weights == 0.0, 0.0, ops.sqrt(weights + 1.0))
 
     if with_coord:
         features["coord"] = make_coords(batch_size, CROP_SIZE, CROP_SIZE)
@@ -717,6 +717,7 @@ def make_dataset(
     data_dir,
     split_name,
     batch_size,
+    num_repeats=1,
     with_coord=False,
     with_prev=False,
     with_time=0,
@@ -743,6 +744,8 @@ def make_dataset(
         transform_examples,
         num_parallel_calls=tf.data.experimental.AUTOTUNE,
     )
+    if num_repeats > 1:
+        dataset = dataset.repeat(num_repeats)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return dataset

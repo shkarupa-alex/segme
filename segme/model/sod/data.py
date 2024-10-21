@@ -726,6 +726,7 @@ def make_dataset(
     with_trimap,
     with_depth,
     batch_pixels,
+    num_repeats=1,
     backbone_scales=1,
     square_size=False,
     max_weight=5.0,
@@ -778,6 +779,8 @@ def make_dataset(
         transform_examples,
         num_parallel_calls=tf.data.experimental.AUTOTUNE,
     )
+    if num_repeats > 1:
+        dataset = dataset.repeat(num_repeats)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return dataset

@@ -337,6 +337,7 @@ def make_dataset(
     data_dir,
     split_name,
     batch_size,
+    num_repeats=1,
     image_size=384,
     preprocess_mode=None,
     aug_levels=5,
@@ -396,7 +397,8 @@ def make_dataset(
             transform_examples,
             num_parallel_calls=tf.data.experimental.AUTOTUNE,
         )
-
+    if num_repeats > 1:
+        dataset = dataset.repeat(num_repeats)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return dataset

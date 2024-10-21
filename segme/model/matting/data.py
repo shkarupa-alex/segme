@@ -728,7 +728,7 @@ def _normalize_trimap(examples):
     return examples
 
 
-def make_dataset(data_dir, split_name, out_mode, batch_size=1):
+def make_dataset(data_dir, split_name, out_mode, batch_size=1, num_repeats=1):
     train_split = tfds.Split.TRAIN == split_name
 
     builder = MattingDataset(
@@ -770,6 +770,8 @@ def make_dataset(data_dir, split_name, out_mode, batch_size=1):
     else:
         raise ValueError("Unknown mode")
 
+    if num_repeats > 1:
+        dataset = dataset.repeat(num_repeats)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return dataset
