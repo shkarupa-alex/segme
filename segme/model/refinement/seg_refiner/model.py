@@ -194,7 +194,9 @@ def SegRefiner(
         x = ClassificationActivation(name="pred_prob")(x)
 
         model = models.Functional(
-            inputs=[image, mask, time], outputs=x, name="seg_refiner"
+            inputs={"image": image, "mask": mask, "time": time},
+            outputs=x,
+            name="seg_refiner",
         )
 
         if weights in WEIGHT_URLS:
