@@ -18,16 +18,18 @@ class NearestInterpolation(layers.Layer):
         self.scale = None if scale is None else float(scale)
 
     def resize(self, inputs, size):
-        if isinstance(self.scale, int):
+        if isinstance(self.scale, float) and int(self.scale) == self.scale:
+            # TODO https://github.com/tensorflow/tensorflow/issues/57575
+            scale = int(self.scale)
             shape = ops.shape(inputs)
             outputs = inputs[:, :, None, :, None]
-            outputs = ops.tile(outputs, [1, 1, self.scale, 1, self.scale, 1])
+            outputs = ops.tile(outputs, [1, 1, scale, 1, scale, 1])
             return ops.reshape(
                 outputs,
                 (
                     shape[0],
-                    shape[1] * self.scale,
-                    shape[2] * self.scale,
+                    shape[1] * scale,
+                    shape[2] * scale,
                     shape[3],
                 ),
             )
