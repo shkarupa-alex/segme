@@ -18,6 +18,20 @@ class NearestInterpolation(layers.Layer):
         self.scale = None if scale is None else float(scale)
 
     def resize(self, inputs, size):
+        if isinstance(self.scale, int):
+            shape = ops.shape(inputs)
+            outputs = inputs[:, :, None, :, None]
+            outputs = ops.tile(outputs, [1, 1, self.scale, 1, self.scale, 1])
+            return ops.reshape(
+                outputs,
+                (
+                    shape[0],
+                    shape[1] * self.scale,
+                    shape[2] * self.scale,
+                    shape[3],
+                ),
+            )
+
         return ops.image.resize(inputs, size, interpolation="nearest")
 
     def call(self, inputs, **kwargs):
@@ -34,7 +48,7 @@ class NearestInterpolation(layers.Layer):
             static_size = all(map(lambda x: isinstance(x, int), new_size))
 
             if static_size:
-                new_size = np.array(new_size) * self.scale
+                new_size = np.array(new_size, "float32") * self.scale
                 new_size = np.round(new_size).astype("int32")
             else:
                 new_size = ops.cast(new_size, self.compute_dtype) * self.scale
@@ -46,7 +60,7 @@ class NearestInterpolation(layers.Layer):
             if static_size:
                 repeats = (1,) + new_size + (1,)
             else:
-                repeats = ops.concatenate([(1,), new_size, (1,)], axis=-1)
+                repeats = ops.concatenate([[1], new_size, [1]], axis=-1)
             outputs = ops.tile(targets, repeats)
         else:
             outputs = self.resize(targets, new_size)
