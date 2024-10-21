@@ -23,13 +23,15 @@ class Refiner(BatchedRefiner):
         )
 
         self.model_global = model_inference_fn(
-            SegRefiner(weights=weights_global), jit_compile=True
+            SegRefiner(size=pretrain_size, weights=weights_global),
+            jit_compile=True,
         )
         if weights_global == weights_local:
             self.model_local = self.model_global
         else:
             self.model_local = model_inference_fn(
-                SegRefiner(weights=weights_local), jit_compile=True
+                SegRefiner(size=pretrain_size, weights=weights_local),
+                jit_compile=True,
             )
 
         self.num_steps = 6
@@ -79,9 +81,13 @@ class Refiner(BatchedRefiner):
     def _predict_step(self, images, masks, time, crop_mode):
         current_model = self.model_local if crop_mode else self.model_global
         fine = current_model(
-            backend.convert_to_tensor(images),
-            backend.convert_to_tensor(masks),
-            backend.convert_to_tensor([time] * images.shape[0], "int32"),
+            {
+                "image": backend.convert_to_tensor(images),
+                "mask": backend.convert_to_tensor(masks),
+                "time": backend.convert_to_tensor(
+                    [time] * images.shape[0], "int32"
+                ),
+            }
         )
         if isinstance(fine, (list, tuple)):
             if 1 != len(fine):
