@@ -72,6 +72,7 @@ def _ResBlock(filters, dropout, name=None):
 
 
 def SegRefiner(
+    size=256,
     filters=128,
     depth=2,
     atstrides=(16, 32),
@@ -95,8 +96,8 @@ def SegRefiner(
             )
 
     with cnapol.policy_scope("conv-gn321em5-silu"):
-        image = layers.Input(name="image", shape=(256, 256, 3), dtype="uint8")
-        mask = layers.Input(name="mask", shape=(256, 256, 1), dtype="uint8")
+        image = layers.Input(name="image", shape=(size, size, 3), dtype="uint8")
+        mask = layers.Input(name="mask", shape=(size, size, 1), dtype="uint8")
         time = layers.Input(name="time", shape=[], dtype="int32")
 
         combo = layers.concatenate(
