@@ -196,8 +196,14 @@ class StandardizedConstraint(constraints.Constraint):
                 f"Expecting weight rank to equals 4, got {w.shape}"
             )
 
+        original_dtype = w.dtype
+        compute_dtype = backend.result_type(original_dtype, "float32")
+        w = ops.cast(w, compute_dtype)
+
         mean, var = ops.moments(w, axes=self.axes, keepdims=True)
         w = ops.batch_normalization(w, mean, var, -1, epsilon=1.001e-5)
+
+        w = ops.cast(w, original_dtype)
 
         return w
 
