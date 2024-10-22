@@ -52,19 +52,16 @@ class TestExpSOD(testing.TestCase):
             ("backstage_3_merge_transform_0_swin_drop", 0.06666666666666668),
             ("backstage_3_merge_transform_1_mlp_drop", 0.053333333333333344),
             ("backstage_3_merge_transform_1_swin_drop", 0.053333333333333344),
-            ("backstage_4_lateral_transform_0_mlp_drop", 0.04000000000000001),
-            ("backstage_4_lateral_transform_0_swin_drop", 0.04000000000000001),
-            ("backstage_4_lateral_transform_1_mlp_drop", 0.026666666666666672),
-            ("backstage_4_lateral_transform_1_swin_drop", 0.026666666666666672),
-            ("backstage_4_merge_transform_0_mlp_drop", 0.013333333333333336),
-            ("backstage_4_merge_transform_0_swin_drop", 0.013333333333333336),
-            ("backstage_4_merge_transform_1_mlp_drop", 0.0),
-            ("backstage_4_merge_transform_1_swin_drop", 0.0),
+            ("backstage_4_lateral_transform_0_fmbconv_drop", 0.04000000000000001),
+            ("backstage_4_lateral_transform_1_fmbconv_drop", 0.026666666666666672),
+            ("backstage_4_merge_transform_0_fmbconv_drop", 0.013333333333333336),
+            ("backstage_4_merge_transform_1_fmbconv_drop", 0.0),
         ]
 
         actual_drops = TestExpSOD._values_from_config(
             config, "SegMe>Common>DropPath", "rate"
         )
+        print(actual_drops)
         self.assertListEqual(expected_drops, actual_drops)
 
     def test_residual_gamma(self):
@@ -98,14 +95,10 @@ class TestExpSOD(testing.TestCase):
             ("backstage_3_merge_transform_0_swin_norm", 0.06667000000000001),
             ("backstage_3_merge_transform_1_mlp_norm", 0.07333600000000001),
             ("backstage_3_merge_transform_1_swin_norm", 0.07333600000000001),
-            ("backstage_4_lateral_transform_0_mlp_norm", 0.080002),
-            ("backstage_4_lateral_transform_0_swin_norm", 0.080002),
-            ("backstage_4_lateral_transform_1_mlp_norm", 0.08666800000000001),
-            ("backstage_4_lateral_transform_1_swin_norm", 0.08666800000000001),
-            ("backstage_4_merge_transform_0_mlp_norm", 0.09333400000000001),
-            ("backstage_4_merge_transform_0_swin_norm", 0.09333400000000001),
-            ("backstage_4_merge_transform_1_mlp_norm", 0.1),
-            ("backstage_4_merge_transform_1_swin_norm", 0.1),
+            ("backstage_4_lateral_transform_0_fmbconv_norm", 0.080002),
+            ("backstage_4_lateral_transform_1_fmbconv_norm", 0.08666800000000001),
+            ("backstage_4_merge_transform_0_fmbconv_norm", 0.09333400000000001),
+            ("backstage_4_merge_transform_1_fmbconv_norm", 0.1),
         ]
 
         actual_gammas = TestExpSOD._values_from_config(
@@ -134,10 +127,6 @@ class TestExpSOD(testing.TestCase):
             ("backstage_3_lateral_transform_1_swin_attn", 1),
             ("backstage_3_merge_transform_0_swin_attn", 0),
             ("backstage_3_merge_transform_1_swin_attn", 2),
-            ("backstage_4_lateral_transform_0_swin_attn", 0),
-            ("backstage_4_lateral_transform_1_swin_attn", 3),
-            ("backstage_4_merge_transform_0_swin_attn", 0),
-            ("backstage_4_merge_transform_1_swin_attn", 4),
         ]
 
         actual_shifts = TestExpSOD._values_from_config(
@@ -161,10 +150,6 @@ class TestExpSOD(testing.TestCase):
             ("backstage_3_lateral_transform_1_swin_attn", 24),
             ("backstage_3_merge_transform_0_swin_attn", 24),
             ("backstage_3_merge_transform_1_swin_attn", 24),
-            ("backstage_4_lateral_transform_0_swin_attn", 24),
-            ("backstage_4_lateral_transform_1_swin_attn", 24),
-            ("backstage_4_merge_transform_0_swin_attn", 24),
-            ("backstage_4_merge_transform_1_swin_attn", 24),
         ]
 
         actual_shifts = TestExpSOD._values_from_config(
@@ -177,7 +162,6 @@ class TestExpSOD(testing.TestCase):
             ExpSOD,
             init_kwargs={
                 "with_trimap": False,
-                "with_depth": False,
                 "transform_depth": 2,
                 "window_size": 24,
                 "path_gamma": 0.01,
@@ -192,7 +176,6 @@ class TestExpSOD(testing.TestCase):
             ExpSOD,
             init_kwargs={
                 "with_trimap": True,
-                "with_depth": False,
                 "transform_depth": 2,
                 "window_size": 24,
                 "path_gamma": 0.01,
@@ -203,54 +186,18 @@ class TestExpSOD(testing.TestCase):
             expected_output_shape=((2, 384, 384, 1), (2, 384, 384, 3)) * 5,
             expected_output_dtype=("float32",) * 5 * 2,
         )
-        self.run_layer_test(
-            ExpSOD,
-            init_kwargs={
-                "with_trimap": False,
-                "with_depth": True,
-                "transform_depth": 2,
-                "window_size": 24,
-                "path_gamma": 0.01,
-                "path_drop": 0.2,
-            },
-            input_shape=(2, 384, 384, 3),
-            input_dtype="uint8",
-            expected_output_shape=((2, 384, 384, 1),) * 5 * 2,
-            expected_output_dtype=("float32",) * 5 * 2,
-        )
-        self.run_layer_test(
-            ExpSOD,
-            init_kwargs={
-                "with_trimap": True,
-                "with_depth": True,
-                "transform_depth": 2,
-                "window_size": 24,
-                "path_gamma": 0.01,
-                "path_drop": 0.2,
-            },
-            input_shape=(2, 384, 384, 3),
-            input_dtype="uint8",
-            expected_output_shape=(
-                (2, 384, 384, 1),
-                (2, 384, 384, 3),
-                (2, 384, 384, 1),
-            )
-            * 5,
-            expected_output_dtype=("float32",) * 5 * 3,
-        )
 
     def test_model(self):
-        model = ExpSOD(with_depth=True, with_trimap=True)
+        model = ExpSOD(with_trimap=True)
         model.compile(
             optimizer="sgd",
-            loss=exp_sod_losses(5, with_depth=True, with_trimap=True),
+            loss=exp_sod_losses(5, with_trimap=True),
         )
         model.fit(
             np.random.random((2, 384, 384, 3)).astype(np.uint8),
             [
-                np.random.random((2, 384, 384, 1)).astype(np.float32),
                 np.random.random((2, 384, 384, 1)).astype(np.int32),
-                np.random.random((2, 384, 384, 1)).astype(np.float32),
+                np.random.random((2, 384, 384, 1)).astype(np.int32),
             ]
             * 5,
             epochs=1,

@@ -1,4 +1,5 @@
 import numpy as np
+from keras.src import initializers
 from keras.src import layers
 from keras.src import models
 from keras.src.utils import naming
@@ -8,6 +9,7 @@ from segme.common.backbone import Backbone
 from segme.common.convnormact import Act
 from segme.common.convnormact import Conv
 from segme.common.convnormact import Norm
+from segme.common.drop import DropPath
 from segme.common.fold import Fold
 from segme.common.fold import UnFold
 from segme.common.head import ClassificationActivation
@@ -70,7 +72,63 @@ def Attention(
     return apply
 
 
-def Head(trimap, depth, stride, kernel, name=None):
+def FMBConv(
+    depth,
+    kernel_size=3,
+    expand_ratio=3.0,
+    path_drop=0.0,
+    path_gamma=1.0,
+    name=None,
+):
+    if name is None:
+        counter = naming.get_uid("fmbconv")
+        name = f"fmbconv_{counter}"
+
+    if isinstance(path_gamma, float):
+        path_gamma = [path_gamma] * depth
+    elif len(path_gamma) != depth:
+        raise ValueError("Number of path gammas must equals to depth.")
+
+    if isinstance(path_drop, float):
+        path_drop = [path_drop] * depth
+    elif len(path_drop) != depth:
+        raise ValueError("Number of path dropouts must equals to depth.")
+
+    def apply(inputs):
+        channels = inputs.shape[-1]
+        if channels is None:
+            raise ValueError(
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
+            )
+
+        expand_filters = int(channels * expand_ratio)
+
+        inputs_ = inputs
+        for i in range(depth):
+            x = Conv(
+                expand_filters,
+                kernel_size,
+                use_bias=False,
+                name=f"{name}_{i}_fmbconv_expand",
+            )(inputs_)
+            x = Act(name=f"{name}_{i}_act")(x)
+            x = Conv(channels, 1, use_bias=False, name=f"{name}_{i}_fmbconv_squeeze")(x)
+            x = Norm(
+                center=False,
+                gamma_initializer=initializers.Constant(path_gamma[i]),
+                name=f"{name}_{i}_fmbconv_norm",
+            )(x)
+            x = DropPath(path_drop[i], name=f"{name}_{i}_fmbconv_drop")(x)
+            x = layers.add([x, inputs_], name=f"{name}_{i}_fmbconv_add")
+            inputs_ = x
+
+        return x
+
+    return apply
+
+
+def Head(trimap, stride, kernel, name=None):
     if name is None:
         counter = naming.get_uid("head")
         name = f"head_{counter}"
@@ -95,17 +153,6 @@ def Head(trimap, depth, stride, kernel, name=None):
             t = UnFold(stride, name=f"{name}_trimap_unfold")(t)
             x.append(ClassificationActivation(name=f"{name}_trimap")(t))
 
-        if depth:
-            d = HeadProjection(
-                stride**2, kernel_size=kernel, name=f"{name}_depth_logits"
-            )(inputs)
-            d = UnFold(stride, name=f"{name}_depth_unfold")(d)
-            x.append(
-                layers.Activation(
-                    "hard_sigmoid", dtype="float32", name=f"{name}_depth"
-                )(d)
-            )
-
         return x
 
     return apply
@@ -113,7 +160,6 @@ def Head(trimap, depth, stride, kernel, name=None):
 
 def ExpSOD(
     with_trimap=False,
-    with_depth=False,
     transform_depth=2,
     window_size=24,
     path_gamma=0.1,
@@ -124,7 +170,6 @@ def ExpSOD(
         with dtpol.policy_scope(dtype):
             return ExpSOD(
                 with_trimap=with_trimap,
-                with_depth=with_depth,
                 transform_depth=transform_depth,
                 window_size=window_size,
                 path_gamma=path_gamma,
@@ -158,11 +203,7 @@ def ExpSOD(
 
             if o_prev is None:
                 o_prev = o
-                heads.extend(
-                    Head(with_trimap, with_depth, stride, 1, name=f"head_{i}")(
-                        o
-                    )
-                )
+                heads.extend(Head(with_trimap, stride, 1, name=f"head_{i}")(o))
                 continue
 
             shift_mode = num_shifts * (i - 1) * 2 % 4 + 1
@@ -174,14 +215,22 @@ def ExpSOD(
                 path_gammas[:transform_depth],
                 path_gammas[transform_depth:],
             )
-            o = Attention(
-                transform_depth,
-                window_size,
-                shift_mode,
-                path_drop=stage_drops,
-                path_gamma=stage_gammas,
-                name=f"backstage_{i}_lateral_transform",
-            )(o)
+            if i < 4:
+                o = Attention(
+                    transform_depth,
+                    window_size,
+                    shift_mode,
+                    path_drop=stage_drops,
+                    path_gamma=stage_gammas,
+                    name=f"backstage_{i}_lateral_transform",
+                )(o)
+            else:
+                o = FMBConv(
+                    transform_depth,
+                    path_drop=stage_drops,
+                    path_gamma=stage_gammas,
+                    name=f"backstage_{i}_lateral_transform",
+                )(o)
 
             o = Align(channels, name=f"backstage_{i}_merge_align")([o, o_prev])
             o = Norm(name=f"backstage_{i}_merge_norm")(o)
@@ -195,19 +244,25 @@ def ExpSOD(
                 path_gammas[:transform_depth],
                 path_gammas[transform_depth:],
             )
-            o = Attention(
-                transform_depth,
-                window_size,
-                shift_mode,
-                path_drop=stage_drops,
-                path_gamma=stage_gammas,
-                name=f"backstage_{i}_merge_transform",
-            )(o)
+            if i < 4:
+                o = Attention(
+                    transform_depth,
+                    window_size,
+                    shift_mode,
+                    path_drop=stage_drops,
+                    path_gamma=stage_gammas,
+                    name=f"backstage_{i}_merge_transform",
+                )(o)
+            else:
+                o = FMBConv(
+                    transform_depth,
+                    path_drop=stage_drops,
+                    path_gamma=stage_gammas,
+                    name=f"backstage_{i}_merge_transform",
+                )(o)
 
             o_prev = o
-            heads.extend(
-                Head(with_trimap, with_depth, stride, 3, name=f"head_{i}")(o)
-            )
+            heads.extend(Head(with_trimap, stride, 3, name=f"head_{i}")(o))
 
         model = models.Functional(
             inputs=backbone.inputs, outputs=tuple(heads), name="exp_sod"

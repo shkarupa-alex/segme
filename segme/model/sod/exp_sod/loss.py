@@ -17,11 +17,9 @@ def scaled_mae(y_true, y_pred, sample_weight, scale):
     return mean_absolute_regression_error(y_true, y_pred, sample_weight) * scale
 
 
-def exp_sod_losses(backbone_scales, with_trimap=False, with_depth=False):
+def exp_sod_losses(backbone_scales, with_trimap=False):
     losses = [CrossEntropyLoss(label_smoothing=0.1)]
     if with_trimap:
-        losses.append(CrossEntropyLoss(label_smoothing=0.1))
-    if with_depth:
         losses.append(CrossEntropyLoss(label_smoothing=0.1))
 
     losses = []
@@ -35,10 +33,5 @@ def exp_sod_losses(backbone_scales, with_trimap=False, with_depth=False):
 
         if with_trimap:
             losses.append(CrossEntropyLoss(label_smoothing=label_smoothing))
-
-        if with_depth:
-            losses.append(
-                WeightedLossFunctionWrapper(scaled_mae, scale=1 / (2**i))
-            )
 
     return losses
