@@ -365,17 +365,18 @@ def HardSwinTiny(
 
 def HardSwinTiny21k(
     classes=14607,
+    include_top=True,
     pooling="sp",
     weights="imagenet21k",
     **kwargs,
 ):
-    with cnapol.policy_scope("conv-ln1em5-gelu"):
-        return HardSwinTiny(
-            classes=classes,
-            pooling=pooling,
-            weights=weights,
-            **kwargs,
-        )
+    return HardSwinTiny(
+        classes=classes,
+        include_top=include_top,
+        pooling=pooling,
+        weights=weights,
+        **kwargs,
+    )
 
 
 def HardSwinSmall(

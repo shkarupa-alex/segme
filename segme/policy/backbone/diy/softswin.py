@@ -25,7 +25,13 @@ BASE_URL = (
     "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
     "soft_swin_{}__avg_1000__imagenet__conv-ln1em5-gelu___{}.weights.h5"
 )
-WEIGHT_URLS = {}
+WEIGHT_URLS = {
+    "soft_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu": (
+        "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
+        "soft_swin_tiny__sp_14607__imagenet21k__conv-ln1em5-gelu___f9fb8915"
+        "3cc2684641a087c398c4de7661e8d55437a0916e96b9972c9c372a04.weights.h5"
+    ),
+}
 
 
 def Stem(filters, name=None):
@@ -272,6 +278,22 @@ def SoftSwinTiny(
         )
 
 
+def SoftSwinTiny21k(
+    classes=14607,
+    include_top=True,
+    pooling="sp",
+    weights="imagenet21k",
+    **kwargs,
+):
+    return SoftSwinTiny(
+        classes=classes,
+        include_top=include_top,
+        pooling=pooling,
+        weights=weights,
+        **kwargs,
+    )
+
+
 def SoftSwinSmall(
     embed_dim=96,
     stage_depths=(2, 2, 18, 2),
@@ -348,6 +370,20 @@ def SoftSwinLarge(
 BACKBONES.register("softswin_tiny")(
     (
         partial(wrap_bone, SoftSwinTiny, None),
+        [
+            None,
+            "stem_out",
+            "stage_0_out",
+            "stage_1_out",
+            "stage_2_out",
+            "stage_3_out",
+        ],
+    )
+)
+
+BACKBONES.register("softswin_tiny_21k")(
+    (
+        partial(wrap_bone, SoftSwinTiny21k, None),
         [
             None,
             "stem_out",
