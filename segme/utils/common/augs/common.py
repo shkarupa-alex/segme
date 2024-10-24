@@ -72,7 +72,7 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
                 lambda: _some(image, image_fn, apply_some),
                 lambda: _all(image, image_fn, apply_all),
             )
-            if masks is not None:
+            if masks is not None and mask_fn is not None:
                 masks = [
                     ops.cond(
                         square_size,
@@ -81,7 +81,7 @@ def apply(image, masks, weight, prob, image_fn, mask_fn, weight_fn, name=None):
                     )
                     for m in masks
                 ]
-            if weight is not None:
+            if weight is not None and weight_fn is not None:
                 weight = ops.cond(
                     square_size,
                     lambda: _some(weight, weight_fn, apply_some),
