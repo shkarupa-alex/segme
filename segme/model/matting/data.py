@@ -221,8 +221,12 @@ def crop_boxes(alpha, full, num_boxes=TOTAL_BOXES):
     # estimate boxes
     indices = np.stack(trimap.nonzero(), axis=-1)
 
+    # Disabled: max ratio == 2
+    # ratios = np.random.uniform(
+    #     0.5, min(2.0, min(height, width) / CROP_SIZE), indices.shape
+    # )
     ratios = np.random.uniform(
-        0.5, min(2.0, min(height, width) / CROP_SIZE), indices.shape
+        0.5, min(height, width) / CROP_SIZE, indices.shape
     )
     deltas = (ratios * CROP_SIZE / 2).astype("int64")
 
@@ -335,12 +339,18 @@ def crop_augment(fg, alpha, replay=False):
                     #   alb.ChannelDropout(fill_value=value)
                     #   for value in range(256)]), # disable for matting
                     # alb.ChannelShuffle(), # on-the-fly
-                    # alb.ColorJitter(), # on-the-fly
+                    alb.ColorJitter(),
                     # alb.OneOf([
                     #   alb.Equalize(by_channels=value)
                     #   for value in [True, False]]), # disable for matting
                     alb.FancyPCA(),
                     # alb.PixelDropout(), # disable for matting
+                    alb.OneOf(
+                        [
+                            alb.PlanckianJitter(mode=mode)
+                            for mode in ["blackbody", "cied"]
+                        ]
+                    ),
                     alb.RGBShift(),
                     alb.RandomToneCurve(),
                     alb.Sharpen(alpha=(0.1, 0.4), p=0.1),
@@ -390,7 +400,9 @@ def crop_augment(fg, alpha, replay=False):
     if replay:
         print(drop_unapplied(augmented["replay"]))
 
-    return augmented["image"], alpha
+    image = matting_np.solve_fg(augmented["image"], alpha)
+
+    return image, alpha
 
 
 class MattingDataset(tfds.core.GeneratorBasedBuilder):
@@ -651,6 +663,15 @@ def _augment_examples(examples):
     foreground = examples["foreground"]
     background = examples["background"]
 
+    alpha.set_shape(alpha.shape[:1] + [CROP_SIZE, CROP_SIZE] + alpha.shape[-1:])
+    foreground.set_shape(
+        foreground.shape[:1] + [CROP_SIZE, CROP_SIZE] + foreground.shape[-1:]
+    )
+    background.set_shape(
+        background.shape[:1] + [CROP_SIZE, CROP_SIZE] + background.shape[-1:]
+    )
+
+    # TODO
     # alpha = matting.augment_alpha(alpha)
     # foreground, alpha = matting.random_compose(
     #   foreground, alpha, trim=(max(TRIMAP_SIZE), 0.95), solve=False)
@@ -659,7 +680,7 @@ def _augment_examples(examples):
     #   foreground, alpha, kappa=0.334, steps=3)  # for crop size 512
     background = tf.random.shuffle(background)
     trimap = matting.alpha_trimap(alpha, size=TRIMAP_SIZE)
-    trimap = matting.augment_trimap(trimap)
+    # trimap = matting.augment_trimap(trimap)
 
     return {
         "alpha": alpha,

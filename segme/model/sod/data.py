@@ -151,6 +151,14 @@ def mask_trimap(mask, size):
 
 
 def train_augment(image, mask, trimap, depth, replay=False):
+    INTERPOLATIONS = [
+        cv2.INTER_NEAREST,
+        cv2.INTER_LINEAR,
+        cv2.INTER_CUBIC,
+        cv2.INTER_AREA,
+        cv2.INTER_LANCZOS4,
+    ]
+
     src_size = mask.shape
     trg_size = target_size(src_size)
 
@@ -168,6 +176,7 @@ def train_augment(image, mask, trimap, depth, replay=False):
                         ]
                     ),
                     # alb.ChannelShuffle(), # on-the-fly
+                    alb.ChromaticAberration(mode="random"),
                     alb.ColorJitter(),
                     alb.OneOf(
                         [
@@ -178,6 +187,12 @@ def train_augment(image, mask, trimap, depth, replay=False):
                     alb.FancyPCA(),
                     alb.HueSaturationValue(),
                     alb.PixelDropout(),
+                    alb.OneOf(
+                        [
+                            alb.PlanckianJitter(mode=mode)
+                            for mode in ["blackbody", "cied"]
+                        ]
+                    ),
                     alb.RGBShift(),
                     alb.RandomBrightnessContrast(),
                     alb.RandomGamma(),
@@ -194,6 +209,7 @@ def train_augment(image, mask, trimap, depth, replay=False):
                 [
                     alb.AdvancedBlur(),
                     alb.Blur(blur_limit=(3, 5)),
+                    alb.Defocus(radius=(3, 7)),
                     alb.GaussianBlur(blur_limit=(3, 5)),
                     alb.MedianBlur(blur_limit=5),
                     alb.RingingOvershoot(blur_limit=(3, 5)),
@@ -203,8 +219,18 @@ def train_augment(image, mask, trimap, depth, replay=False):
             # Noise
             alb.OneOf(
                 [
-                    alb.Downscale(
-                        scale_max=0.75, interpolation=cv2.INTER_NEAREST_EXACT
+                    alb.OneOf(
+                        [
+                            alb.Downscale(
+                                scale_range=(0.75, 0.95),
+                                interpolation_pair={
+                                    "downscale": i1,
+                                    "upscale": i2,
+                                },
+                            )
+                            for i1 in INTERPOLATIONS
+                            for i2 in INTERPOLATIONS
+                        ]
                     ),
                     alb.GaussNoise(var_limit=(10.0, 100.0)),
                     alb.ISONoise(color_shift=(0.01, 0.1), intensity=(0.1, 0.7)),
@@ -751,6 +777,7 @@ def make_dataset(
             resize_examples,
             num_parallel_calls=tf.data.experimental.AUTOTUNE,
         )
+        # TODO: check static shape
 
         batch_size = batch_pixels // (MIN_SIZE**2)
         dataset = dataset.shuffle(batch_size * 8)

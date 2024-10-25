@@ -257,6 +257,7 @@ def train_augment(image, mask, with_crops, replay=False):
                     ]
                 ),
                 # alb.ChannelShuffle(), # on-the-fly
+                alb.ChromaticAberration(mode="random"),
                 alb.ColorJitter(),
                 alb.OneOf(
                     [alb.Equalize(by_channels=value) for value in [True, False]]
@@ -264,6 +265,12 @@ def train_augment(image, mask, with_crops, replay=False):
                 alb.FancyPCA(),
                 alb.HueSaturationValue(),
                 alb.PixelDropout(),
+                alb.OneOf(
+                    [
+                        alb.PlanckianJitter(mode=mode)
+                        for mode in ["blackbody", "cied"]
+                    ]
+                ),
                 alb.RGBShift(),
                 alb.RandomBrightnessContrast(),
                 alb.RandomGamma(),
@@ -280,6 +287,7 @@ def train_augment(image, mask, with_crops, replay=False):
             [
                 alb.AdvancedBlur(),
                 alb.Blur(blur_limit=(3, 5)),
+                alb.Defocus(radius=(3, 7)),
                 alb.GaussianBlur(blur_limit=(3, 5)),
                 alb.MedianBlur(blur_limit=5),
                 alb.RingingOvershoot(blur_limit=(3, 5)),
@@ -292,9 +300,11 @@ def train_augment(image, mask, with_crops, replay=False):
                 alb.OneOf(
                     [
                         alb.Downscale(
-                            scale_max=0.75, interpolation=interpolation
+                            scale_range=(0.75, 0.95),
+                            interpolation_pair={"downscale": i1, "upscale": i2},
                         )
-                        for interpolation in INTERPOLATIONS
+                        for i1 in INTERPOLATIONS
+                        for i2 in INTERPOLATIONS
                     ]
                 ),
                 alb.GaussNoise(var_limit=(10.0, 100.0)),

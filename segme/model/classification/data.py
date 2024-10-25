@@ -289,7 +289,7 @@ def _resize_crop(example, size, train, crop_pct=0.875):
 
     image = ops.clip(image, 0, 255)
     image = ops.cast(ops.round(image), "uint8")
-    image.set_shape([size, size, 3])  # TODO
+    image.set_shape([size, size, 3])
 
     return image, example["class"]
 
