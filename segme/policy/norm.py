@@ -207,6 +207,7 @@ class GroupNorm(layers.GroupNormalization):
         super().build(input_shape)
 
     def call(self, inputs):
+        # TODO: wait for keras > 3.6.0
         compute_dtype = backend.result_type(inputs.dtype, "float32")
         outputs = ops.cast(inputs, compute_dtype)
         outputs = super().call(outputs)

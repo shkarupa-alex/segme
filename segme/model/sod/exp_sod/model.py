@@ -113,7 +113,9 @@ def FMBConv(
                 name=f"{name}_{i}_fmbconv_expand",
             )(inputs_)
             x = Act(name=f"{name}_{i}_act")(x)
-            x = Conv(channels, 1, use_bias=False, name=f"{name}_{i}_fmbconv_squeeze")(x)
+            x = Conv(
+                channels, 1, use_bias=False, name=f"{name}_{i}_fmbconv_squeeze"
+            )(x)
             x = Norm(
                 center=False,
                 gamma_initializer=initializers.Constant(path_gamma[i]),

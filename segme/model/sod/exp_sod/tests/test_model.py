@@ -52,9 +52,18 @@ class TestExpSOD(testing.TestCase):
             ("backstage_3_merge_transform_0_swin_drop", 0.06666666666666668),
             ("backstage_3_merge_transform_1_mlp_drop", 0.053333333333333344),
             ("backstage_3_merge_transform_1_swin_drop", 0.053333333333333344),
-            ("backstage_4_lateral_transform_0_fmbconv_drop", 0.04000000000000001),
-            ("backstage_4_lateral_transform_1_fmbconv_drop", 0.026666666666666672),
-            ("backstage_4_merge_transform_0_fmbconv_drop", 0.013333333333333336),
+            (
+                "backstage_4_lateral_transform_0_fmbconv_drop",
+                0.04000000000000001,
+            ),
+            (
+                "backstage_4_lateral_transform_1_fmbconv_drop",
+                0.026666666666666672,
+            ),
+            (
+                "backstage_4_merge_transform_0_fmbconv_drop",
+                0.013333333333333336,
+            ),
             ("backstage_4_merge_transform_1_fmbconv_drop", 0.0),
         ]
 
@@ -96,7 +105,10 @@ class TestExpSOD(testing.TestCase):
             ("backstage_3_merge_transform_1_mlp_norm", 0.07333600000000001),
             ("backstage_3_merge_transform_1_swin_norm", 0.07333600000000001),
             ("backstage_4_lateral_transform_0_fmbconv_norm", 0.080002),
-            ("backstage_4_lateral_transform_1_fmbconv_norm", 0.08666800000000001),
+            (
+                "backstage_4_lateral_transform_1_fmbconv_norm",
+                0.08666800000000001,
+            ),
             ("backstage_4_merge_transform_0_fmbconv_norm", 0.09333400000000001),
             ("backstage_4_merge_transform_1_fmbconv_norm", 0.1),
         ]
