@@ -134,7 +134,7 @@ def _invert_args(magnitude, batch, channel, reduce=12.0):
     return [prob]
 
 
-def _jpeg_args(magnitude, batch, channel, reduce=1.0, min_val=30, max_val=99):
+def _jpeg_args(magnitude, batch, channel, reduce=1.0, min_val=50, max_val=99):
     delta = (max_val - min_val) * (1.0 - magnitude)
 
     prob = magnitude / reduce
