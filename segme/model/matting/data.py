@@ -339,11 +339,15 @@ def crop_augment(fg, alpha, replay=False):
                     #   alb.ChannelDropout(fill_value=value)
                     #   for value in range(256)]), # disable for matting
                     # alb.ChannelShuffle(), # on-the-fly
+                    # alb.ChromaticAberration(
+                    #     mode="random"
+                    # ),  # disable for matting
                     alb.ColorJitter(),
                     # alb.OneOf([
                     #   alb.Equalize(by_channels=value)
                     #   for value in [True, False]]), # disable for matting
                     alb.FancyPCA(),
+                    alb.HueSaturationValue(),
                     # alb.PixelDropout(), # disable for matting
                     alb.OneOf(
                         [
@@ -352,6 +356,8 @@ def crop_augment(fg, alpha, replay=False):
                         ]
                     ),
                     alb.RGBShift(),
+                    alb.RandomBrightnessContrast(),
+                    alb.RandomGamma(),
                     alb.RandomToneCurve(),
                     alb.Sharpen(alpha=(0.1, 0.4), p=0.1),
                     # alb.ToGray(p=0.1), # disable for matting
@@ -364,6 +370,7 @@ def crop_augment(fg, alpha, replay=False):
             alb.OneOf(
                 [
                     alb.Blur(blur_limit=(3, 5)),
+                    alb.Defocus(radius=(3, 7)),
                     alb.GaussianBlur(blur_limit=(3, 5)),
                     alb.MedianBlur(blur_limit=3),
                     alb.MotionBlur(blur_limit=(3, 9)),
@@ -374,6 +381,19 @@ def crop_augment(fg, alpha, replay=False):
             # Noise
             alb.OneOf(
                 [
+                    # alb.OneOf(
+                    #     [
+                    #         alb.Downscale(
+                    #             scale_range=(0.75, 0.95),
+                    #             interpolation_pair={
+                    #                 "downscale": i1,
+                    #                 "upscale": i2,
+                    #             },
+                    #         )
+                    #         for i1 in INTERPOLATIONS
+                    #         for i2 in INTERPOLATIONS
+                    #     ]
+                    # ), # disable for matting
                     alb.GaussNoise(var_limit=(10.0, 500.0)),
                     alb.ISONoise(color_shift=(0.0, 0.1), intensity=(0.1, 0.7)),
                     alb.OneOf(
