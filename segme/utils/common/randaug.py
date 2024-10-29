@@ -81,7 +81,7 @@ def _flip_lr_args(magnitude, batch, channel, reduce=1.0):
     return [prob]
 
 
-def _flip_ud_args(magnitude, batch, channel, reduce=4.0):
+def _flip_ud_args(magnitude, batch, channel, reduce=3.0):
     prob = magnitude / reduce
 
     return [prob]
