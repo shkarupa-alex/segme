@@ -691,7 +691,7 @@ def _augment_examples(examples):
         background.shape[:1] + [CROP_SIZE, CROP_SIZE] + background.shape[-1:]
     )
 
-    # TODO
+    # TODO: re-solve fg when alpha changed
     # alpha = matting.augment_alpha(alpha)
     # foreground, alpha = matting.random_compose(
     #   foreground, alpha, trim=(max(TRIMAP_SIZE), 0.95), solve=False)
