@@ -49,7 +49,7 @@ def FBAMatting(dtype=None):
         with dtpol.policy_scope(dtype):
             return FBAMatting(dtype=None)
 
-    with cnapol.policy_scope("stdconv-gn-leakyrelu"):
+    with cnapol.policy_scope("stdconv-gn321em5-leakyrelu"):
         backbone = Encoder()
 
         image, twomap, _ = backbone.inputs
@@ -92,7 +92,7 @@ def FBAMatting(dtype=None):
         alfgbg, alpha, foreground, background = Fusion(name="fuse")([imscal, x])
 
         model = models.Functional(
-            inputs=backbone.inputs,
+            inputs={i.name: i for i in backbone.inputs},
             outputs=(alfgbg, alpha, foreground, background),
             name="fba_matting",
         )
