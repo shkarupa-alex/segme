@@ -19,14 +19,15 @@ class Fusion(layers.Layer):
         alfgbg = ops.cast(alfgbg, "float32")
         alpha, foreground, background = ops.split(alfgbg, [1, 4], axis=-1)
 
-        if training:
-            return alfgbg, alpha, foreground, background
-
-        image = ops.cast(image, "float32")
-
         alpha = ops.clip(alpha, 0.0, 1.0)
         foreground = ops.sigmoid(foreground)
         background = ops.sigmoid(background)
+
+        if training:
+            alfgbg = ops.concatenate([alpha, foreground, background], axis=-1)
+            return alfgbg, alpha, foreground, background
+
+        image = ops.cast(image, "float32")
 
         # TODO: https://github.com/MarcoForte/FBA_Matting/issues/55
         alpha_sqr = alpha**2
