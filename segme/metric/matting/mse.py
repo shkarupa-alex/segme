@@ -7,8 +7,7 @@ from segme.ops import convert_image_dtype
 @register_keras_serializable(package="SegMe>Metric>Matting")
 class MSE(MeanSquaredError):
     def __init__(self, name="mse", dtype=None):
-        """Creates a `MeanSquaredError` instance for matting task (by default
-        downscales input by 255).
+        """Creates a `MeanSquaredError` instance for matting task
 
         Args:
             name: (Optional) string name of the metric instance.

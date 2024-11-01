@@ -11,8 +11,7 @@ from segme.ops import convert_image_dtype
 @register_keras_serializable(package="SegMe>Metric>Matting")
 class Conn(reduction_metrics.Sum):
     def __init__(self, step=0.1, name="conn", dtype=None):
-        """Creates a `ConnectivityError` instance for matting task (by default
-        downscales input by 255).
+        """Creates a `ConnectivityError` instance for matting task
 
         Args:
             step: (Optional) float percents for threshold step estimating
@@ -56,7 +55,7 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
 
     true_shape = ops.shape(y_true)
     batch, height, width, channels = true_shape
-    minmax_len = height * width * channels + 2
+    minmax_len = ops.cast(height * width * channels + 2, 'int64')
 
     thresh_map = []
     for threshold in thresh_steps:
