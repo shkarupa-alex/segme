@@ -9,7 +9,7 @@ from segme.ops import convert_image_dtype
 
 
 @register_keras_serializable(package="SegMe>Metric>Matting")
-class Grad(reduction_metrics.Sum):
+class Grad(reduction_metrics.Mean):
     def __init__(self, sigma=1.4, name="grad", dtype=None):
         """Creates a `GradientError` instance for matting task
 

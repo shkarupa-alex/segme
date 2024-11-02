@@ -7,7 +7,7 @@ from segme.ops import convert_image_dtype
 
 
 @register_keras_serializable(package="SegMe>Metric>Matting")
-class SAD(reduction_metrics.Sum):
+class SAD(reduction_metrics.Mean):
     def __init__(self, name="sad", dtype=None):
         """Creates a `SumAbsoluteDifference` instance for matting task
 

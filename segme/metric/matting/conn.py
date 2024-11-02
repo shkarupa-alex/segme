@@ -9,7 +9,7 @@ from segme.ops import convert_image_dtype
 
 
 @register_keras_serializable(package="SegMe>Metric>Matting")
-class Conn(reduction_metrics.Sum):
+class Conn(reduction_metrics.Mean):
     def __init__(self, step=0.1, name="conn", dtype=None):
         """Creates a `ConnectivityError` instance for matting task
 
