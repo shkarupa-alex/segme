@@ -25,7 +25,7 @@ class GridAttention(layers.Layer):
         qkv_bias=True,
         cpb_units=512,
         proj_bias=True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.input_spec = InputSpec(ndim=4)

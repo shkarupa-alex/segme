@@ -78,8 +78,9 @@ def perturb_segmentation(gt, iou_target):
     for _ in range(250):
         for _ in range(4):
             lx, ly = np.random.randint(w), np.random.randint(h)
-            lw, lh = np.random.randint(lx + 1, w + 1), np.random.randint(
-                ly + 1, h + 1
+            lw, lh = (
+                np.random.randint(lx + 1, w + 1),
+                np.random.randint(ly + 1, h + 1),
             )
 
             # Randomly set one pixel to 1/0. With the following dilate/erode,
@@ -192,8 +193,9 @@ def modify_boundary(
 
         modified_contour = np.copy(sampled_contour)
         if 0 != moments["m00"]:
-            center = round(moments["m10"] / moments["m00"]), round(
-                moments["m01"] / moments["m00"]
+            center = (
+                round(moments["m10"] / moments["m00"]),
+                round(moments["m01"] / moments["m00"]),
             )
 
             # Modify contours
@@ -535,12 +537,15 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
             for key, image, coarse, mask, weight in self._transform_example(
                 image_file, mask_file, training
             ):
-                yield key, {
-                    "image": image,
-                    "mask": coarse[..., None],
-                    "label": mask[..., None],
-                    "weight": weight[..., None],
-                }
+                yield (
+                    key,
+                    {
+                        "image": image,
+                        "mask": coarse[..., None],
+                        "label": mask[..., None],
+                        "weight": weight[..., None],
+                    },
+                )
 
     def _iterate_source(self, training):
         if not self.source_dirs:
@@ -675,9 +680,13 @@ class RefineDataset(tfds.core.GeneratorBasedBuilder):
                 assert min(image0.shape[:2]) == CROP_SIZE, image_file
                 assert max(image0.shape[:2]) == CROP_SIZE, image_file
 
-                yield "{}_{}_{}".format(
-                    mask_file, s, i
-                ), image0, coarse0, mask0, weight0
+                yield (
+                    "{}_{}_{}".format(mask_file, s, i),
+                    image0,
+                    coarse0,
+                    mask0,
+                    weight0,
+                )
 
 
 @tf.function(jit_compile=False)

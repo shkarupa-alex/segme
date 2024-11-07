@@ -100,9 +100,7 @@ def adaptive_pixel_intensity_loss(
         regression=False,
         label_smoothing=label_smoothing,
         force_binary=force_binary,
-    ) / (
-        omega_mean - 0.5
-    )  # -1 will produce NaNs
+    ) / (omega_mean - 0.5)  # -1 will produce NaNs
 
     loss = ace + aiou + amae
 

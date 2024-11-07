@@ -534,12 +534,15 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
             ):
                 alpha = np.squeeze(alpha)[..., None]
 
-                yield key, {
-                    "alpha": alpha,
-                    "foreground": fg,
-                    "background": bg,
-                    "trimap": trimap,
-                }
+                yield (
+                    key,
+                    {
+                        "alpha": alpha,
+                        "foreground": fg,
+                        "background": bg,
+                        "trimap": trimap,
+                    },
+                )
 
     def _iterate_source(self, training):
         for source_dir in self.source_dirs:
@@ -650,9 +653,13 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
                         bg_.shape[:2],
                     )
 
-                    yield "{}_{}_{}".format(
-                        alpha_file, i, j
-                    ), alpha_, fg_, bg_, trimap_
+                    yield (
+                        "{}_{}_{}".format(alpha_file, i, j),
+                        alpha_,
+                        fg_,
+                        bg_,
+                        trimap_,
+                    )
         else:
             for i in range(100):
                 bg_file = alpha_file.replace(

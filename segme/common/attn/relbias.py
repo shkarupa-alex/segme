@@ -15,7 +15,7 @@ class RelativeBias(layers.Layer):
         pretrain_window,
         num_heads,
         cpb_units=512,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         if key_window < query_window:

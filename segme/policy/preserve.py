@@ -37,9 +37,11 @@ def _init_decorator(fn):
             kwargs.pop("__cnapol", cnapol.global_policy())
         )
 
-        with alpol.policy_scope(self.__alpol), bbpol.policy_scope(
-            self.__bbpol
-        ), cnapol.policy_scope(self.__cnapol):
+        with (
+            alpol.policy_scope(self.__alpol),
+            bbpol.policy_scope(self.__bbpol),
+            cnapol.policy_scope(self.__cnapol),
+        ):
             fn(self, *args, **kwargs)
 
     return decorate
@@ -48,9 +50,11 @@ def _init_decorator(fn):
 def _build_decorator(fn):
     @functools.wraps(fn)
     def decorate(self, *args, **kwargs):
-        with alpol.policy_scope(self.__alpol), bbpol.policy_scope(
-            self.__bbpol
-        ), cnapol.policy_scope(self.__cnapol):
+        with (
+            alpol.policy_scope(self.__alpol),
+            bbpol.policy_scope(self.__bbpol),
+            cnapol.policy_scope(self.__cnapol),
+        ):
             fn(self, *args, **kwargs)
 
     return decorate
@@ -59,9 +63,11 @@ def _build_decorator(fn):
 def _call_decorator(fn):
     @functools.wraps(fn)
     def decorate(self, *args, **kwargs):
-        with alpol.policy_scope(self.__alpol), bbpol.policy_scope(
-            self.__bbpol
-        ), cnapol.policy_scope(self.__cnapol):
+        with (
+            alpol.policy_scope(self.__alpol),
+            bbpol.policy_scope(self.__bbpol),
+            cnapol.policy_scope(self.__cnapol),
+        ):
             return fn(self, *args, **kwargs)
 
     return decorate

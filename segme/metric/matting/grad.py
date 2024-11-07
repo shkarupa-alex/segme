@@ -124,8 +124,9 @@ def gradient_error(y_true, y_pred, sigma, sample_weight=None):
 
     kernel_x = ops.cast(kernel0, y_pred.dtype), ops.cast(kernel1, y_pred.dtype)
     kernel_y = kernel0.transpose([1, 0, 2, 3]), kernel1.transpose([1, 0, 2, 3])
-    kernel_y = ops.cast(kernel_y[0], y_pred.dtype), ops.cast(
-        kernel_y[1], y_pred.dtype
+    kernel_y = (
+        ops.cast(kernel_y[0], y_pred.dtype),
+        ops.cast(kernel_y[1], y_pred.dtype),
     )
 
     y_pred_x, y_pred_y = _gauss_gradient(y_pred, size, kernel_x, kernel_y)

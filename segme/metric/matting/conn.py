@@ -55,7 +55,7 @@ def connectivity_error(y_true, y_pred, step, sample_weight=None):
 
     true_shape = ops.shape(y_true)
     batch, height, width, channels = true_shape
-    minmax_len = ops.cast(height * width * channels + 2, 'int64')
+    minmax_len = ops.cast(height * width * channels + 2, "int64")
 
     thresh_map = []
     for threshold in thresh_steps:

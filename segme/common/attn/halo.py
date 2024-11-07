@@ -28,7 +28,7 @@ class HaloAttention(layers.Layer):
         cpb_units=512,
         dilation_rate=1,
         proj_bias=True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.input_spec = InputSpec(ndim=4)

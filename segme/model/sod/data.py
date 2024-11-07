@@ -441,7 +441,6 @@ class SaliencyDataset(tfds.core.GeneratorBasedBuilder):
             ) in self._transform_example(
                 image_file, mask_file, alpha_file, depth_file, training
             ):
-
                 if len(set(mask.reshape(-1)) - {0, 255}):
                     raise ValueError(f"Wrong trimap values: {mask_file}")
                 if len(set(trimap.reshape(-1)) - {0, 128, 255}):

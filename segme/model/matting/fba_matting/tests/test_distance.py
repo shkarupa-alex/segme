@@ -195,10 +195,12 @@ def _distance(twomap, length=320):
         if np.count_nonzero(twomap[:, :, k]):
             dt_src = 1 - twomap[:, :, k]
             dt_mask = (
-                -cv2.distanceTransform(
-                    (dt_src * 255).astype(np.uint8), cv2.DIST_L2, 0
+                -(
+                    cv2.distanceTransform(
+                        (dt_src * 255).astype(np.uint8), cv2.DIST_L2, 0
+                    )
+                    ** 2
                 )
-                ** 2
             )
             clicks[:, :, 3 * k] = np.exp(dt_mask / (2 * ((0.02 * length) ** 2)))
             clicks[:, :, 3 * k + 1] = np.exp(

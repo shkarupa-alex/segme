@@ -31,7 +31,7 @@ class TLU(layers.Layer):
         tau_initializer="zeros",
         tau_regularizer=None,
         tau_constraint=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.supports_masking = True

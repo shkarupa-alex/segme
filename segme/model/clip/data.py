@@ -24,7 +24,7 @@ class Clip(tfds.core.GeneratorBasedBuilder):
         data_dir,
         image_size=384,
         logits_size=1152,
-        test_re="-val"
+        test_re="-val",
     ):
         if isinstance(source_dirs, str):
             source_dirs = [source_dirs]

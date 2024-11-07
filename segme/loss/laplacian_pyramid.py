@@ -146,8 +146,9 @@ def laplacian_pyramid_loss(
 
     kernel = _gauss_kernel(size, sigma)
     kernel = np.tile(kernel[..., None, None], (1, 1, y_pred.shape[-1], 1))
-    kernel = ops.cast(kernel, y_pred.dtype), ops.cast(
-        kernel.transpose([1, 0, 2, 3]), y_pred.dtype
+    kernel = (
+        ops.cast(kernel, y_pred.dtype),
+        ops.cast(kernel.transpose([1, 0, 2, 3]), y_pred.dtype),
     )
 
     height, width = ops.shape(y_true)[1:3]

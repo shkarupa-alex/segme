@@ -26,8 +26,9 @@ class BackbonePolicy:
             )
 
         name_parts = self._name.split("-")
-        self._arch_type, self._init_type = name_parts[0], "-".join(
-            name_parts[1:]
+        self._arch_type, self._init_type = (
+            name_parts[0],
+            "-".join(name_parts[1:]),
         )
         if self._arch_type not in BACKBONES:
             raise ValueError(f"Backbone {self._arch_type} not registered")

@@ -127,7 +127,6 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
         for file_path, file_obj in tfds.download.iter_archive(
             self.archive1k, tfds.download.ExtractMethod.TAR_GZ_STREAM
         ):
-
             if not file_path.endswith(".JPEG"):
                 continue
             if training and "/train/" not in file_path:
@@ -149,15 +148,18 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
             if image is None:
                 continue
 
-            yield file_name, {
-                "image": image,
-                "file": file_name,
-                "in1k": True,
-                "size": size,
-                "label": label_name,
-                "synset": synset_name,
-                "class": synset_name,
-            }
+            yield (
+                file_name,
+                {
+                    "image": image,
+                    "file": file_name,
+                    "in1k": True,
+                    "size": size,
+                    "label": label_name,
+                    "synset": synset_name,
+                    "class": synset_name,
+                },
+            )
 
     def _generate_examples_21k(self, skip_files):
         if self.archive21k is None:
@@ -178,7 +180,6 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
         for arch_path, arch_obj in tfds.download.iter_archive(
             self.archive21k, tfds.download.ExtractMethod.TAR_GZ_STREAM
         ):
-
             if not arch_path.endswith(".tar"):
                 continue
 
@@ -189,7 +190,6 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                 io.BytesIO(arch_obj.read()),
                 tfds.download.ExtractMethod.TAR_STREAM,
             ):
-
                 if not file_path.endswith(".JPEG"):
                     continue
 
@@ -203,15 +203,18 @@ class Imagenet21k1k(tfds.core.GeneratorBasedBuilder):
                 if image is None:
                     continue
 
-                yield file_name, {
-                    "image": image,
-                    "file": file_name,
-                    "in1k": False,
-                    "size": size,
-                    "label": label_name,
-                    "synset": synset_name,
-                    "class": synset_name,
-                }
+                yield (
+                    file_name,
+                    {
+                        "image": image,
+                        "file": file_name,
+                        "in1k": False,
+                        "size": size,
+                        "label": label_name,
+                        "synset": synset_name,
+                        "class": synset_name,
+                    },
+                )
 
     @functools.lru_cache(maxsize=20000)
     def _synset_from_label(self, label):
