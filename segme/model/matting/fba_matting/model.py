@@ -1,5 +1,6 @@
 from keras.src import layers
 from keras.src import models
+from keras.src.utils import file_utils
 
 from segme.common.backbone import Backbone
 from segme.common.convnormact import Act
@@ -12,6 +13,12 @@ from segme.model.matting.fba_matting.fusion import Fusion
 from segme.policy import cnapol
 from segme.policy import dtpol
 from segme.policy.backbone.utils import patch_channels
+
+WEIGHT_URLS = {
+    "nostd_noexcl_norunaug_512": "https://github.com/shkarupa-alex/segme/releases/download/3.0.0/"
+    "fba_matting__nostd_noexcl_norunaug_512___5d202ea93a71ca5e5b23c980950"
+    "e3b05bb230fa7c933cd17f498f2538b39350d.weights.h5",
+}
 
 
 def Encoder():
@@ -44,12 +51,12 @@ def Encoder():
     return backbone
 
 
-def FBAMatting(dtype=None):
+def FBAMatting(weights="nostd_noexcl_norunaug_512", dtype=None):
     if dtype is not None:
         with dtpol.policy_scope(dtype):
             return FBAMatting(dtype=None)
 
-    with cnapol.policy_scope("stdconv-gn321em5-leakyrelu"):
+    with cnapol.policy_scope("conv-gn321em5-leakyrelu"):
         backbone = Encoder()
 
         image, twomap, _ = backbone.inputs
@@ -96,5 +103,21 @@ def FBAMatting(dtype=None):
             outputs=(alfgbg, alpha, foreground, background),
             name="fba_matting",
         )
+
+        if weights in WEIGHT_URLS:
+            weights_url = WEIGHT_URLS[weights]
+            weights_hash = (
+                weights_url.split("___")[-1]
+                .replace(".weights.h5", "")
+                .replace(".h5", "")
+            )
+            weights_path = file_utils.get_file(
+                origin=weights_url,
+                file_hash=weights_hash,
+                cache_subdir="seg_refiner",
+            )
+            model.load_weights(weights_path)
+        elif weights is not None:
+            model.load_weights(weights)
 
         return model
