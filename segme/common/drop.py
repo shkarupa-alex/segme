@@ -20,13 +20,14 @@ class DropPath(layers.Dropout):
 
         batch_size = ops.shape(inputs)[:1]
         noise_shape = batch_size + (1,) * (ops.ndim(inputs) - 1)
-
-        return backend.random.dropout(
+        outputs = backend.random.dropout(
             inputs,
             self.rate,
             noise_shape=noise_shape,
             seed=self.seed_generator,
         )
+
+        return outputs
 
     def get_config(self):
         config = super().get_config()
@@ -56,9 +57,18 @@ class SlicePath(layers.Dropout):
         keep_size = ops.cast(keep_size, "int32")
         keep_size = ops.minimum(keep_size, batch_size)
 
-        indices = ops.random.shuffle(indices, seed=self.seed_generator)
+        outputs, indices = ops.cond(
+            ops.equal(keep_size, batch_size),
+            lambda: (inputs, indices),
+            lambda: self.slice(inputs, indices, keep_size),
+        )
 
+        return outputs, indices
+
+    def slice(self, inputs, indices, keep_size):
+        indices = ops.random.shuffle(indices, seed=self.seed_generator)
         outputs = ops.take(inputs, indices[:keep_size], axis=0)
+
         return outputs, indices
 
     def compute_output_shape(self, input_shape):
@@ -84,11 +94,12 @@ class SlicePath(layers.Dropout):
 
 
 @register_keras_serializable(package="SegMe>Common")
-class RestorePath(layers.Layer):
+class RestorePath(layers.Dropout):
     """Proposed in https://arxiv.org/pdf/2304.07193"""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, rate, seed=None, **kwargs):
+        kwargs.pop("noise_shape", None)
+        super().__init__(rate=rate, seed=seed, **kwargs)
         self.input_spec = [
             InputSpec(min_ndim=1),
             InputSpec(ndim=1, dtype="int32"),
@@ -105,8 +116,22 @@ class RestorePath(layers.Layer):
 
         outputs = ops.cond(
             ops.equal(outputs_shape[0], batch_size),
-            lambda: outputs,
+            lambda: self.drop(outputs, batch_size),
             lambda: self.restore(outputs, indices, outputs_shape, batch_size),
+        )
+
+        return outputs
+
+    def drop(self, inputs, batch_size):
+        if 0.0 == self.rate:
+            return inputs
+
+        noise_shape = (batch_size,) + (1,) * (ops.ndim(inputs) - 1)
+        outputs = backend.random.dropout(
+            inputs,
+            self.rate,
+            noise_shape=noise_shape,
+            seed=self.seed_generator,
         )
 
         return outputs
@@ -128,6 +153,12 @@ class RestorePath(layers.Layer):
 
     def compute_output_shape(self, input_shape):
         return input_shape[1][:1] + input_shape[0][1:]
+
+    def get_config(self):
+        config = super().get_config()
+        del config["noise_shape"]
+
+        return config
 
 
 @register_keras_serializable(package="SegMe>Common")

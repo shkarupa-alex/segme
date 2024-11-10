@@ -59,7 +59,7 @@ class TestSliceRestorePath(testing.TestCase):
     def test_layer_restore(self):
         self.run_layer_test(
             RestorePath,
-            init_kwargs={},
+            init_kwargs={"rate": 0.0},
             input_shape=((2, 3), (2,)),
             input_dtype=("float32", "int32"),
             expected_output_shape=(2, 3),
@@ -67,7 +67,7 @@ class TestSliceRestorePath(testing.TestCase):
         )
         self.run_layer_test(
             RestorePath,
-            init_kwargs={},
+            init_kwargs={"rate": 0.2},
             input_shape=((48, 2, 3), (60,)),
             input_dtype=("float32", "int32"),
             call_kwargs={"training": True},
@@ -78,12 +78,19 @@ class TestSliceRestorePath(testing.TestCase):
     def test_val(self):
         inputs = np.ones([60, 4], "float32") * np.arange(1, 61)[:, None]
         result = SlicePath(0.2, seed=1)(inputs, training=True)
-        result = RestorePath()(result, training=True)
+        result = RestorePath(0.2, seed=1)(result, training=True)
         result = backend.convert_to_numpy(result)
         self.assertEqual((result == 0.0).all(axis=-1).mean(), 0.2)
         self.assertTrue(
             (np.where(result == 0.0, inputs, result * 0.8) == inputs).all()
         )
+
+    def test_val_no_drop(self):
+        inputs = np.ones([8, 4], "float32") * np.arange(1, 9)[:, None]
+        result = SlicePath(1e-6, seed=1)(inputs, training=True)
+        result = RestorePath(1e-6, seed=1)(result, training=True)
+        result = backend.convert_to_numpy(result)
+        self.assertAllClose(result, inputs)
 
 
 class TestDropBlock(testing.TestCase):
