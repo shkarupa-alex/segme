@@ -12,6 +12,12 @@ from keras.src.saving import register_keras_serializable
 from segme.policy.registry import LayerRegistry
 
 NORMALIZATIONS = LayerRegistry()
+NORMALIZATIONS.register("gn1em5")(
+    {
+        "class_name": "SegMe>Policy>Normalization>GroupNorm",
+        "config": {"groups": None, "epsilon": 1.001e-5},
+    }
+)
 NORMALIZATIONS.register("gn321em5")(
     {
         "class_name": "SegMe>Policy>Normalization>GroupNorm",

@@ -36,39 +36,40 @@ class TestModel(testing.TestCase):
         ).get_config()
 
         expected_drops = [
-            ("stem_1_drop", 0.0),
-            ("stem_2_drop", 0.013333333333333334),
-            ("stage_0_attn_0_swin_drop", 0.02666666666666667),
-            ("stage_0_attn_0_mlpconv_drop", 0.02666666666666667),
-            ("stage_0_attn_1_swin_drop", 0.04),
-            ("stage_0_attn_1_mlpconv_drop", 0.04),
-            ("stage_1_attn_0_swin_drop", 0.05333333333333334),
-            ("stage_1_attn_0_mlpconv_drop", 0.05333333333333334),
-            ("stage_1_attn_1_swin_drop", 0.06666666666666667),
-            ("stage_1_attn_1_mlpconv_drop", 0.06666666666666667),
-            ("stage_2_attn_0_swin_drop", 0.08),
-            ("stage_2_attn_0_mlpconv_drop", 0.08),
-            ("stage_2_attn_1_swin_drop", 0.09333333333333334),
-            ("stage_2_attn_1_mlpconv_drop", 0.09333333333333334),
-            ("stage_2_attn_2_slide_drop", 0.10666666666666667),
-            ("stage_2_attn_2_mlpconv_drop", 0.10666666666666667),
-            ("stage_2_attn_3_swin_drop", 0.12000000000000001),
-            ("stage_2_attn_3_mlpconv_drop", 0.12000000000000001),
-            ("stage_2_attn_4_swin_drop", 0.13333333333333333),
-            ("stage_2_attn_4_mlpconv_drop", 0.13333333333333333),
-            ("stage_2_attn_5_slide_drop", 0.14666666666666667),
-            ("stage_2_attn_5_mlpconv_drop", 0.14666666666666667),
-            ("stage_3_attn_0_swin_drop", 0.16),
-            ("stage_3_attn_0_mlpconv_drop", 0.16),
-            ("stage_3_attn_1_swin_drop", 0.17333333333333334),
-            ("stage_3_attn_1_mlpconv_drop", 0.17333333333333334),
-            ("stage_3_attn_2_slide_drop", 0.18666666666666668),
-            ("stage_3_attn_2_mlpconv_drop", 0.18666666666666668),
-            ("stage_3_attn_3_swin_drop", 0.2),
+            ("stem_1_slice", 0.0),
+            ("stem_2_slice", 0.013333333333333334),
+            ("stage_0_attn_0_slide_slice", 0.02666666666666667),
+            ("stage_0_attn_0_mlpconv_slice", 0.02666666666666667),
+            ("stage_0_attn_1_slide_slice", 0.04),
+            ("stage_0_attn_1_mlpconv_slice", 0.04),
+            ("stage_1_attn_0_slide_slice", 0.05333333333333334),
+            ("stage_1_attn_0_mlpconv_slice", 0.05333333333333334),
+            ("stage_1_attn_1_swin_slice", 0.06666666666666667),
+            ("stage_1_attn_1_mlpconv_slice", 0.06666666666666667),
+            ("stage_2_attn_0_swin_slice", 0.08),
+            ("stage_2_attn_0_mlpconv_slice", 0.08),
+            ("stage_2_attn_1_swin_slice", 0.09333333333333334),
+            ("stage_2_attn_1_mlpconv_slice", 0.09333333333333334),
+            ("stage_2_attn_2_slide_slice", 0.10666666666666667),
+            ("stage_2_attn_2_mlpconv_slice", 0.10666666666666667),
+            ("stage_2_attn_3_swin_slice", 0.12000000000000001),
+            ("stage_2_attn_3_mlpconv_slice", 0.12000000000000001),
+            ("stage_2_attn_4_swin_slice", 0.13333333333333333),
+            ("stage_2_attn_4_mlpconv_slice", 0.13333333333333333),
+            ("stage_2_attn_5_slide_slice", 0.14666666666666667),
+            ("stage_2_attn_5_mlpconv_slice", 0.14666666666666667),
+            ("stage_3_attn_0_swin_slice", 0.16),
+            ("stage_3_attn_0_mlpconv_slice", 0.16),
+            ("stage_3_attn_1_swin_slice", 0.17333333333333334),
+            ("stage_3_attn_1_mlpconv_slice", 0.17333333333333334),
+            ("stage_3_attn_2_swin_slice", 0.18666666666666668),
+            ("stage_3_attn_2_mlpconv_slice", 0.18666666666666668),
+            ("stage_3_attn_3_swin_slice", 0.2),
+            ("stage_3_attn_3_mlpconv_slice", 0.2),
         ]
 
         actual_drops = TestModel._values_from_config(
-            config, "SegMe>Common>DropPath", "rate"
+            config, "SegMe>Common>SlicePath", "rate"
         )
         self.assertListEqual(expected_drops, actual_drops)
 
@@ -87,11 +88,11 @@ class TestModel(testing.TestCase):
         expected_gammas = [
             ("stem_1_norm", 0.01),
             ("stem_2_norm", 0.009334),
-            ("stage_0_attn_0_swin_norm", 0.008668),
+            ("stage_0_attn_0_slide_norm", 0.008668),
             ("stage_0_attn_0_mlpconv_norm", 0.008668),
-            ("stage_0_attn_1_swin_norm", 0.008002),
+            ("stage_0_attn_1_slide_norm", 0.008002),
             ("stage_0_attn_1_mlpconv_norm", 0.008002),
-            ("stage_1_attn_0_swin_norm", 0.0073360000000000005),
+            ("stage_1_attn_0_slide_norm", 0.0073360000000000005),
             ("stage_1_attn_0_mlpconv_norm", 0.0073360000000000005),
             ("stage_1_attn_1_swin_norm", 0.006670000000000001),
             ("stage_1_attn_1_mlpconv_norm", 0.006670000000000001),
@@ -111,9 +112,10 @@ class TestModel(testing.TestCase):
             ("stage_3_attn_0_mlpconv_norm", 0.0020079999999999994),
             ("stage_3_attn_1_swin_norm", 0.0013419999999999994),
             ("stage_3_attn_1_mlpconv_norm", 0.0013419999999999994),
-            ("stage_3_attn_2_slide_norm", 0.0006759999999999995),
+            ("stage_3_attn_2_swin_norm", 0.0006759999999999995),
             ("stage_3_attn_2_mlpconv_norm", 0.0006759999999999995),
             ("stage_3_attn_3_swin_norm", 1e-05),
+            ("stage_3_attn_3_mlpconv_norm", 1e-05),
         ]
 
         actual_gammas = TestModel._values_from_config(
@@ -129,7 +131,6 @@ class TestModel(testing.TestCase):
             for ag in actual_gammas
             if "Constant" == ag[1]["class_name"]
         ]
-
         self.assertListEqual(expected_gammas, actual_gammas)
 
     def test_attention_shift(self):
@@ -137,7 +138,7 @@ class TestModel(testing.TestCase):
             stem_dim=32,
             embed_dim=64,
             stem_depth=2,
-            stage_depths=(2, 2, 6, 4),
+            stage_depths=(2, 6, 8, 4),
             pretrain_window=16,
             weights=None,
             include_top=False,
@@ -145,16 +146,18 @@ class TestModel(testing.TestCase):
         ).get_config()
 
         expected_shifts = [
-            ("stage_0_attn_0_swin_attn", 0),
-            ("stage_0_attn_1_swin_attn", 1),
-            ("stage_1_attn_0_swin_attn", 0),
-            ("stage_1_attn_1_swin_attn", 2),
-            ("stage_2_attn_0_swin_attn", 0),
-            ("stage_2_attn_1_swin_attn", 3),
-            ("stage_2_attn_3_swin_attn", 0),
-            ("stage_2_attn_4_swin_attn", 4),
-            ("stage_3_attn_0_swin_attn", 0),
-            ("stage_3_attn_1_swin_attn", 1),
+            ("stage_1_attn_1_swin_attn", 0),
+            ("stage_1_attn_3_swin_attn", 1),
+            ("stage_1_attn_5_swin_attn", 0),
+            ("stage_2_attn_0_swin_attn", 2),
+            ("stage_2_attn_1_swin_attn", 0),
+            ("stage_2_attn_3_swin_attn", 3),
+            ("stage_2_attn_4_swin_attn", 0),
+            ("stage_2_attn_6_swin_attn", 4),
+            ("stage_2_attn_7_swin_attn", 0),
+            ("stage_3_attn_0_swin_attn", 1),
+            ("stage_3_attn_1_swin_attn", 0),
+            ("stage_3_attn_2_swin_attn", 2),
             ("stage_3_attn_3_swin_attn", 0),
         ]
 
@@ -177,9 +180,6 @@ class TestModel(testing.TestCase):
         ).get_config()
 
         expected_windows = [
-            ("stage_0_attn_0_swin_attn", 16),
-            ("stage_0_attn_1_swin_attn", 16),
-            ("stage_1_attn_0_swin_attn", 16),
             ("stage_1_attn_1_swin_attn", 16),
             ("stage_2_attn_0_swin_attn", 16),
             ("stage_2_attn_1_swin_attn", 16),
@@ -187,6 +187,7 @@ class TestModel(testing.TestCase):
             ("stage_2_attn_4_swin_attn", 16),
             ("stage_3_attn_0_swin_attn", 8),
             ("stage_3_attn_1_swin_attn", 8),
+            ("stage_3_attn_2_swin_attn", 8),
             ("stage_3_attn_3_swin_attn", 8),
         ]
 
@@ -216,7 +217,7 @@ class TestModel(testing.TestCase):
             stem_dim=32,
             embed_dim=64,
             stem_depth=2,
-            stage_depths=(4, 4, 4, 4),
+            stage_depths=(3, 6, 21, 3),
             pretrain_window=16,
             weights=None,
             include_top=False,
@@ -228,7 +229,7 @@ class TestModel(testing.TestCase):
         )
 
         images = np.random.random((10, 512, 384, 3)).astype("float32")
-        labels = (np.random.random((10, 16, 12, 512 * 4)) + 0.5).astype("int64")
+        labels = (np.random.random((10, 16, 12, 512)) + 0.5).astype("int64")
         model.fit(images, labels, epochs=1, batch_size=2)
 
         # test config

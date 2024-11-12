@@ -303,7 +303,7 @@ def HardSwin(
             x = layers.Flatten(name="ma_flat")(x)
         else:
             raise ValueError(
-                f"Expecting pooling to be one of None/avg/max/ma. "
+                f"Expecting pooling to be one of None/avg/max/sp/ma. "
                 f"Found: {pooling}"
             )
 
@@ -351,16 +351,15 @@ def HardSwinTiny(
     weights="imagenet",
     **kwargs,
 ):
-    with cnapol.policy_scope("conv-ln1em5-gelu"):
-        return HardSwin(
-            embed_dim=embed_dim,
-            stage_depths=stage_depths,
-            pretrain_window=pretrain_window,
-            pretrain_size=pretrain_size,
-            model_name=model_name,
-            weights=weights,
-            **kwargs,
-        )
+    return HardSwin(
+        embed_dim=embed_dim,
+        stage_depths=stage_depths,
+        pretrain_window=pretrain_window,
+        pretrain_size=pretrain_size,
+        model_name=model_name,
+        weights=weights,
+        **kwargs,
+    )
 
 
 def HardSwinTiny21k(
@@ -389,17 +388,16 @@ def HardSwinSmall(
     weights="imagenet",
     **kwargs,
 ):
-    with cnapol.policy_scope("conv-ln1em5-gelu"):
-        return HardSwin(
-            embed_dim=embed_dim,
-            stage_depths=stage_depths,
-            pretrain_window=pretrain_window,
-            path_drop=path_drop,
-            pretrain_size=pretrain_size,
-            model_name=model_name,
-            weights=weights,
-            **kwargs,
-        )
+    return HardSwin(
+        embed_dim=embed_dim,
+        stage_depths=stage_depths,
+        pretrain_window=pretrain_window,
+        path_drop=path_drop,
+        pretrain_size=pretrain_size,
+        model_name=model_name,
+        weights=weights,
+        **kwargs,
+    )
 
 
 def HardSwinBase(
@@ -413,18 +411,17 @@ def HardSwinBase(
     weights="imagenet",
     **kwargs,
 ):
-    with cnapol.policy_scope("conv-ln1em5-gelu"):
-        return HardSwin(
-            embed_dim=embed_dim,
-            stage_depths=stage_depths,
-            current_window=current_window,
-            pretrain_window=pretrain_window,
-            pretrain_size=pretrain_size,
-            current_size=current_size,
-            model_name=model_name,
-            weights=weights,
-            **kwargs,
-        )
+    return HardSwin(
+        embed_dim=embed_dim,
+        stage_depths=stage_depths,
+        current_window=current_window,
+        pretrain_window=pretrain_window,
+        pretrain_size=pretrain_size,
+        current_size=current_size,
+        model_name=model_name,
+        weights=weights,
+        **kwargs,
+    )
 
 
 def HardSwinLarge(
@@ -438,18 +435,17 @@ def HardSwinLarge(
     weights="imagenet",
     **kwargs,
 ):
-    with cnapol.policy_scope("conv-ln1em5-gelu"):
-        return HardSwin(
-            embed_dim=embed_dim,
-            stage_depths=stage_depths,
-            current_window=current_window,
-            pretrain_window=pretrain_window,
-            pretrain_size=pretrain_size,
-            current_size=current_size,
-            model_name=model_name,
-            weights=weights,
-            **kwargs,
-        )
+    return HardSwin(
+        embed_dim=embed_dim,
+        stage_depths=stage_depths,
+        current_window=current_window,
+        pretrain_window=pretrain_window,
+        pretrain_size=pretrain_size,
+        current_size=current_size,
+        model_name=model_name,
+        weights=weights,
+        **kwargs,
+    )
 
 
 BACKBONES.register("hardswin_tiny")(

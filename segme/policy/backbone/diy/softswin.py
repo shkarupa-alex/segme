@@ -218,7 +218,7 @@ def SoftSwin(
             x = layers.Flatten(name="ma_flat")(x)
         else:
             raise ValueError(
-                f"Expecting pooling to be one of None/avg/max/ma. "
+                f"Expecting pooling to be one of None/avg/max/sp/ma. "
                 f"Found: {pooling}"
             )
 
