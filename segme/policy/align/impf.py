@@ -20,7 +20,7 @@ class ImplicitFeatureAlignment(layers.Layer):
     https://arxiv.org/pdf/2206.08655
     """
 
-    def __init__(self, filters=256, **kwargs):
+    def __init__(self, filters, **kwargs):
         super().__init__(**kwargs)
 
         self.filters = filters

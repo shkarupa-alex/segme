@@ -9,6 +9,14 @@ class TestCarafeConvolution(testing.TestCase):
         self.run_layer_test(
             CarafeConvolution,
             init_kwargs={"kernel_size": 3},
+            input_shape=((2, 3, 4, 6), (2, 6, 8, 9)),
+            input_dtype=("float32",) * 2,
+            expected_output_shape=(2, 6, 8, 6),
+            expected_output_dtype="float32",
+        )
+        self.run_layer_test(
+            CarafeConvolution,
+            init_kwargs={"kernel_size": 3},
             input_shape=((2, 3, 4, 6), (2, 6, 8, 18)),
             input_dtype=("float32",) * 2,
             expected_output_shape=(2, 6, 8, 6),

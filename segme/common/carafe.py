@@ -13,8 +13,8 @@ class CarafeConvolution(layers.Layer):
         super().__init__(**kwargs)
         self.input_spec = [
             InputSpec(ndim=4),  # features
-            InputSpec(ndim=4),
-        ]  # mask
+            InputSpec(ndim=4),  # mask
+        ]
 
         self.kernel_size = kernel_size
 
@@ -35,7 +35,7 @@ class CarafeConvolution(layers.Layer):
         self.group_size = self.channels[1] // (self.kernel_size**2)
         if (
             self.group_size < 1
-            or self.channels[1] != self.group_size * self.kernel_size**2
+            or self.channels[1] % self.kernel_size**2
         ):
             raise ValueError("Wrong mask channel dimension.")
 
@@ -58,45 +58,34 @@ class CarafeConvolution(layers.Layer):
             "same",
         )
 
-        if False and 1 == self.group_size:
-            features = self.internear([features, masks])
-            features = ops.reshape(
-                features,
-                (batch, height, width, self.kernel_size**2, self.channels[0]),
-            )
-
-            masks = ops.softmax(masks)[..., None]
-
-            outputs = ops.matmul(ops.moveaxis(features, -1, -2), masks)
-        else:
-            features_shape0 = ops.shape(features)
-            features_shape1 = features_shape0[:-1] + (
+        features_shape0 = ops.shape(features)
+        features_shape1 = features_shape0[:-1] + (
+            self.kernel_size**2,
+            self.channels[0],
+        )
+        features = ops.reshape(features, features_shape1)
+        features = ops.transpose(features, [0, 1, 2, 4, 3])
+        features = ops.reshape(features, features_shape0)
+        features = self.internear([features, masks])
+        features = ops.reshape(
+            features,
+            (
+                batch,
+                height,
+                width,
+                self.group_size,
+                self.channels[0] // self.group_size,
                 self.kernel_size**2,
-                self.channels[0],
-            )
-            features = ops.reshape(features, features_shape1)
-            features = ops.transpose(features, [0, 1, 2, 4, 3])
-            features = ops.reshape(features, features_shape0)
-            features = self.internear([features, masks])
-            features = ops.reshape(
-                features,
-                (
-                    batch,
-                    height,
-                    width,
-                    self.group_size,
-                    self.channels[0] // self.group_size,
-                    self.kernel_size**2,
-                ),
-            )
+            ),
+        )
 
-            masks = ops.reshape(
-                masks,
-                (batch, height, width, self.group_size, self.kernel_size**2),
-            )
-            masks = ops.softmax(masks)[..., None]
+        masks = ops.reshape(
+            masks,
+            (batch, height, width, self.group_size, self.kernel_size**2),
+        )
+        masks = ops.softmax(masks)[..., None]
 
-            outputs = ops.matmul(features, masks)
+        outputs = ops.matmul(features, masks)
 
         outputs = ops.reshape(outputs, (batch, height, width, self.channels[0]))
         outputs.set_shape(output_shape)
