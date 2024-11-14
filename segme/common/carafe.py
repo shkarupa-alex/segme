@@ -33,10 +33,7 @@ class CarafeConvolution(layers.Layer):
         self.internear = NearestInterpolation(dtype=self.dtype_policy)
 
         self.group_size = self.channels[1] // (self.kernel_size**2)
-        if (
-            self.group_size < 1
-            or self.channels[1] % self.kernel_size**2
-        ):
+        if self.group_size < 1 or self.channels[1] % self.kernel_size**2:
             raise ValueError("Wrong mask channel dimension.")
 
         if self.channels[0] % self.group_size:

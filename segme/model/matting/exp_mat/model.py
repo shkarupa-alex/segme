@@ -10,14 +10,14 @@ from segme.common.convnormact import Act
 from segme.common.convnormact import Conv
 from segme.common.convnormact import Norm
 from segme.common.drop import DropPath
-from segme.common.fold import Fold
 from segme.common.fold import UnFold
-from segme.common.head import ClassificationActivation
-from segme.common.head import ClassificationUncertainty
 from segme.common.head import HeadProjection
+from segme.common.split import Split
+from segme.model.matting.exp_mat.trimap import Trimap
 from segme.policy import cnapol
 from segme.policy import dtpol
 from segme.policy.backbone.diy.hardswin import AttnBlock
+from segme.policy.backbone.utils import patch_channels
 
 
 def Attention(
@@ -130,38 +130,32 @@ def FMBConv(
     return apply
 
 
-def Head(trimap, stride, kernel, name=None):
+def Head(stride, kernel, name=None):
     if name is None:
         counter = naming.get_uid("head")
         name = f"head_{counter}"
 
     def apply(inputs):
-        s = HeadProjection(
-            stride**2, kernel_size=kernel, name=f"{name}_salient_logits"
+        fba = HeadProjection(
+            7 * stride**2, kernel_size=kernel, name=f"{name}_logits"
         )(inputs)
-        s = UnFold(stride, name=f"{name}_salient_unfold")(s)
-        x = [ClassificationActivation(name=f"{name}_salient")(s)]
+        fba = UnFold(stride, name=f"{name}_unfold")(fba)
+        fb, a = Split([6], name=f"{name}_split")(fba)
+        print(stride, fb.shape, a.shape)
+        fb = layers.Activation(
+            "sigmoid", dtype="float32", name=f"{name}_act_f"
+        )(fb)
+        a = layers.Activation(
+            "hard_sigmoid", dtype="float32", name=f"{name}_act_a"
+        )(a)
+        fba = layers.concatenate([fb, a], dtype="float32", name=f"{name}_join")
 
-        if trimap:
-            u = ClassificationUncertainty(
-                1, True, name=f"{name}_uncert_salient"
-            )(s)
-            u = Fold(stride, name=f"{name}_uncert_fold")(u)
-
-            t = layers.concatenate([inputs, u], name=f"{name}_trimap_concat")
-            t = HeadProjection(
-                3 * stride**2, kernel_size=kernel, name=f"{name}_trimap_logits"
-            )(t)
-            t = UnFold(stride, name=f"{name}_trimap_unfold")(t)
-            x.append(ClassificationActivation(name=f"{name}_trimap")(t))
-
-        return x
+        return fba
 
     return apply
 
 
-def ExpSOD(
-    with_trimap=False,
+def ExpMat(
     transform_depth=2,
     window_size=24,
     path_gamma=0.1,
@@ -170,8 +164,7 @@ def ExpSOD(
 ):
     if dtype is not None:
         with dtpol.policy_scope(dtype):
-            return ExpSOD(
-                with_trimap=with_trimap,
+            return ExpMat(
                 transform_depth=transform_depth,
                 window_size=window_size,
                 path_gamma=path_gamma,
@@ -179,7 +172,23 @@ def ExpSOD(
                 dtype=None,
             )
 
-    backbone = Backbone()
+    image = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
+    trimap = layers.Input(name="trimap", shape=[None, None, 1], dtype="uint8")
+    trimap = Trimap(name="trimap1h")(trimap)
+
+    inputs = layers.concatenate([image, trimap], axis=-1, name="concat")
+
+    backbone = Backbone(input_tensor=inputs)
+    backbone = patch_channels(
+        backbone,
+        [0.306, 0.311, 0.331],
+        [
+            0.461**2,
+            0.463**2,
+            0.463**2,
+        ],
+    )
+
     outputs = backbone.outputs[::-1]
 
     num_shifts = transform_depth // 3 + transform_depth % 3 // 2
@@ -205,7 +214,7 @@ def ExpSOD(
 
             if o_prev is None:
                 o_prev = o
-                heads.extend(Head(with_trimap, stride, 1, name=f"head_{i}")(o))
+                heads.append(Head(stride, 1, name=f"head_{i}")(o))
                 continue
 
             shift_mode = num_shifts * (i - 1) * 2 % 4 + 1
@@ -264,10 +273,14 @@ def ExpSOD(
                 )(o)
 
             o_prev = o
-            heads.extend(Head(with_trimap, stride, 3, name=f"head_{i}")(o))
+            heads.append(Head(stride, 3, name=f"head_{i}")(o))
+
+        _, a = Split([6], name="a_split", dtype="float32")(heads[-1])
+        print(1, a.shape)
+        heads.append(a)
 
         model = models.Functional(
-            inputs=backbone.inputs, outputs=tuple(heads), name="exp_sod"
+            inputs=backbone.inputs, outputs=tuple(heads), name="exp_mat"
         )
 
         return model

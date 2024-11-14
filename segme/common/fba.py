@@ -14,8 +14,8 @@ class FBAFusion(layers.Layer):
             InputSpec(ndim=4, axes={-1: 3}),  # image
             InputSpec(ndim=4, axes={-1: 3}),  # fg
             InputSpec(ndim=4, axes={-1: 3}),  # bg
-            InputSpec(ndim=4, axes={-1: 1}),
-        ]  # alpha
+            InputSpec(ndim=4, axes={-1: 1}),  # alpha
+        ]
 
         self.inference_only = inference_only
         self.alpha_variance = alpha_variance

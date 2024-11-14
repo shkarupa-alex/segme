@@ -761,6 +761,26 @@ def _prepare_examples_fba(examples):
 
 
 @tf.function(jit_compile=True)
+def _prepare_examples_exp(examples, scales=5):
+    alpha = ops.cast(examples["alpha"], "float32") / 255.0
+    foreground = ops.cast(examples["foreground"], "float32") / 255.0
+    background = ops.cast(examples["background"], "float32") / 255.0
+
+    image = foreground * alpha + background * (1.0 - alpha)
+    image = ops.cast(ops.round(image * 255.0), "uint8")
+
+    features = {"image": image, "trimap": examples["trimap"]}
+
+    alfgbg = ops.concatenate([alpha, foreground, background], axis=-1)
+    labels = (alfgbg,) * scales + (alpha,)
+
+    weight = ops.cast(examples["trimap"] == 128, "float32")
+    weights = (None,) * scales + (weight,)
+
+    return features, labels, weights
+
+
+@tf.function(jit_compile=True)
 def _normalize_trimap(examples):
     trimap = examples["trimap"]
     trimap = ops.cast(trimap // 86, "int32") * 128
@@ -805,7 +825,12 @@ def make_dataset(data_dir, split_name, out_mode, batch_size=1, num_repeats=1):
             _normalize_trimap, num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
 
-    if "fba" == out_mode:
+    if "exp" == out_mode:
+        dataset = dataset.map(
+            _prepare_examples_exp,
+            num_parallel_calls=tf.data.experimental.AUTOTUNE,
+        )
+    elif "fba" == out_mode:
         dataset = dataset.map(
             _prepare_examples_fba,
             num_parallel_calls=tf.data.experimental.AUTOTUNE,

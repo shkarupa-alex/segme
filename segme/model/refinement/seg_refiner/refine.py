@@ -81,13 +81,9 @@ class Refiner(BatchedRefiner):
     def _predict_step(self, images, masks, time, crop_mode):
         current_model = self.model_local if crop_mode else self.model_global
         fine = current_model(
-            {
-                "image": backend.convert_to_tensor(images),
-                "mask": backend.convert_to_tensor(masks),
-                "time": backend.convert_to_tensor(
-                    [time] * images.shape[0], "int32"
-                ),
-            }
+            backend.convert_to_tensor(images),
+            backend.convert_to_tensor(masks),
+            backend.convert_to_tensor([time] * images.shape[0], "int32"),
         )
         if isinstance(fine, (list, tuple)):
             if 1 != len(fine):
