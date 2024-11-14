@@ -179,14 +179,12 @@ def ExpMat(
     inputs = layers.concatenate([image, trimap], axis=-1, name="concat")
 
     backbone = Backbone(input_tensor=inputs)
+    trimap_mean = np.array([0.258, 0.496, 0.247], "float32") * 255.0
+    trimap_variance = (np.array([0.437, 0.499, 0.431], "float32") * 255.0) ** 2
     backbone = patch_channels(
         backbone,
-        [0.306, 0.311, 0.331],
-        [
-            0.461**2,
-            0.463**2,
-            0.463**2,
-        ],
+        trimap_mean.tolist(),
+        trimap_variance.tolist(),
     )
 
     outputs = backbone.outputs[::-1]
