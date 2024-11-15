@@ -55,37 +55,29 @@ def patch_channels(model, mean=None, variance=None):
     if not config["layers"]:
         raise ValueError(f"Layers are empty in config {config}")
 
-    guard = None
-    for i, layer in enumerate(config["layers"]):
-        if "__input_guard__" == layer["config"]["name"]:
-            guard = i
-            break
-    if guard is None:
+    layer_names = [l["config"]["name"] for l in config["layers"]]
+    if "__input_guard__" not in layer_names:
         raise ValueError(f"Input guard layer not found in config {config}")
+    guard = layer_names.index("__input_guard__")
+    target_shape = tuple(config["layers"][guard]["build_config"]["input_shape"])
 
-    if guard + 1 == len(config["layers"]):
+    if len(config["layers"]) == guard + 1:
         raise ValueError("Input guard should not be the last layer in model")
-
-    recipient = config["layers"][guard + 1]
+    recipient_nodes = config["layers"][guard + 1]["inbound_nodes"]
     if (
-        1 != len(recipient["inbound_nodes"])
-        or 1 != len(recipient["inbound_nodes"][0]["args"])
-        or "__input_guard__"
-        != recipient["inbound_nodes"][0]["args"][0]["config"]["keras_history"][
-            0
-        ]
+        1 != len(recipient_nodes)
+        or 1 != len(recipient_nodes[0]["args"])
+        or "__input_guard__" != recipient_nodes[0]["args"][0]["config"]["keras_history"][0]
     ):
         raise ValueError(
             f"Expecting input guard layer to be connected with next one. "
-            f"Got: {recipient}"
+            f"Got: {config['layers'][guard + 1]}"
         )
 
-    input_shape = tuple(config["layers"][guard]["build_config"]["input_shape"])
     source_shape = tuple(
         config["layers"][guard + 1]["build_config"]["input_shape"]
     )
-
-    config["layers"][guard + 1]["build_config"]["input_shape"] = input_shape
+    config["layers"][guard + 1]["build_config"]["input_shape"] = target_shape
     config["layers"][guard + 1]["inbound_nodes"] = config["layers"][guard][
         "inbound_nodes"
     ]
@@ -103,49 +95,78 @@ def patch_channels(model, mean=None, variance=None):
                 f"Got: {layer}"
             )
 
-        if source_shape != layer["build_config"]["input_shape"]:
+        current_shape = [
+            config["layers"][i]["inbound_nodes"][0]["args"][0]["config"][
+                "shape"
+            ]
+        ]
+        if "build_config" in layer:
+            current_shape.append(layer["build_config"]["input_shape"])
+        if source_shape not in current_shape:
             break
-        config["layers"][i]["build_config"]["input_shape"] = input_shape
+
         config["layers"][i]["inbound_nodes"][0]["args"][0]["config"][
             "shape"
-        ] = input_shape
+        ] = target_shape
+        if "build_config" in layer:
+            config["layers"][i]["build_config"]["input_shape"] = target_shape
 
-        if "Normalization" == layer.get("class_name", None):
-            add_channels = max(0, input_shape[-1] - 3)
+    layer_classes = [l.get("class_name", None) for l in config["layers"]]
+    if "Normalization" in layer_classes:
+        norm = layer_classes.index("Normalization")
+
+        channel_delta = target_shape[-1] - 3
+        if 0 == channel_delta:
+            raise ValueError(
+                "Expecting normalization layer inputs "
+                "to have channel size not equal to 3."
+            )
+        elif channel_delta < 0:
+            if mean is not None:
+                raise ValueError(
+                    "Additional means are provided, but won't be used."
+                )
+            if variance is not None:
+                raise ValueError(
+                    "Additional variances are provided, but won't be used."
+                )
+
+            config["layers"][norm]["config"]["mean"] = config["layers"][norm]["config"]["mean"][:channel_delta]
+            config["layers"][norm]["config"]["variance"] = config["layers"][norm]["config"]["variance"][:channel_delta]
+        else:
             if mean is None:
                 raise ValueError(
-                    f"Expecting mean to have {add_channels} values. "
+                    f"Expecting mean to have {channel_delta} values. "
                     f"Got: {mean}"
                 )
             elif isinstance(mean, float):
-                mean = [mean] * add_channels
-            elif add_channels != len(mean):
+                mean = [mean] * channel_delta
+            elif channel_delta != len(mean):
                 raise ValueError(
-                    f"Expecting mean to have {add_channels} values. "
+                    f"Expecting mean to have {channel_delta} values. "
                     f"Got: {mean}"
                 )
             mean = list(mean)
 
             if variance is None:
                 raise ValueError(
-                    f"Expecting variance to have {add_channels} values. "
+                    f"Expecting variance to have {channel_delta} values. "
                     f"Got: {variance}"
                 )
             elif isinstance(variance, float):
-                variance = [variance] * add_channels
-            elif add_channels != len(variance):
+                variance = [variance] * channel_delta
+            elif channel_delta != len(variance):
                 raise ValueError(
-                    f"Expecting variance to have {add_channels} values. "
+                    f"Expecting variance to have {channel_delta} values. "
                     f"Got: {variance}"
                 )
             variance = list(variance)
 
-            config["layers"][i]["config"]["mean"] = (
-                config["layers"][i]["config"]["mean"][: input_shape[-1]] + mean
+            config["layers"][norm]["config"]["mean"] = (
+                config["layers"][norm]["config"]["mean"] + mean
             )
-            config["layers"][i]["config"]["variance"] = (
-                config["layers"][i]["config"]["variance"][: input_shape[-1]]
-                + variance
+            config["layers"][norm]["config"]["variance"] = (
+                config["layers"][norm]["config"]["variance"] + variance
             )
 
     config["layers"].pop(guard)
@@ -256,7 +277,7 @@ def wrap_bone(model, prepr, init, end_points, name, input_tensor=None):
     if 3 != x.shape[-1]:
         x = InputGuard(name="__input_guard__")(x)
 
-    base_model = model(input_tensor=x, include_top=False, weights=init)
+    base_model = model(input_tensor=x, weights=init)
     output_feats = [get_layer(base_model, name_idx) for name_idx in end_points]
 
     down_stack = models.Functional(
