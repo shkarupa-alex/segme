@@ -16,9 +16,9 @@ def _mae(y_true, y_pred, sample_weight):
 
 
 def _lap(y_true, y_pred, sample_weight, levels):
-    return LaplacianPyramidLoss(levels=levels, sigma=1.056, weight_pooling="max")(
-        y_true, y_pred, sample_weight=sample_weight
-    )
+    return LaplacianPyramidLoss(
+        levels=levels, sigma=1.056, weight_pooling="max"
+    )(y_true, y_pred, sample_weight=sample_weight)
 
 
 def l1_a(a_true, a_pred, sample_weight):
@@ -90,10 +90,10 @@ def exp_mat_loss(y_true, y_pred, sample_weight, scale, scales=5):
     _lc_fb = lc_fb(a_true, c_true, f_pred, b_pred, sample_weight=None)
     # TODO: lc_afb
 
-    _llap_a = llap_a(a_true, a_pred, sample_weight=a_weight, level=scale+1)
+    _llap_a = llap_a(a_true, a_pred, sample_weight=a_weight, level=scale + 1)
     # TODO: just for a?
-    _llap_f = llap_f(f_true, f_pred, sample_weight=f_weight, level=scale+1)
-    _llap_b = llap_b(b_true, b_pred, sample_weight=b_weight, level=scale+1)
+    _llap_f = llap_f(f_true, f_pred, sample_weight=f_weight, level=scale + 1)
+    _llap_b = llap_b(b_true, b_pred, sample_weight=b_weight, level=scale + 1)
 
     return (
         _l1_a
@@ -105,8 +105,6 @@ def exp_mat_loss(y_true, y_pred, sample_weight, scale, scales=5):
 
 def exp_mat_losses(scales=5):
     return [
-        WeightedLossFunctionWrapper(
-            partial(exp_mat_loss, scale=i)
-        )
+        WeightedLossFunctionWrapper(partial(exp_mat_loss, scale=i))
         for i in range(scales)
     ] + [None]

@@ -67,7 +67,8 @@ def patch_channels(model, mean=None, variance=None):
     if (
         1 != len(recipient_nodes)
         or 1 != len(recipient_nodes[0]["args"])
-        or "__input_guard__" != recipient_nodes[0]["args"][0]["config"]["keras_history"][0]
+        or "__input_guard__"
+        != recipient_nodes[0]["args"][0]["config"]["keras_history"][0]
     ):
         raise ValueError(
             f"Expecting input guard layer to be connected with next one. "
@@ -131,8 +132,12 @@ def patch_channels(model, mean=None, variance=None):
                     "Additional variances are provided, but won't be used."
                 )
 
-            config["layers"][norm]["config"]["mean"] = config["layers"][norm]["config"]["mean"][:channel_delta]
-            config["layers"][norm]["config"]["variance"] = config["layers"][norm]["config"]["variance"][:channel_delta]
+            config["layers"][norm]["config"]["mean"] = config["layers"][norm][
+                "config"
+            ]["mean"][:channel_delta]
+            config["layers"][norm]["config"]["variance"] = config["layers"][
+                norm
+            ]["config"]["variance"][:channel_delta]
         else:
             if mean is None:
                 raise ValueError(

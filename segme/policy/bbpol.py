@@ -34,8 +34,8 @@ class BackbonePolicy:
             raise ValueError(f"Backbone {self._arch_type} not registered")
         if not (
             self._init_type in {"none", "imagenet", "imagenet21k"}
-            or 0 == self._init_type.count('/')
-            or 0 == self._init_type.count('\\')
+            or 0 == self._init_type.count("/")
+            or 0 == self._init_type.count("\\")
             or file_utils.exists(self._init_type)
         ):
             raise ValueError(f"Unknown init type {self._init_type}")

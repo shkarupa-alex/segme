@@ -141,7 +141,6 @@ def Head(stride, kernel, name=None):
         )(inputs)
         fba = UnFold(stride, name=f"{name}_unfold")(fba)
         fb, a = Split([6], name=f"{name}_split")(fba)
-        print(stride, fb.shape, a.shape)
         fb = layers.Activation(
             "sigmoid", dtype="float32", name=f"{name}_act_f"
         )(fb)
@@ -173,10 +172,13 @@ def ExpMat(
             )
 
     image = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
-    trimap = layers.Input(name="trimap", shape=[None, None, 1], dtype="uint8")
-    trimap = Trimap(name="trimap1h")(trimap)
-
-    inputs = layers.concatenate([image, trimap], axis=-1, name="concat")
+    trimap = layers.Input(name="trimap", shape=(None, None, 1), dtype="uint8")
+    inputs = layers.concatenate(
+        [image, Trimap(name="trimap1h")(trimap)],
+        axis=-1,
+        name="concat",
+        dtype="uint8",
+    )
 
     backbone = Backbone(input_tensor=inputs)
     trimap_mean = np.array([0.258, 0.496, 0.247], "float32") * 255.0
@@ -187,6 +189,7 @@ def ExpMat(
         trimap_variance.tolist(),
     )
 
+    image, trimap = backbone.inputs
     outputs = backbone.outputs[::-1]
 
     num_shifts = transform_depth // 3 + transform_depth % 3 // 2
@@ -274,11 +277,12 @@ def ExpMat(
             heads.append(Head(stride, 3, name=f"head_{i}")(o))
 
         _, a = Split([6], name="a_split", dtype="float32")(heads[-1])
-        print(1, a.shape)
         heads.append(a)
 
         model = models.Functional(
-            inputs=backbone.inputs, outputs=tuple(heads), name="exp_mat"
+            inputs={"image": image, "trimap": trimap},
+            outputs=tuple(heads),
+            name="exp_mat",
         )
 
         return model
