@@ -771,7 +771,7 @@ def _prepare_examples_exp(examples, scales=5):
 
     features = {"image": image, "trimap": examples["trimap"]}
 
-    fgbgal = ops.concatenate([alpha, foreground, background], axis=-1)
+    fgbgal = ops.concatenate([foreground, background, alpha], axis=-1)
     labels = (fgbgal,) * scales + (alpha,)
 
     weight = ops.cast(examples["trimap"] == 128, "float32")
