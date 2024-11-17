@@ -156,7 +156,7 @@ def Head(stride, kernel, name=None):
 
 def ExpMat(
     transform_depth=2,
-    window_size=24,
+    window_size=16,
     path_gamma=0.1,
     path_drop=0.2,
     dtype=None,
