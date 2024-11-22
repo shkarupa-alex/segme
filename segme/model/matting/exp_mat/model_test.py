@@ -169,18 +169,18 @@ class TestExpMat(testing.TestCase):
         config = ExpMat().get_config()
 
         expected_shifts = [
-            ("backstage_1_lateral_transform_0_swin_attn", 24),
-            ("backstage_1_lateral_transform_1_swin_attn", 24),
-            ("backstage_1_merge_transform_0_swin_attn", 24),
-            ("backstage_1_merge_transform_1_swin_attn", 24),
-            ("backstage_2_lateral_transform_0_swin_attn", 24),
-            ("backstage_2_lateral_transform_1_swin_attn", 24),
-            ("backstage_2_merge_transform_0_swin_attn", 24),
-            ("backstage_2_merge_transform_1_swin_attn", 24),
-            ("backstage_3_lateral_transform_0_swin_attn", 24),
-            ("backstage_3_lateral_transform_1_swin_attn", 24),
-            ("backstage_3_merge_transform_0_swin_attn", 24),
-            ("backstage_3_merge_transform_1_swin_attn", 24),
+            ("backstage_1_lateral_transform_0_swin_attn", 16),
+            ("backstage_1_lateral_transform_1_swin_attn", 16),
+            ("backstage_1_merge_transform_0_swin_attn", 16),
+            ("backstage_1_merge_transform_1_swin_attn", 16),
+            ("backstage_2_lateral_transform_0_swin_attn", 16),
+            ("backstage_2_lateral_transform_1_swin_attn", 16),
+            ("backstage_2_merge_transform_0_swin_attn", 16),
+            ("backstage_2_merge_transform_1_swin_attn", 16),
+            ("backstage_3_lateral_transform_0_swin_attn", 16),
+            ("backstage_3_lateral_transform_1_swin_attn", 16),
+            ("backstage_3_merge_transform_0_swin_attn", 16),
+            ("backstage_3_merge_transform_1_swin_attn", 16),
         ]
 
         actual_shifts = TestExpMat._values_from_config(
@@ -199,8 +199,9 @@ class TestExpMat(testing.TestCase):
             },
             input_shape=((2, 384, 384, 3), (2, 384, 384, 1)),
             input_dtype=("uint8",) * 2,
-            expected_output_shape=((2, 384, 384, 7),) * 5 + ((2, 384, 384, 1),),
-            expected_output_dtype=("float32",) * 6,
+            expected_output_shape=((2, 384, 384, 7),) * 5
+            + ((2, 384, 384, 1), (2, 384, 384, 3), (2, 384, 384, 3)),
+            expected_output_dtype=("float32",) * 8,
         )
 
     def test_model(self):
@@ -215,11 +216,13 @@ class TestExpMat(testing.TestCase):
                 np.random.random((2, 384, 384, 1)).astype("uint8"),
             ],
             [
-                np.random.random((2, 384, 384, 7)).astype("float32"),
+                np.random.random((2, 384, 384, 8)).astype("float32"),
             ]
             * 5
             + [
                 np.random.random((2, 384, 384, 1)).astype("float32"),
+                np.random.random((2, 384, 384, 3)).astype("float32"),
+                np.random.random((2, 384, 384, 3)).astype("float32"),
             ],
             epochs=1,
             batch_size=10,

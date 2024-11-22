@@ -71,11 +71,12 @@ def llap_b(b_true, b_pred, sample_weight, level):
 
 def exp_mat_loss(y_true, y_pred, sample_weight, scale, scales=5):
     (
+        a_true,
         f_true,
         b_true,
-        a_true,
-    ) = ops.split(y_true, [3, 6], axis=-1)
-    f_pred, b_pred, a_pred = ops.split(y_pred, [3, 6], axis=-1)
+        t_true,
+    ) = ops.split(y_true, [1, 4, 7], axis=-1)
+    a_pred, f_pred, b_pred = ops.split(y_pred, [1, 4], axis=-1)
 
     a_weight, f_weight, b_weight = None, None, None
     if sample_weight is not None:
@@ -107,4 +108,4 @@ def exp_mat_losses(scales=5):
     return [
         WeightedLossFunctionWrapper(partial(exp_mat_loss, scale=i))
         for i in range(scales)
-    ] + [None]
+    ] + [None] * 3

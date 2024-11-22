@@ -68,8 +68,8 @@ def llap_b(b_true, b_pred, sample_weight):
 
 
 def _total_loss(afb_true, afb_pred, sample_weight, stage=0):
-    a_true, f_true, b_true = ops.split(afb_true, [1, 4], axis=-1)
-    a_pred, f_pred, b_pred = ops.split(afb_pred, [1, 4], axis=-1)
+    a_true, f_true, b_true, _ = ops.split(afb_true, [1, 4, 7], axis=-1)
+    a_pred, f_pred, b_pred, _ = ops.split(afb_pred, [1, 4, 7], axis=-1)
 
     a_weight, f_weight, b_weight = None, None, None
     if sample_weight is not None:

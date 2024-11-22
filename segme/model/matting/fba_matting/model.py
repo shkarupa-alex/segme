@@ -59,7 +59,7 @@ def FBAMatting(weights="nostd_noexcl_norunaug_512", dtype=None):
     with cnapol.policy_scope("conv-gn321em5-leakyrelu"):
         backbone = Encoder()
 
-        image, twomap, _ = backbone.inputs
+        image, twomap, distance = backbone.inputs
         feats2, feats4, feats8 = backbone.outputs
 
         imscal = layers.Rescaling(1 / 255, name="image_scale")(image)
@@ -99,7 +99,7 @@ def FBAMatting(weights="nostd_noexcl_norunaug_512", dtype=None):
         alfgbg, alpha, foreground, background = Fusion(name="fuse")([imscal, x])
 
         model = models.Functional(
-            inputs={i.name: i for i in backbone.inputs},
+            inputs={"distance": distance, "image": image, "twomap": twomap},
             outputs=(alfgbg, alpha, foreground, background),
             name="fba_matting",
         )

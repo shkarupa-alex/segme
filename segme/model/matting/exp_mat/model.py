@@ -20,6 +20,28 @@ from segme.policy.backbone.diy.hardswin import AttnBlock
 from segme.policy.backbone.utils import patch_channels
 
 
+def Encoder():
+    image = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
+    trimap = layers.Input(name="trimap", shape=(None, None, 1), dtype="uint8")
+    inputs = layers.concatenate(
+        [image, Trimap(name="trimap1h")(trimap)],
+        axis=-1,
+        name="concat",
+        dtype="uint8",
+    )
+
+    backbone = Backbone(input_tensor=inputs)
+    trimap_mean = np.array([0.258, 0.496, 0.247], "float32") * 255.0
+    trimap_variance = (np.array([0.437, 0.499, 0.431], "float32") * 255.0) ** 2
+    backbone = patch_channels(
+        backbone,
+        trimap_mean.tolist(),
+        trimap_variance.tolist(),
+    )
+
+    return backbone
+
+
 def Attention(
     depth,
     window_size,
@@ -104,7 +126,7 @@ def FMBConv(
 
         expand_filters = int(channels * expand_ratio)
 
-        inputs_ = inputs
+        x = inputs_ = inputs
         for i in range(depth * 2):
             x = Conv(
                 expand_filters,
@@ -136,20 +158,20 @@ def Head(stride, kernel, name=None):
         name = f"head_{counter}"
 
     def apply(inputs):
-        fba = HeadProjection(
+        afb = HeadProjection(
             7 * stride**2, kernel_size=kernel, name=f"{name}_logits"
         )(inputs)
-        fba = UnFold(stride, name=f"{name}_unfold")(fba)
-        fb, a = Split([6], name=f"{name}_split")(fba)
-        fb = layers.Activation(
-            "sigmoid", dtype="float32", name=f"{name}_act_f"
-        )(fb)
+        afb = UnFold(stride, name=f"{name}_unfold")(afb)
+        a, fb = Split([1], name=f"{name}_split")(afb)
         a = layers.Activation(
             "hard_sigmoid", dtype="float32", name=f"{name}_act_a"
         )(a)
-        fba = layers.concatenate([fb, a], dtype="float32", name=f"{name}_join")
+        fb = layers.Activation(
+            "sigmoid", dtype="float32", name=f"{name}_act_f"
+        )(fb)
+        afb = layers.concatenate([a, fb], dtype="float32", name=f"{name}_join")
 
-        return fba
+        return afb
 
     return apply
 
@@ -171,24 +193,7 @@ def ExpMat(
                 dtype=None,
             )
 
-    image = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
-    trimap = layers.Input(name="trimap", shape=(None, None, 1), dtype="uint8")
-    inputs = layers.concatenate(
-        [image, Trimap(name="trimap1h")(trimap)],
-        axis=-1,
-        name="concat",
-        dtype="uint8",
-    )
-
-    backbone = Backbone(input_tensor=inputs)
-    trimap_mean = np.array([0.258, 0.496, 0.247], "float32") * 255.0
-    trimap_variance = (np.array([0.437, 0.499, 0.431], "float32") * 255.0) ** 2
-    backbone = patch_channels(
-        backbone,
-        trimap_mean.tolist(),
-        trimap_variance.tolist(),
-    )
-
+    backbone = Encoder()
     image, trimap = backbone.inputs
     outputs = backbone.outputs[::-1]
 
@@ -276,8 +281,8 @@ def ExpMat(
             o_prev = o
             heads.append(Head(stride, 3, name=f"head_{i}")(o))
 
-        _, a = Split([6], name="a_split", dtype="float32")(heads[-1])
-        heads.append(a)
+        a, f, b = Split([1, 4], name="a_split", dtype="float32")(heads[-1])
+        heads.extend([a, f, b])
 
         model = models.Functional(
             inputs={"image": image, "trimap": trimap},

@@ -893,8 +893,8 @@ def _prepare_com(examples):
 
     return (
         features,
-        (labels, alpha),
-        (None, weights),
+        (labels, alpha, foreground, background),
+        (None, weights, None, None),
     )
 
 
@@ -917,7 +917,7 @@ def _prepare_fba(examples):
 def _prepare_exp(examples, scales):
     features, labels, weights = _prepare_com(examples)
 
-    labels = labels[:1] * scales + labels[-1:]
-    weights = weights[:1] * scales + weights[-1:]
+    labels = labels[:1] * scales + labels[1:]
+    weights = weights[:1] * scales + weights[1:]
 
     return features, labels, weights

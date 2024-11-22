@@ -10,7 +10,7 @@ class TestFBAMatting(testing.TestCase):
         self.run_layer_test(
             FBAMatting,
             init_kwargs={},
-            input_shape=((2, 120, 120, 3), (2, 120, 120, 2), (2, 120, 120, 6)),
+            input_shape=((2, 120, 120, 6), (2, 120, 120, 3), (2, 120, 120, 2)),
             input_dtype=("uint8",) * 3,
             expected_output_shape=(
                 (2, 120, 120, 7),
@@ -26,12 +26,12 @@ class TestFBAMatting(testing.TestCase):
         model.compile(optimizer="sgd", loss=fba_matting_losses())
         model.fit(
             [
+                np.random.random((2, 240, 240, 6)).astype(np.uint8),
                 np.random.random((2, 240, 240, 3)).astype(np.uint8),
                 np.random.random((2, 240, 240, 2)).astype(np.uint8),
-                np.random.random((2, 240, 240, 6)).astype(np.uint8),
             ],
             [
-                np.random.random((2, 240, 240, 7)).astype(np.float32),
+                np.random.random((2, 240, 240, 8)).astype(np.float32),
                 np.random.random((2, 240, 240, 1)).astype(np.float32),
                 np.random.random((2, 240, 240, 3)).astype(np.float32),
                 np.random.random((2, 240, 240, 3)).astype(np.float32),
