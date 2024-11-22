@@ -1,4 +1,4 @@
-def convert_image_dtype(x, dtype, saturate=False):  # TODO: saturate=True?
+def convert_image_dtype(x, dtype, saturate=True):  # TODO: saturate=True?
     raise NotImplementedError
 
 

@@ -1,4 +1,4 @@
-import tensorflow as tf
+from keras.src import KerasTensor
 from keras.src import layers
 from keras.src import models
 from keras.src import ops
@@ -70,8 +70,8 @@ class CascadePSP(layers.Layer):
 
     def call(self, inputs, training=False, **kwargs):
         image, mask, prev = inputs
-        no_prev = tf.logical_or(
-            ops.cast(training, "bool"), ops.all(tf.equal(mask, prev))
+        no_prev = ops.logical_or(
+            ops.cast(training, "bool"), ops.all(ops.equal(mask, prev))
         )
 
         image = ops.cast(image, self.compute_dtype)
@@ -157,13 +157,10 @@ class CascadePSP(layers.Layer):
     def compute_output_shape(self, input_shape):
         return [input_shape[0][:-1] + (1,)] * 6
 
-    def compute_output_signature(self, input_signature):
-        outptut_signature = super().compute_output_signature(input_signature)
+    def compute_output_spec(self, inputs, training=False):
+        output_spec = super().compute_output_spec(inputs, training=training)
 
-        return [
-            tf.TensorSpec(dtype="float32", shape=os.shape)
-            for os in outptut_signature
-        ]
+        return [KerasTensor(os.shape, dtype="float32") for os in output_spec]
 
 
 def build_cascade_psp():

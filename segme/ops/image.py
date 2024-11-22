@@ -6,7 +6,7 @@ from segme import backend as back
 
 
 class ConvertImageDtype(Operation):
-    def __init__(self, dtype, saturate=False):
+    def __init__(self, dtype, saturate=True):
         super().__init__()
         self.dtype = dtype
         self.saturate = saturate
@@ -18,7 +18,7 @@ class ConvertImageDtype(Operation):
         )
 
 
-def convert_image_dtype(x, dtype, saturate=False):
+def convert_image_dtype(x, dtype, saturate=True):
     if any_symbolic_tensors((x,)):
         return ConvertImageDtype(dtype=dtype, saturate=saturate).symbolic_call(
             x

@@ -8,7 +8,7 @@ from tfmiss.image import connected_components as miss_connected_components
 from tfmiss.image import euclidean_distance as miss_euclidean_distance
 
 
-def convert_image_dtype(x, dtype, saturate=False):  # TODO: saturate=True?
+def convert_image_dtype(x, dtype, saturate=True):
     x = backend.convert_to_tensor(x)
     dtype = tf.dtypes.as_dtype(dtype)
 
