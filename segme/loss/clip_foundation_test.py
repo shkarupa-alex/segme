@@ -3,8 +3,8 @@ from keras.src import testing
 
 from segme.loss.clip_foundation import ClipFoundationLoss
 from segme.loss.clip_foundation import clip_foundation_loss
-from segme.loss.tests.test_common_loss import MULTI_LOGITS
-from segme.loss.tests.test_common_loss import MULTI_WEIGHTS
+from segme.loss.common_loss_test import MULTI_LOGITS
+from segme.loss.common_loss_test import MULTI_WEIGHTS
 
 
 class TestClipFoundationLoss(testing.TestCase):

@@ -4,11 +4,11 @@ from keras.src import testing
 
 from segme.loss.calibrated_focal import CalibratedFocalCrossEntropy
 from segme.loss.calibrated_focal import calibrated_focal_cross_entropy
-from segme.loss.tests.test_common_loss import BINARY_LOGITS
-from segme.loss.tests.test_common_loss import BINARY_TARGETS
-from segme.loss.tests.test_common_loss import BINARY_WEIGHTS
-from segme.loss.tests.test_common_loss import MULTI_LOGITS
-from segme.loss.tests.test_common_loss import MULTI_TARGETS
+from segme.loss.common_loss_test import BINARY_LOGITS
+from segme.loss.common_loss_test import BINARY_TARGETS
+from segme.loss.common_loss_test import BINARY_WEIGHTS
+from segme.loss.common_loss_test import MULTI_LOGITS
+from segme.loss.common_loss_test import MULTI_TARGETS
 
 
 class TestCalibratedFocalCrossEntropy(testing.TestCase):

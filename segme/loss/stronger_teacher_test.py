@@ -3,9 +3,9 @@ from keras.src import testing
 
 from segme.loss.stronger_teacher import StrongerTeacherLoss
 from segme.loss.stronger_teacher import stronger_teacher_loss
-from segme.loss.tests.test_common_loss import MULTI_LOGITS
-from segme.loss.tests.test_common_loss import MULTI_TARGETS
-from segme.loss.tests.test_common_loss import MULTI_WEIGHTS
+from segme.loss.common_loss_test import MULTI_LOGITS
+from segme.loss.common_loss_test import MULTI_TARGETS
+from segme.loss.common_loss_test import MULTI_WEIGHTS
 
 
 class TestStrongerTeacherLoss(testing.TestCase):

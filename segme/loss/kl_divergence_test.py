@@ -4,9 +4,9 @@ from keras.src import testing
 
 from segme.loss.kl_divergence import KLDivergenceLoss
 from segme.loss.kl_divergence import kl_divergence_loss
-from segme.loss.tests.test_common_loss import MULTI_LOGITS
-from segme.loss.tests.test_common_loss import MULTI_TARGETS
-from segme.loss.tests.test_common_loss import MULTI_WEIGHTS
+from segme.loss.common_loss_test import MULTI_LOGITS
+from segme.loss.common_loss_test import MULTI_TARGETS
+from segme.loss.common_loss_test import MULTI_WEIGHTS
 
 
 class TestKLDivergenceLoss(testing.TestCase):

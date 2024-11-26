@@ -6,11 +6,11 @@ from segme.loss.mean_absolute import MeanAbsoluteClassificationError
 from segme.loss.mean_absolute import MeanAbsoluteRegressionError
 from segme.loss.mean_absolute import mean_absolute_classification_error
 from segme.loss.mean_absolute import mean_absolute_regression_error
-from segme.loss.tests.test_common_loss import BINARY_LOGITS
-from segme.loss.tests.test_common_loss import BINARY_TARGETS
-from segme.loss.tests.test_common_loss import BINARY_WEIGHTS
-from segme.loss.tests.test_common_loss import MULTI_LOGITS
-from segme.loss.tests.test_common_loss import MULTI_TARGETS
+from segme.loss.common_loss_test import BINARY_LOGITS
+from segme.loss.common_loss_test import BINARY_TARGETS
+from segme.loss.common_loss_test import BINARY_WEIGHTS
+from segme.loss.common_loss_test import MULTI_LOGITS
+from segme.loss.common_loss_test import MULTI_TARGETS
 
 
 class TestMeanAbsoluteClassificationError(testing.TestCase):

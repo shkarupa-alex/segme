@@ -4,11 +4,11 @@ from keras.src import testing
 
 from segme.loss.sobel_edge import SobelEdgeLoss
 from segme.loss.sobel_edge import sobel_edge_loss
-from segme.loss.tests.test_common_loss import BINARY_LOGITS
-from segme.loss.tests.test_common_loss import BINARY_TARGETS
-from segme.loss.tests.test_common_loss import BINARY_WEIGHTS
-from segme.loss.tests.test_common_loss import MULTI_LOGITS
-from segme.loss.tests.test_common_loss import MULTI_TARGETS
+from segme.loss.common_loss_test import BINARY_LOGITS
+from segme.loss.common_loss_test import BINARY_TARGETS
+from segme.loss.common_loss_test import BINARY_WEIGHTS
+from segme.loss.common_loss_test import MULTI_LOGITS
+from segme.loss.common_loss_test import MULTI_TARGETS
 
 
 class TestSobelEdgeLoss(testing.TestCase):

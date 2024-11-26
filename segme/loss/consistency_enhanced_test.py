@@ -4,11 +4,11 @@ from keras.src import testing
 
 from segme.loss.consistency_enhanced import ConsistencyEnhancedLoss
 from segme.loss.consistency_enhanced import consistency_enhanced_loss
-from segme.loss.tests.test_common_loss import BINARY_LOGITS
-from segme.loss.tests.test_common_loss import BINARY_TARGETS
-from segme.loss.tests.test_common_loss import BINARY_WEIGHTS
-from segme.loss.tests.test_common_loss import MULTI_LOGITS
-from segme.loss.tests.test_common_loss import MULTI_TARGETS
+from segme.loss.common_loss_test import BINARY_LOGITS
+from segme.loss.common_loss_test import BINARY_TARGETS
+from segme.loss.common_loss_test import BINARY_WEIGHTS
+from segme.loss.common_loss_test import MULTI_LOGITS
+from segme.loss.common_loss_test import MULTI_TARGETS
 
 
 class TestConsistencyEnhancedLoss(testing.TestCase):
