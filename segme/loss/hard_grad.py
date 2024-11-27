@@ -9,10 +9,11 @@ from segme.loss.weighted_wrapper import WeightedLossFunctionWrapper
 
 @register_keras_serializable(package="SegMe>Loss")
 class HardGradientMeanAbsoluteError(WeightedLossFunctionWrapper):
-    """Proposed in: 'Boosting Robustness of Image Matting with Context
-    Assembling and Strong Data Augmentation'
+    """Proposed in: 'Learning-based Sampling for Natural Image Matting'
 
-    Implements Equation [4] in https://arxiv.org/pdf/2201.06889
+    Implements Equation [7] in https://openaccess.thecvf.com/
+    content_CVPR_2019/papers/
+    Tang_Learning-Based_Sampling_for_Natural_Image_Matting_CVPR_2019_paper.pdf
     """
 
     def __init__(

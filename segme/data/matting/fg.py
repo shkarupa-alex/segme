@@ -1,6 +1,7 @@
 import numpy as np
 from keras.src import backend
 from keras.src import ops
+from segme.ops import convert_image_dtype
 
 
 def _solve_fg_step(fg, da0, da1, da2, da3, denom, term0):
@@ -92,8 +93,8 @@ def solve_fg(image, alpha, kappa=1.0, steps=16, name=None):
                 "Expecting `image` and `alpha` dtype to be `uint8`."
             )
 
-        image = ops.cast(image, "float32") / 255.0
-        alpha = ops.cast(alpha, "float32") / 255.0
+        image = convert_image_dtype(image, "float32")
+        alpha = convert_image_dtype(alpha, "float32")
 
         afg = alpha * image
 
@@ -127,8 +128,7 @@ def solve_fg(image, alpha, kappa=1.0, steps=16, name=None):
                 [1.0, alpha, afg, fg, height, width, levels, kappa, steps],
             )
 
-        fg = ops.clip(fg, 0.0, 1.0) * 255.0
-        fg = ops.cast(ops.round(fg), "uint8")
+        fg = convert_image_dtype(fg, "uint8")
         fg.set_shape(image.shape)
 
         return fg

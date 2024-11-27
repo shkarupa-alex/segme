@@ -1,6 +1,6 @@
 from keras.src import ops
 
-from segme.loss import GradientMeanSquaredError
+from segme.loss import GradientMeanAbsoluteError
 from segme.loss import LaplacianPyramidLoss
 from segme.loss import MeanAbsoluteRegressionError
 from segme.loss import ReflectionTransmissionExclusionLoss
@@ -50,7 +50,7 @@ def lexcl_fb(f_pred, b_pred, sample_weight):
 
 
 def lg_a(a_true, a_pred, sample_weight):
-    return GradientMeanSquaredError()(
+    return GradientMeanAbsoluteError()(
         a_true, a_pred, sample_weight=sample_weight
     )
 

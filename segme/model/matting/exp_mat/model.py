@@ -158,20 +158,15 @@ def Head(stride, kernel, name=None):
         name = f"head_{counter}"
 
     def apply(inputs):
-        afb = HeadProjection(
+        x = HeadProjection(
             7 * stride**2, kernel_size=kernel, name=f"{name}_logits"
         )(inputs)
-        afb = UnFold(stride, name=f"{name}_unfold")(afb)
-        a, fb = Split([1], name=f"{name}_split")(afb)
-        a = layers.Activation(
+        x = UnFold(stride, name=f"{name}_unfold")(x)
+        x = layers.Activation(
             "hard_sigmoid", dtype="float32", name=f"{name}_act_a"
-        )(a)
-        fb = layers.Activation(
-            "sigmoid", dtype="float32", name=f"{name}_act_f"
-        )(fb)
-        afb = layers.concatenate([a, fb], dtype="float32", name=f"{name}_join")
+        )(x)
 
-        return afb
+        return x
 
     return apply
 

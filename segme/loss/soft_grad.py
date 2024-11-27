@@ -12,29 +12,22 @@ from segme.metric.matting.grad import _togray
 
 
 @register_keras_serializable(package="SegMe>Loss")
-class GradientMeanSquaredError(WeightedLossFunctionWrapper):
-    """Proposed in: 'Learning-based Sampling for Natural Image Matting'
-
-    Implements Equation [7] in https://openaccess.thecvf.com/
-    content_CVPR_2019/papers/
-    Tang_Learning-Based_Sampling_for_Natural_Image_Matting_CVPR_2019_paper.pdf
-    """
-
+class GradientMeanAbsoluteError(WeightedLossFunctionWrapper):
     def __init__(
         self,
         sigma=1.4,
         reduction="sum_over_batch_size",
-        name="gradient_mean_squared_error",
+        name="gradient_mean_absolute_error",
     ):
         super().__init__(
-            gradient_mean_squared_error,
+            gradient_mean_absolute_error,
             reduction=reduction,
             name=name,
             sigma=sigma,
         )
 
 
-def gradient_mean_squared_error(y_true, y_pred, sample_weight, sigma):
+def gradient_mean_absolute_error(y_true, y_pred, sample_weight, sigma):
     y_true, y_pred, sample_weight = validate_input(
         y_true, y_pred, sample_weight, dtype=None, rank=4, channel="same"
     )
@@ -65,7 +58,7 @@ def gradient_mean_squared_error(y_true, y_pred, sample_weight, sigma):
     true_amp = ops.sqrt(y_true_x**2 + y_true_y**2 + backend.epsilon())
     true_amp = ops.stop_gradient(true_amp)
 
-    loss = ops.square(pred_amp - true_amp)
+    loss = ops.abs(pred_amp - true_amp)  # L1 instead of L2 in Grad metric
     loss = weighted_loss(loss, sample_weight)
 
     return loss

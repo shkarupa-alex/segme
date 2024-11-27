@@ -882,13 +882,15 @@ def _prepare_com(examples):
     alpha = convert_image_dtype(examples["alpha"], "float32")
     foreground = convert_image_dtype(examples["foreground"], "float32")
     background = convert_image_dtype(examples["background"], "float32")
-    trimap = examples["trimap"]
 
     image = foreground * alpha + background * (1.0 - alpha)
     image = convert_image_dtype(image, "uint8")
 
+    trimap = examples["trimap"]
+    trimap_ = convert_image_dtype(trimap, "float32")
+
     features = {"image": image, "trimap": trimap}
-    labels = ops.concatenate([alpha, foreground, background, trimap], axis=-1)
+    labels = ops.concatenate([alpha, foreground, background, trimap_], axis=-1)
     weights = ops.cast(trimap == 128, "float32")
 
     return (

@@ -1,6 +1,7 @@
 import numpy as np
 from keras.src import backend
 from keras.src import ops
+from segme.ops import convert_image_dtype
 
 
 def _solve_fgbg_step(step, image, fg, bg, alpha, grad_weight, regularization):
@@ -137,8 +138,8 @@ def solve_fgbg(
                 "Expecting `image` and `alpha` dtype to be `uint8`."
             )
 
-        image = ops.cast(image, "float32") / 255.0
-        alpha = ops.cast(alpha, "float32") / 255.0
+        image = convert_image_dtype(image, "float32")
+        alpha = convert_image_dtype(alpha, "float32")
 
         fg = ops.divide_no_nan(
             ops.sum(image * alpha, axis=[1, 2], keepdims=True),
@@ -173,7 +174,7 @@ def solve_fgbg(
             ),
         )
 
-        fg = ops.cast(ops.round(fg * 255.0), "uint8")
-        bg = ops.cast(ops.round(bg * 255.0), "uint8")
+        fg = convert_image_dtype(fg, "uint8")
+        bg = convert_image_dtype(bg, "uint8")
 
         return fg, bg

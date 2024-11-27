@@ -3,6 +3,7 @@ from keras.src import ops
 
 from segme.data.matting.fg import solve_fg
 from segme.data.matting.trimap import alpha_trimap
+from segme.ops import convert_image_dtype
 
 
 def compose_two(fg, alpha, solve=True, name=None):
@@ -30,7 +31,7 @@ def compose_two(fg, alpha, solve=True, name=None):
         fg = fg[:batch]
         alpha = alpha[:batch]
 
-        alpha = ops.cast(alpha, "float32") / 255.0
+        alpha = convert_image_dtype(alpha, "float32")
         alpha0, alpha1 = ops.split(alpha, 2, axis=0)
 
         # Combine fgs and alphas
@@ -47,15 +48,15 @@ def compose_two(fg, alpha, solve=True, name=None):
         delta = delta[accept]
 
         fg = fg[ops.tile(accept, [2])]
-        fg = ops.cast(fg, "float32") / 255.0
+        fg = convert_image_dtype(fg, "float32")
         fg0, fg1 = ops.split(fg, 2, axis=0)
 
         # The overlap of two 50% transparency should be 25%
         fg_ = (fg0 * alpha0 + fg1 * delta) / (alpha_ + backend.epsilon())
         fg_ = ops.clip(fg_, 0.0, 1.0)
 
-        fg_ = ops.cast(ops.round(fg_ * 255.0), "uint8")
-        alpha_ = ops.cast(ops.round(alpha_ * 255.0), "uint8")
+        fg_ = convert_image_dtype(fg_, "uint8")
+        alpha_ = convert_image_dtype(alpha_, "uint8")
 
         if solve:
             fg_ = solve_fg(fg_, alpha_)

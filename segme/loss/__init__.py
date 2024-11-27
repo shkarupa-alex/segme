@@ -5,7 +5,6 @@ from segme.loss.clip_foundation import ClipFoundationLoss
 from segme.loss.consistency_enhanced import ConsistencyEnhancedLoss
 from segme.loss.cross_entropy import CrossEntropyLoss
 from segme.loss.general_dice import GeneralizedDiceLoss
-from segme.loss.grad_mse import GradientMeanSquaredError
 from segme.loss.hard_grad import HardGradientMeanAbsoluteError
 from segme.loss.heinsen_tree import HeinsenTreeLoss
 from segme.loss.kl_divergence import KLDivergenceLoss
@@ -20,6 +19,7 @@ from segme.loss.region_mutual import RegionMutualInformationLoss
 from segme.loss.rt_exclusion import ReflectionTransmissionExclusionLoss
 from segme.loss.smooth_penalty import SmoothGradientPenalty
 from segme.loss.sobel_edge import SobelEdgeLoss
+from segme.loss.soft_grad import GradientMeanAbsoluteError
 from segme.loss.soft_mae import SoftMeanAbsoluteError
 from segme.loss.stronger_teacher import StrongerTeacherLoss
 from segme.loss.structural_similarity import StructuralSimilarityLoss

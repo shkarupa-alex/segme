@@ -3,13 +3,13 @@ import numpy as np
 from keras.src import ops
 from keras.src import testing
 
-from segme.loss.grad_mse import GradientMeanSquaredError
-from segme.loss.grad_mse import gradient_mean_squared_error
+from segme.loss.soft_grad import GradientMeanAbsoluteError
+from segme.loss.soft_grad import gradient_mean_absolute_error
 
 
-class TestGradientMeanSquaredError(testing.TestCase):
+class TestGradientMeanAbsoluteError(testing.TestCase):
     def test_config(self):
-        loss = GradientMeanSquaredError(reduction="none", name="loss1")
+        loss = GradientMeanAbsoluteError(reduction="none", name="loss1")
         self.assertEqual(loss.name, "loss1")
         self.assertEqual(loss.reduction, "none")
 
@@ -17,7 +17,7 @@ class TestGradientMeanSquaredError(testing.TestCase):
         probs = ops.zeros((3, 16, 16, 1), "float32")
         targets = ops.zeros((3, 16, 16, 1), "int32")
 
-        result = gradient_mean_squared_error(
+        result = gradient_mean_absolute_error(
             y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4
         )
 
@@ -27,7 +27,7 @@ class TestGradientMeanSquaredError(testing.TestCase):
         probs = ops.ones((3, 16, 16, 1), "float32")
         targets = ops.ones((3, 16, 16, 1), "int32")
 
-        result = gradient_mean_squared_error(
+        result = gradient_mean_absolute_error(
             y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4
         )
 
@@ -37,7 +37,7 @@ class TestGradientMeanSquaredError(testing.TestCase):
         probs = ops.zeros((3, 16, 16, 1), "float32")
         targets = ops.ones((3, 16, 16, 1), "int32")
 
-        result = gradient_mean_squared_error(
+        result = gradient_mean_absolute_error(
             y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4
         )
 
@@ -47,7 +47,7 @@ class TestGradientMeanSquaredError(testing.TestCase):
         probs = ops.ones((3, 16, 16, 1), "float32")
         targets = ops.zeros((3, 16, 16, 1), "int32")
 
-        result = gradient_mean_squared_error(
+        result = gradient_mean_absolute_error(
             y_true=targets, y_pred=probs, sample_weight=None, sigma=1.4
         )
 
@@ -76,14 +76,14 @@ class TestGradientMeanSquaredError(testing.TestCase):
             cv2.dilate(targets, np.ones((2, 2), "float32")) > 0, 1.0, 0.0
         )
 
-        loss = GradientMeanSquaredError()
+        loss = GradientMeanAbsoluteError()
         result = loss(
             targets[None, ..., None],
             probs[None, ..., None],
             trim[None, ..., None],
         )
 
-        self.assertAlmostEqual(result, 0.023772128)
+        self.assertAlmostEqual(result, 0.12896793)
 
     def test_weight(self):
         logits = np.array(
@@ -164,16 +164,16 @@ class TestGradientMeanSquaredError(testing.TestCase):
             [ops.ones((2, 4, 2, 1)), ops.zeros((2, 4, 2, 1))], axis=2
         )
 
-        loss = GradientMeanSquaredError()
+        loss = GradientMeanAbsoluteError()
 
         result = loss(targets[:, :, :2], logits[:, :, :2])
-        self.assertAlmostEqual(result, 0.20074403)
+        self.assertAlmostEqual(result, 0.39230442)
 
         result = loss(targets, logits, weights)
-        self.assertAlmostEqual(result, 0.11476261)
+        self.assertAlmostEqual(result, 0.27769643)
 
         result = loss(targets, logits, weights * 2.0)
-        self.assertAlmostEqual(result, 0.11476261 * 2.0)
+        self.assertAlmostEqual(result, 0.27769643 * 2.0)
 
     def test_multi(self):
         logits = np.array(
@@ -251,16 +251,16 @@ class TestGradientMeanSquaredError(testing.TestCase):
             "float32",
         )
 
-        loss = GradientMeanSquaredError()
+        loss = GradientMeanAbsoluteError()
         result = loss(targets, logits)
 
-        self.assertAlmostEqual(result, 0.32215714)
+        self.assertAlmostEqual(result, 0.44839084)
 
     def test_batch(self):
         probs = np.random.rand(2, 224, 224, 1).astype("float32")
         targets = (np.random.rand(2, 224, 224, 1) > 0.5).astype("int32")
 
-        loss = GradientMeanSquaredError()
+        loss = GradientMeanAbsoluteError()
         result0 = loss(targets, probs)
         result1 = (
             sum([loss(targets[i : i + 1], probs[i : i + 1]) for i in range(2)])
@@ -273,7 +273,7 @@ class TestGradientMeanSquaredError(testing.TestCase):
     # def test_model(self):
     #     model = models.Sequential([layers.Dense(1, activation="sigmoid")])
     #     model.compile(
-    #         loss="SegMe>Loss>GradientMeanSquaredError",
+    #         loss="SegMe>Loss>GradientMeanAbsoluteError",
     #     )
     #     model.fit(
     #       ops.zeros((2, 16, 16, 1)), ops.zeros((2, 16, 16, 1), "int32"))
