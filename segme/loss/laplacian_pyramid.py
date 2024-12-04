@@ -172,6 +172,8 @@ def laplacian_pyramid_loss(
     ]
 
     losses = [loss * (2**i) for i, loss in enumerate(losses)]
+    if residual:
+        losses[-1] *= 0.5
     losses = sum(losses)
 
     return losses

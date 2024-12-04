@@ -2222,7 +2222,7 @@ class TestLaplacianPyramidLoss(testing.TestCase):
             levels=4, size=5, sigma=1.056, residual=True
         )
         result = loss(targets, probs)
-        self.assertAlmostEqual(result, 7.6406145, decimal=5)  # with residual
+        self.assertAlmostEqual(result, 7.3056097, decimal=5)  # with residual
 
     def test_weight(self):
         logits = np.array(
