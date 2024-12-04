@@ -2,13 +2,13 @@ import numpy as np
 from keras.src import ops
 from keras.src import testing
 
-from segme.loss.consistency_enhanced import ConsistencyEnhancedLoss
-from segme.loss.consistency_enhanced import consistency_enhanced_loss
 from segme.loss.common_loss_test import BINARY_LOGITS
 from segme.loss.common_loss_test import BINARY_TARGETS
 from segme.loss.common_loss_test import BINARY_WEIGHTS
 from segme.loss.common_loss_test import MULTI_LOGITS
 from segme.loss.common_loss_test import MULTI_TARGETS
+from segme.loss.consistency_enhanced import ConsistencyEnhancedLoss
+from segme.loss.consistency_enhanced import consistency_enhanced_loss
 
 
 class TestConsistencyEnhancedLoss(testing.TestCase):

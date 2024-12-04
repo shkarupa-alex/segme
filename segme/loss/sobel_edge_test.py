@@ -2,13 +2,13 @@ import numpy as np
 from keras.src import ops
 from keras.src import testing
 
-from segme.loss.sobel_edge import SobelEdgeLoss
-from segme.loss.sobel_edge import sobel_edge_loss
 from segme.loss.common_loss_test import BINARY_LOGITS
 from segme.loss.common_loss_test import BINARY_TARGETS
 from segme.loss.common_loss_test import BINARY_WEIGHTS
 from segme.loss.common_loss_test import MULTI_LOGITS
 from segme.loss.common_loss_test import MULTI_TARGETS
+from segme.loss.sobel_edge import SobelEdgeLoss
+from segme.loss.sobel_edge import sobel_edge_loss
 
 
 class TestSobelEdgeLoss(testing.TestCase):

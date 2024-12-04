@@ -3,12 +3,12 @@ from keras.src import ops
 from keras.src import testing
 from keras.src import utils
 
+from segme.loss.common_loss_test import BINARY_LOGITS
+from segme.loss.common_loss_test import BINARY_TARGETS
 from segme.loss.region_mutual import RegionMutualInformationLoss
 from segme.loss.region_mutual import _map_get_pairs
 from segme.loss.region_mutual import _rmi_lower_bound
 from segme.loss.region_mutual import region_mutual_information_loss
-from segme.loss.common_loss_test import BINARY_LOGITS
-from segme.loss.common_loss_test import BINARY_TARGETS
 
 
 class TestMapGetPairs(testing.TestCase):

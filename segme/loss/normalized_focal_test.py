@@ -2,13 +2,13 @@ import numpy as np
 from keras.src import ops
 from keras.src import testing
 
-from segme.loss.normalized_focal import NormalizedFocalCrossEntropy
-from segme.loss.normalized_focal import normalized_focal_cross_entropy
 from segme.loss.common_loss_test import BINARY_LOGITS
 from segme.loss.common_loss_test import BINARY_TARGETS
 from segme.loss.common_loss_test import BINARY_WEIGHTS
 from segme.loss.common_loss_test import MULTI_LOGITS
 from segme.loss.common_loss_test import MULTI_TARGETS
+from segme.loss.normalized_focal import NormalizedFocalCrossEntropy
+from segme.loss.normalized_focal import normalized_focal_cross_entropy
 
 
 class TestNormalizedFocalCrossEntropy(testing.TestCase):

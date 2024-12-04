@@ -98,14 +98,6 @@ def exp_mat_loss(
         )
 
     _l1_a = _l1(a_true, a_pred, sample_weight=None)
-    _l1_f = _l1(f_true, f_pred, sample_weight=None)
-    _l1_b = _l1(b_true, b_pred, sample_weight=None)
-
-    c_true = a_true * f_true + (1.0 - a_true) * b_true
-    _lc_a = lc_a(f_true, b_true, c_true, a_pred, sample_weight=None)
-    _lc_fb = lc_fb(a_true, c_true, f_pred, b_pred, sample_weight=None)
-    _lc_c = lc_c(c_true, a_pred, f_pred, b_pred, sample_weight=None)
-
     _llap_a = _lap(
         a_true,
         a_pred,
@@ -115,27 +107,36 @@ def exp_mat_loss(
         sigma=lap_sigma,
         residual=lap_residual,
     )
-    _llap_f = _lap(
-        f_true,
-        f_pred,
-        sample_weight=None,
-        levels=lap_levels,
-        size=lap_size,
-        sigma=lap_sigma,
-        residual=lap_residual,
-    )
-    _llap_b = _lap(
-        b_true,
-        b_pred,
-        sample_weight=None,
-        levels=lap_levels,
-        size=lap_size,
-        sigma=lap_sigma,
-        residual=lap_residual,
-    )
+    c_true = a_true * f_true + (1.0 - a_true) * b_true
+    _lc_a = lc_a(f_true, b_true, c_true, a_pred, sample_weight=None)
 
     loss = _l1_a + _llap_a + _lc_a
-    loss += (_l1_f + _l1_b + _llap_f + _llap_b + _lc_fb + _lc_c) * fb_scale
+
+    if fb_scale > 0.0:
+        _l1_f = _l1(f_true, f_pred, sample_weight=None)
+        _l1_b = _l1(b_true, b_pred, sample_weight=None)
+        _llap_f = _lap(
+            f_true,
+            f_pred,
+            sample_weight=None,
+            levels=lap_levels,
+            size=lap_size,
+            sigma=lap_sigma,
+            residual=lap_residual,
+        )
+        _llap_b = _lap(
+            b_true,
+            b_pred,
+            sample_weight=None,
+            levels=lap_levels,
+            size=lap_size,
+            sigma=lap_sigma,
+            residual=lap_residual,
+        )
+        _lc_fb = lc_fb(a_true, c_true, f_pred, b_pred, sample_weight=None)
+        _lc_c = lc_c(c_true, a_pred, f_pred, b_pred, sample_weight=None)
+
+        loss += (_l1_f + _l1_b + _llap_f + _llap_b + _lc_fb + _lc_c) * fb_scale
 
     if excl_scale > 0.0:
         if excl_unkn:
@@ -159,7 +160,7 @@ def exp_mat_loss(
 
     if smooth_scale > 0.0:
         _lg_smooth = lg_smooth(
-            a_true, a_pred, sample_weight, strength=smooth_strength
+            a_true, a_pred, sample_weight=None, strength=smooth_strength
         )
         loss += _lg_smooth * smooth_scale
 

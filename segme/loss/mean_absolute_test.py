@@ -2,15 +2,15 @@ import numpy as np
 from keras.src import ops
 from keras.src import testing
 
-from segme.loss.mean_absolute import MeanAbsoluteClassificationError
-from segme.loss.mean_absolute import MeanAbsoluteRegressionError
-from segme.loss.mean_absolute import mean_absolute_classification_error
-from segme.loss.mean_absolute import mean_absolute_regression_error
 from segme.loss.common_loss_test import BINARY_LOGITS
 from segme.loss.common_loss_test import BINARY_TARGETS
 from segme.loss.common_loss_test import BINARY_WEIGHTS
 from segme.loss.common_loss_test import MULTI_LOGITS
 from segme.loss.common_loss_test import MULTI_TARGETS
+from segme.loss.mean_absolute import MeanAbsoluteClassificationError
+from segme.loss.mean_absolute import MeanAbsoluteRegressionError
+from segme.loss.mean_absolute import mean_absolute_classification_error
+from segme.loss.mean_absolute import mean_absolute_regression_error
 
 
 class TestMeanAbsoluteClassificationError(testing.TestCase):

@@ -2,15 +2,15 @@ import numpy as np
 from keras.src import ops
 from keras.src import testing
 
-from segme.loss.mean_squared import MeanSquaredClassificationError
-from segme.loss.mean_squared import MeanSquaredRegressionError
-from segme.loss.mean_squared import mean_squared_classification_error
-from segme.loss.mean_squared import mean_squared_regression_error
 from segme.loss.common_loss_test import BINARY_LOGITS
 from segme.loss.common_loss_test import BINARY_TARGETS
 from segme.loss.common_loss_test import BINARY_WEIGHTS
 from segme.loss.common_loss_test import MULTI_LOGITS
 from segme.loss.common_loss_test import MULTI_TARGETS
+from segme.loss.mean_squared import MeanSquaredClassificationError
+from segme.loss.mean_squared import MeanSquaredRegressionError
+from segme.loss.mean_squared import mean_squared_classification_error
+from segme.loss.mean_squared import mean_squared_regression_error
 
 
 class TestMeanSquaredClassificationError(testing.TestCase):
