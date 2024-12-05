@@ -74,6 +74,8 @@ def exp_mat_loss(
     y_pred,
     sample_weight,
     total_scale,
+    lap_scale,
+    comp_scale,
     lap_levels,
     lap_size,
     lap_sigma,
@@ -98,7 +100,7 @@ def exp_mat_loss(
         )
 
     _l1_a = _l1(a_true, a_pred, sample_weight=None)
-    _llap_a = _lap(
+    _llap_a = lap_scale * _lap(
         a_true,
         a_pred,
         sample_weight=None,
@@ -108,14 +110,16 @@ def exp_mat_loss(
         residual=lap_residual,
     )
     c_true = a_true * f_true + (1.0 - a_true) * b_true
-    _lc_a = lc_a(f_true, b_true, c_true, a_pred, sample_weight=None)
+    _lc_a = comp_scale * lc_a(
+        f_true, b_true, c_true, a_pred, sample_weight=None
+    )
 
     loss = _l1_a + _llap_a + _lc_a
 
     if fb_scale > 0.0:
         _l1_f = _l1(f_true, f_pred, sample_weight=None)
         _l1_b = _l1(b_true, b_pred, sample_weight=None)
-        _llap_f = _lap(
+        _llap_f = lap_scale * _lap(
             f_true,
             f_pred,
             sample_weight=None,
@@ -124,7 +128,7 @@ def exp_mat_loss(
             sigma=lap_sigma,
             residual=lap_residual,
         )
-        _llap_b = _lap(
+        _llap_b = lap_scale * _lap(
             b_true,
             b_pred,
             sample_weight=None,
@@ -133,8 +137,12 @@ def exp_mat_loss(
             sigma=lap_sigma,
             residual=lap_residual,
         )
-        _lc_fb = lc_fb(a_true, c_true, f_pred, b_pred, sample_weight=None)
-        _lc_c = lc_c(c_true, a_pred, f_pred, b_pred, sample_weight=None)
+        _lc_fb = comp_scale * lc_fb(
+            a_true, c_true, f_pred, b_pred, sample_weight=None
+        )
+        _lc_c = comp_scale * lc_c(
+            c_true, a_pred, f_pred, b_pred, sample_weight=None
+        )
 
         loss += (_l1_f + _l1_b + _llap_f + _llap_b + _lc_fb + _lc_c) * fb_scale
 
@@ -170,6 +178,8 @@ def exp_mat_loss(
 def exp_mat_losses(
     scales=5,
     level_scale=1.5,  # [1.0 .. 2.0]
+    lap_scale=1.0,  # [0.1, 1.9]
+    comp_scale=1.0,  # [0.1, 1.9]
     lap_levels=5,  # [5 .. 7]
     lap_size=5,  # [5 .. crop_size // (2 ** lap_levels)]
     lap_sigma=1.056,  # [1.0 .. 2.0]
@@ -190,6 +200,8 @@ def exp_mat_losses(
         level_loss = partial(
             exp_mat_loss,
             total_scale=total_scale,
+            lap_scale=lap_scale,
+            comp_scale=comp_scale,
             lap_levels=lap_levels,
             lap_size=lap_size,
             lap_sigma=lap_sigma,
