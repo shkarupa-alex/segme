@@ -352,17 +352,17 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
                     "foreground": tfds.features.Image(
                         shape=(None, None, 3),
                         dtype=tf.uint8,
-                        encoding_format="jpeg",
+                        encoding_format="png",
                     ),
                     "background": tfds.features.Image(
                         shape=(None, None, 3),
                         dtype=tf.uint8,
-                        encoding_format="jpeg",
+                        encoding_format="png",
                     ),
                     "trimap": tfds.features.Image(
                         shape=(None, None, 1),
                         dtype=tf.uint8,
-                        encoding_format="jpeg",
+                        encoding_format="png",
                     ),
                 }
             ),
@@ -596,7 +596,7 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
                     yield os.path.join(dirpath, file)
 
     def _transform_example(self, alpha_file, split):
-        fg_file = alpha_file.replace("-alpha.png", "-fg.jpg")
+        fg_file = alpha_file.replace("-alpha.png", "-fg.png")
         assert os.path.isfile(fg_file), fg_file
 
         fg = cv2.cvtColor(cv2.imread(fg_file), cv2.COLOR_BGR2RGB)
@@ -631,7 +631,7 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
         elif tfds.Split.VALIDATION == split:
             for i in range(100):
                 bg_file = alpha_file.replace(
-                    "-alpha.png", "-{}_bg.jpg".format(str(i).zfill(2))
+                    "-alpha.png", "-{}_bg.png".format(str(i).zfill(2))
                 )
                 if not os.path.isfile(bg_file):
                     continue
@@ -665,7 +665,7 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
         else:  # tfds.Split.TEST
             for i in range(100):
                 bg_file = alpha_file.replace(
-                    "-alpha.png", "-{}_bg.jpg".format(str(i).zfill(2))
+                    "-alpha.png", "-{}_bg.png".format(str(i).zfill(2))
                 )
                 if not os.path.isfile(bg_file):
                     continue
