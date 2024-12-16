@@ -714,12 +714,16 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
                 self.bg_cache = list(
                     executor.map(self._load_background, selected)
                 )
+                self.bg_cache = [bg for bg in self.bg_cache if bg is not None]
+                assert len(self.bg_cache)
 
         return self.bg_cache.pop(0)
 
     def _load_background(self, file):
-        bg = cv2.cvtColor(cv2.imread(file), cv2.COLOR_BGR2RGB)
-        bg = self.alb_augs["back"](image=bg)["image"]
+        bg = cv2.imread(file)
+        if bg is not None:
+            bg = cv2.cvtColor(bg, cv2.COLOR_BGR2RGB)
+            bg = self.alb_augs["back"](image=bg)["image"]
 
         return bg
 
