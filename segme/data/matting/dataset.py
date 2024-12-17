@@ -563,6 +563,24 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
                         ],
                         p=1,
                     ),
+                    alb.OneOf(
+                        [
+                            alb.Blur(blur_limit=(3, 35)),
+                            alb.Defocus(radius=(3, 35)),
+                            alb.GaussianBlur(blur_limit=(3, 35)),
+                            # alb.MedianBlur(blur_limit=3),
+                            alb.MotionBlur(blur_limit=(3, 35)),
+                            alb.OneOf(
+                                [
+                                    alb.GlassBlur(
+                                        max_delta=i, iterations=1
+                                    )
+                                    for i in range(20)
+                                ]
+                            ),
+                        ],
+                        p=0.1,
+                    ),
                 ]
             ),
             "valid": alb.Compose(
@@ -720,10 +738,13 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
         return self.bg_cache.pop(0)
 
     def _load_background(self, file):
-        bg = cv2.imread(file)
-        if bg is not None:
-            bg = cv2.cvtColor(bg, cv2.COLOR_BGR2RGB)
-            bg = self.alb_augs["back"](image=bg)["image"]
+        bg = None
+        for _ in range(64):
+            bg = cv2.imread(file)
+            if bg is not None:
+                bg = cv2.cvtColor(bg, cv2.COLOR_BGR2RGB)
+                bg = self.alb_augs["back"](image=bg)["image"]
+                break
 
         return bg
 
