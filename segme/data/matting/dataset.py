@@ -572,9 +572,7 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
                             alb.MotionBlur(blur_limit=(3, 35)),
                             alb.OneOf(
                                 [
-                                    alb.GlassBlur(
-                                        max_delta=i, iterations=1
-                                    )
+                                    alb.GlassBlur(max_delta=i, iterations=1)
                                     for i in range(20)
                                 ]
                             ),
