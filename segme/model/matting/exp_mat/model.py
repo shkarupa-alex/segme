@@ -18,9 +18,10 @@ from segme.policy import cnapol
 from segme.policy import dtpol
 from segme.policy.backbone.diy.hardswin import AttnBlock
 from segme.policy.backbone.utils import patch_channels
+from segme.policy.backbone.utils import patch_config
 
 
-def Encoder():
+def Encoder(window_size):
     image = layers.Input(name="image", shape=(None, None, 3), dtype="uint8")
     trimap = layers.Input(name="trimap", shape=(None, None, 1), dtype="uint8")
     inputs = layers.concatenate(
@@ -30,7 +31,10 @@ def Encoder():
         dtype="uint8",
     )
 
-    backbone = Backbone(input_tensor=inputs)
+    backbone = Backbone(
+        input_tensor=inputs, policy="softswin_tiny_21k-imagenet21k"
+    )
+
     trimap_mean = np.array([0.258, 0.496, 0.247], "float32") * 255.0
     trimap_variance = (np.array([0.437, 0.499, 0.431], "float32") * 255.0) ** 2
     backbone = patch_channels(
@@ -38,6 +42,17 @@ def Encoder():
         trimap_mean.tolist(),
         trimap_variance.tolist(),
     )
+
+    weights = backbone.get_weights()
+    config = backbone.get_config()
+    config = patch_config(
+        config, ["stage_3_attn_0_swin_attn"], "current_window", window_size
+    )
+    config = patch_config(
+        config, ["stage_3_attn_1_swin_attn"], "current_window", window_size
+    )
+    backbone = models.Functional.from_config(config)
+    backbone.set_weights(weights)
 
     return backbone
 
@@ -188,7 +203,7 @@ def ExpMat(
                 dtype=None,
             )
 
-    backbone = Encoder()
+    backbone = Encoder(window_size)
     image, trimap = backbone.inputs
     outputs = backbone.outputs[::-1]
 

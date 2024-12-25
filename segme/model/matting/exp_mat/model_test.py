@@ -78,6 +78,30 @@ class TestExpMat(testing.TestCase):
             ),
             ("backstage_4_merge_transform_2_fmbconv_drop", 0.0),
             ("backstage_4_merge_transform_3_fmbconv_drop", 0.0),
+            ("stage_0_attn_0_mlp_drop", 0.0),
+            ("stage_0_attn_0_swin_drop", 0.0),
+            ("stage_0_attn_1_mlp_drop", 0.018181818181818184),
+            ("stage_0_attn_1_swin_drop", 0.018181818181818184),
+            ("stage_1_attn_0_mlp_drop", 0.03636363636363637),
+            ("stage_1_attn_0_swin_drop", 0.03636363636363637),
+            ("stage_1_attn_1_mlp_drop", 0.05454545454545455),
+            ("stage_1_attn_1_swin_drop", 0.05454545454545455),
+            ("stage_2_attn_0_mlp_drop", 0.07272727272727274),
+            ("stage_2_attn_0_swin_drop", 0.07272727272727274),
+            ("stage_2_attn_1_mlp_drop", 0.09090909090909093),
+            ("stage_2_attn_1_swin_drop", 0.09090909090909093),
+            ("stage_2_attn_2_mlp_drop", 0.1090909090909091),
+            ("stage_2_attn_2_swin_drop", 0.1090909090909091),
+            ("stage_2_attn_3_mlp_drop", 0.1272727272727273),
+            ("stage_2_attn_3_swin_drop", 0.1272727272727273),
+            ("stage_2_attn_4_mlp_drop", 0.14545454545454548),
+            ("stage_2_attn_4_swin_drop", 0.14545454545454548),
+            ("stage_2_attn_5_mlp_drop", 0.16363636363636366),
+            ("stage_2_attn_5_swin_drop", 0.16363636363636366),
+            ("stage_3_attn_0_mlp_drop", 0.18181818181818185),
+            ("stage_3_attn_0_swin_drop", 0.18181818181818185),
+            ("stage_3_attn_1_mlp_drop", 0.2),
+            ("stage_3_attn_1_swin_drop", 0.2),
         ]
 
         actual_drops = TestExpMat._values_from_config(
@@ -130,6 +154,30 @@ class TestExpMat(testing.TestCase):
             ("backstage_4_merge_transform_1_fmbconv_norm", 0.09333400000000001),
             ("backstage_4_merge_transform_2_fmbconv_norm", 0.1),
             ("backstage_4_merge_transform_3_fmbconv_norm", 0.1),
+            ("stage_0_attn_0_mlp_norm", 0.01),
+            ("stage_0_attn_0_swin_norm", 0.01),
+            ("stage_0_attn_1_mlp_norm", 0.009091818181818182),
+            ("stage_0_attn_1_swin_norm", 0.009091818181818182),
+            ("stage_1_attn_0_mlp_norm", 0.008183636363636363),
+            ("stage_1_attn_0_swin_norm", 0.008183636363636363),
+            ("stage_1_attn_1_mlp_norm", 0.007275454545454545),
+            ("stage_1_attn_1_swin_norm", 0.007275454545454545),
+            ("stage_2_attn_0_mlp_norm", 0.006367272727272727),
+            ("stage_2_attn_0_swin_norm", 0.006367272727272727),
+            ("stage_2_attn_1_mlp_norm", 0.005459090909090909),
+            ("stage_2_attn_1_swin_norm", 0.005459090909090909),
+            ("stage_2_attn_2_mlp_norm", 0.004550909090909091),
+            ("stage_2_attn_2_swin_norm", 0.004550909090909091),
+            ("stage_2_attn_3_mlp_norm", 0.0036427272727272723),
+            ("stage_2_attn_3_swin_norm", 0.0036427272727272723),
+            ("stage_2_attn_4_mlp_norm", 0.002734545454545454),
+            ("stage_2_attn_4_swin_norm", 0.002734545454545454),
+            ("stage_2_attn_5_mlp_norm", 0.0018263636363636364),
+            ("stage_2_attn_5_swin_norm", 0.0018263636363636364),
+            ("stage_3_attn_0_mlp_norm", 0.000918181818181818),
+            ("stage_3_attn_0_swin_norm", 0.000918181818181818),
+            ("stage_3_attn_1_mlp_norm", 1e-05),
+            ("stage_3_attn_1_swin_norm", 1e-05),
         ]
 
         actual_gammas = TestExpMat._values_from_config(
@@ -158,6 +206,18 @@ class TestExpMat(testing.TestCase):
             ("backstage_3_lateral_transform_1_swin_attn", 1),
             ("backstage_3_merge_transform_0_swin_attn", 0),
             ("backstage_3_merge_transform_1_swin_attn", 2),
+            ("stage_0_attn_0_swin_attn", 0),
+            ("stage_0_attn_1_swin_attn", 1),
+            ("stage_1_attn_0_swin_attn", 0),
+            ("stage_1_attn_1_swin_attn", 2),
+            ("stage_2_attn_0_swin_attn", 0),
+            ("stage_2_attn_1_swin_attn", 3),
+            ("stage_2_attn_2_swin_attn", 0),
+            ("stage_2_attn_3_swin_attn", 4),
+            ("stage_2_attn_4_swin_attn", 0),
+            ("stage_2_attn_5_swin_attn", 1),
+            ("stage_3_attn_0_swin_attn", 0),
+            ("stage_3_attn_1_swin_attn", 2),
         ]
 
         actual_shifts = TestExpMat._values_from_config(
@@ -168,7 +228,7 @@ class TestExpMat(testing.TestCase):
     def test_attention_window(self):
         config = ExpMat().get_config()
 
-        expected_shifts = [
+        expected_windows = [
             ("backstage_1_lateral_transform_0_swin_attn", 16),
             ("backstage_1_lateral_transform_1_swin_attn", 16),
             ("backstage_1_merge_transform_0_swin_attn", 16),
@@ -181,12 +241,24 @@ class TestExpMat(testing.TestCase):
             ("backstage_3_lateral_transform_1_swin_attn", 16),
             ("backstage_3_merge_transform_0_swin_attn", 16),
             ("backstage_3_merge_transform_1_swin_attn", 16),
+            ("stage_0_attn_0_swin_attn", 16),
+            ("stage_0_attn_1_swin_attn", 16),
+            ("stage_1_attn_0_swin_attn", 16),
+            ("stage_1_attn_1_swin_attn", 16),
+            ("stage_2_attn_0_swin_attn", 16),
+            ("stage_2_attn_1_swin_attn", 16),
+            ("stage_2_attn_2_swin_attn", 16),
+            ("stage_2_attn_3_swin_attn", 16),
+            ("stage_2_attn_4_swin_attn", 16),
+            ("stage_2_attn_5_swin_attn", 16),
+            ("stage_3_attn_0_swin_attn", 16),
+            ("stage_3_attn_1_swin_attn", 16),
         ]
 
-        actual_shifts = TestExpMat._values_from_config(
+        actual_windows = TestExpMat._values_from_config(
             config, "SegMe>Common>SwinAttention", "current_window"
         )
-        self.assertListEqual(expected_shifts, actual_shifts)
+        self.assertListEqual(expected_windows, actual_windows)
 
     def test_layer(self):
         self.run_layer_test(
