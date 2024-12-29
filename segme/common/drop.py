@@ -60,13 +60,19 @@ class SlicePath(layers.Dropout):
         outputs, indices = ops.cond(
             ops.equal(keep_size, batch_size),
             lambda: (inputs, indices),
-            lambda: self.slice(inputs, indices, keep_size),
+            lambda: self.slice(inputs, indices, batch_size, keep_size),
         )
 
         return outputs, indices
 
-    def slice(self, inputs, indices, keep_size):
-        indices = ops.random.shuffle(indices, seed=self.seed_generator)
+    def slice(self, inputs, indices, batch_size, keep_size):
+        # Not supported by XLA
+        # indices = ops.random.shuffle(indices, seed=self.seed_generator)
+        order = ops.random.uniform([batch_size], seed=self.seed_generator)
+        order = ops.argsort(order)
+        indices = ops.take(indices, order, axis=0)
+
+
         outputs = ops.take(inputs, indices[:keep_size], axis=0)
 
         return outputs, indices
