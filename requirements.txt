@@ -1,5 +1,5 @@
 tensorflow>=2.18.0
-keras>=3.6.0
+keras>=3.7.0
 numpy>=1.26.0,<2.1.0
 tensorflow_datasets>=4.9.6
 tfswin>=4.1.0
