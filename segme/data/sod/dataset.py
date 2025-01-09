@@ -672,6 +672,10 @@ def _resize_examples(examples, with_trimap, with_depth):
             interpolation="bilinear",
         ),
     }
+    batch_size = result["image"].shape[0]
+    result["image"].set_shape((batch_size, MIN_SIZE, MIN_SIZE, 3))
+    result["mask"].set_shape((batch_size, MIN_SIZE, MIN_SIZE, 1))
+    result["weight"].set_shape((batch_size, MIN_SIZE, MIN_SIZE, 1))
 
     if with_trimap:
         result["trimap"] = ops.image.resize(
@@ -679,6 +683,7 @@ def _resize_examples(examples, with_trimap, with_depth):
             [MIN_SIZE, MIN_SIZE],
             interpolation="nearest",
         )
+        result["trimap"].set_shape((batch_size, MIN_SIZE, MIN_SIZE, 1))
 
     if with_depth:
         result["depth"] = ops.image.resize(
@@ -686,6 +691,7 @@ def _resize_examples(examples, with_trimap, with_depth):
             [MIN_SIZE, MIN_SIZE],
             interpolation="bilinear",
         )
+        result["depth"].set_shape((batch_size, MIN_SIZE, MIN_SIZE, 1))
 
     return result
 
@@ -774,7 +780,6 @@ def make_dataset(
             resize_examples,
             num_parallel_calls=tf.data.experimental.AUTOTUNE,
         )
-        # TODO: check static shape
 
         batch_size = batch_pixels // (MIN_SIZE**2)
         dataset = dataset.shuffle(batch_size * 8)
