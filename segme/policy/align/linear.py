@@ -8,7 +8,7 @@ from segme.common.resize import BilinearInterpolation
 
 @register_keras_serializable(package="SegMe>Policy>Align")
 class BilinearFeatureAlignment(layers.Layer):
-    def __init__(self, filters, **kwargs):
+    def __init__(self, filters, scale=2, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             InputSpec(ndim=4),  # fine
@@ -16,6 +16,7 @@ class BilinearFeatureAlignment(layers.Layer):
         ]  # coarse
 
         self.filters = filters
+        self.scale = scale
 
     def build(self, input_shape):
         channels = [shape[-1] for shape in input_shape]
@@ -29,7 +30,7 @@ class BilinearFeatureAlignment(layers.Layer):
             InputSpec(ndim=4, axes={-1: channels[1]}),
         ]
 
-        self.resize = BilinearInterpolation(dtype=self.dtype_policy)
+        self.resize = BilinearInterpolation(self.scale, dtype=self.dtype_policy)
 
         self.lateral = Conv(channels[0], 1, dtype=self.dtype_policy)
         self.lateral.build(input_shape[0])
@@ -42,7 +43,7 @@ class BilinearFeatureAlignment(layers.Layer):
     def call(self, inputs, **kwargs):
         fine, coarse = inputs
 
-        coarse = self.resize([coarse, fine])
+        coarse = self.resize(coarse)
         fine = self.lateral(fine)
 
         outputs = layers.concatenate([coarse, fine])
@@ -55,6 +56,6 @@ class BilinearFeatureAlignment(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({"filters": self.filters})
+        config.update({"filters": self.filters, "scale": self.scale})
 
         return config

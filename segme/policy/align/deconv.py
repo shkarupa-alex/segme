@@ -7,7 +7,7 @@ from segme.common.convnormact import Conv
 
 @register_keras_serializable(package="SegMe>Policy>Align")
 class DeconvolutionFeatureAlignment(layers.Layer):
-    def __init__(self, filters, kernel_size=3, **kwargs):
+    def __init__(self, filters, scale=2, kernel_size=3, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             InputSpec(ndim=4),  # fine
@@ -15,6 +15,7 @@ class DeconvolutionFeatureAlignment(layers.Layer):
         ]  # coarse
 
         self.filters = filters
+        self.scale = scale
         self.kernel_size = kernel_size
 
     def build(self, input_shape):
@@ -32,7 +33,7 @@ class DeconvolutionFeatureAlignment(layers.Layer):
         self.resize = layers.Conv2DTranspose(
             channels[1],
             self.kernel_size,
-            strides=2,
+            strides=self.scale,
             padding="same",
             dtype=self.dtype_policy,
         )
@@ -65,7 +66,11 @@ class DeconvolutionFeatureAlignment(layers.Layer):
     def get_config(self):
         config = super().get_config()
         config.update(
-            {"filters": self.filters, "kernel_size": self.kernel_size}
+            {
+                "filters": self.filters,
+                "scale": self.scale,
+                "kernel_size": self.kernel_size,
+            }
         )
 
         return config

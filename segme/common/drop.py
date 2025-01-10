@@ -72,7 +72,6 @@ class SlicePath(layers.Dropout):
         order = ops.argsort(order)
         indices = ops.take(indices, order, axis=0)
 
-
         outputs = ops.take(inputs, indices[:keep_size], axis=0)
 
         return outputs, indices

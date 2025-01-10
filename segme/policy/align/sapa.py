@@ -17,7 +17,9 @@ class SapaFeatureAlignment(layers.Layer):
     https://arxiv.org/pdf/2209.12866
     """
 
-    def __init__(self, filters, kernel_size=5, embedding_size=64, **kwargs):
+    def __init__(
+        self, filters, scale=2, kernel_size=5, embedding_size=64, **kwargs
+    ):
         super().__init__(**kwargs)
         self.input_spec = [
             InputSpec(ndim=4),  # fine
@@ -25,6 +27,7 @@ class SapaFeatureAlignment(layers.Layer):
         ]  # coarse
 
         self.filters = filters
+        self.scale = scale
         self.kernel_size = kernel_size
         self.embedding_size = embedding_size
 
@@ -39,7 +42,7 @@ class SapaFeatureAlignment(layers.Layer):
         )
         self.norm_coarse.build(input_shape[1])
 
-        self.intnear = NearestInterpolation(None, dtype=self.dtype_policy)
+        self.intnear = NearestInterpolation(self.scale, dtype=self.dtype_policy)
 
         self.query_gate = layers.Conv2D(
             1, 1, activation="sigmoid", dtype=self.dtype_policy
@@ -71,10 +74,10 @@ class SapaFeatureAlignment(layers.Layer):
         coarse = self.norm_coarse(coarse)
 
         gate = self.query_gate(coarse)
-        gate = self.intnear([gate, fine])
+        gate = self.intnear(gate)
 
         query = self.query_fine(fine) * gate + self.intnear(
-            [self.query_coarse(coarse), fine]
+            self.query_coarse(coarse)
         ) * (1.0 - gate)
         key = self.key(coarse)
         value = self.value(coarse)
@@ -91,6 +94,7 @@ class SapaFeatureAlignment(layers.Layer):
         config.update(
             {
                 "filters": self.filters,
+                "scale": self.scale,
                 "kernel_size": self.kernel_size,
                 "embedding_size": self.embedding_size,
             }

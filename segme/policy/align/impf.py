@@ -20,10 +20,11 @@ class ImplicitFeatureAlignment(layers.Layer):
     https://arxiv.org/pdf/2206.08655
     """
 
-    def __init__(self, filters, **kwargs):
+    def __init__(self, filters, scale=2, **kwargs):
         super().__init__(**kwargs)
 
         self.filters = filters
+        self.scale = scale  # Not used
 
     def build(self, input_shape):
         self.channels = [shape[-1] for shape in input_shape]
@@ -83,7 +84,7 @@ class ImplicitFeatureAlignment(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({"filters": self.filters})
+        config.update({"filters": self.filters, "scale": self.scale})
 
         return config
 

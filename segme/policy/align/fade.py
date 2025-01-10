@@ -14,7 +14,9 @@ class FadeFeatureAlignment(layers.Layer):
     https://arxiv.org/pdf/2207.10392
     """
 
-    def __init__(self, filters, kernel_size=5, embedding_size=64, **kwargs):
+    def __init__(
+        self, filters, scale=2, kernel_size=5, embedding_size=64, **kwargs
+    ):
         super().__init__(**kwargs)
         self.input_spec = [
             InputSpec(ndim=4),  # fine
@@ -22,11 +24,12 @@ class FadeFeatureAlignment(layers.Layer):
         ]  # coarse
 
         self.filters = filters
+        self.scale = scale
         self.kernel_size = kernel_size
         self.embedding_size = embedding_size
 
     def build(self, input_shape):
-        self.intnear = NearestInterpolation(None, dtype=self.dtype_policy)
+        self.intnear = NearestInterpolation(self.scale, dtype=self.dtype_policy)
 
         self.gate = layers.Conv2D(
             1, 1, activation="sigmoid", dtype=self.dtype_policy
@@ -62,7 +65,7 @@ class FadeFeatureAlignment(layers.Layer):
         fine, coarse = inputs
 
         gate = self.gate(coarse)
-        gate = self.intnear([gate, fine])
+        gate = self.intnear(gate)
 
         kernel = self.kernel([fine, coarse])
         coarse = self.carafe([coarse, kernel])
@@ -82,6 +85,7 @@ class FadeFeatureAlignment(layers.Layer):
         config.update(
             {
                 "filters": self.filters,
+                "scale": self.scale,
                 "kernel_size": self.kernel_size,
                 "embedding_size": self.embedding_size,
             }

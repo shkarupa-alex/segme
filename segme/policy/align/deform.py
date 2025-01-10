@@ -21,7 +21,7 @@ class DeformableFeatureAlignment(layers.Layer):
     https://arxiv.org/pdf/2108.07058
     """
 
-    def __init__(self, filters, deformable_groups=8, **kwargs):
+    def __init__(self, filters, scale=2, deformable_groups=8, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             InputSpec(ndim=4),  # fine
@@ -29,10 +29,13 @@ class DeformableFeatureAlignment(layers.Layer):
         ]  # coarse
 
         self.filters = filters
+        self.scale = scale
         self.deformable_groups = deformable_groups
 
     def build(self, input_shape):
-        self.interpolate = BilinearInterpolation(dtype=self.dtype_policy)
+        self.interpolate = BilinearInterpolation(
+            self.scale, dtype=self.dtype_policy
+        )
 
         self.select = FeatureSelection(self.filters, dtype=self.dtype_policy)
         self.select.build(input_shape[0])
@@ -66,7 +69,7 @@ class DeformableFeatureAlignment(layers.Layer):
 
     def call(self, inputs, **kwargs):
         fine, coarse = inputs
-        coarse = self.interpolate([coarse, fine])
+        coarse = self.interpolate(coarse)
 
         fine_calibrated = self.select(fine)
 
@@ -87,6 +90,7 @@ class DeformableFeatureAlignment(layers.Layer):
         config.update(
             {
                 "filters": self.filters,
+                "scale": self.scale,
                 "deformable_groups": self.deformable_groups,
             }
         )
