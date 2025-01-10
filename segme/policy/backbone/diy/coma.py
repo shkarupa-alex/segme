@@ -20,6 +20,7 @@ from segme.common.drop import SlicePath
 from segme.common.grn import GRN
 from segme.common.pool import MultiHeadAttentionPooling
 from segme.common.pool import SimPool
+from segme.common.split import Split
 from segme.policy import cnapol
 
 BASE_URL = (
@@ -161,7 +162,7 @@ def MLPConv(
                 raise ValueError(
                     "Expansion ratio must be greater or equal to 1."
                 )
-            expand_filters = int(channels * expand_ratio)
+            expand_filters = int(channels * expand_ratio // 16) * 16
 
             x, ids = SlicePath(path_drop, name=f"{name}_slice")(inputs)
 
@@ -183,10 +184,14 @@ def MLPConv(
                     kernel_initializer=CONV_KERNEL_INITIALIZER,
                     name=f"{name}_expand_dw",
                 )(x)
-            x = Act(name=f"{name}_act")(x)
 
             if with_grn:
+                x = Act(name=f"{name}_act")(x)
                 x = GRN(center=False, name=f"{name}_grn")(x)  # From ConvNeXt2
+            else:
+                x, y = Split(2, name=f"{name}_split")(x)
+                x = Act(name=f"{name}_act")(x)
+                x *= y
 
             x = Conv(channels, 1, use_bias=False, name=f"{name}_squeeze")(x)
             x = Norm(
@@ -333,6 +338,7 @@ def CoMA(
     current_window=None,
     path_gamma=0.01,
     path_drop=0.0,
+    with_grn=False,
     pretrain_size=384,
     current_size=None,
     input_shape=None,
@@ -547,7 +553,6 @@ def CoMA(
 
         stage_window = min(current_window, current_size // 2 ** (i + 2))
         expand_ratio = max(2, 4 - i)
-        with_grn = i >= 3
         stage_drops, path_drops = (
             path_drops[:stage_depth],
             path_drops[stage_depth:],
