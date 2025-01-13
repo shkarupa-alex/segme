@@ -32,6 +32,13 @@ class SapaFeatureAlignment(layers.Layer):
         self.embedding_size = embedding_size
 
     def build(self, input_shape):
+        channels = [shape[-1] for shape in input_shape]
+        if None in channels:
+            raise ValueError(
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
+            )
+
         self.norm_fine = Norm(
             policy="conv-ln1em5-relu", dtype=self.dtype_policy
         )
@@ -60,10 +67,13 @@ class SapaFeatureAlignment(layers.Layer):
         self.key = Conv(self.embedding_size, 1, dtype=self.dtype_policy)
         self.key.build(input_shape[1])
 
-        self.value = Conv(self.filters, 1, dtype=self.dtype_policy)
+        self.value = Conv(channels[1], 1, dtype=self.dtype_policy)
         self.value.build(input_shape[1])
 
         self.attend = LocalAttention(self.kernel_size, dtype=self.dtype_policy)
+
+        self.proj = Conv(self.filters, 3, dtype=self.dtype_policy)
+        self.proj.build(input_shape[0][:-1] + (sum(channels),))
 
         super().build(input_shape)
 
@@ -82,7 +92,10 @@ class SapaFeatureAlignment(layers.Layer):
         key = self.key(coarse)
         value = self.value(coarse)
 
-        outputs = self.attend([query, key, value])
+        coarse = self.attend([query, key, value])
+
+        outputs = layers.concatenate([coarse, fine])
+        outputs = self.proj(outputs)
 
         return outputs
 
