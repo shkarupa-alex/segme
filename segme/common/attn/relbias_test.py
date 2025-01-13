@@ -4669,7 +4669,7 @@ class TestRelativeBias(testing.TestCase):
 
         self.assertAllClose(expected, result)
 
-    def test_halo(self):
+    def test_halo_value(self):
         layer6 = RelativeBias(6, 6, 6, 1)
         layer6.build(None)
         expected = ops.take(layer6.rel_tab, layer6.rel_idx, axis=0)
@@ -4682,3 +4682,14 @@ class TestRelativeBias(testing.TestCase):
         result = result[:, :, 3:-3, 3:-3]
 
         self.assertAllClose(expected, result)
+
+    def test_halo_symmetric_odd_even(self):
+        for q in range(1, 9):
+            for k in range(1, 9):
+                layer = RelativeBias(q, k, 8, 1)
+                layer.build(None)
+                expected = ops.take(layer.rel_tab, layer.rel_idx, axis=0)
+                expected = ops.reshape(expected, [q, q, k, k, 2])
+                result = -expected[::-1, ::-1, ::-1, ::-1]
+
+                self.assertAllClose(expected, result)

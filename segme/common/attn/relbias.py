@@ -18,15 +18,6 @@ class RelativeBias(layers.Layer):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        if key_window < query_window:
-            raise ValueError(
-                "Key window must be greater or equal to query one."
-            )
-
-        if (key_window - query_window) % 2:
-            raise ValueError(
-                "Key window halo must be symmetric around query window."
-            )
 
         self.query_window = query_window
         self.key_window = key_window
@@ -35,7 +26,7 @@ class RelativeBias(layers.Layer):
         self.cpb_units = cpb_units
 
     def build(self, input_shape):
-        key_halo = (self.key_window - self.query_window) // 2
+        key_halo = (self.key_window - self.query_window) / 2
         rel_tab = np.arange(
             1 - self.query_window - key_halo, self.query_window + key_halo
         ).astype("float32")
