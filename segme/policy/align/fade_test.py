@@ -20,7 +20,12 @@ class TestSemiShift(testing.TestCase):
     def test_layer(self):
         self.run_layer_test(
             SemiShift,
-            init_kwargs={"filters": 25, "kernel_size": 3, "embedding_size": 8},
+            init_kwargs={
+                "filters": 25,
+                "kernel_size": 3,
+                "embedding_size": 8,
+                "scale": 2,
+            },
             input_shape=((2, 6, 8, 12), (2, 3, 4, 6)),
             input_dtype=("float32",) * 2,
             expected_output_shape=(2, 6, 8, 25),

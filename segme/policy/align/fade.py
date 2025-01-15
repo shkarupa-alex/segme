@@ -40,6 +40,7 @@ class FadeFeatureAlignment(layers.Layer):
             self.kernel_size**2,
             max(3, self.kernel_size - 2),
             self.embedding_size,
+            self.scale,
             dtype=self.dtype_policy,
         )
         self.kernel.build(input_shape)
@@ -96,7 +97,7 @@ class FadeFeatureAlignment(layers.Layer):
 
 @register_keras_serializable(package="SegMe>Policy>Align>FADE")
 class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
-    def __init__(self, filters, kernel_size, embedding_size, **kwargs):
+    def __init__(self, filters, kernel_size, embedding_size, scale, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = [
             InputSpec(ndim=4),  # fine
@@ -106,6 +107,7 @@ class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
         self.filters = filters
         self.kernel_size = kernel_size
         self.embedding_size = embedding_size
+        self.scale = scale
 
     def build(self, input_shape):
         self.fine = layers.Conv2D(
@@ -126,7 +128,9 @@ class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
         )
         self.content.build(input_shape[0][:-1] + (self.embedding_size,))
 
-        self.internear = NearestInterpolation(dtype=self.dtype_policy)
+        self.internear = NearestInterpolation(
+            self.scale, dtype=self.dtype_policy
+        )
 
         super().build(input_shape)
 
@@ -138,7 +142,7 @@ class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
 
         coarse = self.coarse(coarse)
         coarse = self.content(coarse)
-        coarse = self.internear([coarse, fine])
+        coarse = self.internear(coarse)
 
         outputs = fine + coarse
 
@@ -154,6 +158,7 @@ class SemiShift(layers.Layer):  # https://github.com/poppinace/fade/issues/2
                 "filters": self.filters,
                 "kernel_size": self.kernel_size,
                 "embedding_size": self.embedding_size,
+                "scale": self.scale,
             }
         )
 

@@ -15,8 +15,16 @@ def make_coords(batch, height, width, dtype=None, name=None):
         width_ = 1.0 / ops.cast(width, dtype)
 
         # TODO https://github.com/tensorflow/tensorflow/issues/80039
-        vertical = height_ - 1.0 + 2 * height_ * ops.cast(ops.arange(height, dtype="float32"), dtype)
-        horizontal = width_ - 1.0 + 2 * width_ * ops.cast(ops.arange(width, dtype="float32"), dtype)
+        vertical = (
+            height_
+            - 1.0
+            + 2 * height_ * ops.cast(ops.arange(height, dtype="float32"), dtype)
+        )
+        horizontal = (
+            width_
+            - 1.0
+            + 2 * width_ * ops.cast(ops.arange(width, dtype="float32"), dtype)
+        )
 
         mesh = ops.meshgrid(vertical, horizontal, indexing="ij")
         join = ops.stack(mesh, axis=-1)

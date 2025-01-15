@@ -5,7 +5,7 @@ from keras.src.saving import register_keras_serializable
 from segme.common.convnormact import Conv
 
 
-@register_keras_serializable(package="SegMe>Policy>Align")
+@register_keras_serializable(package="SegMe>Policy>Align>Deconvolution")
 class DeconvolutionFeatureAlignment(layers.Layer):
     def __init__(self, filters, scale=2, kernel_size=3, **kwargs):
         super().__init__(**kwargs)

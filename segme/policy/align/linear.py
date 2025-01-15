@@ -6,7 +6,7 @@ from segme.common.convnormact import Conv
 from segme.common.resize import BilinearInterpolation
 
 
-@register_keras_serializable(package="SegMe>Policy>Align")
+@register_keras_serializable(package="SegMe>Policy>Align>Linear")
 class BilinearFeatureAlignment(layers.Layer):
     def __init__(self, filters, scale=2, **kwargs):
         super().__init__(**kwargs)
