@@ -1,6 +1,7 @@
 from segme.policy.align.deconv import DeconvolutionFeatureAlignment
 from segme.policy.align.deform import DeformableFeatureAlignment
 from segme.policy.align.fade import FadeFeatureAlignment
+from segme.policy.align.gla import GlaFeatureAlignment
 from segme.policy.align.impf import ImplicitFeatureAlignment
 from segme.policy.align.linear import BilinearFeatureAlignment
 from segme.policy.align.sapa import SapaFeatureAlignment
@@ -19,3 +20,4 @@ ALIGNERS.register("fade")(FadeFeatureAlignment)
 ALIGNERS.register("impf")(ImplicitFeatureAlignment)
 ALIGNERS.register("linear")(BilinearFeatureAlignment)
 ALIGNERS.register("sapa")(SapaFeatureAlignment)
+ALIGNERS.register("gla")(GlaFeatureAlignment)
