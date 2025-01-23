@@ -233,7 +233,7 @@ def train_augment(image, mask, trimap, depth, replay=False):
                             for i2 in INTERPOLATIONS
                         ]
                     ),
-                    alb.GaussNoise(var_limit=(10.0, 100.0)),
+                    alb.GaussNoise(std_range=(0.2, 0.6)),
                     alb.ISONoise(color_shift=(0.01, 0.1), intensity=(0.1, 0.7)),
                     alb.ImageCompression(quality_lower=25, quality_upper=95),
                     alb.OneOf(

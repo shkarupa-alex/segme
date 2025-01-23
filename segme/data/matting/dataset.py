@@ -525,7 +525,7 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
                             #         for i2 in INTERPOLATIONS
                             #     ]
                             # ),
-                            alb.GaussNoise(var_limit=(10.0, 500.0)),
+                            alb.GaussNoise(std_range=(0.01, 0.1)),
                             alb.ISONoise(
                                 color_shift=(0.0, 0.1), intensity=(0.1, 0.7)
                             ),
@@ -573,7 +573,7 @@ class MattingDataset(tfds.core.GeneratorBasedBuilder):
                             alb.OneOf(
                                 [
                                     alb.GlassBlur(max_delta=i, iterations=1)
-                                    for i in range(20)
+                                    for i in range(1, 20)
                                 ]
                             ),
                         ],
