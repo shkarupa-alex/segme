@@ -46,41 +46,40 @@ def Stem(filters, depth, path_drop=0.0, path_gamma=1.0, name=None):
         raise ValueError("Number of path dropouts must equals to depth.")
 
     def apply(inputs):
-        with cnapol.policy_scope("conv-gn1em5-leakyrelu"):
-            x = Conv(
+        x = Conv(
+            filters,
+            3,
+            strides=2,
+            use_bias=False,
+            kernel_initializer=CONV_KERNEL_INITIALIZER,
+            name=f"{name}_0_conv",
+        )(inputs)
+        x = Act(name=f"{name}_0_act")(x)
+        x = Norm(center=False, name=f"{name}_0_norm")(x)
+
+        for i in range(depth):
+            y, ids = SlicePath(path_drop[i], name=f"{name}_{i + 1}_slice")(
+                x
+            )
+            y = Conv(
                 filters,
                 3,
-                strides=2,
                 use_bias=False,
                 kernel_initializer=CONV_KERNEL_INITIALIZER,
-                name=f"{name}_0_conv",
-            )(inputs)
-            x = Act(name=f"{name}_0_act")(x)
-            x = Norm(center=False, name=f"{name}_0_norm")(x)
+                name=f"{name}_{i + 1}_conv",
+            )(y)
+            y = Act(name=f"{name}_{i + 1}_act")(y)
+            y = Norm(
+                center=False,
+                gamma_initializer=initializers.Constant(path_gamma[i]),
+                name=f"{name}_{i + 1}_norm",
+            )(y)
+            y = RestorePath(path_drop[i], name=f"{name}_{i + 1}_restore")(
+                [y, ids]
+            )
+            x = layers.add([y, x], name=f"{name}_{i + 1}_add")
 
-            for i in range(depth):
-                y, ids = SlicePath(path_drop[i], name=f"{name}_{i + 1}_slice")(
-                    x
-                )
-                y = Conv(
-                    filters,
-                    3,
-                    use_bias=False,
-                    kernel_initializer=CONV_KERNEL_INITIALIZER,
-                    name=f"{name}_{i + 1}_conv",
-                )(x)
-                y = Act(name=f"{name}_{i + 1}_act")(y)
-                y = Norm(
-                    center=False,
-                    gamma_initializer=initializers.Constant(path_gamma[i]),
-                    name=f"{name}_{i + 1}_norm",
-                )(y)
-                y = RestorePath(path_drop[i], name=f"{name}_{i + 1}_restore")(
-                    [y, ids]
-                )
-                x = layers.add([y, x], name=f"{name}_{i + 1}_add")
-
-            return x
+        return x
 
     return apply
 
@@ -91,47 +90,46 @@ def Reduce(filters, fused=False, kernel_size=3, expand_ratio=3.0, name=None):
         name = f"reduce_{counter}"
 
     def apply(inputs):
-        with cnapol.policy_scope("conv-ln1em5-gelu"):
-            channels = inputs.shape[-1]
-            if channels is None:
-                raise ValueError(
-                    "Channel dimension of the inputs should be defined. "
-                    "Found `None`."
-                )
+        channels = inputs.shape[-1]
+        if channels is None:
+            raise ValueError(
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
+            )
 
-            expand_filters = int(channels * expand_ratio)
-            if expand_filters < filters:
-                raise ValueError(
-                    "Expansion size must be greater or equal to output one."
-                )
+        expand_filters = int(channels * expand_ratio)
+        if expand_filters < filters:
+            raise ValueError(
+                "Expansion size must be greater or equal to output one."
+            )
 
-            if fused:  # From EfficientNet2
-                x = Conv(
-                    expand_filters,
-                    kernel_size,
-                    strides=2,
-                    use_bias=False,
-                    kernel_initializer=CONV_KERNEL_INITIALIZER,
-                    name=f"{name}_expand",
-                )(inputs)
-            else:
-                x = Conv(
-                    expand_filters, 1, use_bias=False, name=f"{name}_expand_pw"
-                )(inputs)
-                x = Conv(
-                    None,
-                    kernel_size,
-                    strides=2,
-                    use_bias=False,
-                    kernel_initializer=CONV_KERNEL_INITIALIZER,
-                    name=f"{name}_expand_dw",
-                )(x)
+        if fused:  # From EfficientNet2
+            x = Conv(
+                expand_filters,
+                kernel_size,
+                strides=2,
+                use_bias=False,
+                kernel_initializer=CONV_KERNEL_INITIALIZER,
+                name=f"{name}_expand",
+            )(inputs)
+        else:
+            x = Conv(
+                expand_filters, 1, use_bias=False, name=f"{name}_expand_pw"
+            )(inputs)
+            x = Conv(
+                None,
+                kernel_size,
+                strides=2,
+                use_bias=False,
+                kernel_initializer=CONV_KERNEL_INITIALIZER,
+                name=f"{name}_expand_dw",
+            )(x)
 
-            x = Act(name=f"{name}_act")(x)
-            x = Conv(filters, 1, use_bias=False, name=f"{name}_squeeze")(x)
-            x = Norm(center=False, name=f"{name}_norm")(x)
+        x = Act(name=f"{name}_act")(x)
+        x = Conv(filters, 1, use_bias=False, name=f"{name}_squeeze")(x)
+        x = Norm(center=False, name=f"{name}_norm")(x)
 
-            return x
+        return x
 
     return apply
 
@@ -150,59 +148,59 @@ def MLPConv(
         name = f"mlpconv_{counter}"
 
     def apply(inputs):
-        with cnapol.policy_scope("conv-ln1em5-gelu"):
-            channels = inputs.shape[-1]
-            if channels is None:
-                raise ValueError(
-                    "Channel dimension of the inputs should be defined. "
-                    "Found `None`."
-                )
+        channels = inputs.shape[-1]
+        if channels is None:
+            raise ValueError(
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
+            )
 
-            if expand_ratio < 1.0:
-                raise ValueError(
-                    "Expansion ratio must be greater or equal to 1."
-                )
-            expand_filters = int(channels * expand_ratio // 16) * 16
+        if expand_ratio < 1.0:
+            raise ValueError(
+                "Expansion ratio must be greater or equal to 1."
+            )
+        expand_filters = int(channels * expand_ratio // 16) * 16
 
-            x, ids = SlicePath(path_drop, name=f"{name}_slice")(inputs)
+        x, ids = SlicePath(path_drop, name=f"{name}_slice")(inputs)
 
-            if fused:
-                x = Conv(
-                    expand_filters,
-                    kernel_size,
-                    use_bias=False,
-                    name=f"{name}_expand",
-                )(x)
-            else:
-                x = Conv(
-                    expand_filters, 1, use_bias=False, name=f"{name}_expand_pw"
-                )(x)
-                x = Conv(
-                    None,
-                    kernel_size,
-                    use_bias=False,
-                    kernel_initializer=CONV_KERNEL_INITIALIZER,
-                    name=f"{name}_expand_dw",
-                )(x)
-
-            if with_grn:
-                x = Act(name=f"{name}_act")(x)
-                x = GRN(center=False, name=f"{name}_grn")(x)  # From ConvNeXt2
-            else:
-                x, y = Split(2, name=f"{name}_split")(x)
-                x = Act(name=f"{name}_act")(x)
-                x *= y
-
-            x = Conv(channels, 1, use_bias=False, name=f"{name}_squeeze")(x)
-            x = Norm(
-                center=False,
-                gamma_initializer=gamma_initializer,
-                name=f"{name}_norm",
+        if fused:
+            x = Conv(
+                expand_filters,
+                kernel_size,
+                use_bias=False,
+                kernel_initializer=CONV_KERNEL_INITIALIZER,
+                name=f"{name}_expand",
             )(x)
-            x = RestorePath(path_drop, name=f"{name}_restore")([x, ids])
-            x = layers.add([x, inputs], name=f"{name}_add")
+        else:
+            x = Conv(
+                expand_filters, 1, use_bias=False, name=f"{name}_expand_pw"
+            )(x)
+            x = Conv(
+                None,
+                kernel_size,
+                use_bias=False,
+                kernel_initializer=CONV_KERNEL_INITIALIZER,
+                name=f"{name}_expand_dw",
+            )(x)
 
-            return x
+        if with_grn:
+            x = Act(name=f"{name}_act")(x)
+            x = GRN(center=False, name=f"{name}_grn")(x)  # From ConvNeXt2
+        else:
+            x, y = Split(2, name=f"{name}_split")(x)
+            y = Act(name=f"{name}_act")(y)
+            x = layers.multiply([x, y], name=f"{name}_mult")
+
+        x = Conv(channels, 1, use_bias=False, name=f"{name}_squeeze")(x)
+        x = Norm(
+            center=False,
+            gamma_initializer=gamma_initializer,
+            name=f"{name}_norm",
+        )(x)
+        x = RestorePath(path_drop, name=f"{name}_restore")([x, ids])
+        x = layers.add([x, inputs], name=f"{name}_add")
+
+        return x
 
     return apply
 
@@ -227,44 +225,43 @@ def SwinBlock(
     gamma_initializer = initializers.Constant(path_gamma)
 
     def apply(inputs):
-        with cnapol.policy_scope("conv-ln1em5-gelu"):
-            channels = inputs.shape[-1]
-            if channels is None:
-                raise ValueError(
-                    "Channel dimension of the inputs should be defined. "
-                    "Found `None`."
-                )
+        channels = inputs.shape[-1]
+        if channels is None:
+            raise ValueError(
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
+            )
 
-            x, ids = SlicePath(path_drop, name=f"{name}_swin_slice")(inputs)
-            x = SwinAttention(
-                current_window,
-                pretrain_window,
-                num_heads,
-                qk_units=qk_units,
-                cpb_units=num_heads * 8,
-                proj_bias=False,
-                shift_mode=shift_mode,
-                name=f"{name}_swin_attn",
-            )(x)
-            x = Norm(
-                center=False,
-                gamma_initializer=gamma_initializer,
-                name=f"{name}_swin_norm",
-            )(x)
-            x = RestorePath(path_drop, name=f"{name}_swin_restore")([x, ids])
-            x = layers.add([x, inputs], name=f"{name}_swin_add")
+        x, ids = SlicePath(path_drop, name=f"{name}_swin_slice")(inputs)
+        x = SwinAttention(
+            current_window,
+            pretrain_window,
+            num_heads,
+            qk_units=qk_units,
+            cpb_units=num_heads * 8,
+            proj_bias=False,
+            shift_mode=shift_mode,
+            name=f"{name}_swin_attn",
+        )(x)
+        x = Norm(
+            center=False,
+            gamma_initializer=gamma_initializer,
+            name=f"{name}_swin_norm",
+        )(x)
+        x = RestorePath(path_drop, name=f"{name}_swin_restore")([x, ids])
+        x = layers.add([x, inputs], name=f"{name}_swin_add")
 
-            x = MLPConv(
-                False,
-                kernel_size=kernel_size,
-                expand_ratio=expand_ratio,
-                with_grn=with_grn,
-                path_drop=path_drop,
-                gamma_initializer=gamma_initializer,
-                name=f"{name}_mlpconv",
-            )(x)
+        x = MLPConv(
+            False,
+            kernel_size=kernel_size,
+            expand_ratio=expand_ratio,
+            with_grn=with_grn,
+            path_drop=path_drop,
+            gamma_initializer=gamma_initializer,
+            name=f"{name}_mlpconv",
+        )(x)
 
-            return x
+        return x
 
     return apply
 
@@ -681,20 +678,21 @@ def CoMATiny(
     **kwargs,
 ):
     # 23.2 13.0
-    return CoMA(
-        stem_dim=stem_dim,
-        stem_depth=stem_depth,
-        embed_dim=embed_dim,
-        stage_depths=stage_depths,
-        path_drop=path_drop,
-        pretrain_window=pretrain_window,
-        pretrain_size=pretrain_size,
-        model_name=model_name,
-        weights=weights,
-        classes=classes,
-        classifier_activation=classifier_activation,
-        **kwargs,
-    )
+    with cnapol.policy_scope("conv-ln1em5-gelu"):
+        return CoMA(
+            stem_dim=stem_dim,
+            stem_depth=stem_depth,
+            embed_dim=embed_dim,
+            stage_depths=stage_depths,
+            path_drop=path_drop,
+            pretrain_window=pretrain_window,
+            pretrain_size=pretrain_size,
+            model_name=model_name,
+            weights=weights,
+            classes=classes,
+            classifier_activation=classifier_activation,
+            **kwargs,
+        )
 
 
 def CoMASmall(
@@ -712,20 +710,21 @@ def CoMASmall(
     **kwargs,
 ):
     # 46.0 25.9
-    return CoMA(
-        stem_dim=stem_dim,
-        stem_depth=stem_depth,
-        embed_dim=embed_dim,
-        stage_depths=stage_depths,
-        path_drop=path_drop,
-        pretrain_window=pretrain_window,
-        pretrain_size=pretrain_size,
-        model_name=model_name,
-        weights=weights,
-        classes=classes,
-        classifier_activation=classifier_activation,
-        **kwargs,
-    )
+    with cnapol.policy_scope("conv-ln1em5-gelu"):
+        return CoMA(
+            stem_dim=stem_dim,
+            stem_depth=stem_depth,
+            embed_dim=embed_dim,
+            stage_depths=stage_depths,
+            path_drop=path_drop,
+            pretrain_window=pretrain_window,
+            pretrain_size=pretrain_size,
+            model_name=model_name,
+            weights=weights,
+            classes=classes,
+            classifier_activation=classifier_activation,
+            **kwargs,
+        )
 
 
 def CoMABase(
